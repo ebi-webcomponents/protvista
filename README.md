@@ -4,6 +4,10 @@ A Web Component which uses [Nightingale](https://github.com/ebi-webcomponents/ni
 
 ![Image of protvista-uniprot](protvista.png)
 
+## 🗺️ Roadmap & Future Plans
+
+Check out our **[3-Year Roadmap & Sustainability Plan (DRAFT)](ROADMAP.md)** to see our upcoming improvements, including moving towards a configuration-driven architecture, and how you can get involved!
+
 ## 📣 Monthly Office Hours
 
 Have questions about using or contributing to ProtVista?
@@ -30,11 +34,11 @@ We welcome contributions!
 This component requires a modern browser with support for [ES2021](https://caniuse.com/?search=ES2021) and [Web Components (Custom Elements v1)](https://caniuse.com/custom-elementsv1).
 
 | Browser | Minimum version |
-|---------|----------------|
-| Chrome  | 92+            |
-| Edge    | 92+            |
-| Firefox | 90+            |
-| Safari  | 15+            |
+| ------- | --------------- |
+| Chrome  | 92+             |
+| Edge    | 92+             |
+| Firefox | 90+             |
+| Safari  | 15+             |
 
 Older browsers are not supported.
 
