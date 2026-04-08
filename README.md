@@ -4,11 +4,11 @@ A Web Component which uses [Nightingale](https://github.com/ebi-webcomponents/ni
 
 ![Image of protvista-uniprot](protvista.png)
 
-## 🗺️ Roadmap & Future Plans
+## Roadmap & Future Plans
 
 Check out our **[3-Year Roadmap & Sustainability Plan (DRAFT)](ROADMAP.md)** to see our upcoming improvements, including moving towards a configuration-driven architecture, and how you can get involved!
 
-## 📣 Monthly Office Hours
+## Monthly Office Hours
 
 Have questions about using or contributing to ProtVista?
 
