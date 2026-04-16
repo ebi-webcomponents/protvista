@@ -8,3 +8,16 @@ node_modules/
 *.log
 .yalc/
 yalc.lock
+
+# Security: prevent accidental commit of secrets and credentials
+.env
+.env.*
+.env.local
+.env.*.local
+*.pem
+*.key
+*.pfx
+*.p12
+*.cert
+.aws/
+credentials.json

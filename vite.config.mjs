@@ -24,7 +24,7 @@ export default defineConfig({
   ],
   build: {
     target: 'ES2021',
-    sourcemap: true,
+    sourcemap: process.env.NODE_ENV !== 'production',
     lib: {
       entry: 'src/index.ts',
       formats: ['es'],

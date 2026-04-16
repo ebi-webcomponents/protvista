@@ -1,7 +1,7 @@
 #!/bin/sh
 
 curl -X POST \
-  http://purge.jsdelivr.net \
+  https://purge.jsdelivr.net \
   -H 'cache-control: no-cache' \
   -H 'content-type: application/json' \
   -d '{
