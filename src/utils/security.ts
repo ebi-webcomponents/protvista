@@ -24,27 +24,30 @@ export const escapeHtml = (str: unknown): string => {
   return String(str).replace(ESCAPE_RE, (ch) => ESCAPE_MAP[ch]);
 };
 
+const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
+
 /**
  * Sanitize a URL for safe use in href attributes.
  * Only allows http:, https:, and mailto: protocols.
+ * Uses the browser's URL parser to reliably detect the protocol,
+ * avoiding edge cases that string-matching can miss.
  * Returns an empty string for dangerous protocols (javascript:, data:, etc).
  */
 export const sanitizeUrl = (url: unknown): string => {
   if (url == null) return '';
   const str = String(url).trim();
-  const lower = str.toLowerCase();
-  // Allow only safe protocols
-  if (
-    lower.startsWith('http://') ||
-    lower.startsWith('https://') ||
-    lower.startsWith('mailto:')
-  ) {
-    return escapeHtml(str);
-  }
+  if (str === '') return '';
   // Relative URLs are allowed
   if (str.startsWith('/') || str.startsWith('#') || str.startsWith('?')) {
     return escapeHtml(str);
   }
-  // Block everything else (javascript:, data:, vbscript:, etc.)
+  try {
+    const parsed = new URL(str);
+    if (SAFE_PROTOCOLS.has(parsed.protocol)) {
+      return escapeHtml(str);
+    }
+  } catch {
+    // Invalid URL — block it
+  }
   return '';
 };

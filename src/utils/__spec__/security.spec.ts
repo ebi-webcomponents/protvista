@@ -133,4 +133,13 @@ describe('sanitizeUrl', () => {
     expect(sanitizeUrl('ftp://example.com')).toBe('');
     expect(sanitizeUrl('file:///etc/passwd')).toBe('');
   });
+
+  it('blocks javascript: disguised with tab/newline characters', () => {
+    expect(sanitizeUrl('java\tscript:alert(1)')).toBe('');
+    expect(sanitizeUrl('java\nscript:alert(1)')).toBe('');
+  });
+
+  it('blocks bare strings that are not valid URLs', () => {
+    expect(sanitizeUrl('not-a-url')).toBe('');
+  });
 });
