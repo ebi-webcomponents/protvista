@@ -42,11 +42,9 @@
     "@nightingale-elements/nightingale-track-canvas": "5.6.0",
     "@nightingale-elements/nightingale-variation": "5.6.0",
     "color-hash": "2.0.2",
-    "core-js": "3.48.0",
     "lit": "3.3.2",
     "lodash-es": "4.17.23",
-    "timing-functions": "2.0.1",
-    "url-join": "5.0.0"
+    "timing-functions": "2.0.1"
   },
   "devDependencies": {
     "@babel/core": "7.29.0",
