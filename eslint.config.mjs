@@ -39,8 +39,8 @@ export default [
       '@typescript-eslint/no-explicit-any': 'off',
 
       /* Security: flag unsafe DOM manipulation */
-      'no-unsanitized/method': 'warn',
-      'no-unsanitized/property': 'warn',
+      'no-unsanitized/method': 'error',
+      'no-unsanitized/property': 'error',
     },
   },
 ];
