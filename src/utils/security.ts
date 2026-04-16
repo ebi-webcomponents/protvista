@@ -32,11 +32,12 @@ export const escapeHtml = (str: unknown): string => {
 export const sanitizeUrl = (url: unknown): string => {
   if (url == null) return '';
   const str = String(url).trim();
+  const lower = str.toLowerCase();
   // Allow only safe protocols
   if (
-    str.startsWith('http://') ||
-    str.startsWith('https://') ||
-    str.startsWith('mailto:')
+    lower.startsWith('http://') ||
+    lower.startsWith('https://') ||
+    lower.startsWith('mailto:')
   ) {
     return escapeHtml(str);
   }
