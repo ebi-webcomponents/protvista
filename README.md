@@ -89,6 +89,44 @@ yarn start
 
 to install dependencies and start the local development server.
 
+## Testing
+
+Tests run under [Vitest](https://vitest.dev/) with a `jsdom` DOM environment. All APIs (`describe`, `it`, `expect`, `vi`, …) must be imported explicitly from `'vitest'` — `globals` is off.
+
+```bash
+# Run the full pipeline (lint + types + unit)
+yarn test
+
+# Unit tests only (CI-friendly, non-zero exit on failure)
+yarn test:unit
+
+# Watch mode
+yarn test:watch
+
+# Coverage (writes text + html + lcov to ./coverage/)
+yarn test:coverage
+
+# Interactive UI (requires @vitest/ui)
+yarn test:ui
+```
+
+Coverage output is for local use only and is not committed. Open `coverage/index.html` after `yarn test:coverage` to inspect.
+
+### Continuous integration
+
+Every push and pull request runs the same three steps as `yarn test` via [`.github/workflows/test-and-deploy.yml`](./.github/workflows/test-and-deploy.yml): `yarn test:lint`, `yarn test:types`, and `yarn test:unit`, under Node 24 on `ubuntu-latest`. A separate `build` job runs `yarn build` (and, on `main`, `yarn build:demo`) and deploys the demo to GitHub Pages. Coverage is not collected in CI today — run `yarn test:coverage` locally when you need a coverage signal.
+
+### Coverage
+
+Captured 2026-04-18 via `yarn test:coverage` (v8 instrumentation, 29 tests across 3 spec files):
+
+| Metric     | Coverage |
+| ---------- | -------- |
+| Statements | 8.43%    |
+| Branches   | 74.76%   |
+| Functions  | 52.45%   |
+| Lines      | 8.43%    |
+
 ## Configuration
 
 You can pass your own configuration to the component using the `config` attribute/property.

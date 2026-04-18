@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`structure data should merge Overlapping Intervals 1`] = `
+exports[`structure data > should merge Overlapping Intervals 1`] = `
 [
   {
     "category": "STRUCTURE_COVERAGE",
@@ -66,7 +66,7 @@ exports[`structure data should merge Overlapping Intervals 1`] = `
 ]
 `;
 
-exports[`structure data should turn structures into features 1`] = `
+exports[`structure data > should turn structures into features 1`] = `
 [
   {
     "category": "STRUCTURE_COVERAGE",

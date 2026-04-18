@@ -13,8 +13,11 @@
     "start": "vite",
     "test:lint": "eslint src --ext .ts ",
     "test:types": "tsc",
-    "test:unit": "jest",
-    "test": "npm-run-all --continue-on-error test:*",
+    "test:unit": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "test": "npm-run-all --continue-on-error test:lint test:types test:unit",
     "clear-cdn-cache": "./scripts/clearCDNcaches.sh"
   },
   "main": "dist/protvista-uniprot.js",
@@ -49,23 +52,16 @@
     "url-join": "5.0.0"
   },
   "devDependencies": {
-    "@babel/core": "7.29.0",
-    "@babel/plugin-proposal-decorators": "7.29.0",
-    "@babel/plugin-transform-runtime": "7.29.0",
-    "@babel/preset-env": "7.29.0",
-    "@babel/preset-typescript": "7.28.5",
-    "@babel/runtime-corejs3": "7.29.0",
     "@eslint/js": "10.0.1",
     "@originjs/vite-plugin-commonjs": "1.0.3",
-    "@types/jest": "30.0.0",
     "@typescript-eslint/eslint-plugin": "8.56.1",
     "@typescript-eslint/parser": "8.56.1",
-    "babel-jest": "30.2.0",
+    "@vitest/coverage-v8": "3.2.0",
     "eslint": "10.0.2",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-prettier": "5.5.5",
     "globals": "17.3.0",
-    "jest": "30.2.0",
+    "jsdom": "26.1.0",
     "npm-run-all": "4.1.5",
     "rollup-plugin-visualizer": "7.0.0",
     "svg-inline-loader": "0.8.2",
@@ -75,19 +71,13 @@
     "vite-plugin-dts": "4.5.4",
     "vite-plugin-env-compatible": "2.0.1",
     "vite-plugin-html": "3.2.2",
-    "vite-plugin-svgo": "2.0.0"
+    "vite-plugin-svgo": "2.0.0",
+    "vitest": "3.2.0"
   },
   "browserslist": [
     "chrome >= 92",
     "edge >= 92",
     "firefox >= 90",
     "safari >= 15"
-  ],
-  "jest": {
-    "testRegex": "(/__tests__/.*|(\\.|/))spec\\.ts$",
-    "testPathIgnorePatterns": [
-      "/__mocks__/",
-      "<rootDir>/dist/"
-    ]
-  }
+  ]
 }

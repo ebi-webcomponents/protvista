@@ -1,4 +1,6 @@
-jest.mock('lit', () => ({
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('lit', () => ({
   nothing: Symbol.for('lit.nothing'),
 }));
 

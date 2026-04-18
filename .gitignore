@@ -8,3 +8,4 @@ node_modules/
 *.log
 .yalc/
 yalc.lock
+coverage/
