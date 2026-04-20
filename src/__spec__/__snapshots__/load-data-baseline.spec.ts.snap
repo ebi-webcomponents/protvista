@@ -1,0 +1,4888 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`loadProtvistaData baseline (schema-driven default config) > fetches the expected unique URL set after {accession} substitution 1`] = `
+{
+  "accession": "P05067",
+  "fetched": [
+    "https://alphafold.ebi.ac.uk/api/prediction/P05067",
+    "https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/P05067?type=domain&page_size=100",
+    "https://www.ebi.ac.uk/proteins/api/antigen/P05067",
+    "https://www.ebi.ac.uk/proteins/api/epitope/P05067",
+    "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    "https://www.ebi.ac.uk/proteins/api/mutagenesis/P05067",
+    "https://www.ebi.ac.uk/proteins/api/proteins/P05067",
+    "https://www.ebi.ac.uk/proteins/api/proteomics/hpp/P05067",
+    "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/P05067",
+    "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/P05067",
+    "https://www.ebi.ac.uk/proteins/api/rna-editing/P05067",
+    "https://www.ebi.ac.uk/proteins/api/variation/P05067",
+  ],
+}
+`;
+
+exports[`loadProtvistaData baseline (schema-driven default config) > invokes each adapter the expected number of times 1`] = `
+{
+  "alphafold-prediction-json": 1,
+  "alphamissense-average-csv": 1,
+  "alphamissense-full-csv": 1,
+  "interpro-entries-json": 1,
+  "uniprot-features-json": 36,
+  "uniprot-proteins-pdb-json": 1,
+  "uniprot-proteomics-json": 4,
+  "uniprot-proteomics-ptm-json": 1,
+  "uniprot-rna-editing-counts-json": 1,
+  "uniprot-rna-editing-json": 1,
+  "uniprot-variation-counts-json": 1,
+  "uniprot-variation-json": 1,
+}
+`;
+
+exports[`loadProtvistaData baseline (schema-driven default config) > produces a stable result for the reference accession 1`] = `
+{
+  "data": {
+    "ALPHAFOLD_CONFIDENCE": [
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "ALPHAFOLD_CONFIDENCE-alphafold_confidence": [
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "alphafold-prediction-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "ALPHAMISSENSE_PATHOGENICITY": [
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "ALPHAMISSENSE_PATHOGENICITY-alphamissense_pathogenicity": [
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "alphamissense-average-csv",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "ALPHAMISSENSE_PATHOGENICITY-alphamissense_pathogenicity_heatmap": [
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "alphamissense-full-csv",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "ANTIGEN": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "ANTIGEN-antigen": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "DOMAINS": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "accession": "IPR-STUB-REPRESENTATIVE",
+        "end": 50,
+        "locations": [
+          {
+            "fragments": [
+              {
+                "end": 50,
+                "start": 1,
+              },
+              {
+                "end": 300,
+                "start": 200,
+              },
+            ],
+            "representative": true,
+          },
+        ],
+        "source": "InterPro",
+        "start": 1,
+        "tooltipContent": "<h5>Accession</h5><p>IPR-STUB-REPRESENTATIVE</p><h5>Start</h5><p>1</p><h5>End</h5><p>50</p>",
+        "type": "InterPro Representative Domain",
+      },
+      {
+        "accession": "IPR-STUB-REPRESENTATIVE",
+        "end": 300,
+        "locations": [
+          {
+            "fragments": [
+              {
+                "end": 50,
+                "start": 1,
+              },
+              {
+                "end": 300,
+                "start": 200,
+              },
+            ],
+            "representative": true,
+          },
+        ],
+        "source": "InterPro",
+        "start": 200,
+        "tooltipContent": "<h5>Accession</h5><p>IPR-STUB-REPRESENTATIVE</p><h5>Start</h5><p>200</p><h5>End</h5><p>300</p>",
+        "type": "InterPro Representative Domain",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+    ],
+    "DOMAINS-InterPro representative domain": [
+      {
+        "accession": "IPR-STUB-REPRESENTATIVE",
+        "end": 50,
+        "locations": [
+          {
+            "fragments": [
+              {
+                "end": 50,
+                "start": 1,
+              },
+              {
+                "end": 300,
+                "start": 200,
+              },
+            ],
+            "representative": true,
+          },
+        ],
+        "source": "InterPro",
+        "start": 1,
+        "tooltipContent": "<h5>Accession</h5><p>IPR-STUB-REPRESENTATIVE</p><h5>Start</h5><p>1</p><h5>End</h5><p>50</p>",
+        "type": "InterPro Representative Domain",
+      },
+      {
+        "accession": "IPR-STUB-REPRESENTATIVE",
+        "end": 300,
+        "locations": [
+          {
+            "fragments": [
+              {
+                "end": 50,
+                "start": 1,
+              },
+              {
+                "end": 300,
+                "start": 200,
+              },
+            ],
+            "representative": true,
+          },
+        ],
+        "source": "InterPro",
+        "start": 200,
+        "tooltipContent": "<h5>Accession</h5><p>IPR-STUB-REPRESENTATIVE</p><h5>Start</h5><p>200</p><h5>End</h5><p>300</p>",
+        "type": "InterPro Representative Domain",
+      },
+    ],
+    "DOMAINS-domain": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+    ],
+    "DOMAINS-motif": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+    ],
+    "DOMAINS-region": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+    ],
+    "DOMAINS-repeat": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+    ],
+    "DOMAINS-zn_fing": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+    ],
+    "EPITOPE": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "EPITOPE-epitope": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "MOLECULE_PROCESSING": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+    ],
+    "MOLECULE_PROCESSING-chain": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+    ],
+    "MOLECULE_PROCESSING-init_met": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+    ],
+    "MOLECULE_PROCESSING-peptide": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+    ],
+    "MOLECULE_PROCESSING-propep": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+    ],
+    "MOLECULE_PROCESSING-signal": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+    ],
+    "MOLECULE_PROCESSING-transit": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+    ],
+    "MUTAGENESIS": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "MUTAGENESIS-mutagen": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+    ],
+    "MUTAGENESIS-othermutagen": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "PROTEOMICS": [
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "PROTEOMICS-hpp": [
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "PROTEOMICS-non_unique": [
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+    ],
+    "PROTEOMICS-proteomics-ptm": [
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "PROTEOMICS-unique": [
+      {
+        "_adapter": "uniprot-proteomics-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "PTM": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-proteomics-ptm-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+    ],
+    "PTM-carbohyd": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+    ],
+    "PTM-crosslnk": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+    ],
+    "PTM-disulfid": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+    ],
+    "PTM-lipid": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+    ],
+    "PTM-mod_res": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+    ],
+    "PTM-mod_res_ls": [
+      {
+        "_adapter": "uniprot-proteomics-ptm-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+    ],
+    "RNA_EDITING": [
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "RNA_EDITING-RNA Editing": [
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-json",
+        "tooltipContent": "",
+        "type": "unique",
+      },
+    ],
+    "RNA_EDITING-rna_editing_graph": [
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-rna-editing-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "SEQUENCE_INFORMATION": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+    ],
+    "SEQUENCE_INFORMATION-compbias": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+    ],
+    "SEQUENCE_INFORMATION-conflict": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+    ],
+    "SEQUENCE_INFORMATION-non_cons": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+    ],
+    "SEQUENCE_INFORMATION-non_std": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+    ],
+    "SEQUENCE_INFORMATION-non_ter": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+    ],
+    "SEQUENCE_INFORMATION-unsure": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+    ],
+    "SITES": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+    ],
+    "SITES-act_site": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+    ],
+    "SITES-binding": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+    ],
+    "SITES-ca_bind": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+    ],
+    "SITES-dna_bind": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+    ],
+    "SITES-metal": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+    ],
+    "SITES-np_bind": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+    ],
+    "SITES-site": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+    ],
+    "STRUCTURE_COVERAGE": [
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "STRUCTURE_COVERAGE-pdbe_cover": [
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-proteins-pdb-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "TOPOLOGY": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+    ],
+    "TOPOLOGY-intramem": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+    ],
+    "TOPOLOGY-topo_dom": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+    ],
+    "TOPOLOGY-transmem": [
+      {
+        "_adapter": "uniprot-features-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+    ],
+    "VARIATION": [
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+    "VARIATION-variation": [
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "tooltipContent": "",
+        "type": "unique",
+      },
+    ],
+    "VARIATION-variation_graph": [
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>ACT_SITE</p>",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p>",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CA_BIND</p>",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CARBOHYD</p>",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CHAIN</p>",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>COMPBIAS</p>",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CONFLICT</p>",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>CROSSLNK</p>",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>DISULFID</p>",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>DNA_BIND</p>",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>INIT_MET</p>",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>INTRAMEM</p>",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>LIPID</p>",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>METAL</p>",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES</p>",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>MOD_RES_LS</p>",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>MOTIF</p>",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p>",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_CONS</p>",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_STD</p>",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>NON_TER</p>",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>NP_BIND</p>",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>PEPTIDE</p>",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>PROPEP</p>",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>REGION</p>",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>REPEAT</p>",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>SIGNAL</p>",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>SITE</p>",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>TOPO_DOM</p>",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSIT</p>",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>TRANSMEM</p>",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>UNSURE</p>",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>ZN_FING</p>",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p>",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-variation-counts-json",
+        "tooltipContent": "<h5>Type</h5><p>unique</p>",
+        "type": "unique",
+      },
+    ],
+  },
+  "hasData": false,
+  "rawData": {
+    "https://alphafold.ebi.ac.uk/api/prediction/{accession}": {
+      "fixture": true,
+      "url": "https://alphafold.ebi.ac.uk/api/prediction/P05067",
+    },
+    "https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/{accession}?type=domain&page_size=100": {
+      "fixture": true,
+      "url": "https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/P05067?type=domain&page_size=100",
+    },
+    "https://www.ebi.ac.uk/proteins/api/antigen/{accession}": {
+      "fixture": true,
+      "url": "https://www.ebi.ac.uk/proteins/api/antigen/P05067",
+    },
+    "https://www.ebi.ac.uk/proteins/api/epitope/{accession}": {
+      "fixture": true,
+      "url": "https://www.ebi.ac.uk/proteins/api/epitope/P05067",
+    },
+    "https://www.ebi.ac.uk/proteins/api/features/{accession}": {
+      "fixture": true,
+      "url": "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    },
+    "https://www.ebi.ac.uk/proteins/api/mutagenesis/{accession}": {
+      "fixture": true,
+      "url": "https://www.ebi.ac.uk/proteins/api/mutagenesis/P05067",
+    },
+    "https://www.ebi.ac.uk/proteins/api/proteins/{accession}": {
+      "fixture": true,
+      "url": "https://www.ebi.ac.uk/proteins/api/proteins/P05067",
+    },
+    "https://www.ebi.ac.uk/proteins/api/proteomics/hpp/{accession}": {
+      "fixture": true,
+      "url": "https://www.ebi.ac.uk/proteins/api/proteomics/hpp/P05067",
+    },
+    "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/{accession}": {
+      "fixture": true,
+      "url": "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/P05067",
+    },
+    "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/{accession}": {
+      "fixture": true,
+      "url": "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/P05067",
+    },
+    "https://www.ebi.ac.uk/proteins/api/rna-editing/{accession}": {
+      "fixture": true,
+      "url": "https://www.ebi.ac.uk/proteins/api/rna-editing/P05067",
+    },
+    "https://www.ebi.ac.uk/proteins/api/variation/{accession}": {
+      "fixture": true,
+      "url": "https://www.ebi.ac.uk/proteins/api/variation/P05067",
+    },
+  },
+}
+`;
+
+exports[`loadProtvistaData baseline (schema-driven default config) > returns an empty \`data\` object when no accession is effectively provided 1`] = `
+[
+  "MOLECULE_PROCESSING-signal",
+  "MOLECULE_PROCESSING-chain",
+  "MOLECULE_PROCESSING-transit",
+  "MOLECULE_PROCESSING-init_met",
+  "MOLECULE_PROCESSING-propep",
+  "MOLECULE_PROCESSING-peptide",
+  "MOLECULE_PROCESSING",
+  "SEQUENCE_INFORMATION-compbias",
+  "SEQUENCE_INFORMATION-conflict",
+  "SEQUENCE_INFORMATION-non_cons",
+  "SEQUENCE_INFORMATION-non_ter",
+  "SEQUENCE_INFORMATION-unsure",
+  "SEQUENCE_INFORMATION-non_std",
+  "SEQUENCE_INFORMATION",
+  "TOPOLOGY-topo_dom",
+  "TOPOLOGY-transmem",
+  "TOPOLOGY-intramem",
+  "TOPOLOGY",
+  "DOMAINS-domain",
+  "DOMAINS-InterPro representative domain",
+  "DOMAINS-region",
+  "DOMAINS-repeat",
+  "DOMAINS-motif",
+  "DOMAINS-zn_fing",
+  "DOMAINS",
+  "SITES-metal",
+  "SITES-site",
+  "SITES-ca_bind",
+  "SITES-dna_bind",
+  "SITES-np_bind",
+  "SITES-binding",
+  "SITES-act_site",
+  "SITES",
+  "PTM-mod_res",
+  "PTM-mod_res_ls",
+  "PTM-carbohyd",
+  "PTM-disulfid",
+  "PTM-crosslnk",
+  "PTM-lipid",
+  "PTM",
+  "EPITOPE-epitope",
+  "EPITOPE",
+  "ANTIGEN-antigen",
+  "ANTIGEN",
+  "MUTAGENESIS-mutagen",
+  "MUTAGENESIS-othermutagen",
+  "MUTAGENESIS",
+  "VARIATION-variation_graph",
+  "VARIATION-variation",
+  "VARIATION",
+  "RNA_EDITING-rna_editing_graph",
+  "RNA_EDITING-RNA Editing",
+  "RNA_EDITING",
+  "PROTEOMICS-unique",
+  "PROTEOMICS-non_unique",
+  "PROTEOMICS-hpp",
+  "PROTEOMICS-proteomics-ptm",
+  "PROTEOMICS",
+  "STRUCTURE_COVERAGE-pdbe_cover",
+  "STRUCTURE_COVERAGE",
+  "ALPHAFOLD_CONFIDENCE-alphafold_confidence",
+  "ALPHAFOLD_CONFIDENCE",
+  "ALPHAMISSENSE_PATHOGENICITY-alphamissense_pathogenicity",
+  "ALPHAMISSENSE_PATHOGENICITY-alphamissense_pathogenicity_heatmap",
+  "ALPHAMISSENSE_PATHOGENICITY",
+]
+`;

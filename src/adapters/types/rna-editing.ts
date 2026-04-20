@@ -31,8 +31,13 @@ export type TransformedRnaEditing = RnaEditingFeature & {
   variant: string;
   start: number;
   end: number;
-  tooltipContent: string;
   consequenceType: string;
+  /**
+   * Injected by the tooltip resolver in `load-data.ts` after the
+   * adapter returns. Optional because the field is absent on the
+   * adapter's own output.
+   */
+  tooltipContent?: string;
 };
 
 type DBReferenceType = {

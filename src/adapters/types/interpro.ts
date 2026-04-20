@@ -65,7 +65,6 @@ export type TransformedInterPro = {
   start: string | number;
   end: string | number;
   color: any;
-  tooltipContent: string;
   length: number;
   accession: string;
   name: string;
@@ -74,4 +73,10 @@ export type TransformedInterPro = {
   integrated: null | string;
   member_databases: MemberDatabases | null;
   go_terms: GoTerm[] | null;
+  /**
+   * Injected by the tooltip resolver in `load-data.ts` after the
+   * adapter returns. Optional because the field is absent on the
+   * adapter's own output.
+   */
+  tooltipContent?: string;
 }[];

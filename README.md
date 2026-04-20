@@ -93,6 +93,8 @@ to install dependencies and start the local development server.
 
 Tests run under [Vitest](https://vitest.dev/) with a `jsdom` DOM environment. All APIs (`describe`, `it`, `expect`, `vi`, …) must be imported explicitly from `'vitest'` — `globals` is off.
 
+A small setup file at `src/__spec__/setup.ts` filters out jsdom's benign "Could not parse CSS stylesheet" warnings; jsdom's CSS parser is CSS2-era and chokes on the nested-selector syntax used in `src/protvista-styles.ts`. The stylesheet still attaches correctly — it's log noise only. Every other `console.error` passes through untouched. Remove the filter if we ever migrate to happy-dom (which parses modern CSS natively) or jsdom gains native-nesting support.
+
 ```bash
 # Run the full pipeline (lint + types + unit)
 yarn test
@@ -117,12 +119,12 @@ Every push and pull request runs the same three steps as `yarn test` via [`.gith
 
 Captured 2026-04-20 via `yarn test:coverage` (v8 instrumentation, 29 tests across 3 spec files):
 
-| Metric     | Coverage |
-| ---------- | -------- |
-| Statements | 10.33%   |
-| Branches   | 5.99%    |
-| Functions  | 13.19%   |
-| Lines      | 9.66%    |
+| Metric     | Coverage % |
+| ---------- | ---------- |
+| Statements | 71.41      |
+| Branches   | 70.77      |
+| Functions  | 68.63      |
+| Lines      | 71.78      |
 
 ## Configuration
 

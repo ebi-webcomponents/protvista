@@ -97,4 +97,72 @@ export default css`
   .mod-link {
     white-space: nowrap;
   }
+
+  /* -------------------------------------------------------------------------
+   * Click-tooltip popover (installed by src/tooltips/popover.ts).
+   *
+   * The popover is a plain <div role="tooltip"> attached to the host's
+   * light DOM. Floating UI handles positioning via an inline
+   * \`transform\`; everything else is themable here.
+   *
+   * Layout: the resolver emits a flat \`<h5>Label</h5><p>value</p>\`
+   * stream per field. We turn that into a dense two-column grid
+   * (label | value) using CSS grid + \`grid-auto-flow: row dense\`, so
+   * authors don't have to change the tooltip HTML shape to get a
+   * compact definition-list look.
+   * ------------------------------------------------------------------------- */
+  .protvista-tooltip {
+    background: #fff;
+    color: #222;
+    border: 1px solid #c5c8cc;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 0.5em 0.75em;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    max-width: 320px;
+  }
+
+  .protvista-tooltip .content {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 0.6em;
+    row-gap: 0.15em;
+    align-items: baseline;
+  }
+
+  .protvista-tooltip .content h5 {
+    grid-column: 1;
+    margin: 0;
+    padding: 0;
+    font-size: inherit;
+    font-weight: 600;
+    color: #4a5056;
+    white-space: nowrap;
+  }
+
+  .protvista-tooltip .content h5::after {
+    content: ':';
+  }
+
+  .protvista-tooltip .content p {
+    grid-column: 2;
+    margin: 0;
+    padding: 0;
+    word-break: break-word;
+  }
+
+  /* Anything the resolver emits that isn't an <h5>/<p> pair (e.g.
+     markdown tooltips, custom render output, auto-fallback) falls back
+     to spanning the full width of the grid. */
+  .protvista-tooltip .content > *:not(h5):not(p) {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+
+  .protvista-tooltip .arrow {
+    background: #fff;
+    border-right: 1px solid #c5c8cc;
+    border-bottom: 1px solid #c5c8cc;
+  }
 `;

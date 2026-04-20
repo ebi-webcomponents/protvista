@@ -1,0 +1,356 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ebi.ac.uk/protvista/config.schema.json",
+  "title": "ProtvistaViewerConfig",
+  "description": "Declarative configuration for a ProtVista viewer instance (v1). Source-of-truth JSON Schema, authored in lockstep with src/schema/types.ts and the canonical specs/config-approach.md.",
+
+  "type": "object",
+  "required": ["categories"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": {
+      "description": "Schema protocol version. Optional — defaults to \"1.0\" when omitted.",
+      "const": "1.0"
+    },
+    "extends": {
+      "description": "One or more base configs to merge under this one. Each entry is a URL, a file path, or a registered preset name (e.g. \"@ebi/uniprot-default\").",
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        }
+      ]
+    },
+    "accession": {
+      "description": "Primary accession (e.g. \"P05067\"). Used to interpolate {accession} placeholders.",
+      "type": "string",
+      "minLength": 1
+    },
+    "sources": {
+      "description": "Map of named URL templates. Tracks reference these by key.",
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "defaults": { "$ref": "#/$defs/ConfigDefaults" },
+    "categories": {
+      "description": "Ordered list of categories displayed in the viewer.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/CategoryConfig" }
+    }
+  },
+
+  "$defs": {
+    "ConfigDefaults": {
+      "description": "Viewer-wide defaults inherited by every category/track.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rendering": { "$ref": "#/$defs/RenderingOptions" },
+        "labelUrl": { "type": "string", "minLength": 1 },
+        "helpPage": { "type": "string", "minLength": 1 }
+      }
+    },
+
+    "CategoryConfig": {
+      "type": "object",
+      "required": ["id", "tracks"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "description": {
+          "type": "string",
+          "description": "Short plain-text description shown as a native tooltip (HTML `title` attribute) when hovering the category label. No Markdown or HTML interpretation."
+        },
+        "component": { "$ref": "#/$defs/ComponentName" },
+        "tracks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TrackConfig" }
+        },
+        "rendering": { "$ref": "#/$defs/RenderingOptions" },
+        "helpPage": { "type": "string", "minLength": 1 }
+      }
+    },
+
+    "TrackConfig": {
+      "type": "object",
+      "required": ["id", "data"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "labelUrl": { "type": "string", "minLength": 1 },
+        "kind": { "$ref": "#/$defs/SemanticKind" },
+        "component": { "$ref": "#/$defs/ComponentName" },
+        "data": {
+          "description": "String shorthand, single descriptor, or array of descriptors.",
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            { "$ref": "#/$defs/DataSourceDescriptor" },
+            {
+              "type": "array",
+              "items": { "$ref": "#/$defs/DataSourceDescriptor" },
+              "minItems": 1
+            }
+          ]
+        },
+        "description": {
+          "type": "string",
+          "description": "Short plain-text description shown as a native tooltip (HTML `title` attribute) when hovering the track label. No Markdown or HTML interpretation."
+        },
+        "dataTooltip": { "$ref": "#/$defs/DataTooltip" },
+        "filter": { "type": "string", "minLength": 1 },
+        "filterUI": { "const": "nightingale-filter" },
+        "rendering": { "$ref": "#/$defs/RenderingOptions" },
+        "helpPage": { "type": "string", "minLength": 1 }
+      }
+    },
+
+    "DataTooltip": {
+      "description": "Per-item tooltip. Three authoring forms: (a) a bare string — shorthand for a Markdoc template; (b) a fields object — declarative label/value rows; (c) a template object — explicit Markdoc template with optional extra variables. The `custom` form in `TooltipSpec` is not expressible in YAML/JSON — consumers needing a JS render function use the programmatic `viewerConfig.tooltips[kind]` hatch.",
+      "oneOf": [
+        { "type": "string" },
+        { "$ref": "#/$defs/TooltipFieldsSpec" },
+        { "$ref": "#/$defs/TooltipMarkdownSpec" }
+      ]
+    },
+
+    "TooltipFieldsSpec": {
+      "description": "Declarative label/value rows. Each entry becomes `<h5>label</h5>` followed by the value at `path`, optionally routed through a named `tooltipHelpers` entry.",
+      "type": "object",
+      "required": ["kind", "fields"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "const": "fields" },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TooltipFieldSpec" },
+          "minItems": 1
+        }
+      }
+    },
+
+    "TooltipFieldSpec": {
+      "description": "One row in a `fields`-form tooltip. `path` is a dotted property path against the item (e.g. `association.0.name`). `render` names an entry in the `tooltipHelpers` registry; when omitted the value is HTML-escaped and wrapped in `<p>`.",
+      "type": "object",
+      "required": ["path", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "render": { "type": "string", "minLength": 1 }
+      }
+    },
+
+    "TooltipMarkdownSpec": {
+      "description": "Markdoc template rendered against the item's fields. `{% $field %}` interpolates scalars; registered tags (`{% xrefs %}`, `{% evidence %}`, `{% link %}`) produce formatted fragments.",
+      "type": "object",
+      "required": ["kind", "template"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "const": "markdown" },
+        "template": { "type": "string", "minLength": 1 },
+        "variables": {
+          "description": "Extra variables merged into the Markdoc scope alongside the item's fields. Useful for threading track-level context (accession, trackId) into per-item templates.",
+          "type": "object"
+        }
+      }
+    },
+
+    "DataSourceDescriptor": {
+      "description": "Bridge between Intent and Representation. `from` defaults to \"url\".",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "from": { "enum": ["url", "inline", "file", "custom"] },
+        "source": {
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1
+            }
+          ]
+        },
+        "url": {
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1
+            }
+          ]
+        },
+        "inlineData": {},
+        "adapter": { "$ref": "#/$defs/AdapterName" },
+        "transform": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Transform" }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "required": ["from"],
+            "properties": { "from": { "const": "inline" } }
+          },
+          "then": { "required": ["inlineData"] }
+        }
+      ]
+    },
+
+    "Transform": {
+      "description": "A single pipeline step. Discriminated by which operation key is present; exactly one per step.",
+      "type": "object",
+      "oneOf": [
+        {
+          "required": ["filter"],
+          "additionalProperties": false,
+          "properties": {
+            "filter": {
+              "oneOf": [
+                { "type": "string", "minLength": 1 },
+                { "$ref": "#/$defs/FieldPredicate" }
+              ]
+            }
+          }
+        },
+        {
+          "required": ["calculate", "as"],
+          "additionalProperties": false,
+          "properties": {
+            "calculate": { "type": "string", "minLength": 1 },
+            "as": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "required": ["rename"],
+          "additionalProperties": false,
+          "properties": {
+            "rename": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        {
+          "required": ["pick"],
+          "additionalProperties": false,
+          "properties": {
+            "pick": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          }
+        },
+        {
+          "required": ["limit"],
+          "additionalProperties": false,
+          "properties": {
+            "limit": { "type": "integer", "minimum": 0 }
+          }
+        }
+      ]
+    },
+
+    "FieldPredicate": {
+      "description": "Shape-compatible with Vega-Lite's Field Predicate. Exactly `field` plus at least one comparison operator.",
+      "type": "object",
+      "required": ["field"],
+      "additionalProperties": false,
+      "properties": {
+        "field": { "type": "string", "minLength": 1 },
+        "equal": {},
+        "lt": { "type": ["number", "string"] },
+        "lte": { "type": ["number", "string"] },
+        "gt": { "type": ["number", "string"] },
+        "gte": { "type": ["number", "string"] },
+        "oneOf": { "type": "array", "minItems": 1 },
+        "range": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "valid": { "type": "boolean" }
+      },
+      "anyOf": [
+        { "required": ["equal"] },
+        { "required": ["lt"] },
+        { "required": ["lte"] },
+        { "required": ["gt"] },
+        { "required": ["gte"] },
+        { "required": ["oneOf"] },
+        { "required": ["range"] },
+        { "required": ["valid"] }
+      ]
+    },
+
+    "RenderingOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "color": { "type": "string", "minLength": 1 },
+        "shape": { "type": "string", "minLength": 1 },
+        "height": { "type": "number", "exclusiveMinimum": 0 },
+        "layout": { "enum": ["non-overlapping", "default"] },
+        "colorScale": { "$ref": "#/$defs/ColorScaleConfig" }
+      }
+    },
+
+    "ColorScaleConfig": {
+      "description": "Either a named theme OR explicit stops (at least one required). When both are present, explicit stops take precedence at render time.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "theme": { "type": "string", "minLength": 1 },
+        "stops": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ColorStop" },
+          "minItems": 2
+        }
+      },
+      "anyOf": [
+        { "required": ["theme"] },
+        { "required": ["stops"] }
+      ]
+    },
+
+    "ColorStop": {
+      "type": "object",
+      "required": ["value", "color"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": "number" },
+        "color": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" }
+      }
+    },
+
+    "SemanticKind": {
+      "description": "Open-string vocabulary. Closed-set validation (built-ins + runtime-registered kinds) is applied by the runtime validator, not this static schema.",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "ComponentName": {
+      "description": "Open-string vocabulary. Closed-set validation is applied by the runtime validator.",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "AdapterName": {
+      "description": "Open-string vocabulary. Closed-set validation is applied by the runtime validator.",
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

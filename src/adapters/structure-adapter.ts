@@ -1,5 +1,3 @@
-import formatTooltip from '../tooltips/structure-tooltip';
-
 const featureType = 'PDBE_COVER';
 const featureCategory = 'STRUCTURE_COVERAGE';
 
@@ -93,10 +91,6 @@ const transformData = (data) => {
   if (data && data.length !== 0) {
     const allFeatureStructures = getAllFeatureStructures(data);
     transformedData = mergeOverlappingIntervals(allFeatureStructures);
-
-    transformedData.forEach((feature) => {
-      feature.tooltipContent = formatTooltip(feature);
-    });
   }
   return transformedData;
 };

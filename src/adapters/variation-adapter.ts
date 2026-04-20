@@ -7,8 +7,6 @@ import {
   VariationDatum,
 } from '@nightingale-elements/nightingale-variation';
 
-import formatTooltip from '../tooltips/variation-tooltip';
-
 export type TransformedVariant = VariationDatum & Variant;
 
 const getSourceType = (xrefs: Xref[], sourceType: SourceType) => {
@@ -33,7 +31,6 @@ const transformData = (
     start: +variant.begin,
     xrefNames: getSourceType(variant.xrefs, variant.sourceType),
     hasPredictions: variant.predictions && variant.predictions.length > 0,
-    tooltipContent: formatTooltip(variant),
   }));
   if (!variants) return null;
   return { sequence, variants };
