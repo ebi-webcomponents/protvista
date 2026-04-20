@@ -210,7 +210,7 @@ const processAFData = (
             ${isoformMatch.isoformId}
             ${isoformMatch.sequence === canonicalSequence ? '(Canonical)' : ''}
           </a>`
-        : null;
+        : undefined;
 
       return {
         id: d.modelEntityId,
@@ -518,7 +518,7 @@ class ProtvistaUniprotStructure extends LitElement {
     if (this.isoforms && rawData[alphaFoldUrl]?.length) {
       // Include isoforms that are provided in the UniProt isoforms mapping and ignore the rest from AF payload that are out of sync with UniProt
       const alphaFoldSequenceMatches = rawData[alphaFoldUrl]?.filter(
-        ({ sequence: afSequence }) =>
+        ({ sequence: afSequence }: { sequence: string }) =>
           this.isoforms?.some(({ sequence }) => afSequence === sequence)
       );
 
@@ -533,14 +533,14 @@ class ProtvistaUniprotStructure extends LitElement {
     } else {
       // Check if AF sequence matches UniProt sequence
       const alphaFoldSequenceMatch = rawData[alphaFoldUrl]?.filter(
-        ({ sequence: afSequence }) =>
+        ({ sequence: afSequence }: { sequence: string }) =>
           rawData[pdbUrl]?.sequence?.value === afSequence ||
           this.sequence === afSequence
       );
       if (alphaFoldSequenceMatch?.length) {
         afData = processAFData(alphaFoldSequenceMatch);
         this.alphamissenseAvailable = alphaFoldSequenceMatch.some(
-          (data) => data.amAnnotationsUrl
+          (data: { amAnnotationsUrl?: string }) => data.amAnnotationsUrl
         );
       }
     }
@@ -609,7 +609,7 @@ class ProtvistaUniprotStructure extends LitElement {
       this.checksum ||
       (providersFrom3DBeacons.includes(source) && !afPrediction)
     ) {
-      this.modelUrl = downloadUrl;
+      this.modelUrl = downloadUrl ?? '';
       // Reset the rest
       this.structureId = undefined;
       this.metaInfo = undefined;

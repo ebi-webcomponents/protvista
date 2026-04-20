@@ -3,21 +3,21 @@ import formatTooltip from '../tooltips/structure-tooltip';
 const featureType = 'PDBE_COVER';
 const featureCategory = 'STRUCTURE_COVERAGE';
 
-const capitalizeFirstLetter = (word) => {
+const capitalizeFirstLetter = (word: string): string => {
   return word.charAt(0).toUpperCase() + word.slice(1);
 };
 
-const getDescription = (properties) => {
+const getDescription = (properties: Record<string, string | undefined>): string => {
   return Object.keys(properties).reduce(
     (accumulator, propertyKey) =>
       `${accumulator}${capitalizeFirstLetter(propertyKey)}: ${
-        properties[propertyKey]
+        properties[propertyKey] ?? ''
       }. `,
     ''
   );
 };
 
-const parseChainString = (value) => {
+const parseChainString = (value: string): { start: number; end: number } => {
   const posEqual = value.indexOf('=');
   const posDash = value.indexOf('-');
   if (posEqual === -1 || posDash === -1) {
@@ -29,14 +29,38 @@ const parseChainString = (value) => {
   };
 };
 
+type DbReference = {
+  type: string;
+  id: string;
+  properties?: Record<string, string | undefined>;
+};
+
+type UniProtEntry = {
+  dbReferences: DbReference[];
+};
+
+export type StructureFeature = {
+  type: string;
+  category: string;
+  structures: {
+    description: string;
+    start: number;
+    end: number;
+    source: { id: string; url: string };
+  }[];
+  start: number;
+  end: number;
+  tooltipContent?: string;
+};
+
 // Iterate over references and extract chain start and end
-export const getAllFeatureStructures = (data) => {
+export const getAllFeatureStructures = (data: UniProtEntry): StructureFeature[] => {
   return data.dbReferences
     .filter((reference) => {
       return reference.type === 'PDB';
     })
     .map((structureReference) => {
-      const parsedChain = structureReference.properties.chains
+      const parsedChain = structureReference.properties?.chains
         ? parseChainString(structureReference.properties.chains)
         : { start: 0, end: 0 };
       return {
@@ -44,7 +68,9 @@ export const getAllFeatureStructures = (data) => {
         category: featureCategory,
         structures: [
           {
-            description: getDescription(structureReference.properties),
+            description: structureReference.properties
+              ? getDescription(structureReference.properties)
+              : '',
             start: parsedChain.start,
             end: parsedChain.end,
             source: {
@@ -59,13 +85,13 @@ export const getAllFeatureStructures = (data) => {
     });
 };
 
-export const mergeOverlappingIntervals = (structures) => {
+export const mergeOverlappingIntervals = (structures: StructureFeature[]): StructureFeature[] => {
   if (!structures || structures.length <= 0) {
     return [];
   }
   // Sort by start position
   const sortedStructures = structures.sort((a, b) => a.start - b.start);
-  const mergedIntervals = [];
+  const mergedIntervals: StructureFeature[] = [];
   sortedStructures.forEach((structure) => {
     const lastItem = mergedIntervals[mergedIntervals.length - 1];
     if (
@@ -88,9 +114,9 @@ export const mergeOverlappingIntervals = (structures) => {
   return mergedIntervals;
 };
 
-const transformData = (data) => {
-  let transformedData = [];
-  if (data && data.length !== 0) {
+const transformData = (data: UniProtEntry): StructureFeature[] => {
+  let transformedData: StructureFeature[] = [];
+  if (data && data.dbReferences) {
     const allFeatureStructures = getAllFeatureStructures(data);
     transformedData = mergeOverlappingIntervals(allFeatureStructures);
 

@@ -1,4 +1,4 @@
-export const renameProperties = (features) =>
+export const renameProperties = (features: { begin?: number; [key: string]: unknown }[]) =>
   features.map((ft) => ({
     ...ft,
     start: ft.begin || undefined,

@@ -99,7 +99,7 @@ const transformedVariantPositions = [
 describe('Variation filter config', () => {
   test('it should filter according to the callback function', () => {
     const filteredVariants = getFilteredVariants(
-      transformedVariantPositions as VariantsForFilter,
+      transformedVariantPositions as unknown as VariantsForFilter,
       (variant) => variant.accession === 'A'
     );
     expect(filteredVariants).toEqual([
@@ -117,28 +117,28 @@ describe('Variation filter config', () => {
 
   test('it should get the right colour for disease', () => {
     const firstVariant = colorConfig(
-      transformedVariantPositions[0].variants[0]
+      transformedVariantPositions[0].variants[0] as unknown as import('../adapters/variation-adapter').TransformedVariant
     );
     expect(firstVariant).toEqual('#009e73');
   });
 
   test('it should get the right colour for non disease', () => {
     const secondVariant = colorConfig(
-      transformedVariantPositions[0].variants[1]
+      transformedVariantPositions[0].variants[1] as unknown as import('../adapters/variation-adapter').TransformedVariant
     );
     expect(secondVariant).toEqual('#009e73');
   });
 
   test('it should get the right colour for other', () => {
     const thirdVariant = colorConfig(
-      transformedVariantPositions?.[1].variants[0]
+      transformedVariantPositions?.[1].variants[0] as unknown as import('../adapters/variation-adapter').TransformedVariant
     );
     expect(thirdVariant).toEqual('#009e73');
   });
 
   test('it should get the right colour for predicted', () => {
     const thirdVariant = colorConfig(
-      transformedVariantPositions[2].variants[0]
+      transformedVariantPositions[2].variants[0] as unknown as import('../adapters/variation-adapter').TransformedVariant
     );
     expect(thirdVariant).toEqual('#009e73');
   });
