@@ -1,8 +1,3 @@
-// Build-time vite config. The vitest test config lives in
-// `vitest.config.ts` — feel free to `git rm vitest.config.ts` and move
-// its `test` block into this file (under the defineConfig from
-// 'vitest/config'). The sandbox that authored these edits couldn't
-// unlink files, so the split is left for local cleanup.
 import { defineConfig } from 'vite';
 import envCompatible from 'vite-plugin-env-compatible';
 import { createHtmlPlugin } from 'vite-plugin-html';
@@ -39,6 +34,28 @@ export default defineConfig({
       output: {
         chunkFileNames: '[name].js',
       },
+    },
+  },
+  test: {
+    globals: false,
+    // `jsdom` gives us customElements, HTMLElement, etc. — required for
+    // any future test that instantiates a Lit component, and harmless
+    // for the current set of pure-data tests.
+    environment: 'jsdom',
+    // Match the legacy jest file layout so existing tests keep working.
+    //   src/__spec__/*.spec.ts
+    //   src/**/__spec__/*.spec.ts
+    //   src/**/__tests__/*.spec.ts
+    include: [
+      'src/**/__spec__/*.spec.ts',
+      'src/**/__tests__/*.spec.ts',
+      'src/**/*.spec.ts',
+    ],
+    exclude: ['**/node_modules/**', '**/dist/**', '**/__mocks__/**'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      reportsDirectory: 'coverage',
     },
   },
 });
