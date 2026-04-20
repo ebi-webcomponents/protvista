@@ -2,6 +2,7 @@ import js from '@eslint/js';
 import ts from 'typescript-eslint';
 import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
+import noUnsanitized from 'eslint-plugin-no-unsanitized';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 
@@ -26,15 +27,20 @@ export default [
 
     plugins: {
       '@typescript-eslint': tsPlugin,
+      'no-unsanitized': noUnsanitized,
     },
 
-    /* start with the plugin’s own recommended rules… */
+    /* start with the plugin's own recommended rules... */
     rules: {
       ...tsPlugin.configs.recommended.rules,
 
-      /* …then apply your custom tweaks */
+      /* ...then apply your custom tweaks */
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
+
+      /* Security: flag unsafe DOM manipulation */
+      'no-unsanitized/method': 'error',
+      'no-unsanitized/property': 'error',
     },
   },
 ];

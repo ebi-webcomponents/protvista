@@ -123,7 +123,7 @@ class ProtvistaUniprot extends LitElement {
   addStyles() {
     // We are not using static get styles() as we are not using the shadowDOM because of Mol*
     const styleTag = document.createElement('style');
-    styleTag.innerHTML = `${protvistaStyles.toString()} ${loaderStyles.toString()}`;
+    styleTag.textContent = `${protvistaStyles.toString()} ${loaderStyles.toString()}`;
     document.querySelector('head')?.append(styleTag);
   }
 

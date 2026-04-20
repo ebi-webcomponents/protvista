@@ -348,9 +348,10 @@ const sourceDownloadLink = (downloadUrl: string) =>
     </span>
   </a>`;
 
-const foldseekLink = (accession: string, sourceDB: string) =>
-  html`<a
-    href="${foldseekUrl}?accession=${accession}&source=${sourceDB}"
+const foldseekLink = (accession: string, sourceDB: string) => {
+  const params = new URLSearchParams({ accession, source: sourceDB });
+  return html`<a
+    href="${foldseekUrl}?${params.toString()}"
     target="_blank"
     rel="noopener noreferrer"
     aria-label="Open Foldseek in a new tab"
@@ -362,6 +363,7 @@ const foldseekLink = (accession: string, sourceDB: string) =>
       ${svg`${unsafeHTML(externalLinkIcon)}`}
     </span>
   </a>`;
+};
 
 const styleId = 'protvista-styles';
 
@@ -587,7 +589,7 @@ class ProtvistaUniprotStructure extends LitElement {
     if (!document.getElementById(styleId)) {
       const styleTag = document.createElement('style');
       styleTag.id = styleId;
-      styleTag.innerHTML = `
+      styleTag.textContent = `
       ${loaderStyles.toString()}
       ${this.cssStyle}
       `;

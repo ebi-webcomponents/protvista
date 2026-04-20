@@ -1,4 +1,5 @@
 import ecoMap from '../adapters/config/evidence';
+import { escapeHtml, sanitizeUrl } from '../utils/security';
 import {
   acetylate,
   phosphorylate,
@@ -46,15 +47,15 @@ const unimodIdMapping = {
 
 const formatSource = (source) => {
   if (source.name?.toLowerCase() === 'PubMed'.toLowerCase()) {
-    return `${source.id}&nbsp;(<a href='${source.url}' target='_blank'>${source.name}</a>&nbsp;<a href='${source.alternativeUrl}' target='_blank'>EuropePMC</a>)`;
+    return `${escapeHtml(source.id)}&nbsp;(<a href='${sanitizeUrl(source.url)}' target='_blank'>${escapeHtml(source.name)}</a>&nbsp;<a href='${sanitizeUrl(source.alternativeUrl)}' target='_blank'>EuropePMC</a>)`;
   }
-  const sourceLink = `&nbsp;<a href='${source.url}' target='_blank'>${source.id}</a>`;
+  const sourceLink = `&nbsp;<a href='${sanitizeUrl(source.url)}' target='_blank'>${escapeHtml(source.id)}</a>`;
   if (source.name) {
     // Temporary until we get the expected value as 'PeptideAtlas' instead of 'HppPeptideAtlas'
     if (source.name.startsWith('Hpp')) {
-      return `${sourceLink}&nbsp;(${source.name.slice(3)})`;
+      return `${sourceLink}&nbsp;(${escapeHtml(source.name.slice(3))})`;
     }
-    return `${sourceLink}&nbsp;(${source.name})`;
+    return `${sourceLink}&nbsp;(${escapeHtml(source.name)})`;
   }
   return sourceLink;
 };
@@ -66,8 +67,8 @@ export const getEvidenceFromCodes = (evidenceList) => {
           .map((ev) => {
             const ecoMatch = ecoMap.find((eco) => eco.name === ev.code);
             if (!ecoMatch) return ``;
-            return `<li title='${ecoMatch.description}'>${
-              ecoMatch.shortDescription
+            return `<li title='${escapeHtml(ecoMatch.description)}'>${
+              escapeHtml(ecoMatch.shortDescription)
             }:&nbsp;${ev.source ? formatSource(ev.source) : ''}</li>`;
           })
           .join('')}</ul>
@@ -78,10 +79,10 @@ export const formatXrefs = (xrefs) => {
   return `<ul class="no-bullet">${xrefs
     .map(
       (xref) =>
-        `<li>${xref.name} ${
+        `<li>${escapeHtml(xref.name)} ${
           xref.url
-            ? `<a href="${xref.url}" target="_blank">${xref.id}</a>`
-            : `${xref.name} ${xref.id}`
+            ? `<a href="${sanitizeUrl(xref.url)}" target="_blank">${escapeHtml(xref.id)}</a>`
+            : `${escapeHtml(xref.name)} ${escapeHtml(xref.id)}`
         }</li>`
     )
     .join('')}</ul>`;
@@ -99,13 +100,14 @@ const getPTMEvidence = (ptms, taxId) => {
   return `
     <ul class="no-bullet">${uniqueIds
       .map((id) => {
-        return `<li title='${id}'>${id}&nbsp;(<a href="${proteomexchange}${id}" target="_blank">ProteomeXchange</a>${
+        const safeId = escapeHtml(id);
+        return `<li title='${safeId}'>${safeId}&nbsp;(<a href="${sanitizeUrl(`${proteomexchange}${id}`)}" target="_blank">ProteomeXchange</a>${
           id === 'PXD012174'
-            ? `&nbsp;<a href="https://www.ebi.ac.uk/pride/archive/projects/${id}" target="_blank">PRIDE</a>)</li><li title="publication">Publication:&nbsp;31819260&nbsp;(<a href="https://pubmed.ncbi.nlm.nih.gov/31819260" target="_blank">PubMed</a>)</li>`
+            ? `&nbsp;<a href="https://www.ebi.ac.uk/pride/archive/projects/${encodeURIComponent(id)}" target="_blank">PRIDE</a>)</li><li title="publication">Publication:&nbsp;31819260&nbsp;(<a href="https://pubmed.ncbi.nlm.nih.gov/31819260" target="_blank">PubMed</a>)</li>`
             : ``
         }${
           taxId && taxIdToPeptideAtlasBuildData[taxId]
-            ? `&nbsp;<a href="https://db.systemsbiology.net/sbeams/cgi/PeptideAtlas/buildDetails?atlas_build_id=${taxIdToPeptideAtlasBuildData[taxId].build}" target="_blank">PeptideAtlas</a>`
+            ? `&nbsp;<a href="https://db.systemsbiology.net/sbeams/cgi/PeptideAtlas/buildDetails?atlas_build_id=${encodeURIComponent(taxIdToPeptideAtlasBuildData[taxId].build)}" target="_blank">PeptideAtlas</a>`
             : ``
         })</li>`;
       })
@@ -199,35 +201,35 @@ const formatTooltip = (feature, taxId?: string) => {
     return `
         ${
           feature.type && feature.begin && feature.end
-            ? `<h4>${feature.type} ${feature.begin}-${feature.end}</h4><hr />`
+            ? `<h4>${escapeHtml(feature.type)} ${escapeHtml(feature.begin)}-${escapeHtml(feature.end)}</h4><hr />`
             : ''
         }
-        ${description ? `<h5>Description</h5><p>${description}</p>` : ``}
-        ${feature.ftId ? `<h5>Feature ID</h5><p>${feature.ftId}</p>` : ``}
+        ${description ? `<h5>Description</h5><p>${escapeHtml(description)}</p>` : ``}
+        ${feature.ftId ? `<h5>Feature ID</h5><p>${escapeHtml(feature.ftId)}</p>` : ``}
         ${
           feature.alternativeSequence
-            ? `<h5>Alternative sequence</h5><p>${feature.alternativeSequence}</p>`
+            ? `<h5>Alternative sequence</h5><p>${escapeHtml(feature.alternativeSequence)}</p>`
             : ``
         }
         ${
           ptms
             ? `<h5 data-article-id="ptm_processing_section">PTMs</h5><ul class="no-bullet">${ptms
-                .map((item) => `<li>${item}</li>`)
+                .map((item) => `<li>${escapeHtml(item)}</li>`)
                 .join('')}</ul>
               `
             : ''
         }
         ${
           feature.peptide && feature.type === 'PROTEOMICS_PTM'
-            ? `<h5 data-article-id="mod_res_large_scale#what-is-the-goldsilverbronze-criterion">Peptidoform</h5><p>${formatPTMPeptidoform(
+            ? `<h5 data-article-id="mod_res_large_scale#what-is-the-goldsilverbronze-criterion">Peptidoform</h5><p>${escapeHtml(formatPTMPeptidoform(
                 feature.peptide,
                 feature.residuesToHighlight
-              )}</p>`
+              ))}</p>`
             : ``
         }
         ${
           feature.peptide && feature.type !== 'PROTEOMICS_PTM'
-            ? `<h5>Peptide</h5><p>${feature.peptide}</p>`
+            ? `<h5>Peptide</h5><p>${escapeHtml(feature.peptide)}</p>`
             : ``
         }
         ${
@@ -250,44 +252,44 @@ const formatTooltip = (feature, taxId?: string) => {
                   ptm.dbReferences
                     .map(
                       (ref) =>
-                        `<li><b>${ref.id}</b></li>
-                        <li class="text-indent-1"><b>${findModifiedResidueName(
+                        `<li><b>${escapeHtml(ref.id)}</b></li>
+                        <li class="text-indent-1"><b>${escapeHtml(findModifiedResidueName(
                           feature,
                           ptm
-                        )}</b></li>
+                        ))}</b></li>
                         ${
                           ref.properties['Pubmed ID']
-                            ? `<li class="text-indent-2">PubMed ID: <a href="https://europepmc.org/article/MED/${ref.properties['Pubmed ID']}" target="_blank">${ref.properties['Pubmed ID']}</a></li>`
+                            ? `<li class="text-indent-2">PubMed ID: <a href="https://europepmc.org/article/MED/${encodeURIComponent(ref.properties['Pubmed ID'])}" target="_blank">${escapeHtml(ref.properties['Pubmed ID'])}</a></li>`
                             : ``
                         }
                         ${
                           ref.properties['Confidence score']
-                            ? `<li class="text-indent-2"><span data-article-id="mod_res_large_scale#confidence-score">Confidence score</span>: ${ref.properties['Confidence score']}</li>`
+                            ? `<li class="text-indent-2"><span data-article-id="mod_res_large_scale#confidence-score">Confidence score</span>: ${escapeHtml(ref.properties['Confidence score'])}</li>`
                             : ``
                         }
                         ${
                           ref.properties['Sumo isoforms']
-                            ? `<li class="text-indent-2">SUMO family member: ${ref.properties['Sumo isoforms']}</li>`
+                            ? `<li class="text-indent-2">SUMO family member: ${escapeHtml(ref.properties['Sumo isoforms'])}</li>`
                             : ``
                         }
                         ${
                           ref.properties['Organism part']
-                            ? `<li class="text-indent-2">Organism part: ${ref.properties['Organism part']}</li>`
+                            ? `<li class="text-indent-2">Organism part: ${escapeHtml(ref.properties['Organism part'])}</li>`
                             : ``
                         }
                         ${
                           ref.properties['PSM Count (0.05 gFLR)']
-                            ? `<li class="text-indent-2">PSM Count (0.05 gFLR): ${ref.properties['PSM Count (0.05 gFLR)']}</li>`
+                            ? `<li class="text-indent-2">PSM Count (0.05 gFLR): ${escapeHtml(ref.properties['PSM Count (0.05 gFLR)'])}</li>`
                             : ``
                         }
                         ${
                           ref.properties['Final site probability']
-                            ? `<li class="text-indent-2">Final site probability: ${ref.properties['Final site probability']}</li>`
+                            ? `<li class="text-indent-2">Final site probability: ${escapeHtml(ref.properties['Final site probability'])}</li>`
                             : ``
                         }
                         ${
                           ref.properties['Universal Spectrum Id']
-                            ? `<li class="text-indent-2 nowrap">Universal Spectrum Id: 
+                            ? `<li class="text-indent-2 nowrap">Universal Spectrum Id:
                                 <a href="http://proteomecentral.proteomexchange.org/usi/?usi=${encodeURIComponent(
                                   ref.properties['Universal Spectrum Id']
                                 )}" target="_blank">View on ProteomeXchange</a>
