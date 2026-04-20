@@ -38,14 +38,7 @@ export default defineConfig({
   },
   test: {
     globals: false,
-    // `jsdom` gives us customElements, HTMLElement, etc. — required for
-    // any future test that instantiates a Lit component, and harmless
-    // for the current set of pure-data tests.
     environment: 'jsdom',
-    // Match the legacy jest file layout so existing tests keep working.
-    //   src/__spec__/*.spec.ts
-    //   src/**/__spec__/*.spec.ts
-    //   src/**/__tests__/*.spec.ts
     include: [
       'src/**/__spec__/*.spec.ts',
       'src/**/__tests__/*.spec.ts',
