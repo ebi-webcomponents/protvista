@@ -187,6 +187,13 @@ export function installClickTooltip(
     Object.assign(popover.style, {
       transform: `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`,
     });
+    // Expose the resolved placement to CSS so the arrow's two bordered
+    // edges can track whichever side of the tooltip the arrow sits on.
+    // Without this the same two unrotated borders (`right` + `bottom`)
+    // render as *inside* edges whenever the tooltip is below / right of
+    // the feature, leaving the arrow with visible borders cutting
+    // through the tooltip body.
+    popover.setAttribute('data-placement', placement);
     const { x: ax, y: ay } = middlewareData.arrow ?? {};
     const side = placement.split('-')[0];
     const staticSide = {

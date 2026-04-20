@@ -160,9 +160,32 @@ export default css`
     margin: 0;
   }
 
+  /* Arrow borders are placement-dependent. The arrow is an 8×8 div
+     rotated 45° into a diamond; only the two slanted edges that face
+     *away* from the tooltip body should carry a border. Which pair of
+     the unrotated square's edges that corresponds to depends on which
+     side of the tooltip the arrow sits on — which is the opposite of
+     Floating UI's resolved placement. We key off a data-placement
+     attribute written by popover.ts on each reposition. The ^=
+     selector matches plain sides plus the -start / -end variants
+     flip() can produce. */
   .protvista-tooltip .arrow {
     background: #fff;
+  }
+  .protvista-tooltip[data-placement^='top'] .arrow {
     border-right: 1px solid #c5c8cc;
     border-bottom: 1px solid #c5c8cc;
+  }
+  .protvista-tooltip[data-placement^='bottom'] .arrow {
+    border-left: 1px solid #c5c8cc;
+    border-top: 1px solid #c5c8cc;
+  }
+  .protvista-tooltip[data-placement^='left'] .arrow {
+    border-top: 1px solid #c5c8cc;
+    border-right: 1px solid #c5c8cc;
+  }
+  .protvista-tooltip[data-placement^='right'] .arrow {
+    border-bottom: 1px solid #c5c8cc;
+    border-left: 1px solid #c5c8cc;
   }
 `;
