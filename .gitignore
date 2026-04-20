@@ -9,3 +9,4 @@ node_modules/
 .yalc/
 yalc.lock
 coverage/
+demo/

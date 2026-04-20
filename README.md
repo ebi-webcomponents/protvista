@@ -118,14 +118,14 @@ Every push and pull request runs the same three steps as `yarn test` via [`.gith
 
 ### Coverage
 
-Captured 2026-04-18 via `yarn test:coverage` (v8 instrumentation, 29 tests across 3 spec files):
+Captured 2026-04-20 via `yarn test:coverage` (v8 instrumentation, 29 tests across 3 spec files):
 
 | Metric     | Coverage |
 | ---------- | -------- |
-| Statements | 8.43%    |
-| Branches   | 74.76%   |
-| Functions  | 52.45%   |
-| Lines      | 8.43%    |
+| Statements | 10.33%   |
+| Branches   | 5.99%    |
+| Functions  | 13.19%   |
+| Lines      | 9.66%    |
 
 ## Configuration
 

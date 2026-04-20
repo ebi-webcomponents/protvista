@@ -52,6 +52,8 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@originjs/vite-plugin-commonjs": "1.0.3",
+    "@types/color-hash": "2.0.0",
+    "@types/lodash-es": "4.17.12",
     "@typescript-eslint/eslint-plugin": "8.58.2",
     "@typescript-eslint/parser": "8.58.2",
     "@vitest/coverage-v8": "4.1.4",

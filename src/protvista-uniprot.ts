@@ -51,7 +51,10 @@ import loaderIcon from './icons/spinner.svg';
 import protvistaStyles from './styles/protvista-styles';
 import loaderStyles from './styles/loader-styles';
 
-const adapters = {
+// Heterogeneous adapter map — each adapter has its own signature and return
+// shape. Typed loosely here so the .apply() dispatch below doesn't try to
+// reconcile the union of all signatures at the call site.
+const adapters: Record<string, (...args: any[]) => any> = {
   'feature-adapter': featureAdapter,
   'interpro-adapter': interproAdapter,
   'proteomics-adapter': proteomicsAdapter,
