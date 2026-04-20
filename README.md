@@ -105,9 +105,6 @@ yarn test:watch
 
 # Coverage (writes text + html + lcov to ./coverage/)
 yarn test:coverage
-
-# Interactive UI (requires @vitest/ui)
-yarn test:ui
 ```
 
 Coverage output is for local use only and is not committed. Open `coverage/index.html` after `yarn test:coverage` to inspect.
