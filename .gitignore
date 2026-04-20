@@ -9,6 +9,7 @@ node_modules/
 .yalc/
 yalc.lock
 coverage/
+demo/
 
 # Security: prevent accidental commit of secrets and credentials
 .env

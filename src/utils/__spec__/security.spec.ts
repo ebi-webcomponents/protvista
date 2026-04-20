@@ -1,3 +1,5 @@
+import { describe, it, expect } from 'vitest';
+
 import { escapeHtml, sanitizeUrl } from '../security';
 
 describe('escapeHtml', () => {
@@ -118,9 +120,7 @@ describe('sanitizeUrl', () => {
   });
 
   it('trims whitespace', () => {
-    expect(sanitizeUrl('  https://example.com  ')).toBe(
-      'https://example.com'
-    );
+    expect(sanitizeUrl('  https://example.com  ')).toBe('https://example.com');
   });
 
   it('escapes HTML entities in URLs', () => {

@@ -13,8 +13,10 @@
     "start": "vite",
     "test:lint": "eslint src --ext .ts ",
     "test:types": "tsc",
-    "test:unit": "jest",
-    "test": "npm-run-all --continue-on-error test:*",
+    "test:unit": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test": "npm-run-all --continue-on-error test:lint test:types test:unit",
     "clear-cdn-cache": "./scripts/clearCDNcaches.sh"
   },
   "main": "dist/protvista-uniprot.js",
@@ -43,50 +45,39 @@
     "@nightingale-elements/nightingale-variation": "5.6.0",
     "color-hash": "2.0.2",
     "lit": "3.3.2",
-    "lodash-es": "4.17.23",
+    "lodash-es": "4.18.1",
     "timing-functions": "2.0.1"
   },
   "devDependencies": {
-    "@babel/core": "7.29.0",
-    "@babel/plugin-proposal-decorators": "7.29.0",
-    "@babel/plugin-transform-runtime": "7.29.0",
-    "@babel/preset-env": "7.29.0",
-    "@babel/preset-typescript": "7.28.5",
-    "@babel/runtime-corejs3": "7.29.0",
     "@eslint/js": "10.0.1",
     "@originjs/vite-plugin-commonjs": "1.0.3",
-    "@types/jest": "30.0.0",
-    "@typescript-eslint/eslint-plugin": "8.56.1",
-    "@typescript-eslint/parser": "8.56.1",
-    "babel-jest": "30.2.0",
-    "eslint": "10.0.2",
+    "@types/color-hash": "2.0.0",
+    "@types/lodash-es": "4.17.12",
+    "@typescript-eslint/eslint-plugin": "8.58.2",
+    "@typescript-eslint/parser": "8.58.2",
+    "@vitest/coverage-v8": "4.1.4",
+    "eslint": "10.2.1",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-no-unsanitized": "4.1.5",
     "eslint-plugin-prettier": "5.5.5",
-    "globals": "17.3.0",
-    "jest": "30.2.0",
+    "globals": "17.5.0",
+    "jsdom": "29.0.2",
     "npm-run-all": "4.1.5",
-    "rollup-plugin-visualizer": "7.0.0",
+    "rollup-plugin-visualizer": "7.0.1",
     "svg-inline-loader": "0.8.2",
-    "typescript": "5.9.3",
-    "typescript-eslint": "8.56.1",
-    "vite": "8.0.8",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.58.2",
+    "vite": "8.0.9",
     "vite-plugin-dts": "4.5.4",
     "vite-plugin-env-compatible": "2.0.1",
     "vite-plugin-html": "3.2.2",
-    "vite-plugin-svgo": "2.0.0"
+    "vite-plugin-svgo": "2.0.0",
+    "vitest": "4.1.4"
   },
   "browserslist": [
     "chrome >= 92",
     "edge >= 92",
     "firefox >= 90",
     "safari >= 15"
-  ],
-  "jest": {
-    "testRegex": "(/__tests__/.*|(\\.|/))spec\\.ts$",
-    "testPathIgnorePatterns": [
-      "/__mocks__/",
-      "<rootDir>/dist/"
-    ]
-  }
+  ]
 }
