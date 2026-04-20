@@ -7,16 +7,17 @@ import {
 } from '@nightingale-elements/nightingale-variation';
 import groupBy from 'lodash-es/groupBy';
 
+import { escapeHtml } from '../utils/security';
 import { formatXrefs, getEvidenceFromCodes } from './feature-tooltip';
 
 const getDiseaseAssociations = (associations: Association[]): string =>
   associations
     ?.map(
       (association) => `
-              <h4>Disease association</h4><p>${association.name}</p>
+              <h4>Disease association</h4><p>${escapeHtml(association.name)}</p>
               ${
                 association.description
-                  ? `<>${association.description}</p>`
+                  ? `<p>${escapeHtml(association.description)}</p>`
                   : ''
               }
               ${
@@ -33,7 +34,7 @@ const getDiseaseAssociations = (associations: Association[]): string =>
 
 const getDescriptions = (descriptions: Description[]): string =>
   `<hr/><h5>Description</h5>${descriptions
-    .map((description) => `<p>${description.value}</p>`)
+    .map((description) => `<p>${escapeHtml(description.value)}</p>`)
     .join('')}
   `;
 
@@ -43,7 +44,7 @@ const getPopulationFrequencies = (
   `<hr/><h5>Population frequencies</h5>${popFrequencies
     .map(
       (freq) =>
-        `<p>${freq.frequency} - ${freq.populationName} (${freq.source})</p>`
+        `<p>${escapeHtml(freq.frequency)} - ${escapeHtml(freq.populationName)} (${escapeHtml(freq.source)})</p>`
     )
     .join('')}`;
 
@@ -56,7 +57,7 @@ const getEnsemblCovidLinks = (variant: Variant): string => {
     return xref.id
       ? `<h5>Ensembl COVID-19</h5>
           <p>
-          <a href="https://covid-19.ensembl.org/Sars_cov_2/Variation/Explore?v=${xref.id}" target="_blank" rel="noopener noreferrer">${xref.id}</a>
+          <a href="https://covid-19.ensembl.org/Sars_cov_2/Variation/Explore?v=${encodeURIComponent(xref.id)}" target="_blank" rel="noopener noreferrer">${escapeHtml(xref.id)}</a>
         </p>`
       : '';
   }
@@ -78,8 +79,8 @@ const getPredictions = (predictions: Prediction[]): string => {
   return counts
     .map(
       (countItem) =>
-        `<h6>${countItem.algorithm}</h6><ul class="no-bullet">${countItem.values
-          .map((countValue) => `<li>${countValue.name}</li>`)
+        `<h6>${escapeHtml(countItem.algorithm)}</h6><ul class="no-bullet">${countItem.values
+          .map((countValue) => `<li>${escapeHtml(countValue.name)}</li>`)
           .join('')}</ul>`
     )
     .join('');
@@ -89,11 +90,11 @@ const formatTooltip = (variant: Variant): string =>
   `
   ${
     variant.type && variant.begin && variant.end
-      ? `<h4>${variant.type} ${variant.begin}-${variant.end}</h4><hr />`
+      ? `<h4>${escapeHtml(variant.type)} ${escapeHtml(variant.begin)}-${escapeHtml(variant.end)}</h4><hr />`
       : ''
   }
-  <h5>Variant</h5><p>${variant.wildType} > ${
-    variant.alternativeSequence || ''
+  <h5>Variant</h5><p>${escapeHtml(variant.wildType)} > ${
+    escapeHtml(variant.alternativeSequence) || ''
   }</p>
   ${
     variant.populationFrequencies
@@ -102,7 +103,7 @@ const formatTooltip = (variant: Variant): string =>
   }
   ${
     variant.consequenceType
-      ? `<h5>Consequence</h5><p>${variant.consequenceType}</p>`
+      ? `<h5>Consequence</h5><p>${escapeHtml(variant.consequenceType)}</p>`
       : ``
   }
   ${
@@ -112,10 +113,10 @@ const formatTooltip = (variant: Variant): string =>
   }
   ${
     variant.genomicLocation?.length
-      ? `<h5>Location</h5><p>${variant.genomicLocation.join(', ')}</p>`
+      ? `<h5>Location</h5><p>${variant.genomicLocation.map(escapeHtml).join(', ')}</p>`
       : ``
   }
-  ${variant.ftId ? `<h5>Feature ID</h5><p>${variant.ftId}</p>` : ``}
+  ${variant.ftId ? `<h5>Feature ID</h5><p>${escapeHtml(variant.ftId)}</p>` : ``}
   ${variant.descriptions ? getDescriptions(variant.descriptions) : ''}
   ${variant.association ? getDiseaseAssociations(variant.association) : ''}
   ${variant.predictions ? getPredictions(variant.predictions) : ''}

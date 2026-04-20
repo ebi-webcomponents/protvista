@@ -1,4 +1,5 @@
 import { PTM } from '../adapters/ptm-exchange-adapter';
+import { escapeHtml } from '../utils/security';
 
 type Modification =
   | 'Phosphorylation'
@@ -124,11 +125,11 @@ const formatTooltip = (
   }
 
   return `
-  ${title ? `<h4>${title}</h4><hr />` : ''}
-  <h5>Description</h5><p>${getDescription(modification, aa)}</p>
+  ${title ? `<h4>${escapeHtml(title)}</h4><hr />` : ''}
+  <h5>Description</h5><p>${escapeHtml(getDescription(modification, aa))}</p>
   ${
     confidenceScore
-      ? `<h5 data-article-id="mod_res_large_scale#confidence-score">Confidence Score</h5><p>${confidenceScore}</p>`
+      ? `<h5 data-article-id="mod_res_large_scale#confidence-score">Confidence Score</h5><p>${escapeHtml(confidenceScore)}</p>`
       : ''
   }
   ${
@@ -136,8 +137,9 @@ const formatTooltip = (
       ? `<h5>Evidence</h5><ul class="no-bullet">${evidences
           .map((id) => {
             const datasetID = id === 'Glue project' ? 'PXD012174' : id;
-            return `<li title='${datasetID}'>${datasetID}&nbsp;
-              (<a href="https://proteomecentral.proteomexchange.org/dataset/${datasetID}" target="_blank">ProteomeXchange</a>)
+            const safeDatasetID = escapeHtml(datasetID);
+            return `<li title='${safeDatasetID}'>${safeDatasetID}&nbsp;
+              (<a href="https://proteomecentral.proteomexchange.org/dataset/${encodeURIComponent(datasetID)}" target="_blank">ProteomeXchange</a>)
               </li>
               ${
                 id === 'Glue project'

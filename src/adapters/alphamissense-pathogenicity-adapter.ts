@@ -47,6 +47,10 @@ const parseCSV = (rawText: string): string => {
     if (i === 0 || !row) {
       continue;
     }
+    const match = row.match(cellSplitter);
+    if (!match) {
+      continue;
+    }
     const [
       ,
       wildType,
@@ -54,7 +58,7 @@ const parseCSV = (rawText: string): string => {
       mutated,
       pathogenicityScore,
       pathogenicityLabel,
-    ] = row.match(cellSplitter);
+    ] = match;
     const position = +positionString;
     const index = position - 1;
     if (!positions[index]) {

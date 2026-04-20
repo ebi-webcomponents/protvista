@@ -1,4 +1,5 @@
 import { Metadata } from '../adapters/types/interpro';
+import { escapeHtml } from '../utils/security';
 
 const formatTooltip = (
   start: number | '',
@@ -7,7 +8,7 @@ const formatTooltip = (
 ) => `
       ${
         start && end
-          ? `<h4>InterPro Representative Domain ${start}-${end}</h4><hr />`
+          ? `<h4>InterPro Representative Domain ${escapeHtml(start)}-${escapeHtml(end)}</h4><hr />`
           : ''
       }
         <h5>Accession</h5>
@@ -16,14 +17,14 @@ const formatTooltip = (
           target="_blank"
           rel="noopener"
           href="https://www.ebi.ac.uk/interpro/entry/${
-            metadata.source_database
-          }/${metadata.accession}/"
+            encodeURIComponent(metadata.source_database)
+          }/${encodeURIComponent(metadata.accession)}/"
         >
-        ${metadata.accession}
+        ${escapeHtml(metadata.accession)}
         </a>
         </p>
         <h5>Name</h5>
-        <p>${metadata.name}</p>
+        <p>${escapeHtml(metadata.name)}</p>
         ${
           metadata.integrated
             ? `<h5>Integrated into </h5>
@@ -31,9 +32,9 @@ const formatTooltip = (
         <a
           target="_blank"
           rel="noopener"
-          href="https://www.ebi.ac.uk/interpro/entry/InterPro/${metadata.integrated}/"
+          href="https://www.ebi.ac.uk/interpro/entry/InterPro/${encodeURIComponent(metadata.integrated)}/"
         >
-          ${metadata.integrated}
+          ${escapeHtml(metadata.integrated)}
         </a>
         </p>`
             : ''

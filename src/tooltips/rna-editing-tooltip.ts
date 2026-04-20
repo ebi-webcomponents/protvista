@@ -1,12 +1,13 @@
 import { TransformedRnaEditing } from '../adapters/types/rna-editing';
+import { escapeHtml } from '../utils/security';
 
 const getREDIportalId = (feature: TransformedRnaEditing) =>
   feature.dbReferenceType.find((db) => db.type === 'rna_editing')?.id;
 
 const getREDIportalLink = (id: string) =>
-  `http://srv00.recas.ba.infn.it/cgi/atlas/getpage_dev.py?query9=hg&query10=hg38&acc=${id}`;
+  `http://srv00.recas.ba.infn.it/cgi/atlas/getpage_dev.py?query9=hg&query10=hg38&acc=${encodeURIComponent(id)}`;
 
-const getEnsemblLink = (id: string) => `https://www.ensembl.org/id/${id}`;
+const getEnsemblLink = (id: string) => `https://www.ensembl.org/id/${encodeURIComponent(id)}`;
 
 const getLinks = (feature: TransformedRnaEditing) => {
   const links = [];
@@ -15,14 +16,14 @@ const getLinks = (feature: TransformedRnaEditing) => {
     links.push(
       `REDIportal <a href="${getREDIportalLink(
         rediPortalId
-      )}" target="_blank">${rediPortalId}</a>`
+      )}" target="_blank">${escapeHtml(rediPortalId)}</a>`
     );
   }
   for (const variantLocation of feature.variantType.variantLocation) {
     if (variantLocation.source === 'Ensembl') {
       links.push(
         `Ensembl <a href="${getEnsemblLink(variantLocation.seqId)}" target="_blank">${
-          variantLocation.seqId
+          escapeHtml(variantLocation.seqId)
         }</a>`
       );
     }
@@ -37,16 +38,16 @@ const getLinks = (feature: TransformedRnaEditing) => {
 const formatTooltip = (feature: TransformedRnaEditing): string => `
   ${
     feature.start && feature.end
-      ? `<h4>RNA Edit ${feature.start}-${feature.end}</h4><hr />`
+      ? `<h4>RNA Edit ${escapeHtml(feature.start)}-${escapeHtml(feature.end)}</h4><hr />`
       : ''
   }
   <h5>Variant</h5>
-  <p>${feature.variantType.wildType} > ${feature.variantType.mutatedType}</p>
+  <p>${escapeHtml(feature.variantType.wildType)} > ${escapeHtml(feature.variantType.mutatedType)}</p>
   <h5>Consequence</h5>
-  <p>${feature.consequenceType}</p>
+  <p>${escapeHtml(feature.consequenceType)}</p>
   <h5>Location</h5>
   <ul class="no-bullet">${feature.variantType.genomicLocation
-    .map((l) => `<li>${l}</li>`)
+    .map((l) => `<li>${escapeHtml(l)}</li>`)
     .join('')}
   ${getLinks(feature)}
   `;
