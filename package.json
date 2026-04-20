@@ -45,11 +45,9 @@
     "@nightingale-elements/nightingale-track-canvas": "5.6.0",
     "@nightingale-elements/nightingale-variation": "5.6.0",
     "color-hash": "2.0.2",
-    "core-js": "3.48.0",
     "lit": "3.3.2",
     "lodash-es": "4.17.23",
-    "timing-functions": "2.0.1",
-    "url-join": "5.0.0"
+    "timing-functions": "2.0.1"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -67,7 +65,7 @@
     "svg-inline-loader": "0.8.2",
     "typescript": "5.9.3",
     "typescript-eslint": "8.56.1",
-    "vite": "7.3.1",
+    "vite": "8.0.8",
     "vite-plugin-dts": "4.5.4",
     "vite-plugin-env-compatible": "2.0.1",
     "vite-plugin-html": "3.2.2",
