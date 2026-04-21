@@ -99,7 +99,7 @@ const transformedVariantPositions = [
 describe('Variation filter config', () => {
   test('it should filter according to the callback function', () => {
     const filteredVariants = getFilteredVariants(
-      transformedVariantPositions as VariantsForFilter,
+      transformedVariantPositions as unknown as VariantsForFilter,
       (variant) => variant.accession === 'A'
     );
     expect(filteredVariants).toEqual([

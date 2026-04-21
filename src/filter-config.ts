@@ -1,6 +1,8 @@
 import { VariationDatum } from '@nightingale-elements/nightingale-variation';
 import { ClinicalSignificance } from '@nightingale-elements/nightingale-variation';
 
+import { TransformedVariant } from './adapters/variation-adapter';
+
 const scaleColors = {
   UPDiseaseColor: '#990000',
   UPNonDiseaseColor: '#99cc00',
@@ -21,12 +23,12 @@ const significanceMatches = (
   });
 
 export type VariantsForFilter = {
-  variants: VariationDatum[];
+  variants: TransformedVariant[];
 }[];
 
 export const getFilteredVariants = (
   variants: VariantsForFilter,
-  callbackFilter: (variantPos: VariationDatum) => void
+  callbackFilter: (variantPos: TransformedVariant) => unknown
 ) =>
   variants.map((variant) => {
     const matchingVariants = variant.variants.filter((variantPos) =>
@@ -38,7 +40,9 @@ export const getFilteredVariants = (
     };
   });
 
-const filterPredicates = {
+type FilterPredicate = (variantPos: TransformedVariant) => unknown;
+
+const filterPredicates: Record<string, FilterPredicate> = {
   disease: (variantPos) =>
     variantPos.association?.some((association) => association.disease),
   predicted: (variantPos) => variantPos.hasPredictions,
@@ -170,7 +174,7 @@ const filterConfig = [
 
 const countVariantsForFilter = (
   filterName: 'disease' | 'nonDisease' | 'uncertain' | 'predicted',
-  variant: VariationDatum
+  variant: TransformedVariant
 ) => {
   const variantWrapper: VariantsForFilter = [{ variants: [variant] }];
   const filter = filterConfig.find((filter) => filter.name === filterName);
@@ -180,14 +184,21 @@ const countVariantsForFilter = (
   return false;
 };
 
-export const colorConfig = (variant: any) => {
-  if (countVariantsForFilter('disease', variant)) {
+/**
+ * Signature matches Nightingale's `NightingaleVariation.colorConfig`
+ * (`(v: VariationDatum) => string`). At runtime ProtVista always assigns
+ * transformed variants (VariationDatum & Variant), so the branches can safely
+ * read the extra fields after the narrowing cast to `TransformedVariant`.
+ */
+export const colorConfig = (variant: VariationDatum): string => {
+  const transformed = variant as TransformedVariant;
+  if (countVariantsForFilter('disease', transformed)) {
     return scaleColors.UPDiseaseColor;
-  } else if (countVariantsForFilter('nonDisease', variant)) {
+  } else if (countVariantsForFilter('nonDisease', transformed)) {
     return scaleColors.UPNonDiseaseColor;
-  } else if (countVariantsForFilter('uncertain', variant)) {
+  } else if (countVariantsForFilter('uncertain', transformed)) {
     return scaleColors.othersColor;
-  } else if (countVariantsForFilter('predicted', variant)) {
+  } else if (countVariantsForFilter('predicted', transformed)) {
     return scaleColors.predictedColor;
   }
   return scaleColors.othersColor;
