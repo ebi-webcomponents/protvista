@@ -1,11 +1,9 @@
 import { renameProperties } from '../utils';
-import formatTooltip from '../tooltips/feature-tooltip';
+import formatTooltip, { TooltipFeature } from '../tooltips/feature-tooltip';
 
-type ProteomicsFeature = {
+type ProteomicsFeature = TooltipFeature & {
   unique: boolean;
-  ptms?: { name: string; position: number; sources: string[]; dbReferences: unknown[] }[];
-  residuesToHighlight?: unknown[];
-  [key: string]: unknown;
+  ptms?: { name: string; position: number; sources: string[]; dbReferences: { id: string; properties: Record<string, string> }[] }[];
 };
 
 type ProteomicsData = {
@@ -17,7 +15,7 @@ const proteomicsTrackProperties = (feature: ProteomicsFeature, taxId: number) =>
   return {
     category: 'PROTEOMICS',
     type: feature.unique ? 'unique' : 'non_unique',
-    tooltipContent: formatTooltip(feature as unknown as Parameters<typeof formatTooltip>[0], String(taxId)),
+    tooltipContent: formatTooltip(feature, String(taxId)),
   };
 };
 

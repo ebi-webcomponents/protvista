@@ -46,6 +46,19 @@ import config, {
 } from './config';
 
 import { TransformedInterPro } from './adapters/types/interpro';
+import { StructureFeature } from './adapters/structure-adapter';
+
+/** Union of all possible per-track payload shapes stored in this.data */
+type TrackPayload =
+  | Record<string, unknown>[]
+  | { sequence: string; variants: TransformedVariant[] }
+  | { sequence: string; variants: TransformedVariant[] } & Record<string, unknown>
+  | TransformedInterPro
+  | StructureFeature[]
+  | { variants?: TransformedVariant[] }
+  | string
+  | null
+  | undefined;
 
 import loaderIcon from './icons/spinner.svg';
 import protvistaStyles from './styles/protvista-styles';
@@ -87,8 +100,8 @@ class ProtvistaUniprot extends LitElement {
   private nostructure: boolean;
   private hasData: boolean;
   private loading: boolean;
-  private data: { [key: string]: unknown };
-  private rawData: { [key: string]: unknown };
+  private data: Record<string, TrackPayload> = {};
+  private rawData: Record<string, TrackPayload> = {};
   private displayCoordinates: { start?: number; end?: number } = {};
   private suspend?: boolean;
   private accession?: string;
@@ -105,8 +118,6 @@ class ProtvistaUniprot extends LitElement {
     this.nostructure = false;
     this.hasData = false;
     this.loading = true;
-    this.data = {};
-    this.rawData = {};
     this.displayCoordinates = {};
     this.transformedVariants = { sequence: '', variants: [] };
     this.addStyles();
@@ -162,7 +173,13 @@ class ProtvistaUniprot extends LitElement {
       // Some endpoints return empty arrays, while most fail 🙄
       this.hasData =
         this.hasData ||
-        Object.values(this.rawData).some((d) => !!(d as { features?: unknown[] })?.features?.length);
+        Object.values(this.rawData).some((d) => {
+          if (d && typeof d === 'object' && 'features' in d) {
+            const features = (d as { features?: unknown[] }).features;
+            return Array.isArray(features) && features.length > 0;
+          }
+          return false;
+        });
 
       // Now iterate over tracks and categories, transforming the data
       // and assigning it as adequate
@@ -177,7 +194,7 @@ class ProtvistaUniprot extends LitElement {
 
             if (
               !trackData ||
-              (adapter === 'variation-adapter' && (trackData[0] as unknown[]).length === 0)
+              (adapter === 'variation-adapter' && Array.isArray(trackData[0]) && trackData[0].length === 0)
             ) {
               return;
             }
@@ -233,7 +250,7 @@ class ProtvistaUniprot extends LitElement {
           trackType === 'nightingale-linegraph-track' ||
           trackType === 'nightingale-colored-sequence'
             ? categoryData[0]
-            : categoryData.flat();
+            : (categoryData.flat() as Record<string, unknown>[]);
       }
     }
     this.loading = false;
@@ -253,7 +270,7 @@ class ProtvistaUniprot extends LitElement {
       const currentCategory = this.config?.categories.find(
         ({ name }) => name === id
       );
-      const dataAsArray = data as { length?: number; variants?: unknown[] } | null;
+      const dataAsArray = data as { length?: number; variants?: TransformedVariant[] } | null;
       if (
         currentCategory &&
         currentCategory.tracks &&
@@ -653,10 +670,11 @@ class ProtvistaUniprot extends LitElement {
           )
         );
 
+      const existing = this.data['VARIATION-variation'];
       this.data['VARIATION-variation'] = {
-        ...(this.data['VARIATION-variation'] as object),
+        ...(existing && typeof existing === 'object' && !Array.isArray(existing) ? existing : {}),
         variants: filteredVariants,
-      };
+      } as TrackPayload;
 
       this._loadDataInComponents();
     }
