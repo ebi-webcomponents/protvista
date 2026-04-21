@@ -1,4 +1,8 @@
-export const renameProperties = (features) =>
+type FeatureWithBegin = { begin?: string | number };
+
+export const renameProperties = <T extends FeatureWithBegin>(
+  features: T[]
+): Array<T & { start: string | number | undefined }> =>
   features.map((ft) => ({
     ...ft,
     start: ft.begin || undefined,
