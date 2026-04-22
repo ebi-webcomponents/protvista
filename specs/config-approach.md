@@ -4,7 +4,7 @@
 
 Make ProtVista a **low-friction tool** that external labs, bioinformaticians, and non-EBI integrators can point at their own data and view it — ideally without writing JavaScript. To that end, this spec defines a JSON configuration schema that fully describes a ProtVista viewer instance: the categories it displays, the tracks within each category, where data comes from, and how tracks are rendered. The viewer is assembled declaratively from a single configuration file instead of hardcoded logic. The schema cleanly separates **Intent** (what the viewer should show and how) from **Representation** (the data payloads that tracks consume), and it preserves escape hatches for advanced programmatic customisation when the declarative path is not enough.
 
-The bring-your-own-data path is a first-class use case, not an afterthought — see the [Starter Kit](#starter-kit) section for the concrete deliverable that exercises it.
+The bring-your-own-data path is a first-class use case, not an afterthought.
 
 ### Ownership boundaries
 
@@ -18,7 +18,7 @@ The target workflow — an external lab inheriting the full EBI UniProt viewer a
 # Inherit the published EBI UniProt config, then add one custom track.
 # Nothing else needs to be restated — `sources`, `defaults`, all 15 EBI
 # categories, every built-in colour theme: all pulled in from the base.
-extends: "@ebi/uniprot-default"
+extends: "https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml"
 
 categories:
   - id: MY_LAB
@@ -29,7 +29,7 @@ categories:
         data: ./hotspots.csv
 ```
 
-A bench scientist writes only domain-level concepts (`kind: features`, `./hotspots.csv`) — never Nightingale component names, adapter names, or JavaScript. See [Example 5](#example-5-extending-the-ebi-default--one-line-one-new-track) for the full behaviour, and [Example 4](#example-4-bring-your-own-csv-with-a-vega-lite-transform-pipeline) for the bring-your-own-CSV + transform-pipeline variant.
+A bench scientist writes only domain-level concepts (`kind: features`, `./hotspots.csv`) — never Nightingale component names, adapter names, or JavaScript. See [Example 4](#example-4-extending-the-ebi-default--one-line-one-new-track) for the full behaviour.
 
 ## Non-Goals
 
@@ -72,10 +72,14 @@ interface ProtvistaViewerConfig {
   /**
    * Optional list of base configs to merge under this one.
    *
-   * Each entry is a URL, a file path, or a registered preset name
-   * (e.g. `"@ebi/uniprot-default"`). Resolution is left-to-right,
-   * with later entries overriding earlier ones and the current
-   * config overriding all of them.
+   * Each entry is a URL (`http(s)://…`) or a file path (`/…`, `./…`,
+   * `../…`) — anything the loader can `fetch()`. Resolution is
+   * left-to-right, with later entries overriding earlier ones and
+   * the current config overriding all of them. Embedders can also
+   * supply an `opts.resolver` at load time to map bare names to
+   * parsed configs, as an escape hatch for hosts that prefer a
+   * registered-name indirection; the default loader does not ship
+   * any such registry.
    *
    * Merge semantics:
    *   - `sources`            merged by key (child wins)
@@ -90,7 +94,7 @@ interface ProtvistaViewerConfig {
    * The canonical use case is "start from the EBI UniProt default,
    * add one track":
    *
-   *   extends: "@ebi/uniprot-default"
+   *   extends: "https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml"
    *   categories:
    *     - id: MY_TRACKS
    *       tracks:
@@ -119,8 +123,8 @@ interface ProtvistaViewerConfig {
    * be reused across entries — the mounting code just changes the
    * attribute.  When the config declares an accession and no
    * attribute is present, the config value is used, making the
-   * config fully self-contained (useful for the Starter Kit and
-   * for sharing reproducible examples).
+   * config fully self-contained (useful for sharing reproducible
+   * examples).
    *
    * If no accession is supplied by any source and the config
    * contains `{accession}` placeholders, validation emits:
@@ -405,7 +409,7 @@ interface DataSourceDescriptor {
    *
    * - "url":    Fetch from one or more HTTP endpoints.
    * - "inline": Data is provided directly via `inlineData`.
-   * - "file":   Path to a local file (for the Starter Kit / offline use).
+   * - "file":   Path to a local file (for offline / local-dev use).
    * - "custom": Consumer provides data programmatically via the escape-hatch API.
    */
   from?: "url" | "inline" | "file" | "custom";
@@ -845,27 +849,11 @@ Within the grant, ProtVista is free to cherry-pick individual concepts from SVS 
 
 The existing `nightingale-structure` component continues to provide 1D↔3D coordination via its internal SIFTS path, unchanged by this spec.
 
-## Starter Kit
-
-The Starter Kit is the primary vehicle for ProtVista's low-friction-authoring promise. It exercises the configuration schema for bring-your-own-data use cases and is shipped alongside the schema itself — its only dependency is on P1 (the config schema). The kit has three parts:
-
-**S1 — Sample YAML config.** A heavily commented YAML file demonstrating all schema features: semantic kinds, inline data, CSV/TSV/BED adapters, `dataTooltip` templates, colour themes. Ships alongside the published JSON Schema so that a new adopter can read one file and understand the full vocabulary.
-
-**S2 — Standalone HTML page.** A single `index.html` that loads ProtVista from CDN, reads a local config file, and mounts the viewer. Demonstrates the "no JavaScript required" workflow for external labs. The target audience is bench scientists and clinical researchers who can edit YAML but should not need to write code.
-
-**S3 — Local data folder.** Sample CSV, TSV, BED, and JSON files showing the bring-your-own-data path. Each file includes comments explaining the expected column conventions and maps to one of the generic format adapters (`features-json`, `features-csv`, `features-tsv`, `bed`).
-
-The three parts together lower the adoption barrier from "write JavaScript and understand Nightingale's component API" to "provide data in a supported format and edit a YAML config."
-
-**Distribution.** The Starter Kit ships inside the ProtVista repository at `examples/starter-kit/`. Shipping in-repo (rather than as a separate npm package or GitHub Pages site) keeps the kit versioned alongside the schema it exercises and means a new adopter has a one-stop source that never drifts out of sync with the viewer they're loading. The CDN-based `index.html` in S2 pins to the same tag as the kit it lives under, and the `@ebi/uniprot-default` preset referenced by `extends:` is published from the same repo.
-
-**Note on the playground.** The interactive web playground (a separate OMP output for edit-and-preview authoring) is a distinct artefact from the Starter Kit: the playground is a hosted editor, whereas the Starter Kit is a forkable, offline-capable file bundle. The playground builds on top of P1 (for validation) and S1 (as its seed config) but does not substitute for the kit's "clone, edit, host locally" path.
-
 ## Serialisation Formats
 
 The schema is format-agnostic at the semantic level — a config is a plain JavaScript object regardless of how it's serialised. Two formats are supported:
 
-- **YAML** is the recommended authoring format, especially for the Starter Kit audience. It supports comments, unquoted keys, and block scalars (`|`) for multiline Markdown `dataTooltip` templates. Starter Kit sample configs ship as `.yaml` files.
+- **YAML** is the recommended authoring format. It supports comments, unquoted keys, and block scalars (`|`) for multiline Markdown `dataTooltip` templates.
 - **JSON** is the canonical wire format. The published JSON Schema validates both forms equally — YAML is parsed to a plain object, then validated against the same schema. JSON configs remain fully supported for tooling, programmatic generation, and environments without YAML.
 
 All examples in this spec are shown in YAML form first with the JSON equivalent below. Pick whichever format suits your workflow; the resulting viewer behaviour is identical.
@@ -886,10 +874,10 @@ Accessibility is a grant-level commitment (see the OMP) and is baked into the sc
 The viewer runs in the embedder's browsing context and inherits the embedder's CSP and same-origin policy. The schema does not introduce new privilege — it only declaratively names the network destinations the viewer will fetch.
 
 - **`from: url` fetches** honour the browser's CORS rules: a `sources` entry pointing at a different origin works only if that origin sets appropriate CORS headers. The viewer never attempts to proxy, cache, or bypass this.
-- **`from: file` fetches** resolve to `fetch()` against the same origin as the hosting page — they are not filesystem reads in the Node sense. For the Starter Kit, this means the HTML page and its sibling data files must be served from the same origin (e.g. a local web server, or a file hosted on a static site); opening `index.html` directly via `file://` will fail same-origin checks on most browsers.
-- **`from: inline` data** never triggers a fetch and is the most trustworthy form for Starter Kit / offline use.
+- **`from: file` fetches** resolve to `fetch()` against the same origin as the hosting page — they are not filesystem reads in the Node sense. In practice, this means the HTML page and its sibling data files must be served from the same origin (e.g. a local web server, or a file hosted on a static site); opening `index.html` directly via `file://` will fail same-origin checks on most browsers.
+- **`from: inline` data** never triggers a fetch and is the most trustworthy form for offline / local-dev use.
 - **`from: custom` data** is injected by the embedder via `setTrackData()`; the trust posture is whatever the embedder applies to its own data.
-- **`extends` resolution** can transitively introduce fetches at config-load time — an adopter who writes `extends: "@ebi/uniprot-default"` is trusting the contents of that preset to name only acceptable `sources` URLs. The preset registry is owned by the ProtVista project and its `@ebi/…` namespace is part of the trust boundary; arbitrary third-party preset URLs should be audited by the adopter before use.
+- **`extends` resolution** can transitively introduce fetches at config-load time. The default fetcher accepts URLs (`http(s)://…`) and file paths (`/…`, `./…`, `../…`) and enforces a 2 MiB body ceiling; bare names are rejected unless the embedder supplies an `opts.resolver` that maps them to a parsed config. Authors are trusting the contents of whatever URL or file they name in `extends:` — including the `sources` URLs that target will introduce. Adopters who expose `extends:` values to end-users (dashboarding tools, admin UIs) should wrap the loader with their own origin allow-list before handing URLs on.
 - **Tooltip HTML** flows through Markdoc's own safe renderer — the document never reaches a raw `innerHTML` seam. User-interpolated data in `{% $field %}` placeholders is HTML-escaped before entering the Markdoc pipeline, so a malicious adapter payload cannot smuggle `<script>` into a tooltip. Authors registering custom adapters via `registerAdapter()` should nevertheless treat adapter output as the same trust level as the upstream data source. The `custom` branch of `dataTooltip` (the author-supplied render function) is out of this trust envelope by design — output is passed through verbatim, and authors who opt into `custom` take responsibility for their own escaping.
 
 ## Behavior
@@ -941,7 +929,7 @@ categories:
 
 The viewer renders a single collapsible category "Domains" (label title-cased from the id) containing one track "Domain". The semantic `kind: "features"` resolves to the `nightingale-track-canvas` component plus the UniProt feature adapter — the author never had to name either. At mount time, the loader resolves the accession (attribute wins, then config), looks up `"features"` in `sources`, substitutes the resolved accession, fetches the response, runs it through the resolved adapter, filters to items where `type === "DOMAIN"`, and feeds the result to the canvas component. No `version`, no `data: []` wrapper, no explicit `from:`, no `label:` — beginner configs collapse to the minimum.
 
-### Example 2: Inline data (Starter Kit use case, no server)
+### Example 2: Inline data (no server)
 
 **Input:**
 ```yaml
@@ -1020,55 +1008,7 @@ categories:
 
 The AlphaFold category has no `rendering` block because `kind: "confidence-score"` carries the AlphaFold colour ramp as a default preset — authors get the canonical appearance for free. The adapter (resolved from the semantic kind) receives two raw responses (from `alphafoldPrediction` and `proteins`) and produces a coloured-sequence string. The Variation category is similarly terse: `data: variation` is string shorthand that resolves via `sources`; `filterUI: nightingale-filter` attaches the variant filter widget. Every track inherits `defaults.labelUrl` unless it overrides (the AlphaFold track points at alphafold.ebi.ac.uk). Authors only write domain language (`"variants"`, `"confidence-score"`) — never Nightingale component names or adapter names.
 
-### Example 4: Bring-your-own CSV with a Vega-Lite transform pipeline
-
-**Input (YAML):**
-```yaml
-categories:
-  - id: MY_LAB
-    label: Lab predictions
-    tracks:
-
-      # Features parsed from a local CSV file, then filtered and reshaped
-      # declaratively — no JavaScript.  The Vega-Lite transform vocabulary
-      # (https://vega.github.io/vega-lite/docs/transform.html) is reused
-      # so authors familiar with Altair / Observable Plot feel at home.
-      - id: hotspots
-        label: High-confidence hotspots
-        kind: features
-        data:
-          url: ./my-hotspots.csv          # from + adapter inferred from .csv
-          transform:
-            - filter: { field: score,      gte: 0.8 }
-            - filter: { field: hotspot_type, oneOf: [binding, catalytic] }
-            - rename: { desc: description, pos_start: start, pos_end: end }
-            - calculate: "datum.end - datum.start"
-              as: length
-            - limit: 500
-        dataTooltip: |
-          ### {% $description %}
-          **Score:** `{% $score %}` — length {% $length %}
-          Residues **{% $start %}–{% $end %}**
-
-      # Custom per-residue score rendered with the canonical AlphaFold
-      # gradient — theme reused, no hex codes.
-      - id: custom_score
-        label: My score
-        component: nightingale-colored-sequence
-        data:
-          from: inline
-          inlineData: [0.1, 0.3, 0.4, 0.8, 0.95]
-          adapter: features-json
-        rendering:
-          colorScale:
-            theme: alphafold-ramp
-```
-
-**Expected output (viewer behaviour):**
-
-No HTTP requests are made. The `features-csv` adapter parses `./my-hotspots.csv` into raw feature objects. The Vega-Lite `transform` pipeline then runs in order: keep only items where `score >= 0.8`, keep only the two listed hotspot types, rename three fields, compute a derived `length` field, and cap the result at 500 items. The author's `dataTooltip` template can reference both original and derived fields (`{length}` was calculated inline). The second track reuses the canonical AlphaFold colour ramp by name. This is the target workflow for Starter Kit adopters: YAML, local data, no JavaScript — and arbitrary data-shaping expressible declaratively.
-
-### Example 5: Extending the EBI default — one line, one new track
+### Example 4: Extending the EBI default — one line, one new track
 
 **Input (YAML):**
 ```yaml
@@ -1076,7 +1016,7 @@ No HTTP requests are made. The `features-csv` adapter parses `./my-hotspots.csv`
 # then add one custom track in a new category. Nothing else needs to
 # be restated — `sources`, `defaults`, all 15 EBI categories, every
 # built-in colour theme: all pulled in from the base.
-extends: "@ebi/uniprot-default"
+extends: "https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml"
 
 categories:
   - id: MY_LAB
@@ -1089,7 +1029,7 @@ categories:
 
 **Expected output (viewer behaviour):**
 
-At load time the resolver fetches `@ebi/uniprot-default` (a registered preset name that points at the EBI-published config), merges its `sources`, `defaults`, and 15 categories underneath this config, then appends the `MY_LAB` category at the end of the category list. The user sees the full canonical UniProt viewer with their one extra track tacked on — authored in a handful of lines of YAML. Overriding a specific EBI track is equally cheap: declare a category with the same `id` as one in the base and the merge rules fold it in field-wise.
+At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, merges its `sources`, `defaults`, and 15 categories underneath this config, then appends the `MY_LAB` category at the end of the category list. The user sees the full canonical UniProt viewer with their one extra track tacked on — authored in a handful of lines of YAML. Overriding a specific EBI track is equally cheap: declare a category with the same `id` as one in the base and the merge rules fold it in field-wise. The URL can equally be a relative file path (`./uniprot-default.yaml`) if the adopter hosts their own copy of the base config.
 
 ## Edge Cases & Error Handling
 
@@ -1097,15 +1037,14 @@ At load time the resolver fetches `@ebi/uniprot-default` (a registered preset na
 |----------|-------------------|
 | A `url` data source returns HTTP 4xx/5xx | The track is silently hidden (consistent with current behaviour). A `console.warn` is emitted. The rest of the viewer renders normally. The category is hidden if *all* its tracks have no data. |
 | A `source` (or bare `url`) value is not a URL, not a file path, and does not match any key in `sources` | Config validation fails at load time: `"Unknown source key: '<value>' in track <categoryId>/<trackId>. Known sources: ..."`. Viewer does not mount. |
-| `data` string shorthand has an extension the resolver does not recognise (e.g. `./x.gff`) | Config validation fails: `"Cannot infer adapter for './x.gff' in track <categoryId>/<trackId>. Use an object form with explicit `adapter:` or register a handler for '.gff'."`. |
+| `data` string shorthand has an extension the resolver does not recognise (e.g. `./x.gff`) | Config validation fails: `"Cannot infer adapter for './x.gff' in track <categoryId>/<trackId>. Use an object form with explicit `adapter:`."`. |
 | `adapter` name does not match any built-in or registered adapter | Config validation fails: `"Unknown adapter: <name> in track <categoryId>/<trackId>. Did you forget to call registerAdapter()?"`. |
 | `kind` (semantic) value is not in the semantic-kind vocabulary and is not registered | Config validation fails: `"Unknown semantic kind: '<value>' in track <categoryId>/<trackId>. Valid values: .... Register custom kinds with registerSemanticKind()."`. |
 | A track has no `kind`, no `component`, and the parent category has no `component` | Config validation fails: `"Track <categoryId>/<trackId> has no 'kind' or 'component'. Set a semantic 'kind' (e.g. 'features') or provide 'component' explicitly."`. |
-| A `dataTooltip` template references a field that does not exist on the adapter's output | That placeholder renders as an empty string. After the first render pass, a single summary `console.warn` lists all missing fields for that track. The viewer does not fail. |
+| A `dataTooltip` template references a field that does not exist on the adapter's output | That placeholder renders as an empty string. The viewer does not fail. |
 | A `dataTooltip` template contains `<script>` or other dangerous HTML | For `kind: fields` and `kind: markdown`: all interpolated data from `{% $field %}` placeholders is HTML-escaped before rendering. Scripts and other raw markup are dropped. URL scheme whitelist: only `http:`, `https:`, and `mailto:` are allowed in anchor `href=` attributes; other schemes (e.g. `javascript:`) collapse to empty `href=""`. For `kind: custom`: the render function is a documented escape-hatch surface — the integrator is responsible for producing safe HTML. |
 | `colorScale.theme` references a name that is not built-in or registered | Config validation fails: `"Unknown colorScale theme: '<name>'. Registered themes: ..."`. |
 | `colorScale` has neither `theme` nor `stops` | Config validation fails: `"colorScale must specify either 'theme' or 'stops' ..."`. |
-| A generic format adapter (e.g. `features-csv`) receives malformed input | The adapter throws a descriptive error identifying the row/column at fault. The track fails to load, but other tracks continue. |
 | A `transform` step has no recognised operation key (`filter`, `calculate`, `rename`, `pick`, `limit`, or a registered custom operator) | Config validation fails: `"Unknown transform operator in track <categoryId>/<trackId>. Valid operators: ...."`. |
 | A `filter` step's field predicate has no comparison operator (only `field:`) | Config validation fails: `"Filter predicate on field '<name>' must include one of: equal, lt, lte, gt, gte, oneOf, range, valid."`. |
 | A `calculate` step's expression fails to parse or evaluate | The step is skipped for items where it throws; the `as` field is set to `null` on those items. A single summary `console.warn` is emitted per track. |
@@ -1113,9 +1052,9 @@ At load time the resolver fetches `@ebi/uniprot-default` (a registered preset na
 | A category has zero tracks | Validation warning emitted; category is skipped (not rendered). |
 | `from: inline` with `inlineData` missing or null | Validation fails: `"inlineData is required when 'from' is 'inline' in track <categoryId>/<trackId>."`. |
 | `from: custom` but `setTrackData()` never called at runtime | Track renders as empty/hidden. A `console.info` is emitted after initial load: `"Track <categoryId>/<trackId> is 'from: custom' but no data was provided via setTrackData()."`. |
-| `extends` target cannot be fetched (404 / file missing / unknown preset name) | Validation fails: `"Cannot resolve extends: '<value>'. ..."`. Viewer does not mount. |
+| `extends` target cannot be fetched (404, file missing, or value is neither a URL nor file path and no `opts.resolver` handled it) | Validation fails: `"Cannot resolve extends: '<value>'. ..."`. Viewer does not mount. |
 | `extends` chain contains a cycle | Validation fails: `"Circular extends: <a> → <b> → <a>"`. Viewer does not mount. |
-| `extends` target is fetched but fails to parse (malformed JSON/YAML) | Validation fails: `"Failed to parse extends target '<name>': <parse error detail>"`. The target name (preset or URL) is included so the author can identify which file in a multi-level chain is broken. Viewer does not mount. |
+| `extends` target is fetched but fails to parse (malformed JSON/YAML) | Validation fails: `"Failed to parse extends target '<name>': <parse error detail>"`. The target name (URL or file path) is included so the author can identify which file in a multi-level chain is broken. Viewer does not mount. |
 | `extends` target exceeds 2 MiB when fetched | Validation fails with a size-exceeded error. The default fetcher checks both the HTTP `Content-Length` header and the final decoded response length to prevent DoS from attacker-controlled servers. Adopters can supply a custom `opts.fetcher` with their own size policy. |
 | Duplicate `id` values within a category's tracks (after merge) | Validation fails: `"Duplicate track id '<id>' in category '<categoryId>'."`. |
 | Duplicate category `id` values (after merge) | Validation fails: `"Duplicate category id '<id>'."`. |
@@ -1126,7 +1065,7 @@ At load time the resolver fetches `@ebi/uniprot-default` (a registered preset na
 
 ## Design Invariants
 
-These hold across the configuration schema and the Starter Kit:
+These hold across the configuration schema:
 
 **Additive only.** Every change to the schema is a new optional property. Nothing is removed from an existing API. A ProtVista config that worked before any later enhancement (including any future SVS-flavoured work) must continue to work identically after.
 
@@ -1142,28 +1081,18 @@ The schema follows semantic versioning at the protocol level (distinct from the 
 
 - **Additive-only evolution.** Every post-v1.0 addition is a new optional property, semantic kind, adapter name, or transform operator. Existing fields and their semantics are never repointed. A config authored against v1.0 validates and renders identically on every later compatible version.
 - **Omitting `version` is valid** and is the recommended default for beginner configs — the loader assumes the latest supported protocol version. Authors who need to pin to a specific protocol version set `version` explicitly; this is only necessary when authoring against a historical schema revision.
-- **Version discovery.** New features added post-v1.0 are documented in `examples/starter-kit/` (the sample config tracks the current schema) and in `specs/config-approach.md`'s changelog. Editor autocomplete against the published JSON Schema will surface any newly-added optional fields to authors without requiring them to opt into a specific version string.
+- **Version discovery.** New features added post-v1.0 are documented in `specs/config-approach.md`'s changelog. Editor autocomplete against the published JSON Schema will surface any newly-added optional fields to authors without requiring them to opt into a specific version string.
 - **Unknown-version rejection.** A `version` value that is not in the supported set fails validation with `"Unsupported config version: '<value>'. Supported: ..."`. The loader does **not** attempt to auto-migrate forward or backward — this keeps the validation surface deterministic and prevents silent behavioural drift. If a future breaking change is unavoidable, a new major-version loader will be shipped that can opt to accept legacy configs via an explicit migration step.
 
 ## Dependency Graph
 
-The grant deliverable is P1 + the Starter Kit (S1–S3). Neither has any external cross-project dependency — no Nightingale SVS phase, no MolStar coordination work, no upstream protocol release. P1 can ship immediately; each Starter Kit part depends only on P1.
-
-| Starter Kit phase | Depends on | Notes |
-|---|---|---|
-| S1 (sample YAML config) | P1 only | |
-| S2 (standalone HTML page) | P1 only | |
-| S3 (local data folder) | P1 only | |
+The grant deliverable (P1 — the config schema) has no external cross-project dependency: no Nightingale SVS phase, no MolStar coordination work, no upstream protocol release. P1 can ship immediately.
 
 ## Open Questions
 
-1. ~~**Generic format adapter coverage.**~~ **Resolved.** The CSV header row (`type,start,end,description[,score]`) is the minimal contract. TSV is a first-class sibling — `features-tsv` is shipped alongside `features-csv` with the same column convention, tab-separated. Optional extra columns are surfaced through `dataTooltip` templates on a per-track basis (not auto-surfaced — that would pollute the payload shape for tracks that don't use them).
+1. ~~**Transform-expression evaluator.**~~ **Resolved.** The Vega-Lite-style `filter: "<expr>"` and `calculate: "<expr>"` string forms are evaluated using Vega's safe expression parser (`vega-expression`). Larger dependency than an in-house minimal evaluator (~40 kB gzipped on top of the baseline runtime), but offers the widest compatibility — configs authored against Vega/Vega-Lite/Observable Plot "just work" without a separate expression dialect. Bundle-size implications are recorded in [Constraints](#constraints). The structured field-predicate form remains evaluator-free.
 
-2. ~~**Starter Kit distribution channel.**~~ **Resolved.** The Starter Kit ships inside the ProtVista repository at `examples/starter-kit/`; see the [Starter Kit](#starter-kit) section. The CDN-based `index.html` in S2 pins to the repo tag; `extends: "@ebi/uniprot-default"` resolves to the default config published from this same repo.
-
-3. ~~**Transform-expression evaluator.**~~ **Resolved.** The Vega-Lite-style `filter: "<expr>"` and `calculate: "<expr>"` string forms are evaluated using Vega's safe expression parser (`vega-expression`). Larger dependency than an in-house minimal evaluator (~40 kB gzipped on top of the baseline runtime), but offers the widest compatibility — configs authored against Vega/Vega-Lite/Observable Plot "just work" without a separate expression dialect. Bundle-size implications are recorded in [Constraints](#constraints). The structured field-predicate form remains evaluator-free.
-
-4. **Preset namespace.** What namespace do we use for shipped presets (`@ebi/uniprot-default`, possibly `@ebi/alphafold-overlay`, etc.)? If we adopt `@<org>/<name>`, how does the loader resolve it — npm-style, a published manifest, or a baked-in registry in the viewer? *Deferred.* Must be resolved before the `extends` merger (task #20) lands; the shipped `examples/starter-kit/` base config can use the eventual namespace at that point.
+2. ~~**Preset namespace.**~~ **Resolved.** `extends:` accepts URLs (`http(s)://…`) and file paths (`/…`, `./…`, `../…`); the default loader does not ship a preset registry. Embedders who want a registered-name indirection can pass `opts.resolver` when calling `mergeExtends`. No `@<org>/<name>` namespace is baked into the viewer.
 
 ## Constraints
 
@@ -1185,15 +1114,14 @@ The grant deliverable is P1 + the Starter Kit (S1–S3). Neither has any externa
 - [x] A JSON Schema file (`protvista-config.schema.json`) is published that validates all examples in this spec.
 - [x] The existing hardcoded `config.ts` default configuration can be losslessly represented as a YAML/JSON file conforming to the new schema (round-trip fidelity).
 - [x] `version`, category `label`, and category `component` are all optional; a config that omits them validates and renders. Category `label` falls back to a title-cased `id`; category `component` is inferred from child tracks' `kind`s.
-- [x] The four `data` forms all work: `data: "<sources-key>"`, `data: "./file.csv"` (and `.json`, `.bed`), `data: { ... }` (single object), `data: [ ... ]` (array for multi-URL adapters).
-- [x] `data: "./x.csv"` infers `from: file, adapter: features-csv` automatically; likewise `.tsv → features-tsv`, `.json → features-json`, `.bed → bed`.
+- [x] The four `data` forms all work: `data: "<sources-key>"`, `data: "./file.json"` (relative path), `data: { ... }` (single object), `data: [ ... ]` (array for multi-URL adapters).
 - [x] A config with `from: inline` data renders tracks without any HTTP requests.
 - [x] A config with `from: url` using `source:` (or bare `url:`) sources-key resolution fetches correctly.
 - [x] `from: custom` data sources are renderable via the `setTrackData()` escape-hatch API.
 - [x] `registerAdapter()`, `registerSemanticKind()`, `registerTransform()`, and `registerTheme()` each allow a user-defined name to be referenced from config and function correctly.
 - [x] Vega-Lite-style `transform` pipelines work for the built-in operators (`filter`, `calculate`, `rename`, `pick`, `limit`). Field predicates accept `equal`, `lt`, `lte`, `gt`, `gte`, `oneOf`, `range`, `valid`. Expression-string filters (`"datum.score > 0.8"`) work for the same cases.
 - [x] Track-level `filter: "<value>"` shortcut produces the same output as the equivalent `transform: [{ filter: { field: "type", equal: "<value>" } }]` — parity test.
-- [x] `extends` resolves one or more base configs, merges per the documented rules (sources by key, categories by id, rendering field-wise, child wins), and handles both file/URL and registered-preset targets. Cycles are detected and fail validation.
+- [x] `extends` resolves one or more base configs (URL or file path), merges per the documented rules (sources by key, categories by id, rendering field-wise, child wins). Cycles are detected and fail validation.
 - [x] `defaults.rendering`, `defaults.labelUrl`, and `defaults.helpPage` inherit to every category/track and are overridden at the category and track level per the documented precedence chain.
 - [x] Track rendering options (`color`, `shape`, `height`, `layout`, `colorScale`) correctly inherit from `defaults` → category → track, with track winning on conflict.
 - [x] Config validation produces clear, actionable error messages for all edge cases listed above.
@@ -1204,15 +1132,10 @@ The grant deliverable is P1 + the Starter Kit (S1–S3). Neither has any externa
 - [x] Explicit `component` on a track or `adapter` on a data source override the semantic-kind resolution.
 - [x] `filterUI: "nightingale-filter"` attaches the variant filter widget.
 - [x] `dataTooltip` accepts the three authoring forms — shorthand string, `kind: fields`, and `kind: markdown` — and renders correctly for each data point on the track. Markdown is rendered via `@markdoc/markdoc`; `{% $field %}` placeholders can reference fields produced by `calculate` transform steps and are HTML-escaped before substitution.
-- [ ] Missing field references in `dataTooltip` render as empty strings and emit one summary warning per track, not per data point.
 - [x] YAML configs load and validate equivalently to JSON configs. A round-trip (JSON → YAML → JSON) on the default config is lossless.
-- [ ] The Starter Kit sample config ships in YAML with comments and multiline `dataTooltip` block scalars.
-- [x] Adapter names follow the `<source>-<format>` convention. A config author can tell at a glance which adapters are EBI-specific and which parse generic formats.
-- [ ] At least four generic format adapters ship with the viewer: `features-json`, `features-csv`, `features-tsv`, and `bed`. Each has a documented column/shape convention and unit tests covering happy-path and malformed inputs.
+- [x] Adapter names follow the `<source>-<format>` convention. A config author can tell at a glance which adapter is tied to which API.
 - [x] Built-in themes `alphafold-ramp` and `alphamissense-ramp` are defined once, used by default in `confidence-score` / `pathogenicity-score` semantic kinds, and available to any track via `colorScale.theme`.
-- [ ] The Starter Kit example (local/inline data, no server) works end-to-end with the new schema.
-- [ ] A non-developer adopter can clone the Starter Kit, point it at their own CSV/BED/JSON file, edit the YAML config, and see their data in the viewer without writing any JavaScript.
-- [ ] An external-lab adopter can write a ten-line config using `extends: "@ebi/uniprot-default"` and add one extra track, with the full EBI viewer inherited intact.
+- [x] An external-lab adopter can write a ten-line config using `extends:` pointing at a URL or local file path to a base config and add one extra track, with the base viewer inherited intact.
 - [x] `accession` can be supplied via config, HTML attribute, or `setConfig()`. The HTML attribute takes precedence over the config value. A config with `{accession}` placeholders but no accession from any source fails validation with a clear message.
 
 ## Tests
@@ -1314,7 +1237,7 @@ describe("ProtVista Viewer Config Schema — JSON Schema layer", () => {
 
   it("accepts top-level extends and defaults", () => {
     const config = {
-      extends: "@ebi/uniprot-default",
+      extends: "https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml",
       defaults: { rendering: { layout: "non-overlapping" }, labelUrl: "https://x/{id}" },
       categories: [{ id: "MY", tracks: [{ id: "t", kind: "features", data: "./x.csv" }] }],
     };
