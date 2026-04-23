@@ -29,6 +29,20 @@
  *
  * Adapter INTERNALS are covered by their own unit tests and are
  * deliberately not characterised here.
+ *
+ * READING THE SNAPSHOT
+ *   Because every adapter shares the same uniform mock, the data under
+ *   `ALPHAFOLD_CONFIDENCE`, `ALPHAMISSENSE_PATHOGENICITY`, and other
+ *   colored-sequence / linegraph groups will look identical in shape to
+ *   the feature-shaped groups (`DOMAINS`, `SITES`, …) — rows like
+ *   `{ _adapter: "alphafold-prediction-json", type: "MOTIF" }` under
+ *   `ALPHAFOLD_CONFIDENCE` are a mock artefact, NOT a loader bug. The
+ *   real AlphaFold adapter would produce a coloured-sequence string,
+ *   the real variant-counts adapter would produce a linegraph-point
+ *   array, etc. The snapshot characterises *which slot each adapter's
+ *   output lands in*, not *what shape the real adapter output has*.
+ *   (Follow-on: replace with shape-correct per-adapter mocks —
+ *   tracked as a next-branch issue.)
  */
 
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';

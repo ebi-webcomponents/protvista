@@ -184,3 +184,72 @@ issues:
       Worth coordinating with issue #1 (generic-format adapters `features-json`/`features-csv`/`features-tsv`/`bed`) on the error-text format so BYOD authors get a consistent error-message vocabulary across the entire generic-kind / generic-format surface.
     fields:
       Group: "Technical"
+
+  - title: "Replace uniform adapter mocks in `load-data-baseline.spec.ts` with shape-correct per-adapter mocks"
+    labels: ["next"]
+    body: |
+      **Context**
+      `src/__spec__/load-data-baseline.spec.ts` currently stubs every adapter with the same uniform factory (`makeSimpleAdapter`), which returns one row per entry in `FILTER_TYPES_USED` — 35 `{ _adapter, type }` rows regardless of which adapter is being mocked. The intent was to surface loader wiring (who fires, how many times, which slot fills) without characterising adapter internals. The effect is that the snapshot shows UniProt feature types (`MOTIF`, `CHAIN`, `DOMAIN`, …) appearing under groups whose real adapters would produce entirely different shapes — `ALPHAFOLD_CONFIDENCE` (coloured-sequence string), `ALPHAMISSENSE_PATHOGENICITY` (heatmap / string), `VARIATION` group aggregate (linegraph points), and so on.
+
+      This was flagged during PR review of the `config-approach` branch as visually misleading — a reviewer scanning the snapshot reasonably parses `MOTIF` under `ALPHAFOLD_CONFIDENCE` as a pipeline bug until they drill into the test file's docstring and realise it's a mock artefact. The docstring was strengthened on that PR with a `READING THE SNAPSHOT` note explaining the convention, but the underlying fix — giving each adapter a mock that produces the right *shape* for its downstream component — was deferred to this issue.
+
+      **Task**
+      Replace the single `makeSimpleAdapter` factory with per-adapter factories that return output of the shape the real adapter would produce. Keep the "one row per filter type" pattern for adapters whose real output is feature-shaped (`uniprot-features-json`, `uniprot-proteomics-json`, `uniprot-proteins-pdb-json`, `uniprot-rna-editing-json`, `uniprot-proteomics-ptm-json`) — those are already correctly shaped. Rewrite the others:
+
+      **Scope:**
+      * `alphafold-prediction-json` — returns a coloured-sequence string of AlphaFold confidence codes, e.g. `'H'.repeat(770)` or a deterministic-but-varied pattern (`'HHHVVLLLAAA...'`). Matches the real adapter's `confidenceCategory.join('')` output.
+      * `alphamissense-average-csv` — returns a coloured-sequence string of pathogenicity codes (`H`, `V`, `L`, `A`, `l`, `h`, `p`, `P`). Matches the real adapter's `parseCSV` output (a joined string of per-position pathogenicity codes).
+      * `alphamissense-full-csv` — returns a heatmap-shaped array (matrix of per-(position, mutation) pathogenicity scores). Confirm the exact shape the `nightingale-sequence-heatmap` component expects before picking a mock; likely `[{ xValue, yValue, score }]` or similar.
+      * `uniprot-variation-json` — returns `{ sequence: string, variants: Variant[] }` matching the real variation adapter's output. Use a minimal variant fixture (1-3 entries) covering both a clinically-significant variant and a polymorphism so the filter / sort behaviour is visible.
+      * `uniprot-variation-counts-json` — returns linegraph points `[{ position: number, value: number }]` (or whatever shape the real adapter emits — confirm from `src/adapters/variation-counts-adapter.ts`).
+      * `uniprot-rna-editing-counts-json` — same pattern as variation-counts, but for RNA editing.
+      * Keep `interpro-entries-json` as-is (already has `makeInterproAdapter`; tests the `locations[].representative` flattening branch).
+      * Regenerate the `load-data-baseline.spec.ts.snap` snapshot once the mocks are in place. Expect a ~4000-line diff; review visually to confirm every group's data has a shape consistent with its component (colored-sequence strings under colored-sequence groups, linegraph points under linegraph groups, feature arrays under track-canvas groups).
+      * Verify the other tests in the same file still pass: `invokes each adapter the expected number of times`, `fetches the expected unique URL set`, `computes hasData=true/false`, `honors the variation-adapter early-return on empty raw data`, `rewrites InterPro representative fragments`, `returns an empty data object when no accession is effectively provided`. Some may need minor adjustment to the mock-expectation assertions.
+      * Remove the `READING THE SNAPSHOT` paragraph from the spec's docstring once the mocks are shape-correct — the warning is no longer needed.
+
+      **Notes:**
+      The existing `FILTER_TYPES_USED` constant stays — feature-shaped adapters still return one row per type for filter-wiring visibility. Only the non-feature-shaped adapters get custom mocks.
+
+      Confirm each mock shape against its real adapter in `src/adapters/` before committing. `alphafold-confidence-adapter.ts` returns a string joined from `confidenceCategory`. `alphamissense-pathogenicity-adapter.ts` returns a string joined from per-position pathogenicity codes. `variation-adapter.ts` returns `{ sequence, variants }`. Don't invent shapes that look plausible but don't match the real pipeline — the point is to make the test a faithful characterisation, not a creative writing exercise.
+
+      Double-check the aggregation rule in `load-data.ts` (currently "`groupData[0]` for linegraph / colored-sequence groups, `.flat()` otherwise"). With shape-correct mocks, `data["ALPHAFOLD_CONFIDENCE"]` becomes the string the adapter produced (not an array of feature records), which matches what the real coloured-sequence component consumes.
+    fields:
+      Group: "Technical"
+
+  - title: "Add a devcontainer / Dockerised dev environment for Linux-container test runs"
+    labels: ["next"]
+    body: |
+      **Context**
+      Test runs are currently coupled to the contributor's host platform. Native bindings in `node_modules` (`@rolldown/binding-*`, `@rollup/rollup-*`, `@esbuild/*`, etc.) are resolved at `yarn install` time based on the installer's OS/arch. That works fine for a contributor running tests on their own machine — Mac contributors get Mac bindings, Linux contributors get Linux bindings — but breaks down for three real-world cases:
+
+      1. **Agentic tooling running in sandboxed Linux containers** (the case that prompted this issue). A sandbox session with the repo mounted can't run `npx vitest` because the Mac-installed bindings don't load on Linux ARM64. Attempting an additive install of the missing Linux bindings mid-session is risky: the sandbox has a 45-second-per-command timeout, and a partial install leaves `node_modules` in a corrupt half-state with dozens of empty package directories, requiring the contributor to `rm -rf node_modules && yarn install` on their Mac to recover.
+      2. **CI pipelines on Linux runners** that inherit a contributor's macOS-installed lockfile without re-installing from scratch.
+      3. **Remote contributors / new joiners** who want a zero-setup "clone and go" environment that matches what everyone else runs.
+
+      A standard `.devcontainer/devcontainer.json` (VS Code) + `Dockerfile` solves all three. Contributors and agents running inside the container get a fresh Linux install of `node_modules` with the right bindings; contributors running tests on their host keep doing what they already do.
+
+      **Task**
+      Add a reproducible Linux dev-container definition that bootstraps Node, installs dependencies fresh for the container's platform, and runs the same `yarn test` / `yarn build` the CI runs.
+
+      **Scope:**
+      * `.devcontainer/devcontainer.json` — VS Code remote-container config. Pinned Node version matching the one in `package.json`'s `engines` field. Post-create command: `yarn install --frozen-lockfile` (installs platform-correct native bindings inside the container, separate from the host's `node_modules`). Mount the workspace at `/workspaces/protvista-uniprot` so file edits flow back to the host.
+      * `Dockerfile` (or reuse a Microsoft-published devcontainer base image like `mcr.microsoft.com/devcontainers/javascript-node:20`). Keep it minimal — Node, yarn, git, and whatever else the test run needs (jsdom dependencies are pure JS, so no extra system packages).
+      * README section: "Running tests in a devcontainer" with a 3-line reproduction (open VS Code, click "Reopen in Container", run `yarn test`). Mention that this is the supported path for agentic tooling and for contributors without a local Node install.
+      * `.gitignore`: `.devcontainer/data` (or similar) to keep any container-generated state out of the repo.
+      * CI (optional): consider adding a second CI job that runs inside the same container image so "it works in CI" and "it works in the devcontainer" mean the same thing. Out of scope for the minimum deliverable, but noted.
+
+      **Notes:**
+      Isolation of `node_modules`: use a named volume for the container's `node_modules` so it doesn't overwrite the host's install. Pattern:
+      ```jsonc
+      "mounts": [
+        "source=${localWorkspaceFolderBasename}-node-modules,target=/workspaces/protvista-uniprot/node_modules,type=volume"
+      ]
+      ```
+      This keeps the host's macOS-bindings `node_modules` untouched — contributors who usually run tests on their host don't notice the container unless they reopen in it.
+
+      The trigger for this issue is one specific pain point, but the payoff is broader: any future sandbox / CI / remote setup inherits a reproducible Linux toolchain. Worth doing even if the immediate agentic-tooling case isn't a priority.
+
+      Out of scope: migrating the host-side dev loop to run inside a container by default. This issue is strictly about providing the option, not mandating it.
+    fields:
+      Group: "Technical"
