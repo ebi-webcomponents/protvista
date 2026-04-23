@@ -32,41 +32,8 @@
  * Those live in `defaults.ts` and stay next to the data they format.
  */
 import ecoMap from '../adapters/config/evidence';
-import { escapeHtml } from '../utils/security';
+import { escapeHtml, sanitizeUrl } from '../utils/security';
 import type { TooltipHelper } from './types';
-
-/**
- * Allowlist URL schemes permitted inside anchor `href=` attributes.
- * Returns the trimmed + HTML-attribute-escaped URL on success; returns
- * an empty string for anything else, which collapses the anchor to
- * `href=""` (effectively a no-op link) rather than leaving a
- * `javascript:` / `data:` / `vbscript:` payload live.
- *
- * Accepts the same three schemes the UniProt / InterPro / PubMed data
- * surface actually uses (`https:`, `http:` legacy URLs, `mailto:` on
- * a few evidence sources). Protocol-relative (`//…`) and path-only
- * (`/path`) URLs are also allowed because the upstream DBs emit both.
- *
- * Deliberately permissive on the value itself — we don't re-parse or
- * canonicalise. The goal is scheme containment, not URL validation.
- */
-function sanitizeUrl(value: unknown): string {
-  const raw = String(value ?? '').trim();
-  if (!raw) return '';
-  // Path-only or protocol-relative — no scheme to worry about.
-  if (raw.startsWith('/') || raw.startsWith('#') || raw.startsWith('?')) {
-    return escapeHtml(raw);
-  }
-  // Match `scheme:` prefix; anything without a colon is a relative
-  // path and is fine.
-  const schemeMatch = raw.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
-  if (!schemeMatch) return escapeHtml(raw);
-  const scheme = schemeMatch[1].toLowerCase();
-  if (scheme === 'http' || scheme === 'https' || scheme === 'mailto') {
-    return escapeHtml(raw);
-  }
-  return '';
-}
 
 // -----------------------------------------------------------------------------
 // Narrow input shapes
