@@ -75,3 +75,32 @@ issues:
       Keep the fallback compact — this is a safety net, not a replacement for authored tooltips. If the payload has fifteen fields, surface at most ~six; the rest are the author's call to include with an explicit `dataTooltip`. Pick the subset based on which UniProt/AlphaFold/variant adapters actually populate the fields — don't infer from type heuristics alone.
     fields:
       Group: "Technical"
+
+  - title: "Make `label` a Markdoc string and drop `helpPage` / `labelUrl` from the schema"
+    labels: ["next"]
+    body: |
+      **Context**
+      Group and track `label` is currently plain text. Rich-label behaviour is bolted on with two sibling fields: `helpPage` (an EBI-internal hook — renders `<span data-article-id="<slug>">…</span>`, which is interpreted by a help-article controller on uniprot.org but is dead markup everywhere else) and `labelUrl` (an external-link template with `{accession}` interpolation, used by the AlphaFold and AlphaMissense tracks). External adopters — the target audience for the config-as-data redesign — get no value from `helpPage`, and `labelUrl` duplicates what a hyperlink inside a label would express more directly.
+
+      Collapsing both into a Markdoc-rendered `label` gives us one authoring surface ("write Markdown, including a link if you want one") and removes two EBI/accession-specific fields from the schema. The Markdoc renderer is already in the bundle for `dataTooltip`, so reuse is near-free.
+
+      **Task**
+      Make `label` a Markdoc source string across groups and tracks, render it through the existing Markdoc pipeline, and remove `helpPage` and `labelUrl` from the schema. Preserve uniprot.org's in-page help-popover behaviour via a registered Markdoc custom tag rather than a schema-level field.
+
+      **Scope:**
+      * Schema + types: drop `helpPage` from `ConfigDefaults`, `GroupConfig`, `TrackConfig`; drop `labelUrl` from `ConfigDefaults` and `TrackConfig`. Update `src/schema/schema.json`, `src/schema/types.ts`, and the precedence doc comments. Extend-merger entries in `src/schema/extends.ts` (`labelUrl`, `helpPage` under scalar-field merge) go away.
+      * Renderer: in `src/protvista-uniprot.ts` (group label ~L794 and track label ~L840), replace the three-way ternary (`labelUrl` → anchor, `helpPage` → `data-article-id` span, else plain) with a single Markdoc render. `{accession}` interpolation happens *before* Markdoc parses (same substitution pass that `labelUrl` uses today) so authors can write `[AlphaFold](https://alphafold.ebi.ac.uk/entry/{accession})` without learning Markdoc variables.
+      * Custom Markdoc tag for EBI help-popover parity: register a `{% help slug="signal" %}Signal peptide{% /help %}` tag that renders `<span data-article-id="signal">Signal peptide</span>`. External adopters ignore the tag; uniprot.org's existing controller keeps working. Add the tag's attribute allowlist (`slug:` is a restricted-charset string — `^[a-zA-Z0-9_#-]+$` to match existing slug values like `proteomics#1-data-from-public-mass-spectrometry-based-proteomics-resources`). Covered by the existing URL-scheme/attribute allowlist testing pattern in `src/tooltips/__spec__/`.
+      * `src/default-config.yaml` migration: convert every `helpPage: <slug>` to `label: "{% help slug=\"<slug>\" %}<existing label>{% /help %}"` (~48 entries). Convert the two `labelUrl:` entries to inline Markdown links. Drop the now-orphaned top-level `defaults.helpPage` if present.
+      * Spec rewrite: `specs/config-approach.md` — label section (currently describes `label`/`labelUrl`/`helpPage` as three separate fields), the `ProtvistaViewerConfig` interface block (L~156 and L~187), the runtime behaviour notes, and the accessibility section (tooltip-semantics paragraph mentions label rendering). Update the extends merge-rules table.
+      * Tests: `src/schema/__spec__/schema.spec.ts` (drop `helpPage`/`labelUrl` acceptance cases, add a Markdoc-label happy-path case), `src/__spec__/render-target.spec.ts` + its snapshot (regenerate under the new DOM — help-page spans become `data-article-id` spans emitted by the Markdoc tag, plain labels become Markdoc-rendered equivalent HTML), `src/schema/__spec__/extends.spec.ts` (drop `helpPage`/`labelUrl` merge cases).
+      * Migration note in `CHANGELOG`/`ROADMAP` — this is a breaking schema change and a visible shift for uniprot.org embedders (no DOM regression if the `{% help %}` tag is registered; DOM regression if they forget to register it).
+
+      **Notes:**
+      The single biggest design question is whether uniprot.org keeps using the `{% help %}` tag at all, or migrates to a consumer-side click interceptor (match `a[href^="https://www.ebi.ac.uk/help/"]`, `preventDefault`, open the popover). The interceptor approach removes the EBI-specific concept from the viewer entirely and turns `helpPage: signal` into a plain Markdown link. The custom-tag approach preserves exact DOM parity. Decide with the uniprot.org team before starting the default-config.yaml migration — the migration output differs.
+
+      Bundle-load implication: Markdoc moves from "lazy, loaded on first tooltip click" to "eager, loaded on every viewer mount" because labels render at mount. Likely in-budget (Markdoc is ~30 kB gzipped and already in the eager bundle for tooltip-default rendering when a track has no authored `dataTooltip`), but worth confirming with a bundle-size trace before landing.
+
+      Do not try to support Markdoc block-level content (headings, lists, code blocks) inside labels — labels are a single-line UI element and the author intent for "paragraph of help content" is already served by `description` (the plain-text `title=` tooltip) and `dataTooltip` (the per-datapoint Markdoc popover). Consider restricting the label-level Markdoc surface to inline nodes only (emphasis, strong, code span, link, and registered custom tags); reject block-level constructs with a validator warning.
+    fields:
+      Group: "Technical"
