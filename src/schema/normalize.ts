@@ -21,18 +21,18 @@
  *      track's rendering chain.
  *   5. Cascades rendering / labelUrl / helpPage inheritance so the
  *      loader sees fully-resolved per-track blocks (no walking of
- *      defaults → category → track at render time):
+ *      defaults → group → track at render time):
  *
- *         track.rendering > category.rendering > defaults.rendering
+ *         track.rendering > group.rendering > defaults.rendering
  *         track.labelUrl  > defaults.labelUrl
- *         track.helpPage  > category.helpPage  > defaults.helpPage
+ *         track.helpPage  > group.helpPage  > defaults.helpPage
  *
- *   6. Infers category `component` from child-track `component`s when
+ *   6. Infers group `component` from child-track `component`s when
  *      omitted (all-same → that component; mixed →
  *      `nightingale-track-canvas`), per specs/config-approach.md §Behavior.
  *   7. Applies the title-cased `id` → `label` fallback for both
- *      categories and tracks.
- *   8. Detects duplicate category / track ids and throws.
+ *      groups and tracks.
+ *   8. Detects duplicate group / track ids and throws.
  *   9. Resolves `source:` references to concrete `url:` strings via
  *      the root `sources` map, leaving the `source:` field in place
  *      for downstream introspection (validator error messages).
@@ -55,7 +55,7 @@
 
 import type {
   ProtvistaViewerConfig,
-  CategoryConfig,
+  GroupConfig,
   TrackConfig,
   DataSourceDescriptor,
   RenderingOptions,
@@ -81,7 +81,7 @@ export interface NormalizedConfig {
   accession?: string;
   sources: Record<string, string>;
   defaults: NormalizedDefaults;
-  categories: NormalizedCategory[];
+  groups: NormalizedGroup[];
 }
 
 export interface NormalizedDefaults {
@@ -91,15 +91,15 @@ export interface NormalizedDefaults {
   helpPage?: string;
 }
 
-export interface NormalizedCategory {
+export interface NormalizedGroup {
   id: string;
   /** Always present after normalize — `titleCaseId(id)` if omitted. */
   label: string;
-  /** Short plain-text description; rendered as `title=` on the category label. */
+  /** Short plain-text description; rendered as `title=` on the group label. */
   description?: string;
   /** Always resolved — inferred from children if omitted, else canvas. */
   component: ComponentName;
-  /** Resolved cascade: defaults → category. */
+  /** Resolved cascade: defaults → group. */
   rendering: RenderingOptions;
   helpPage?: string;
   tracks: NormalizedTrack[];
@@ -125,7 +125,7 @@ export interface NormalizedTrack {
   dataTooltip?: AuthoredTooltipSpec;
   filter?: string;
   filterUI?: 'nightingale-filter';
-  /** Resolved cascade: defaults → category → kind preset → track. */
+  /** Resolved cascade: defaults → group → kind preset → track. */
   rendering: RenderingOptions;
   helpPage?: string;
 }
@@ -162,7 +162,7 @@ export interface NormalizeOptions {
    * folded into each track's resolved shape. Without a registry,
    * tracks keep their `kind` verbatim and `component` / `adapter` are
    * inferred from whatever explicit fields the author supplied plus
-   * the category `component` / extension-based adapter rules. This
+   * the group `component` / extension-based adapter rules. This
    * keeps `normalize()` callable from unit tests that exercise
    * shorthand expansion or inheritance without setting up a full
    * registry.
@@ -187,15 +187,15 @@ export function normalizeConfig(
       : {}),
   };
 
-  // Duplicate category-id detection BEFORE we recurse so errors refer
+  // Duplicate group-id detection BEFORE we recurse so errors refer
   // to the offending id and not a downstream symptom.
   assertUniqueIds(
-    config.categories.map((c) => c.id),
-    (id) => `Duplicate category id '${id}'.`
+    config.groups.map((c) => c.id),
+    (id) => `Duplicate group id '${id}'.`
   );
 
-  const categories = config.categories.map((c) =>
-    normalizeCategory(c, defaults, sources, registry)
+  const groups = config.groups.map((c) =>
+    normalizeGroup(c, defaults, sources, registry)
   );
 
   return {
@@ -203,37 +203,37 @@ export function normalizeConfig(
     ...(config.accession !== undefined ? { accession: config.accession } : {}),
     sources,
     defaults,
-    categories,
+    groups,
   };
 }
 
 // ─────────────────────────────────────────────────────────────
-// Category
+// Group
 // ─────────────────────────────────────────────────────────────
 
-function normalizeCategory(
-  c: CategoryConfig,
+function normalizeGroup(
+  c: GroupConfig,
   defaults: NormalizedDefaults,
   sources: Record<string, string>,
   registry: Registry | undefined
-): NormalizedCategory {
+): NormalizedGroup {
   assertUniqueIds(
     c.tracks.map((t) => t.id),
-    (id) => `Duplicate track id '${id}' in category '${c.id}'.`
+    (id) => `Duplicate track id '${id}' in group '${c.id}'.`
   );
 
-  // Category rendering = defaults → category. Tracks then layer on
+  // Group rendering = defaults → group. Tracks then layer on
   // top of this in normalizeTrack.
-  const categoryRendering: RenderingOptions = {
+  const groupRendering: RenderingOptions = {
     ...defaults.rendering,
     ...(c.rendering ?? {}),
   };
 
   const tracks = c.tracks.map((t) =>
-    normalizeTrack(t, c, categoryRendering, defaults, sources, registry)
+    normalizeTrack(t, c, groupRendering, defaults, sources, registry)
   );
 
-  // Category component inference. Explicit wins; otherwise look at
+  // Group component inference. Explicit wins; otherwise look at
   // the child tracks' resolved components — if they all agree, use
   // that; if they diverge, fall back to the generic canvas track
   // (which can render mixed content).
@@ -250,8 +250,8 @@ function normalizeCategory(
       component = 'nightingale-track-canvas';
     }
   } else {
-    // Zero-track category — validator (#22) emits a warning and hides
-    // the category. Pick a sensible default so nothing downstream
+    // Zero-track group — validator (#22) emits a warning and hides
+    // the group. Pick a sensible default so nothing downstream
     // blows up if it is rendered anyway.
     component = 'nightingale-track-canvas';
   }
@@ -263,7 +263,7 @@ function normalizeCategory(
     label: c.label ?? titleCaseId(c.id),
     ...(c.description !== undefined ? { description: c.description } : {}),
     component,
-    rendering: categoryRendering,
+    rendering: groupRendering,
     ...(helpPage !== undefined ? { helpPage } : {}),
     tracks,
   };
@@ -275,7 +275,7 @@ function normalizeCategory(
 
 function normalizeTrack(
   t: TrackConfig,
-  parent: CategoryConfig,
+  parent: GroupConfig,
   parentRendering: RenderingOptions,
   defaults: NormalizedDefaults,
   sources: Record<string, string>,
@@ -288,11 +288,11 @@ function normalizeTrack(
   // kinds.
   const kindDef = t.kind ? registry?.getSemanticKind(t.kind) : undefined;
 
-  // Rendering cascade: defaults → category → kind preset → track.
-  // Kind sits BETWEEN category and track so that (a) a canvas-track
-  // category inheriting `color: red` still lets the kind override
+  // Rendering cascade: defaults → group → kind preset → track.
+  // Kind sits BETWEEN group and track so that (a) a canvas-track
+  // group inheriting `color: red` still lets the kind override
   // that for a `confidence-score` track (kind-canonical ramp wins
-  // over category red), while (b) the track author can still put an
+  // over group red), while (b) the track author can still put an
   // explicit override on top of a kind preset. Matches specs/config-approach.md
   // "Defaults are canonical".
   const rendering: RenderingOptions = {
@@ -304,8 +304,8 @@ function normalizeTrack(
   // Component resolution precedence:
   //   1. Explicit on the track (escape hatch)
   //   2. Kind's canonical component (author used `kind:`)
-  //   3. Parent category's explicit `component` (legacy authoring
-  //      style — one canvas row per category with sub-tracks)
+  //   3. Parent group's explicit `component` (legacy authoring
+  //      style — one canvas row per group with sub-tracks)
   //   4. `nightingale-track-canvas` — works for the vast majority of
   //      feature-style tracks.
   const component: ComponentName =
@@ -432,7 +432,7 @@ function resolveStringShorthand(
   }
   // 5. Fell off the end. Best-effort: assume the author intended a
   //    sources-key reference. The validator surfaces
-  //    "Unknown source key: '<value>' in track <categoryId>/<trackId>.
+  //    "Unknown source key: '<value>' in track <groupId>/<trackId>.
   //    Known sources: ..." with the registered keys listed — a far
   //    better error than any the engine could produce here.
   return { from: 'url', source: value };
@@ -530,7 +530,7 @@ function resolveSource(
 
 /**
  * Throw a formatted error on the first duplicate value in `ids`.
- * Shared between the category-level and track-level dedupe passes.
+ * Shared between the group-level and track-level dedupe passes.
  */
 function assertUniqueIds(
   ids: readonly string[],
@@ -554,7 +554,7 @@ function assertUniqueIds(
  * Lowercases the whole string, replaces runs of `_` / `-` with a
  * single space, then capitalises only the first character. Remaining
  * words stay lowercase ("Molecule processing", not "Molecule
- * Processing") because that matches UniProt's own category style.
+ * Processing") because that matches UniProt's own group style.
  */
 export function titleCaseId(id: string): string {
   const spaced = id.replace(/[_-]+/g, ' ').toLowerCase().trim();

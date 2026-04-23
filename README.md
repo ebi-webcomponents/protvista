@@ -132,7 +132,7 @@ You can pass your own configuration to the component using the `config` attribut
 
 ```json
 {
-  "categories": [
+  "groups": [
     {
       "name": "string",
       "label": "string",

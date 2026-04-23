@@ -2,7 +2,7 @@
 #
 # Migrated from the hard-coded `src/config.ts` as part of the SSI/RSMF
 # config-as-data redesign (specs/config-approach.md §Behavior, acceptance criterion
-# "All 15 existing UniProt categories render correctly when driven by
+# "All 15 existing UniProt groups render correctly when driven by
 # the new config format").
 #
 # Authoring conventions followed in this file:
@@ -20,7 +20,7 @@
 #     (`data: features`, `data: { source: [foo, bar] }`) — no URLs
 #     embedded in track definitions.
 #   • Identifiers follow the spec-recommended casing: UPPER_SNAKE for
-#     category ids, lower_snake for track ids. `label:` is kept
+#     group ids, lower_snake for track ids. `label:` is kept
 #     explicit whenever the legacy config used a human phrase that
 #     `titleCaseId()` would not reproduce.
 
@@ -50,7 +50,7 @@ sources:
   interproDomains: https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/{accession}?type=domain&page_size=100
   alphafoldPrediction: https://alphafold.ebi.ac.uk/api/prediction/{accession}
 
-categories:
+groups:
   # ───────────────────────────────────────────────────────────
   # 1. Molecule processing — UniProt MOLECULE_PROCESSING features
   # ───────────────────────────────────────────────────────────
@@ -460,7 +460,7 @@ categories:
     label: Variants
     # Explicit because the two child kinds (`variant-counts` +
     # `variants`) resolve to different components — without this,
-    # the collapsed-category aggregate view would fall back to
+    # the collapsed-group aggregate view would fall back to
     # `nightingale-track-canvas`, breaking parity with the legacy
     # viewer's linegraph aggregate.
     component: nightingale-linegraph-track
@@ -484,7 +484,7 @@ categories:
   - id: RNA_EDITING
     label: RNA Editing
     # Explicit: `rna-editing-counts` (linegraph) + `rna-editing`
-    # (track-canvas) are mixed, so the collapsed-category aggregate
+    # (track-canvas) are mixed, so the collapsed-group aggregate
     # needs an explicit component to match the legacy linegraph.
     component: nightingale-linegraph-track
     helpPage: rna_editing
@@ -498,7 +498,7 @@ categories:
       # Id preserved verbatim (including the space and capitalisation)
       # for parity with the pre-migration config — the legacy track's
       # `name` was the display-style `"RNA Editing"`, and the
-      # `${category.name}-${track.name}` key the renderer builds must
+      # `${group.name}-${track.name}` key the renderer builds must
       # keep working for external consumers that may be watching for
       # specific track keys. Label omitted on purpose; the normalizer
       # will synthesise one from the id.
@@ -565,11 +565,11 @@ categories:
   # ───────────────────────────────────────────────────────────
   - id: ALPHAFOLD_CONFIDENCE
     label: AlphaFold
-    # Explicit category-level rendering so the collapsed aggregate
+    # Explicit group-level rendering so the collapsed aggregate
     # view uses the same AlphaFold ramp as the per-track coloured
     # sequence. The child track's `confidence-score` kind already
     # carries this preset at track level; repeating it here keeps
-    # parity with the legacy config, whose category block had
+    # parity with the legacy config, whose group block had
     # `scale:` / `color-range:` attributes inlined.
     rendering:
       colorScale:

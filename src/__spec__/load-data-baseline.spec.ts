@@ -13,8 +13,8 @@
  *   • The filter pass for tracks that carry a `filter:` literal.
  *   • The InterPro representative-domain flattening (`locations[]
  *     .representative` → synthetic features).
- *   • The per-category aggregation mode (`.flat()` for most categories,
- *     `categoryData[0]` for linegraph / colored-sequence categories).
+ *   • The per-group aggregation mode (`.flat()` for most groups,
+ *     `groupData[0]` for linegraph / colored-sequence groups).
  *
  * Strategy
  *   • `fetchOne` is stubbed to return a distinct canned payload per URL,
@@ -302,14 +302,14 @@ describe('loadProtvistaData baseline (schema-driven default config)', () => {
     // `loadProtvistaData` requires a truthy accession to do any work;
     // pass an empty-string accession and the pure function will fetch
     // URLs with a literal `` substitution (cf. fetch-side behavior) but
-    // still walk categories. We pin this down as-is.
+    // still walk groups. We pin this down as-is.
     const result = await loadProtvistaData(
       '',
       config,
       cannedFetch,
       mockAdapters
     );
-    // The function still produces category aggregates for each category
+    // The function still produces group aggregates for each group
     // (since we only skip *at the component level* when accession is
     // falsy). This test documents the current pure-function behavior.
     expect(Object.keys(result.data)).toMatchSnapshot();

@@ -11,17 +11,17 @@ export default css`
   }
 
   .nav-container,
-  .category__track {
+  .group__track {
     display: flex;
     margin-bottom: 0.1rem;
   }
 
-  .category {
+  .group {
     display: none;
     margin-bottom: 0.1rem;
   }
 
-  .category-label,
+  .group-label,
   .track-label,
   .nav-track-label,
   .credits {
@@ -31,12 +31,12 @@ export default css`
     line-height: normal;
   }
 
-  .category-label {
+  .group-label {
     background-color: #b2f5ff;
     cursor: pointer;
   }
 
-  .category-label::before {
+  .group-label::before {
     content: ' ';
     display: inline-block;
     width: 0;
@@ -51,7 +51,7 @@ export default css`
     transition: all 0.1s;
   }
 
-  .category-label.open::before {
+  .group-label.open::before {
     content: ' ';
     display: inline-block;
     width: 0;

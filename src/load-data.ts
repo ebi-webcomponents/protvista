@@ -12,16 +12,16 @@
  *   1. Collect every `data[0].url` from every track, de-duplicate.
  *   2. Fetch each unique URL (substituting `{accession}`) via the caller-
  *      supplied fetch function.
- *   3. For each category: for each track: pluck the raw response, run
+ *   3. For each group: for each track: pluck the raw response, run
  *      the named adapter (the `adapter:` field carries the schema-level
  *      name — e.g. `uniprot-features-json` — which is used verbatim as
  *      the key into the caller-supplied `adapters` map), apply InterPro
  *      representative-domain flattening if relevant, apply the single-
  *      type filter if the track has one, and assign the result to
- *      `data[`${category}-${track}`]`.
- *   4. Assign a category-level aggregate at `data[category]` — which is
- *      `.flat()` for most components, or `categoryData[0]` for
- *      linegraph / colored-sequence categories.
+ *      `data[`${group}-${track}`]`.
+ *   4. Assign a group-level aggregate at `data[group]` — which is
+ *      `.flat()` for most components, or `groupData[0]` for
+ *      linegraph / colored-sequence groups.
  *
  * Intentionally kept side-effect-free: no `this`, no DOM, no
  * `transformedVariants`. That legacy side-effect is preserved in the
@@ -52,7 +52,7 @@ export type AdapterMap = Record<string, AdapterFn>;
 export type FetchOne = (url: string) => Promise<unknown>;
 
 /**
- * Map of `${categoryId}-${trackId}` → pre-shaped data for `from: custom`
+ * Map of `${groupId}-${trackId}` → pre-shaped data for `from: custom`
  * tracks. The runtime escape hatch on `<protvista-uniprot>` (the
  * `setTrackData()` method) writes into this map; the loader reads it when
  * a track's first descriptor is `from: custom`.
@@ -68,7 +68,7 @@ export type LoadResult = {
   /** Keyed by the *template* URL (pre-substitution), matching the legacy
    *  `this.rawData` shape the renderer reads. */
   rawData: Record<string, unknown>;
-  /** Keyed by `${categoryId}-${trackId}` and `${categoryId}`. */
+  /** Keyed by `${groupId}-${trackId}` and `${groupId}`. */
   data: Record<string, unknown>;
   /** True iff any raw response has `features.length > 0`. Mirrors the
    *  legacy `this.hasData` gate for rendering empty-state markup. */
@@ -143,7 +143,7 @@ function applyTooltipResolver(
  * cleanly, matching legacy behaviour.
  */
 function trackUrl(
-  data: NormalizedConfig['categories'][number]['tracks'][number]['data']
+  data: NormalizedConfig['groups'][number]['tracks'][number]['data']
 ): string | string[] {
   const first = data[0];
   if (!first) return '';
@@ -189,7 +189,7 @@ export async function loadProtvistaData(
   // are naturally excluded from the fetch set.
   const urls = [
     ...new Set(
-      config.categories.flatMap(({ tracks }) =>
+      config.groups.flatMap(({ tracks }) =>
         tracks.flatMap((t) => trackUrl(t.data))
       )
     ),
@@ -210,14 +210,14 @@ export async function loadProtvistaData(
 
   const data: Record<string, unknown> = {};
 
-  for (const category of config.categories) {
-    const categoryId = category.id;
-    const categoryData = await Promise.all(
-      category.tracks.map(async (track) => {
+  for (const group of config.groups) {
+    const groupId = group.id;
+    const groupData = await Promise.all(
+      group.tracks.map(async (track) => {
         const { data: dataConfig, id: trackId, filter, kind, dataTooltip } = track;
         const first = dataConfig[0];
         if (!first) return;
-        const trackKey = `${categoryId}-${trackId}`;
+        const trackKey = `${groupId}-${trackId}`;
         const url = first.url;
         const adapter = first.adapter;
 
@@ -230,7 +230,7 @@ export async function loadProtvistaData(
         if (first.from === 'custom') {
           if (!(trackKey in customTrackData)) {
             console.info(
-              `Track ${categoryId}/${trackId} is 'from: custom' but no data was provided via setTrackData().`
+              `Track ${groupId}/${trackId} is 'from: custom' but no data was provided via setTrackData().`
             );
             return;
           }
@@ -322,16 +322,16 @@ export async function loadProtvistaData(
         });
 
         // 4. Assign track data
-        data[`${categoryId}-${trackId}`] = filteredData;
+        data[`${groupId}-${trackId}`] = filteredData;
         return filteredData;
       })
     );
 
-    data[categoryId] =
-      category.component === 'nightingale-linegraph-track' ||
-      category.component === 'nightingale-colored-sequence'
-        ? categoryData[0]
-        : categoryData.flat();
+    data[groupId] =
+      group.component === 'nightingale-linegraph-track' ||
+      group.component === 'nightingale-colored-sequence'
+        ? groupData[0]
+        : groupData.flat();
   }
 
   return { rawData, data, hasData };

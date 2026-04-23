@@ -29,7 +29,7 @@ const freshRegistry = () => {
 };
 
 const minimalValid = (): ProtvistaViewerConfig => ({
-  categories: [
+  groups: [
     {
       id: 'DOMAINS',
       tracks: [{ id: 'domain', kind: 'features', data: 'features' }],
@@ -52,7 +52,7 @@ describe('validateConfig — happy paths', () => {
   it('accepts a config with no accession when no placeholders are present', () => {
     const cfg: ProtvistaViewerConfig = {
       sources: { features: 'https://example.org/features' },
-      categories: [
+      groups: [
         {
           id: 'DOMAINS',
           tracks: [{ id: 'domain', kind: 'features', data: 'features' }],
@@ -67,7 +67,7 @@ describe('validateConfig — happy paths', () => {
     const cfg: ProtvistaViewerConfig = {
       accession: 'P05067',
       sources: { features: 'https://example.org/{accession}/features' },
-      categories: [
+      groups: [
         {
           id: 'DOMAINS',
           tracks: [{ id: 'domain', kind: 'features', data: 'features' }],
@@ -84,16 +84,16 @@ describe('validateConfig — happy paths', () => {
 // ─────────────────────────────────────────────────────────────
 
 describe('validateConfig — structural errors', () => {
-  it('rejects a missing `categories` root field', () => {
+  it('rejects a missing `groups` root field', () => {
     const result = validateConfig({}, freshRegistry());
     expect(result.valid).toBe(false);
     expect(result.issues[0].code).toBe('schema');
-    expect(result.issues[0].message).toContain("'categories'");
+    expect(result.issues[0].message).toContain("'groups'");
   });
 
   it('rejects an unknown top-level field', () => {
     const result = validateConfig(
-      { categories: [], foo: 'bar' },
+      { groups: [], foo: 'bar' },
       freshRegistry()
     );
     expect(result.valid).toBe(false);
@@ -105,7 +105,7 @@ describe('validateConfig — structural errors', () => {
     // not a cascade of semantic ones — the validator bails after
     // the structural pass.
     const bad = {
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [{ id: 'y' /* data missing */ }],
@@ -126,7 +126,7 @@ describe('validateConfig — unknown source key', () => {
   it('flags a string-shorthand value that is not a sources key / URL / path', () => {
     const cfg: ProtvistaViewerConfig = {
       sources: { knownKey: 'https://example.org/k' },
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [{ id: 'y', kind: 'features', data: 'missingKey' }],
@@ -144,7 +144,7 @@ describe('validateConfig — unknown source key', () => {
   it('flags an explicit `source:` reference that does not resolve', () => {
     const cfg: ProtvistaViewerConfig = {
       sources: { k: 'https://example.org/k' },
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [
@@ -171,7 +171,7 @@ describe('validateConfig — unknown source key', () => {
 describe('validateConfig — cannot infer adapter', () => {
   it("flags './x.gff' shorthand (unrecognised extension)", () => {
     const cfg: ProtvistaViewerConfig = {
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [{ id: 'y', kind: 'features', data: './x.gff' }],
@@ -187,7 +187,7 @@ describe('validateConfig — cannot infer adapter', () => {
 
   it("accepts './x.csv' shorthand (recognised extension)", () => {
     const cfg: ProtvistaViewerConfig = {
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [{ id: 'y', kind: 'features', data: './x.csv' }],
@@ -206,7 +206,7 @@ describe('validateConfig — cannot infer adapter', () => {
 describe('validateConfig — unknown adapter / kind / component', () => {
   it('flags an unknown `adapter` name', () => {
     const cfg: ProtvistaViewerConfig = {
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [
@@ -228,7 +228,7 @@ describe('validateConfig — unknown adapter / kind / component', () => {
 
   it('flags an unknown semantic `kind`', () => {
     const cfg: ProtvistaViewerConfig = {
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [
@@ -252,7 +252,7 @@ describe('validateConfig — unknown adapter / kind / component', () => {
 
   it('flags an unknown `component` on a track', () => {
     const cfg: ProtvistaViewerConfig = {
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [
@@ -275,9 +275,9 @@ describe('validateConfig — unknown adapter / kind / component', () => {
 // ─────────────────────────────────────────────────────────────
 
 describe('validateConfig — missing track renderer', () => {
-  it('flags a track with no kind, no component, and no category component', () => {
+  it('flags a track with no kind, no component, and no group component', () => {
     const cfg: ProtvistaViewerConfig = {
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [
@@ -293,9 +293,9 @@ describe('validateConfig — missing track renderer', () => {
     expect(issue!.message).toContain("'features'");
   });
 
-  it('accepts a track with no kind/component when the category has component', () => {
+  it('accepts a track with no kind/component when the group has component', () => {
     const cfg: ProtvistaViewerConfig = {
-      categories: [
+      groups: [
         {
           id: 'X',
           component: 'nightingale-track-canvas',
@@ -328,7 +328,7 @@ describe('validateConfig — from: inline without inlineData', () => {
     // is structurally valid (has `inlineData: undefined` → field not
     // present → schema `if/then` fires). So expect a schema issue.
     const cfg: ProtvistaViewerConfig = {
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [
@@ -353,7 +353,7 @@ describe('validateConfig — from: inline without inlineData', () => {
 describe('validateConfig — transform vocabulary', () => {
   it('flags a filter predicate with no comparison operator', () => {
     const cfg: ProtvistaViewerConfig = {
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [
@@ -382,7 +382,7 @@ describe('validateConfig — transform vocabulary', () => {
     const registry = freshRegistry();
     registry.registerTransform('aggregateBy', () => []);
     const cfg: ProtvistaViewerConfig = {
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [
@@ -420,7 +420,7 @@ describe('validateConfig — transform vocabulary', () => {
 describe('validateConfig — colorScale', () => {
   it('flags an unknown theme', () => {
     const cfg: ProtvistaViewerConfig = {
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [
@@ -443,7 +443,7 @@ describe('validateConfig — colorScale', () => {
 
   it('accepts a built-in theme', () => {
     const cfg: ProtvistaViewerConfig = {
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [
@@ -494,7 +494,7 @@ describe('validateConfig — accession placeholders', () => {
   it('flags a config with {accession} placeholder but no accession', () => {
     const cfg: ProtvistaViewerConfig = {
       sources: { features: 'https://example.org/{accession}/features' },
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [{ id: 'y', kind: 'features', data: 'features' }],
@@ -510,7 +510,7 @@ describe('validateConfig — accession placeholders', () => {
   it('finds {accession} in track labelUrl', () => {
     const cfg: ProtvistaViewerConfig = {
       sources: { features: 'https://example.org/features' },
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [
@@ -530,7 +530,7 @@ describe('validateConfig — accession placeholders', () => {
 
   it('finds {accession} in a descriptor url', () => {
     const cfg: ProtvistaViewerConfig = {
-      categories: [
+      groups: [
         {
           id: 'X',
           tracks: [

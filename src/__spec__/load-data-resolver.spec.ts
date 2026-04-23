@@ -40,7 +40,7 @@ function makeConfig(track: NormalizedTrack): NormalizedConfig {
     version: '1.0',
     sources: {},
     defaults: { rendering: {} },
-    categories: [
+    groups: [
       {
         id: 'CAT',
         label: 'cat',

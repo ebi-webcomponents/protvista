@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Make ProtVista a **low-friction tool** that external labs, bioinformaticians, and non-EBI integrators can point at their own data and view it — ideally without writing JavaScript. To that end, this spec defines a JSON configuration schema that fully describes a ProtVista viewer instance: the categories it displays, the tracks within each category, where data comes from, and how tracks are rendered. The viewer is assembled declaratively from a single configuration file instead of hardcoded logic. The schema cleanly separates **Intent** (what the viewer should show and how) from **Representation** (the data payloads that tracks consume), and it preserves escape hatches for advanced programmatic customisation when the declarative path is not enough.
+Make ProtVista a **low-friction tool** that external labs, bioinformaticians, and non-EBI integrators can point at their own data and view it — ideally without writing JavaScript. To that end, this spec defines a JSON configuration schema that fully describes a ProtVista viewer instance: the groups it displays, the tracks within each group, where data comes from, and how tracks are rendered. The viewer is assembled declaratively from a single configuration file instead of hardcoded logic. The schema cleanly separates **Intent** (what the viewer should show and how) from **Representation** (the data payloads that tracks consume), and it preserves escape hatches for advanced programmatic customisation when the declarative path is not enough.
 
 The bring-your-own-data path is a first-class use case, not an afterthought.
 
@@ -17,10 +17,10 @@ The target workflow — an external lab inheriting the full EBI UniProt viewer a
 ```yaml
 # Inherit the published EBI UniProt config, then add one custom track.
 # Nothing else needs to be restated — `sources`, `defaults`, all 15 EBI
-# categories, every built-in colour theme: all pulled in from the base.
+# groups, every built-in colour theme: all pulled in from the base.
 extends: "https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml"
 
-categories:
+groups:
   - id: MY_LAB
     label: My lab
     tracks:
@@ -84,18 +84,18 @@ interface ProtvistaViewerConfig {
    * Merge semantics:
    *   - `sources`            merged by key (child wins)
    *   - `defaults`           merged field-wise (child wins)
-   *   - `categories`         merged by `id`; a child category with a
+   *   - `groups`         merged by `id`; a child group with a
    *                          known id extends the base; a new id is
    *                          appended at the end
-   *   - `tracks` within a    merged by `id`; same rules as categories
-   *     merged category
+   *   - `tracks` within a    merged by `id`; same rules as groups
+   *     merged group
    *   - `rendering` blocks   merged field-wise
    *
    * The canonical use case is "start from the EBI UniProt default,
    * add one track":
    *
    *   extends: "https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml"
-   *   categories:
+   *   groups:
    *     - id: MY_TRACKS
    *       tracks:
    *         - id: hotspots
@@ -156,17 +156,17 @@ interface ProtvistaViewerConfig {
   sources?: Record<string, string>;
 
   /**
-   * Global defaults applied to every category/track unless overridden.
+   * Global defaults applied to every group/track unless overridden.
    *
    * Precedence (highest first):
-   *   track.rendering > category.rendering > defaults.rendering
+   *   track.rendering > group.rendering > defaults.rendering
    *   track.labelUrl  > defaults.labelUrl
-   *   track.helpPage  > category.helpPage > defaults.helpPage
+   *   track.helpPage  > group.helpPage > defaults.helpPage
    */
   defaults?: ConfigDefaults;
 
-  /** Ordered list of categories displayed in the viewer. */
-  categories: CategoryConfig[];
+  /** Ordered list of groups displayed in the viewer. */
+  groups: GroupConfig[];
 }
 
 /**
@@ -187,8 +187,8 @@ interface ConfigDefaults {
   helpPage?: string;
 }
 
-interface CategoryConfig {
-  /** Unique identifier for this category (e.g. "MOLECULE_PROCESSING"). */
+interface GroupConfig {
+  /** Unique identifier for this group (e.g. "MOLECULE_PROCESSING"). */
   id: string;
 
   /**
@@ -199,7 +199,7 @@ interface CategoryConfig {
   label?: string;
 
   /**
-   * Component used for the *collapsed / aggregate* category-level
+   * Component used for the *collapsed / aggregate* group-level
    * track. Optional — if omitted, inferred from the child tracks'
    * `kind`s. When all child tracks resolve to the same component,
    * that component is used; mixed components fall back to
@@ -207,26 +207,26 @@ interface CategoryConfig {
    */
   component?: ComponentName;
 
-  /** Ordered list of tracks within the category. Order determines display order. */
+  /** Ordered list of tracks within the group. Order determines display order. */
   tracks: TrackConfig[];
 
   /**
-   * Short plain-text description shown when hovering the category
+   * Short plain-text description shown when hovering the group
    * label. Rendered via the native HTML `title=` attribute — no
    * Markdown, no HTML, no placeholder interpolation. Mirror of the
    * track-level `description` field.
    */
   description?: string;
 
-  /** Category-level rendering defaults; individual tracks inherit these. */
+  /** Group-level rendering defaults; individual tracks inherit these. */
   rendering?: RenderingOptions;
 
-  /** Optional URL slug for the help-page link on the category label. */
+  /** Optional URL slug for the help-page link on the group label. */
   helpPage?: string;
 }
 
 interface TrackConfig {
-  /** Unique identifier within its parent category (e.g. "signal"). */
+  /** Unique identifier within its parent group (e.g. "signal"). */
   id: string;
 
   /** Human-readable label. Falls back to a title-cased form of `id` if omitted. */
@@ -253,7 +253,7 @@ interface TrackConfig {
   /**
    * Advanced: explicit Nightingale component override.
    * When set, used verbatim and semantic-kind resolution is skipped.
-   * Inherit from the parent category if neither `kind` nor
+   * Inherit from the parent group if neither `kind` nor
    * `component` is set on the track.
    */
   component?: ComponentName;
@@ -356,7 +356,7 @@ interface TrackConfig {
    */
   filterUI?: "nightingale-filter";
 
-  /** Track-level rendering overrides; merged on top of category defaults. */
+  /** Track-level rendering overrides; merged on top of group defaults. */
   rendering?: RenderingOptions;
 
   /** Optional URL slug for the help-page link on the track label. */
@@ -526,7 +526,7 @@ interface FieldPredicate {
 /**
  * Rendering options that control the visual presentation of a track.
  * These map directly to Nightingale component HTML attributes.
- * Track-level values override category-level values.
+ * Track-level values override group-level values.
  */
 interface RenderingOptions {
   /** CSS colour string for feature glyphs. */
@@ -769,14 +769,14 @@ interface ProtvistaRuntimeAPI {
   /**
    * Provide data directly for a specific track, bypassing URL fetching.
    * Used with DataSourceDescriptor.from = "custom".
-   * @param categoryId - The category's `id`.
+   * @param groupId - The group's `id`.
    * @param trackId    - The track's `id`.
    * @param data       - Data conforming to the track's expected Representation.
    *                     Must be an array or a plain object; primitives
    *                     (null, undefined, strings, numbers) are rejected
    *                     with a console.warn and the call is ignored.
    */
-  setTrackData(categoryId: string, trackId: string, data: unknown): void;
+  setTrackData(groupId: string, trackId: string, data: unknown): void;
 
   /**
    * Configuration input — three ways to mount a viewer config.
@@ -864,7 +864,7 @@ Accessibility is a grant-level commitment (see the OMP) and is baked into the sc
 
 - **Colour-blind-safe defaults.** The built-in colour themes referenced from `colorScale.theme` — `alphafold-ramp` (pLDDT confidence) and `alphamissense-ramp` (pathogenicity) — are published as accessibility-reviewed palettes. Authors who rely on semantic kinds (`confidence-score`, `pathogenicity-score`) or name a built-in theme get WCAG-compliant colouring for free. Explicit `stops:` escape-hatch gradients remain authorable, but shift the accessibility responsibility to the author and should be used only when no built-in theme fits.
 - **Keyboard-accessible legends.** Colour-scale legends rendered from `ColorScaleConfig` are keyboard-focusable and announce their `label` via `aria-label`. The `label` field on `ColorStop` is the accessible name — authors who register custom themes via `registerTheme()` should supply labels for every stop, not only for legend clarity but for screen-reader output.
-- **Tooltip semantics.** Track- and category-level `description` fields render as plain-text native HTML `title` attributes — no Markdown, no HTML — so screen readers pick them up via the browser's default a11y path. Per-datapoint `dataTooltip` content flows through `@markdoc/markdoc` to produce HTML preserving the Markdown's semantic structure (headings, emphasis, lists) rather than flattening to a styled `<div>`. Field interpolations are HTML-escaped at the boundary so those semantic tags stay intact for screen readers. Per-datapoint tooltips are displayed as click-triggered popovers (not hover-triggered) with `role="tooltip"` and `tabindex="-1"`. Focus moves into the popover on open and is restored to the previously-focused element on close (Escape key, outside click, or scroll). The popover is dismissed by Escape, outside-click, or any document scroll.
+- **Tooltip semantics.** Track- and group-level `description` fields render as plain-text native HTML `title` attributes — no Markdown, no HTML — so screen readers pick them up via the browser's default a11y path. Per-datapoint `dataTooltip` content flows through `@markdoc/markdoc` to produce HTML preserving the Markdown's semantic structure (headings, emphasis, lists) rather than flattening to a styled `<div>`. Field interpolations are HTML-escaped at the boundary so those semantic tags stay intact for screen readers. Per-datapoint tooltips are displayed as click-triggered popovers (not hover-triggered) with `role="tooltip"` and `tabindex="-1"`. Focus moves into the popover on open and is restored to the previously-focused element on close (Escape key, outside click, or scroll). The popover is dismissed by Escape, outside-click, or any document scroll.
 - **Library defaults are minimal.** The built-in `tooltipDefaults` registry ships a small `{ kind: "fields", fields: [...] }` spec per `SemanticKind` that emits a plain `<h5>Label</h5><p>value</p>` stream. Product-specific rich rendering (evidence icons, xref badges, taxonomy lookups) lives in consumer code via the `element.tooltipOverrides[kind]` escape hatch, not in the library.
 - **Sensible out-of-the-box fallback.** When a track has no `kind`, no `dataTooltip`, and no `tooltipOverrides` entry, the resolver synthesizes a `fields` spec from the common feature-shaped record (`type`, `description`, `start | begin`, `end`). Missing fields drop out; an item carrying none of them stays empty. Any `tooltipContent` an adapter already stashed on the item is preserved — the fallback never stomps.
 - **No colour-only encoding.** `RenderingOptions.shape` exists partly so tracks can encode distinctions redundantly (e.g. shape *and* colour) rather than colour alone. Config authors building custom tracks are encouraged to use shape or label text as a secondary channel alongside colour.
@@ -882,7 +882,7 @@ The viewer runs in the embedder's browsing context and inherits the embedder's C
 
 ## Behavior
 
-### Example 1: Minimal config — single category with one URL-sourced track
+### Example 1: Minimal config — single group with one URL-sourced track
 
 **Input (YAML — recommended for authors):**
 ```yaml
@@ -891,7 +891,7 @@ accession: P05067            # self-contained; HTML attribute overrides if prese
 sources:
   features: https://www.ebi.ac.uk/proteins/api/features/{accession}
 
-categories:
+groups:
   - id: DOMAINS              # label defaults to "Domains"
     tracks:
       - id: domain
@@ -908,7 +908,7 @@ categories:
   "sources": {
     "features": "https://www.ebi.ac.uk/proteins/api/features/{accession}"
   },
-  "categories": [
+  "groups": [
     {
       "id": "DOMAINS",
       "tracks": [
@@ -927,13 +927,13 @@ categories:
 
 **Expected output (viewer behaviour):**
 
-The viewer renders a single collapsible category "Domains" (label title-cased from the id) containing one track "Domain". The semantic `kind: "features"` resolves to the `nightingale-track-canvas` component plus the UniProt feature adapter — the author never had to name either. At mount time, the loader resolves the accession (attribute wins, then config), looks up `"features"` in `sources`, substitutes the resolved accession, fetches the response, runs it through the resolved adapter, filters to items where `type === "DOMAIN"`, and feeds the result to the canvas component. No `version`, no `data: []` wrapper, no explicit `from:`, no `label:` — beginner configs collapse to the minimum.
+The viewer renders a single collapsible group "Domains" (label title-cased from the id) containing one track "Domain". The semantic `kind: "features"` resolves to the `nightingale-track-canvas` component plus the UniProt feature adapter — the author never had to name either. At mount time, the loader resolves the accession (attribute wins, then config), looks up `"features"` in `sources`, substitutes the resolved accession, fetches the response, runs it through the resolved adapter, filters to items where `type === "DOMAIN"`, and feeds the result to the canvas component. No `version`, no `data: []` wrapper, no explicit `from:`, no `label:` — beginner configs collapse to the minimum.
 
 ### Example 2: Inline data (no server)
 
 **Input:**
 ```yaml
-categories:
+groups:
   - id: MY_ANNOTATIONS
     label: My custom annotations
     tracks:
@@ -953,7 +953,7 @@ categories:
 
 **Expected output (viewer behaviour):**
 
-The viewer renders a "My custom annotations" category with a "Predicted binding sites" track. No HTTP requests are made; the two features from `inlineData` are rendered directly as red diamonds on the canvas track. `data` is accepted as a single object (no `[ ... ]` wrapper needed) and `from: inline` explicitly signals that no network fetch should happen.
+The viewer renders a "My custom annotations" group with a "Predicted binding sites" track. No HTTP requests are made; the two features from `inlineData` are rendered directly as red diamonds on the canvas track. `data` is accepted as a single object (no `[ ... ]` wrapper needed) and `from: inline` explicitly signals that no network fetch should happen.
 
 ### Example 3: Full UniProt-equivalent config (excerpt showing inheritance, multi-URL adapter, filter UI)
 
@@ -968,7 +968,7 @@ sources:
   proteins:            https://www.ebi.ac.uk/proteins/api/proteins/{accession}
   alphafoldPrediction: https://alphafold.ebi.ac.uk/api/prediction/{accession}
 
-categories:
+groups:
   - id: ALPHAFOLD_CONFIDENCE
     label: AlphaFold
     helpPage: structure_section#alphafold-structural-models
@@ -1006,19 +1006,19 @@ categories:
 
 **Expected output (viewer behaviour):**
 
-The AlphaFold category has no `rendering` block because `kind: "confidence-score"` carries the AlphaFold colour ramp as a default preset — authors get the canonical appearance for free. The adapter (resolved from the semantic kind) receives two raw responses (from `alphafoldPrediction` and `proteins`) and produces a coloured-sequence string. The Variation category is similarly terse: `data: variation` is string shorthand that resolves via `sources`; `filterUI: nightingale-filter` attaches the variant filter widget. Every track inherits `defaults.labelUrl` unless it overrides (the AlphaFold track points at alphafold.ebi.ac.uk). Authors only write domain language (`"variants"`, `"confidence-score"`) — never Nightingale component names or adapter names.
+The AlphaFold group has no `rendering` block because `kind: "confidence-score"` carries the AlphaFold colour ramp as a default preset — authors get the canonical appearance for free. The adapter (resolved from the semantic kind) receives two raw responses (from `alphafoldPrediction` and `proteins`) and produces a coloured-sequence string. The Variation group is similarly terse: `data: variation` is string shorthand that resolves via `sources`; `filterUI: nightingale-filter` attaches the variant filter widget. Every track inherits `defaults.labelUrl` unless it overrides (the AlphaFold track points at alphafold.ebi.ac.uk). Authors only write domain language (`"variants"`, `"confidence-score"`) — never Nightingale component names or adapter names.
 
 ### Example 4: Extending the EBI default — one line, one new track
 
 **Input (YAML):**
 ```yaml
 # An external lab's config: inherit the published EBI UniProt config,
-# then add one custom track in a new category. Nothing else needs to
-# be restated — `sources`, `defaults`, all 15 EBI categories, every
+# then add one custom track in a new group. Nothing else needs to
+# be restated — `sources`, `defaults`, all 15 EBI groups, every
 # built-in colour theme: all pulled in from the base.
 extends: "https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml"
 
-categories:
+groups:
   - id: MY_LAB
     label: My lab
     tracks:
@@ -1029,36 +1029,36 @@ categories:
 
 **Expected output (viewer behaviour):**
 
-At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, merges its `sources`, `defaults`, and 15 categories underneath this config, then appends the `MY_LAB` category at the end of the category list. The user sees the full canonical UniProt viewer with their one extra track tacked on — authored in a handful of lines of YAML. Overriding a specific EBI track is equally cheap: declare a category with the same `id` as one in the base and the merge rules fold it in field-wise. The URL can equally be a relative file path (`./uniprot-default.yaml`) if the adopter hosts their own copy of the base config.
+At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, merges its `sources`, `defaults`, and 15 groups underneath this config, then appends the `MY_LAB` group at the end of the group list. The user sees the full canonical UniProt viewer with their one extra track tacked on — authored in a handful of lines of YAML. Overriding a specific EBI track is equally cheap: declare a group with the same `id` as one in the base and the merge rules fold it in field-wise. The URL can equally be a relative file path (`./uniprot-default.yaml`) if the adopter hosts their own copy of the base config.
 
 ## Edge Cases & Error Handling
 
 | Scenario | Expected Behavior |
 |----------|-------------------|
-| A `url` data source returns HTTP 4xx/5xx | The track is silently hidden (consistent with current behaviour). A `console.warn` is emitted. The rest of the viewer renders normally. The category is hidden if *all* its tracks have no data. |
-| A `source` (or bare `url`) value is not a URL, not a file path, and does not match any key in `sources` | Config validation fails at load time: `"Unknown source key: '<value>' in track <categoryId>/<trackId>. Known sources: ..."`. Viewer does not mount. |
-| `data` string shorthand has an extension the resolver does not recognise (e.g. `./x.gff`) | Config validation fails: `"Cannot infer adapter for './x.gff' in track <categoryId>/<trackId>. Use an object form with explicit `adapter:`."`. |
-| `adapter` name does not match any built-in or registered adapter | Config validation fails: `"Unknown adapter: <name> in track <categoryId>/<trackId>. Did you forget to call registerAdapter()?"`. |
-| `kind` (semantic) value is not in the semantic-kind vocabulary and is not registered | Config validation fails: `"Unknown semantic kind: '<value>' in track <categoryId>/<trackId>. Valid values: .... Register custom kinds with registerSemanticKind()."`. |
-| A track has no `kind`, no `component`, and the parent category has no `component` | Config validation fails: `"Track <categoryId>/<trackId> has no 'kind' or 'component'. Set a semantic 'kind' (e.g. 'features') or provide 'component' explicitly."`. |
+| A `url` data source returns HTTP 4xx/5xx | The track is silently hidden (consistent with current behaviour). A `console.warn` is emitted. The rest of the viewer renders normally. The group is hidden if *all* its tracks have no data. |
+| A `source` (or bare `url`) value is not a URL, not a file path, and does not match any key in `sources` | Config validation fails at load time: `"Unknown source key: '<value>' in track <groupId>/<trackId>. Known sources: ..."`. Viewer does not mount. |
+| `data` string shorthand has an extension the resolver does not recognise (e.g. `./x.gff`) | Config validation fails: `"Cannot infer adapter for './x.gff' in track <groupId>/<trackId>. Use an object form with explicit `adapter:`."`. |
+| `adapter` name does not match any built-in or registered adapter | Config validation fails: `"Unknown adapter: <name> in track <groupId>/<trackId>. Did you forget to call registerAdapter()?"`. |
+| `kind` (semantic) value is not in the semantic-kind vocabulary and is not registered | Config validation fails: `"Unknown semantic kind: '<value>' in track <groupId>/<trackId>. Valid values: .... Register custom kinds with registerSemanticKind()."`. |
+| A track has no `kind`, no `component`, and the parent group has no `component` | Config validation fails: `"Track <groupId>/<trackId> has no 'kind' or 'component'. Set a semantic 'kind' (e.g. 'features') or provide 'component' explicitly."`. |
 | A `dataTooltip` template references a field that does not exist on the adapter's output | That placeholder renders as an empty string. The viewer does not fail. |
 | A `dataTooltip` template contains `<script>` or other dangerous HTML | For `kind: fields` and `kind: markdown`: all interpolated data from `{% $field %}` placeholders is HTML-escaped before rendering. Scripts and other raw markup are dropped. URL scheme whitelist: only `http:`, `https:`, and `mailto:` are allowed in anchor `href=` attributes; other schemes (e.g. `javascript:`) collapse to empty `href=""`. For `kind: custom`: the render function is a documented escape-hatch surface — the integrator is responsible for producing safe HTML. |
 | `colorScale.theme` references a name that is not built-in or registered | Config validation fails: `"Unknown colorScale theme: '<name>'. Registered themes: ..."`. |
 | `colorScale` has neither `theme` nor `stops` | Config validation fails: `"colorScale must specify either 'theme' or 'stops' ..."`. |
-| A `transform` step has no recognised operation key (`filter`, `calculate`, `rename`, `pick`, `limit`, or a registered custom operator) | Config validation fails: `"Unknown transform operator in track <categoryId>/<trackId>. Valid operators: ...."`. |
+| A `transform` step has no recognised operation key (`filter`, `calculate`, `rename`, `pick`, `limit`, or a registered custom operator) | Config validation fails: `"Unknown transform operator in track <groupId>/<trackId>. Valid operators: ...."`. |
 | A `filter` step's field predicate has no comparison operator (only `field:`) | Config validation fails: `"Filter predicate on field '<name>' must include one of: equal, lt, lte, gt, gte, oneOf, range, valid."`. |
 | A `calculate` step's expression fails to parse or evaluate | The step is skipped for items where it throws; the `as` field is set to `null` on those items. A single summary `console.warn` is emitted per track. |
 | `version` is explicitly set to an unsupported value | Validation fails: `"Unsupported config version: '<value>'. Supported: '1.0'."`. Omitting `version` is allowed (defaults to "1.0"). |
-| A category has zero tracks | Validation warning emitted; category is skipped (not rendered). |
-| `from: inline` with `inlineData` missing or null | Validation fails: `"inlineData is required when 'from' is 'inline' in track <categoryId>/<trackId>."`. |
-| `from: custom` but `setTrackData()` never called at runtime | Track renders as empty/hidden. A `console.info` is emitted after initial load: `"Track <categoryId>/<trackId> is 'from: custom' but no data was provided via setTrackData()."`. |
+| A group has zero tracks | Validation warning emitted; group is skipped (not rendered). |
+| `from: inline` with `inlineData` missing or null | Validation fails: `"inlineData is required when 'from' is 'inline' in track <groupId>/<trackId>."`. |
+| `from: custom` but `setTrackData()` never called at runtime | Track renders as empty/hidden. A `console.info` is emitted after initial load: `"Track <groupId>/<trackId> is 'from: custom' but no data was provided via setTrackData()."`. |
 | `extends` target cannot be fetched (404, file missing, or value is neither a URL nor file path and no `opts.resolver` handled it) | Validation fails: `"Cannot resolve extends: '<value>'. ..."`. Viewer does not mount. |
 | `extends` chain contains a cycle | Validation fails: `"Circular extends: <a> → <b> → <a>"`. Viewer does not mount. |
 | `extends` target is fetched but fails to parse (malformed JSON/YAML) | Validation fails: `"Failed to parse extends target '<name>': <parse error detail>"`. The target name (URL or file path) is included so the author can identify which file in a multi-level chain is broken. Viewer does not mount. |
 | `extends` target exceeds 2 MiB when fetched | Validation fails with a size-exceeded error. The default fetcher checks both the HTTP `Content-Length` header and the final decoded response length to prevent DoS from attacker-controlled servers. Adopters can supply a custom `opts.fetcher` with their own size policy. |
-| Duplicate `id` values within a category's tracks (after merge) | Validation fails: `"Duplicate track id '<id>' in category '<categoryId>'."`. |
-| Duplicate category `id` values (after merge) | Validation fails: `"Duplicate category id '<id>'."`. |
-| `filter` shortcut is specified but adapter returns no items matching that type | Track is hidden. Category is hidden if all sibling tracks are also empty. |
+| Duplicate `id` values within a group's tracks (after merge) | Validation fails: `"Duplicate track id '<id>' in group '<groupId>'."`. |
+| Duplicate group `id` values (after merge) | Validation fails: `"Duplicate group id '<id>'."`. |
+| `filter` shortcut is specified but adapter returns no items matching that type | Track is hidden. Group is hidden if all sibling tracks are also empty. |
 | Config JSON is syntactically invalid | Standard JSON parse error surfaced to the consumer. |
 | Config contains `{accession}` placeholders but no accession was provided via attribute or config | Validation fails: `"Config contains {accession} placeholders but no accession was provided via attribute or config."` |
 | Both the HTML attribute and the config file specify `accession` | The HTML attribute wins. No warning — this is the expected reuse pattern (one config, many entries). |
@@ -1101,19 +1101,19 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 - **Allowed dependencies:**
   - Ajv (JSON Schema validator, ~70 kB gzipped).
   - `js-yaml` (YAML parser, ~16 kB gzipped) — **lazy-loaded**, imported dynamically only when a YAML config is actually encountered, so JSON-only adopters pay nothing for it.
-  - `@markdoc/markdoc` (declarative Markdown renderer with a tag/variable system, used by `dataTooltip`'s markdown form, ~30 kB gzipped). Markdoc's safe renderer is used end-to-end — field interpolations are HTML-escaped at the boundary rather than running a separate sanitiser pass. `description` (category- and track-level label hover text) does not go through Markdoc — it is rendered as a plain-text native HTML `title` attribute.
+  - `@markdoc/markdoc` (declarative Markdown renderer with a tag/variable system, used by `dataTooltip`'s markdown form, ~30 kB gzipped). Markdoc's safe renderer is used end-to-end — field interpolations are HTML-escaped at the boundary rather than running a separate sanitiser pass. `description` (group- and track-level label hover text) does not go through Markdoc — it is rendered as a plain-text native HTML `title` attribute.
   - `@floating-ui/dom` (~4 kB gzipped) — positions the click-triggered tooltip popover. Middleware `flip` + `shift` keep the popover on-screen regardless of where on the track the user clicked, and `autoUpdate` keeps the position in sync while the popover is open. The popover itself (`src/tooltips/popover.ts`) is a single `<div role="tooltip">` appended to the host element's light DOM; its only external dependency is Floating UI. Click-only by design — hover events are deliberately ignored to avoid flicker on canvas tracks and the a11y complications of hover-triggered popovers.
   - `vega-expression` (Vega's safe expression parser, ~40 kB gzipped) — used for the string forms of `filter:` and `calculate:` transforms. The structured field-predicate form and the non-expression operators (`rename`, `pick`, `limit`) do not depend on this — it is lazy-loaded only when an expression string is encountered.
   - The JSON Schema file itself has zero dependencies.
 - **Forbidden dependencies:** Full-featured form libraries, heavyweight schema tools (e.g. Zod at runtime — fine for dev tooling), anything requiring a build step to consume the schema.
 - **Bundle-size target:** The *eagerly loaded* runtime additions introduced by P1 (validator + loader + normalize + merge; i.e. excluding the lazy-loaded YAML parser and Vega expression parser) must sit within ~130 kB gzipped. Adopters loading a JSON-only config with no expression-string transforms never pay for `js-yaml` or `vega-expression`. All four lazy-loaded deps combined must not exceed an additional ~70 kB gzipped when actually triggered.
-- **Performance requirements:** Config validation must complete in <50 ms for a config with 15 categories and 60 tracks. URL deduplication must match the current behaviour — identical URLs referenced by multiple tracks are fetched exactly once (sources keys are resolved before deduplication). All fetches execute in parallel (current `fetchAll` pattern).
+- **Performance requirements:** Config validation must complete in <50 ms for a config with 15 groups and 60 tracks. URL deduplication must match the current behaviour — identical URLs referenced by multiple tracks are fetched exactly once (sources keys are resolved before deduplication). All fetches execute in parallel (current `fetchAll` pattern).
 
 ## Acceptance Criteria
 
 - [x] A JSON Schema file (`protvista-config.schema.json`) is published that validates all examples in this spec.
 - [x] The existing hardcoded `config.ts` default configuration can be losslessly represented as a YAML/JSON file conforming to the new schema (round-trip fidelity).
-- [x] `version`, category `label`, and category `component` are all optional; a config that omits them validates and renders. Category `label` falls back to a title-cased `id`; category `component` is inferred from child tracks' `kind`s.
+- [x] `version`, group `label`, and group `component` are all optional; a config that omits them validates and renders. Group `label` falls back to a title-cased `id`; group `component` is inferred from child tracks' `kind`s.
 - [x] The four `data` forms all work: `data: "<sources-key>"`, `data: "./file.json"` (relative path), `data: { ... }` (single object), `data: [ ... ]` (array for multi-URL adapters).
 - [x] A config with `from: inline` data renders tracks without any HTTP requests.
 - [x] A config with `from: url` using `source:` (or bare `url:`) sources-key resolution fetches correctly.
@@ -1121,12 +1121,12 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 - [x] `registerAdapter()`, `registerSemanticKind()`, `registerTransform()`, and `registerTheme()` each allow a user-defined name to be referenced from config and function correctly.
 - [x] Vega-Lite-style `transform` pipelines work for the built-in operators (`filter`, `calculate`, `rename`, `pick`, `limit`). Field predicates accept `equal`, `lt`, `lte`, `gt`, `gte`, `oneOf`, `range`, `valid`. Expression-string filters (`"datum.score > 0.8"`) work for the same cases.
 - [x] Track-level `filter: "<value>"` shortcut produces the same output as the equivalent `transform: [{ filter: { field: "type", equal: "<value>" } }]` — parity test.
-- [x] `extends` resolves one or more base configs (URL or file path), merges per the documented rules (sources by key, categories by id, rendering field-wise, child wins). Cycles are detected and fail validation.
-- [x] `defaults.rendering`, `defaults.labelUrl`, and `defaults.helpPage` inherit to every category/track and are overridden at the category and track level per the documented precedence chain.
-- [x] Track rendering options (`color`, `shape`, `height`, `layout`, `colorScale`) correctly inherit from `defaults` → category → track, with track winning on conflict.
+- [x] `extends` resolves one or more base configs (URL or file path), merges per the documented rules (sources by key, groups by id, rendering field-wise, child wins). Cycles are detected and fail validation.
+- [x] `defaults.rendering`, `defaults.labelUrl`, and `defaults.helpPage` inherit to every group/track and are overridden at the group and track level per the documented precedence chain.
+- [x] Track rendering options (`color`, `shape`, `height`, `layout`, `colorScale`) correctly inherit from `defaults` → group → track, with track winning on conflict.
 - [x] Config validation produces clear, actionable error messages for all edge cases listed above.
-- [x] The schema is published with a `$schema` URI so that editors (VS Code, etc.) provide autocomplete and inline validation.
-- [x] All 15 existing UniProt categories render correctly when driven by the new config format (parity test against the hardcoded `config.ts`).
+- [x] The schema file declares a stable `$id` URI and data files reference it via `$schema`, so that editors (VS Code, etc.) can resolve the schema and provide autocomplete and inline validation once the URL is hosted. A placeholder `.invalid` URL is used in `default-config.yaml` until the schema is published at release time.
+- [x] All 15 existing UniProt groups render correctly when driven by the new config format (parity test against the hardcoded `config.ts`).
 - [x] Every track in the published default config uses the semantic `kind` field (no raw `component` + `adapter` pairs at the track level).
 - [x] Semantic kinds `confidence-score` and `pathogenicity-score` apply the canonical AlphaFold / AlphaMissense colour ramps automatically when `rendering.colorScale` is not specified.
 - [x] Explicit `component` on a track or `adapter` on a data source override the semantic-kind resolution.
@@ -1158,7 +1158,7 @@ describe("ProtVista Viewer Config Schema — JSON Schema layer", () => {
 
   it("accepts a minimal config with no version, no label, no component", () => {
     const config = {
-      categories: [
+      groups: [
         {
           id: "DOMAINS",
           tracks: [{ id: "domain", kind: "features", filter: "DOMAIN", data: "features" }],
@@ -1178,7 +1178,7 @@ describe("ProtVista Viewer Config Schema — JSON Schema layer", () => {
     ];
     for (const s of shapes) {
       const config = {
-        categories: [{ id: "C", tracks: [{ id: "t", kind: "features", ...s }] }],
+        groups: [{ id: "C", tracks: [{ id: "t", kind: "features", ...s }] }],
         sources: { features: "https://x/{accession}", a: "https://a", b: "https://b" },
       };
       expect(validate(config)).toBe(true);
@@ -1187,7 +1187,7 @@ describe("ProtVista Viewer Config Schema — JSON Schema layer", () => {
 
   it("rejects inline data source with missing inlineData", () => {
     const config = {
-      categories: [
+      groups: [
         { id: "C", tracks: [{ id: "t", kind: "features", data: { from: "inline" } }] },
       ],
     };
@@ -1196,7 +1196,7 @@ describe("ProtVista Viewer Config Schema — JSON Schema layer", () => {
 
   it("accepts a Vega-Lite-style transform pipeline", () => {
     const config = {
-      categories: [
+      groups: [
         {
           id: "C",
           tracks: [{
@@ -1221,7 +1221,7 @@ describe("ProtVista Viewer Config Schema — JSON Schema layer", () => {
 
   it("rejects a filter predicate with no comparison operator", () => {
     const config = {
-      categories: [
+      groups: [
         {
           id: "C",
           tracks: [{
@@ -1239,18 +1239,18 @@ describe("ProtVista Viewer Config Schema — JSON Schema layer", () => {
     const config = {
       extends: "https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml",
       defaults: { rendering: { layout: "non-overlapping" }, labelUrl: "https://x/{id}" },
-      categories: [{ id: "MY", tracks: [{ id: "t", kind: "features", data: "./x.csv" }] }],
+      groups: [{ id: "MY", tracks: [{ id: "t", kind: "features", data: "./x.csv" }] }],
     };
     expect(validate(config)).toBe(true);
   });
 });
 
 describe("ProtVista Viewer Config Schema — runtime layer", () => {
-  it("title-cases category id when label is omitted", () => {
+  it("title-cases group id when label is omitted", () => {
     const cfg = normalize({
-      categories: [{ id: "MOLECULE_PROCESSING", tracks: [] }],
+      groups: [{ id: "MOLECULE_PROCESSING", tracks: [] }],
     });
-    expect(cfg.categories[0].label).toBe("Molecule processing");
+    expect(cfg.groups[0].label).toBe("Molecule processing");
   });
 
   it("treats `filter: X` as sugar for transform filter by type == X", () => {
@@ -1269,43 +1269,43 @@ describe("ProtVista Viewer Config Schema — runtime layer", () => {
   it("merges an extends chain per documented rules", async () => {
     const base = {
       sources: { features: "https://base/{accession}" },
-      categories: [
+      groups: [
         { id: "A", tracks: [{ id: "t1", kind: "features", data: "features" }] },
       ],
     };
     const child = {
       extends: "base",
-      categories: [
+      groups: [
         { id: "A", tracks: [{ id: "t2", kind: "features", data: "features" }] },
         { id: "B", tracks: [{ id: "t3", kind: "features", data: "features" }] },
       ],
     };
     const merged = await mergeExtends(child, { base });
-    // Category A has both tracks; Category B is appended at the end
-    expect(merged.categories.map((c) => c.id)).toEqual(["A", "B"]);
-    expect(merged.categories[0].tracks.map((t) => t.id)).toEqual(["t1", "t2"]);
+    // Group A has both tracks; Group B is appended at the end
+    expect(merged.groups.map((c) => c.id)).toEqual(["A", "B"]);
+    expect(merged.groups[0].tracks.map((t) => t.id)).toEqual(["t1", "t2"]);
     expect(merged.sources.features).toBe("https://base/{accession}");
   });
 
-  it("rejects duplicate category ids within a single config", () => {
+  it("rejects duplicate group ids within a single config", () => {
     expect(() => normalize({
-      categories: [
+      groups: [
         { id: "DUPED", tracks: [] },
         { id: "DUPED", tracks: [] },
       ],
-    })).toThrow(/Duplicate category id 'DUPED'/);
+    })).toThrow(/Duplicate group id 'DUPED'/);
   });
 
   it("detects circular extends chains", async () => {
-    const a = { extends: "b", categories: [] };
-    const b = { extends: "a", categories: [] };
+    const a = { extends: "b", groups: [] };
+    const b = { extends: "a", groups: [] };
     await expect(mergeExtends(a, { a, b })).rejects.toThrow(/Circular extends/);
   });
 
   it("deduplicates URLs across tracks sharing the same source key", () => {
     const config = normalize({
       sources: { features: "https://example.com/features/{accession}" },
-      categories: [
+      groups: [
         {
           id: "SITES",
           tracks: [
@@ -1316,7 +1316,7 @@ describe("ProtVista Viewer Config Schema — runtime layer", () => {
         },
       ],
     });
-    const urls = config.categories
+    const urls = config.groups
       .flatMap((c) => c.tracks)
       .flatMap((t) => t.data)
       .flatMap((d: any) => (Array.isArray(d.url) ? d.url : [d.url]))

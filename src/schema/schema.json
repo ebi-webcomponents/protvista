@@ -5,7 +5,7 @@
   "description": "Declarative configuration for a ProtVista viewer instance (v1). Source-of-truth JSON Schema, authored in lockstep with src/schema/types.ts and the canonical specs/config-approach.md.",
 
   "type": "object",
-  "required": ["categories"],
+  "required": ["groups"],
   "additionalProperties": false,
   "properties": {
     "$schema": { "type": "string" },
@@ -35,16 +35,16 @@
       "additionalProperties": { "type": "string", "minLength": 1 }
     },
     "defaults": { "$ref": "#/$defs/ConfigDefaults" },
-    "categories": {
-      "description": "Ordered list of categories displayed in the viewer.",
+    "groups": {
+      "description": "Ordered list of groups displayed in the viewer.",
       "type": "array",
-      "items": { "$ref": "#/$defs/CategoryConfig" }
+      "items": { "$ref": "#/$defs/GroupConfig" }
     }
   },
 
   "$defs": {
     "ConfigDefaults": {
-      "description": "Viewer-wide defaults inherited by every category/track.",
+      "description": "Viewer-wide defaults inherited by every group/track.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -54,7 +54,7 @@
       }
     },
 
-    "CategoryConfig": {
+    "GroupConfig": {
       "type": "object",
       "required": ["id", "tracks"],
       "additionalProperties": false,
@@ -63,7 +63,7 @@
         "label": { "type": "string" },
         "description": {
           "type": "string",
-          "description": "Short plain-text description shown as a native tooltip (HTML `title` attribute) when hovering the category label. No Markdown or HTML interpretation."
+          "description": "Short plain-text description shown as a native tooltip (HTML `title` attribute) when hovering the group label. No Markdown or HTML interpretation."
         },
         "component": { "$ref": "#/$defs/ComponentName" },
         "tracks": {

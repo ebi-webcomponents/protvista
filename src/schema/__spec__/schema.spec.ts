@@ -96,7 +96,7 @@ describe('JSON Schema — accepts specs/config-approach.md examples', () => {
         features:
           'https://www.ebi.ac.uk/proteins/api/features/{accession}',
       },
-      categories: [
+      groups: [
         {
           id: 'DOMAINS',
           tracks: [
@@ -116,7 +116,7 @@ describe('JSON Schema — accepts specs/config-approach.md examples', () => {
 
   it('Example 2: inline data, no server', () => {
     expectValid({
-      categories: [
+      groups: [
         {
           id: 'MY_ANNOTATIONS',
           label: 'My custom annotations',
@@ -166,7 +166,7 @@ describe('JSON Schema — accepts specs/config-approach.md examples', () => {
         alphafoldPrediction:
           'https://alphafold.ebi.ac.uk/api/prediction/{accession}',
       },
-      categories: [
+      groups: [
         {
           id: 'ALPHAFOLD_CONFIDENCE',
           label: 'AlphaFold',
@@ -212,7 +212,7 @@ describe('JSON Schema — accepts specs/config-approach.md examples', () => {
 
   it('Example 4: Vega-Lite transform pipeline on CSV', () => {
     expectValid({
-      categories: [
+      groups: [
         {
           id: 'MY_LAB',
           label: 'Lab predictions',
@@ -265,7 +265,7 @@ describe('JSON Schema — accepts specs/config-approach.md examples', () => {
   it('Example 5: extends one base + one new track', () => {
     expectValid({
       extends: '@ebi/uniprot-default',
-      categories: [
+      groups: [
         {
           id: 'MY_LAB',
           label: 'My lab',
@@ -298,7 +298,7 @@ describe('JSON Schema — fine-grained acceptance', () => {
           a: 'https://a',
           b: 'https://b',
         },
-        categories: [
+        groups: [
           { id: 'C', tracks: [{ id: 't', kind: 'features', ...s }] },
         ],
       });
@@ -330,7 +330,7 @@ describe('JSON Schema — fine-grained acceptance', () => {
     ];
     for (const s of shapes) {
       expectValid({
-        categories: [
+        groups: [
           {
             id: 'C',
             tracks: [
@@ -346,17 +346,17 @@ describe('JSON Schema — fine-grained acceptance', () => {
   it('accepts `extends` as both a single string and an array', () => {
     expectValid({
       extends: '@ebi/uniprot-default',
-      categories: [{ id: 'C', tracks: [] }],
+      groups: [{ id: 'C', tracks: [] }],
     });
     expectValid({
       extends: ['@ebi/uniprot-default', './overlay.yaml'],
-      categories: [{ id: 'C', tracks: [] }],
+      groups: [{ id: 'C', tracks: [] }],
     });
   });
 
   it('accepts a colorScale with explicit stops only (no theme)', () => {
     expectValid({
-      categories: [
+      groups: [
         {
           id: 'C',
           tracks: [
@@ -393,7 +393,7 @@ describe('JSON Schema — fine-grained acceptance', () => {
     ];
     for (const p of predicates) {
       expectValid({
-        categories: [
+        groups: [
           {
             id: 'C',
             tracks: [
@@ -418,7 +418,7 @@ describe('JSON Schema — rejection cases', () => {
   it('rejects inline data with no inlineData', () => {
     expectInvalid(
       {
-        categories: [
+        groups: [
           {
             id: 'C',
             tracks: [
@@ -434,7 +434,7 @@ describe('JSON Schema — rejection cases', () => {
   it('rejects a FieldPredicate with no comparison operator', () => {
     expectInvalid(
       {
-        categories: [
+        groups: [
           {
             id: 'C',
             tracks: [
@@ -457,7 +457,7 @@ describe('JSON Schema — rejection cases', () => {
   it('rejects a dataTooltip fields spec with no `fields` array', () => {
     expectInvalid(
       {
-        categories: [
+        groups: [
           {
             id: 'C',
             tracks: [
@@ -479,7 +479,7 @@ describe('JSON Schema — rejection cases', () => {
   it('rejects a dataTooltip fields spec with a field missing `path`', () => {
     expectInvalid(
       {
-        categories: [
+        groups: [
           {
             id: 'C',
             tracks: [
@@ -504,7 +504,7 @@ describe('JSON Schema — rejection cases', () => {
   it('rejects a dataTooltip markdown spec with no `template`', () => {
     expectInvalid(
       {
-        categories: [
+        groups: [
           {
             id: 'C',
             tracks: [
@@ -525,7 +525,7 @@ describe('JSON Schema — rejection cases', () => {
 
   it('rejects a dataTooltip object with an unknown `kind`', () => {
     expectInvalid({
-      categories: [
+      groups: [
         {
           id: 'C',
           tracks: [
@@ -546,7 +546,7 @@ describe('JSON Schema — rejection cases', () => {
     expectInvalid(
       {
         version: '0.9',
-        categories: [{ id: 'C', tracks: [] }],
+        groups: [{ id: 'C', tracks: [] }],
       },
       /version/
     );
@@ -554,7 +554,7 @@ describe('JSON Schema — rejection cases', () => {
 
   it('rejects a Transform step with two operation keys', () => {
     expectInvalid({
-      categories: [
+      groups: [
         {
           id: 'C',
           tracks: [
@@ -577,7 +577,7 @@ describe('JSON Schema — rejection cases', () => {
   it('rejects a colorScale with neither theme nor stops', () => {
     expectInvalid(
       {
-        categories: [
+        groups: [
           {
             id: 'C',
             tracks: [
@@ -599,7 +599,7 @@ describe('JSON Schema — rejection cases', () => {
   it('rejects a track with no `data` field', () => {
     expectInvalid(
       {
-        categories: [
+        groups: [
           { id: 'C', tracks: [{ id: 't', kind: 'features' }] },
         ],
       },
@@ -607,14 +607,14 @@ describe('JSON Schema — rejection cases', () => {
     );
   });
 
-  it('rejects a config with no `categories`', () => {
-    expectInvalid({}, /categories/);
+  it('rejects a config with no `groups`', () => {
+    expectInvalid({}, /groups/);
   });
 
   it('rejects typos via additionalProperties: false', () => {
     expectInvalid(
       {
-        categories: [
+        groups: [
           {
             id: 'C',
             tracks: [
@@ -635,7 +635,7 @@ describe('JSON Schema — rejection cases', () => {
 
   it('rejects a Transform step with an unknown operation key', () => {
     expectInvalid({
-      categories: [
+      groups: [
         {
           id: 'C',
           tracks: [
@@ -655,7 +655,7 @@ describe('JSON Schema — rejection cases', () => {
 
   it('rejects a FilterUI value other than "nightingale-filter"', () => {
     expectInvalid({
-      categories: [
+      groups: [
         {
           id: 'C',
           tracks: [

@@ -13,7 +13,7 @@
 export type {
   ProtvistaViewerConfig,
   ConfigDefaults,
-  CategoryConfig,
+  GroupConfig,
   TrackConfig,
   DataSourceDescriptor,
   Transform,
@@ -58,7 +58,7 @@ export { normalizeConfig, titleCaseId } from './normalize';
 export type {
   NormalizedConfig,
   NormalizedDefaults,
-  NormalizedCategory,
+  NormalizedGroup,
   NormalizedTrack,
   NormalizedDataSource,
   NormalizeOptions,

@@ -15,8 +15,8 @@
 
 /**
  * One validation problem. `path` uses JSON-Pointer style notation
- * (`/categories/3/tracks/1/data`) when produced by Ajv, and a
- * human-readable "category.track" form (`MOLECULE_PROCESSING/signal`)
+ * (`/groups/3/tracks/1/data`) when produced by Ajv, and a
+ * human-readable "group.track" form (`MOLECULE_PROCESSING/signal`)
  * when produced by the semantic checks — whichever makes the message
  * most actionable.
  *
@@ -25,7 +25,7 @@
  * without parsing the human-facing `message` string.
  */
 export interface ValidationIssue {
-  /** JSON Pointer or `categoryId/trackId` path into the offending config location. */
+  /** JSON Pointer or `groupId/trackId` path into the offending config location. */
   path: string;
   /** Human-readable message, matching the strings documented in specs/config-approach.md's Edge Cases table. */
   message: string;
@@ -104,7 +104,7 @@ export class ConfigValidationError extends Error {
  * Format a list of issues as a readable multi-line summary:
  *
  *     Config validation failed (3 issues):
- *       - /categories/0/id: must be string (schema)
+ *       - /groups/0/id: must be string (schema)
  *       - MOLECULE_PROCESSING/signal: Unknown adapter: foo... (unknown-adapter)
  *       - ...
  */

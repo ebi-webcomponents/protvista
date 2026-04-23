@@ -268,7 +268,7 @@ describe("calculate — error handling matches specs/config-approach.md's table"
     const out = applyTransforms(
       items,
       [{ calculate: 'datum.a.b', as: 'derived' }],
-      { expressionEvaluator: mockEvaluator, trackRef: 'CATEGORY/track' }
+      { expressionEvaluator: mockEvaluator, trackRef: 'GROUP/track' }
     );
     expect(out).toEqual([
       { a: { b: 1 }, derived: 1 },
@@ -282,13 +282,13 @@ describe("calculate — error handling matches specs/config-approach.md's table"
     applyTransforms(
       items,
       [{ calculate: 'datum.a.b', as: 'derived' }],
-      { expressionEvaluator: mockEvaluator, trackRef: 'CATEGORY/track' }
+      { expressionEvaluator: mockEvaluator, trackRef: 'GROUP/track' }
     );
     expect(warnSpy).toHaveBeenCalledTimes(1);
     const msg = (warnSpy.mock.calls[0]?.[0] ?? '') as string;
     expect(msg).toMatch(/calculate/);
     expect(msg).toMatch(/3 item/);
-    expect(msg).toMatch(/CATEGORY\/track/);
+    expect(msg).toMatch(/GROUP\/track/);
   });
 });
 

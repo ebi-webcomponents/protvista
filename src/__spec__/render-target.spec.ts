@@ -1,5 +1,5 @@
 /**
- * Per-category render-target characterization test.
+ * Per-group render-target characterization test.
  *
  * Pins down the config → nightingale-custom-element mapping as it flows
  * through `<protvista-uniprot>`'s Lit template. This complements the
@@ -11,7 +11,7 @@
  *     — each `KnownComponentName` must emit the exact nightingale
  *     element with the exact attribute set (tier 1).
  *   • The top-level shell (manager + navigation + sequence) plus one
- *     representative category per component renders the expected DOM
+ *     representative group per component renders the expected DOM
  *     when supplied with frozen `config` and `data` fixtures (tier 2).
  *
  * Why mount-with-frozen-data rather than a screenshot: the schema-driven
@@ -75,7 +75,7 @@ vi.mock('@nightingale-elements/nightingale-structure', () => ({
 
 // The structure sub-component pulls Mol* transitively. Stub it the same
 // way; it's only referenced via `loadComponent('protvista-uniprot-
-// structure', …)` and in the large-category branch we don't exercise.
+// structure', …)` and in the large-group branch we don't exercise.
 vi.mock('../protvista-uniprot-structure', () => ({
   default: class extends HTMLElement {},
 }));
@@ -115,7 +115,7 @@ function buildInstance(overrides: Partial<Record<string, unknown>> = {}) {
   el.hasData = true;
   el.loading = false;
   el.suspend = false;
-  el.openCategories = [];
+  el.openGroups = [];
   el.displayCoordinates = { start: 1, end: SEQ_LEN };
   el.accession = 'P05067';
   el.data = {};
@@ -144,7 +144,7 @@ const GET_TRACK_ARGS = {
   layout: 'non-overlapping',
   color: '#ff00aa',
   shape: 'rectangle',
-  id: 'CATEGORY-track',
+  id: 'GROUP-track',
   scale: 'hydrophobicity',
   colorRange: 'red,green,blue',
 } as const;
@@ -182,26 +182,26 @@ describe('getTrack() per component — config → nightingale attribute mapping'
   });
 });
 
-// -------------------- Tier 2: full-component render per category --------------------
+// -------------------- Tier 2: full-component render per group --------------------
 
 /**
- * Minimal `NormalizedConfig` slice — one category per component. This
+ * Minimal `NormalizedConfig` slice — one group per component. This
  * keeps the snapshot focused on the config → DOM mapping without
- * dragging in the full 15-category, 65-track real config.
+ * dragging in the full 15-group, 65-track real config.
  *
- * Each category exercises a distinct branch of the render template:
+ * Each group exercises a distinct branch of the render template:
  * aggregate track vs. expanded tracks; filter component vs. label-url
- * vs. help-page; color/shape inherited from category vs. overridden on
+ * vs. help-page; color/shape inherited from group vs. overridden on
  * the track.
  *
  * The fixture is hand-built as the canonical `NormalizedConfig` the
  * renderer consumes — `rendering.*` is structured (not flat
- * `scale`/`color-range`), and category-level rendering is already
+ * `scale`/`color-range`), and group-level rendering is already
  * cascaded onto the tracks (matching `normalize`'s output) so the
  * renderer doesn't need a fallback chain at render time.
  */
-// Cached category-level rendering blocks. Re-used via spread when
-// building the per-track entries below (category rendering is already
+// Cached group-level rendering blocks. Re-used via spread when
+// building the per-track entries below (group rendering is already
 // cascaded onto each track after normalize, so the renderer doesn't
 // walk a fallback chain — the fixture mirrors that).
 const CAT_CANVAS_RENDERING: RenderingOptions = {
@@ -221,10 +221,10 @@ const testConfig: NormalizedConfig = {
   version: '1.0',
   sources: {},
   defaults: { rendering: {} },
-  categories: [
+  groups: [
     {
       id: 'CAT_CANVAS',
-      label: 'Canvas category',
+      label: 'Canvas group',
       component: 'nightingale-track-canvas',
       rendering: CAT_CANVAS_RENDERING,
       helpPage: 'canvas_help',
@@ -234,7 +234,7 @@ const testConfig: NormalizedConfig = {
           label: 'Canvas Track A',
           component: 'nightingale-track-canvas',
           description: 'Canvas track tooltip',
-          // Rendering is already cascaded: category rendering lives on
+          // Rendering is already cascaded: group rendering lives on
           // the track as well after normalize.
           rendering: { ...CAT_CANVAS_RENDERING },
           data: [
@@ -264,7 +264,7 @@ const testConfig: NormalizedConfig = {
     },
     {
       id: 'CAT_LINEGRAPH',
-      label: 'Linegraph category',
+      label: 'Linegraph group',
       component: 'nightingale-linegraph-track',
       rendering: {},
       tracks: [
@@ -286,7 +286,7 @@ const testConfig: NormalizedConfig = {
     },
     {
       id: 'CAT_VARIATION',
-      label: 'Variation category',
+      label: 'Variation group',
       component: 'nightingale-linegraph-track',
       rendering: {},
       tracks: [
@@ -309,7 +309,7 @@ const testConfig: NormalizedConfig = {
     },
     {
       id: 'CAT_COLORED_SEQ',
-      label: 'Colored sequence category',
+      label: 'Colored sequence group',
       component: 'nightingale-colored-sequence',
       rendering: CAT_COLORED_SEQ_RENDERING,
       tracks: [
@@ -332,7 +332,7 @@ const testConfig: NormalizedConfig = {
     },
     {
       id: 'CAT_HEATMAP',
-      label: 'Heatmap category',
+      label: 'Heatmap group',
       component: 'nightingale-colored-sequence',
       rendering: {},
       tracks: [
@@ -354,7 +354,7 @@ const testConfig: NormalizedConfig = {
     },
     {
       id: 'CAT_INTERPRO',
-      label: 'InterPro category',
+      label: 'InterPro group',
       component: 'nightingale-track-canvas',
       rendering: {},
       tracks: [
@@ -378,11 +378,11 @@ const testConfig: NormalizedConfig = {
 };
 
 /**
- * Frozen data slice keyed by `${category.id}` and
- * `${category.id}-${track.id}`. The values are minimally plausible:
+ * Frozen data slice keyed by `${group.id}` and
+ * `${group.id}-${track.id}`. The values are minimally plausible:
  * arrays are non-empty (so the expanded-track branch is rendered),
  * the variation entry has the shape the filter hookup expects, and
- * category aggregates are populated so the aggregate-track branch also
+ * group aggregates are populated so the aggregate-track branch also
  * renders.
  */
 const testData: Record<string, unknown> = {
@@ -401,7 +401,7 @@ const testData: Record<string, unknown> = {
   'CAT_INTERPRO-interpro_track': [{ accession: 'IPR000001', start: 1, end: 100 }],
 };
 
-describe('full render — shell + per-category DOM with frozen fixtures', () => {
+describe('full render — shell + per-group DOM with frozen fixtures', () => {
   let el: any;
   let target: HTMLDivElement;
 
@@ -409,9 +409,9 @@ describe('full render — shell + per-category DOM with frozen fixtures', () => 
     el = buildInstance({
       config: testConfig,
       data: testData,
-      // Expand every category so the track-level render branch is
+      // Expand every group so the track-level render branch is
       // exercised for each component.
-      openCategories: testConfig.categories.map((c) => c.id),
+      openGroups: testConfig.groups.map((c) => c.id),
     });
     target = document.createElement('div');
     render(el.render(), target);
@@ -427,31 +427,31 @@ describe('full render — shell + per-category DOM with frozen fixtures', () => 
     expect(sequence?.getAttribute('sequence')).toBe(SEQUENCE);
   });
 
-  it('renders one category block per category in config order', () => {
-    const categoryDivs = target.querySelectorAll('div.category');
+  it('renders one group block per group in config order', () => {
+    const groupDivs = target.querySelectorAll('div.group');
     expect(
-      Array.from(categoryDivs).map((d) => d.getAttribute('id'))
-    ).toEqual(testConfig.categories.map((c) => `category_${c.id}`));
+      Array.from(groupDivs).map((d) => d.getAttribute('id'))
+    ).toEqual(testConfig.groups.map((c) => `group_${c.id}`));
   });
 
-  for (const category of testConfig.categories) {
-    it(`category ${category.id} — stable DOM snapshot`, () => {
-      const div = target.querySelector(`#category_${category.id}`);
+  for (const group of testConfig.groups) {
+    it(`group ${group.id} — stable DOM snapshot`, () => {
+      const div = target.querySelector(`#group_${group.id}`);
       expect(div).not.toBeNull();
-      // Collect the category div plus its expanded-track siblings. Lit
+      // Collect the group div plus its expanded-track siblings. Lit
       // emits each expanded track as a top-level sibling of the
-      // category div (see `render()` in protvista-uniprot.ts), so we
+      // group div (see `render()` in protvista-uniprot.ts), so we
       // walk `nextElementSibling` until we either run out or hit
-      // something that isn't part of this category's block (a new
-      // category div, or the trailing nav-container / structure block
-      // after the last category).
+      // something that isn't part of this group's block (a new
+      // group div, or the trailing nav-container / structure block
+      // after the last group).
       const collected: string[] = [];
       let cursor: Element | null = div;
       while (cursor) {
         collected.push(cursor.outerHTML);
         const next = cursor.nextElementSibling;
         if (!next) break;
-        const isOwnExpandedTrack = next.classList.contains('category__track');
+        const isOwnExpandedTrack = next.classList.contains('group__track');
         if (!isOwnExpandedTrack) break;
         cursor = next;
       }
@@ -459,20 +459,20 @@ describe('full render — shell + per-category DOM with frozen fixtures', () => 
     });
   }
 
-  it('does not render expanded tracks for closed categories', () => {
-    // Rebuild with no open categories; the expanded `.category__track`
-    // divs must disappear while `.category` blocks remain.
+  it('does not render expanded tracks for closed groups', () => {
+    // Rebuild with no open groups; the expanded `.group__track`
+    // divs must disappear while `.group` blocks remain.
     const closed = buildInstance({
       config: testConfig,
       data: testData,
-      openCategories: [],
+      openGroups: [],
     });
     const closedTarget = document.createElement('div');
     render(closed.render(), closedTarget);
-    expect(closedTarget.querySelectorAll('.category').length).toBe(
-      testConfig.categories.length
+    expect(closedTarget.querySelectorAll('.group').length).toBe(
+      testConfig.groups.length
     );
-    expect(closedTarget.querySelectorAll('.category__track').length).toBe(0);
+    expect(closedTarget.querySelectorAll('.group__track').length).toBe(0);
   });
 
   it('renders the no-results placeholder when hasData=false', () => {
@@ -508,9 +508,9 @@ describe('full render — shell + per-category DOM with frozen fixtures', () => 
     const suspendedTarget = document.createElement('div');
     render(suspended.render(), suspendedTarget);
     // Lit's html`` still produces one comment marker; what matters is
-    // that no nightingale / category DOM is emitted.
+    // that no nightingale / group DOM is emitted.
     expect(suspendedTarget.querySelector('nightingale-manager')).toBeNull();
-    expect(suspendedTarget.querySelector('.category')).toBeNull();
+    expect(suspendedTarget.querySelector('.group')).toBeNull();
     expect(suspendedTarget.querySelector('.protvista-no-results')).toBeNull();
   });
 });

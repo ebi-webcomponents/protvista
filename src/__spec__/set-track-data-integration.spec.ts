@@ -86,7 +86,7 @@ type ProtvistaUniprotLike = HTMLElement & {
   customTrackData: Record<string, unknown>;
   loading: boolean;
   hasData: boolean;
-  setTrackData(categoryId: string, trackId: string, data: unknown): void;
+  setTrackData(groupId: string, trackId: string, data: unknown): void;
   _loadData(): Promise<void>;
   updateComplete: Promise<boolean>;
 };
@@ -97,7 +97,7 @@ function buildConfig(): NormalizedConfig {
     version: '1.0',
     sources: {},
     defaults: { rendering: {} },
-    categories: [
+    groups: [
       {
         id: 'CAT',
         label: 'cat',

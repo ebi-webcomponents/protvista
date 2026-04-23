@@ -6,12 +6,12 @@
  *   - `sources`    — merged by key (child wins)
  *   - `defaults`   — merged field-wise (child wins); `rendering`
  *                    nested sub-object also merged field-wise
- *   - `categories` — matched by `id`; known ids are extended in
+ *   - `groups` — matched by `id`; known ids are extended in
  *                    place, new ids appended at the end (base order
- *                    preserved, child-only categories appended in
+ *                    preserved, child-only groups appended in
  *                    declaration order)
- *   - `tracks`     — within a merged category, matched by `id`;
- *                    same rules as categories
+ *   - `tracks`     — within a merged group, matched by `id`;
+ *                    same rules as groups
  *   - `rendering`  — field-wise (at every level); `colorScale`
  *                    nested sub-object also field-wise
  *   - Scalar fields (`accession`, `version`, `$schema`, `labelUrl`,
@@ -91,7 +91,7 @@
 
 import type {
   ProtvistaViewerConfig,
-  CategoryConfig,
+  GroupConfig,
   TrackConfig,
   RenderingOptions,
   ColorScaleConfig,
@@ -350,10 +350,10 @@ function isUrlOrPath(s: string): boolean {
 }
 
 function emptyConfig(): ProtvistaViewerConfig {
-  // `categories` is required on the authoring type, but pre-merge the
+  // `groups` is required on the authoring type, but pre-merge the
   // accumulator is genuinely empty. We satisfy the type with `[]` and
   // let subsequent merges fill it in.
-  return { categories: [] };
+  return { groups: [] };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -381,12 +381,12 @@ function merge(
     out.defaults = mergeDefaults(base.defaults, child.defaults);
   }
 
-  // `categories` is an ordered list keyed by `id`. `{ ...base, ...child }`
-  // above clobbers base.categories with child.categories, so we always
+  // `groups` is an ordered list keyed by `id`. `{ ...base, ...child }`
+  // above clobbers base.groups with child.groups, so we always
   // recompute here.
-  out.categories = mergeCategoriesById(
-    base.categories ?? [],
-    child.categories ?? []
+  out.groups = mergeGroupsById(
+    base.groups ?? [],
+    child.groups ?? []
   );
 
   return out;
@@ -422,31 +422,31 @@ function mergeColorScale(
 }
 
 /**
- * Merge category lists by `id`. Base order is preserved; categories
- * whose `id` also appears in `child` are extended in place; categories
+ * Merge group lists by `id`. Base order is preserved; groups
+ * whose `id` also appears in `child` are extended in place; groups
  * in `child` with a new `id` are appended at the end in child's order.
  */
-function mergeCategoriesById(
-  base: CategoryConfig[],
-  child: CategoryConfig[]
-): CategoryConfig[] {
-  const result = base.map((c) => c);
-  for (const cc of child) {
-    const idx = result.findIndex((bc) => bc.id === cc.id);
+function mergeGroupsById(
+  base: GroupConfig[],
+  child: GroupConfig[]
+): GroupConfig[] {
+  const result = base.map((g) => g);
+  for (const childGroup of child) {
+    const idx = result.findIndex((baseGroup) => baseGroup.id === childGroup.id);
     if (idx === -1) {
-      result.push(cc);
+      result.push(childGroup);
     } else {
-      result[idx] = mergeCategory(result[idx], cc);
+      result[idx] = mergeGroup(result[idx], childGroup);
     }
   }
   return result;
 }
 
-function mergeCategory(
-  base: CategoryConfig,
-  child: CategoryConfig
-): CategoryConfig {
-  const out: CategoryConfig = { ...base, ...child };
+function mergeGroup(
+  base: GroupConfig,
+  child: GroupConfig
+): GroupConfig {
+  const out: GroupConfig = { ...base, ...child };
   if (base.rendering !== undefined || child.rendering !== undefined) {
     out.rendering = mergeRendering(base.rendering, child.rendering);
   }

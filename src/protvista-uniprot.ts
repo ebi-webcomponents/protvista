@@ -90,7 +90,7 @@ type NightingaleEvent = Event & {
 
 @customElement('protvista-uniprot')
 class ProtvistaUniprot extends LitElement {
-  private openCategories: string[];
+  private openGroups: string[];
   private nostructure: boolean;
   /** Opt out of the built-in click tooltip. Consumers rendering a React overlay typically set this. */
   private notooltip?: boolean;
@@ -110,7 +110,7 @@ class ProtvistaUniprot extends LitElement {
    * Fully-resolved config consumed by the renderer and
    * `loadProtvistaData()`. Populated in `_init()` by running the
    * schema pipeline (`loadConfig`) over one of the three input
-   * sources below. The renderer reads `NormalizedCategory` /
+   * sources below. The renderer reads `NormalizedGroup` /
    * `NormalizedTrack` fields (`id`, `description`, `component`,
    * `rendering.*`, `filterUI`, `data[]`) directly — no intermediate
    * adapter is involved.
@@ -148,7 +148,7 @@ class ProtvistaUniprot extends LitElement {
 
   /**
    * Data injected via `setTrackData()` for tracks whose first data
-   * descriptor is `from: custom`. Keyed by `${categoryId}-${trackId}`;
+   * descriptor is `from: custom`. Keyed by `${groupId}-${trackId}`;
    * `loadProtvistaData` reads this map and feeds values directly into
    * the per-track pipeline, skipping the fetch + adapter stages.
    *
@@ -182,7 +182,7 @@ class ProtvistaUniprot extends LitElement {
 
   constructor() {
     super();
-    this.openCategories = [];
+    this.openGroups = [];
     this.nostructure = false;
     this.hasData = false;
     this.loading = true;
@@ -199,7 +199,7 @@ class ProtvistaUniprot extends LitElement {
       accession: { type: String, reflect: true },
       sequence: { type: String },
       data: { type: Object },
-      openCategories: { type: Array },
+      openGroups: { type: Array },
       config: { type: Object },
       viewerConfig: { type: Object },
       // HTML attribute form is kebab-case: `config-src="./my-config.yaml"`.
@@ -298,10 +298,10 @@ class ProtvistaUniprot extends LitElement {
     // TODO(#variation-hardcoded): lift the id-based match out of the
     // component and into a track-level role/flag so arbitrary
     // consumer configs can opt into the variation-filter surface.
-    for (const category of this.config.categories) {
-      for (const track of category.tracks) {
+    for (const group of this.config.groups) {
+      for (const track of group.tracks) {
         if (track.id === 'variation') {
-          const key = `${category.id}-${track.id}`;
+          const key = `${group.id}-${track.id}`;
           if (key in data) {
             this.transformedVariants = data[
               key
@@ -349,10 +349,10 @@ class ProtvistaUniprot extends LitElement {
       if (element && element.data !== data) {
         element.data = data;
       }
-      const currentCategory = this.config?.categories.find((c) => c.id === id);
+      const currentGroup = this.config?.groups.find((c) => c.id === id);
       if (
-        currentCategory &&
-        currentCategory.tracks &&
+        currentGroup &&
+        currentGroup.tracks &&
         data &&
         // Check there's data and special case for variants.
         // TODO(#variation-hardcoded): the `data.variants` branch
@@ -364,14 +364,14 @@ class ProtvistaUniprot extends LitElement {
         // arbitrary adapters emit bundled outputs.
         (data.length > 0 || data.variants?.length)
       ) {
-        // Make category element visible
-        const categoryElt = this.findById<HTMLElement>(
-          `category_${currentCategory.id}`
+        // Make group element visible
+        const groupElt = this.findById<HTMLElement>(
+          `group_${currentGroup.id}`
         );
-        if (categoryElt) {
-          categoryElt.style.display = 'flex';
+        if (groupElt) {
+          groupElt.style.display = 'flex';
         }
-        for (const track of currentCategory.tracks) {
+        for (const track of currentGroup.tracks) {
           const elementTrack = this.findById<NightingaleTrackCanvas>(
             `track-${id}-${track.id}`
           );
@@ -382,9 +382,9 @@ class ProtvistaUniprot extends LitElement {
       }
 
       // TODO(#alphamissense-hardcoded): this branch matches on a
-      // specific category id from the shipped config to drive the
+      // specific group id from the shipped config to drive the
       // heatmap-specific setHeatmapData/colour-scale wiring. A consumer
-      // config that uses a different id for its AlphaMissense category
+      // config that uses a different id for its AlphaMissense group
       // will silently skip this wiring. Lifting the branch out of the
       // component and into either (a) a track-level `kind:
       // 'alphamissense-heatmap'` that owns the setup, or (b) a generic
@@ -392,10 +392,10 @@ class ProtvistaUniprot extends LitElement {
       // the id match and let arbitrary consumer configs drive the
       // heatmap renderer.
       if (
-        currentCategory?.id === 'ALPHAMISSENSE_PATHOGENICITY' &&
-        currentCategory.tracks
+        currentGroup?.id === 'ALPHAMISSENSE_PATHOGENICITY' &&
+        currentGroup.tracks
       ) {
-        for (const track of currentCategory.tracks) {
+        for (const track of currentGroup.tracks) {
           if (track.component === 'nightingale-sequence-heatmap') {
             const heatmapComponent =
               this.querySelector<NightingaleSequenceHeatmap>(
@@ -451,7 +451,7 @@ class ProtvistaUniprot extends LitElement {
     // running the DOM walk on each one was wasted work and churned
     // `element.data` setters that cost a canvas re-draw.
     //
-    // `openCategories` must stay in the gate: when a category expands,
+    // `openGroups` must stay in the gate: when a group expands,
     // the render cycle mounts fresh per-track elements that need to be
     // populated on this same tick. `data` / `config` / `sequence`
     // cover the load-pipeline re-flow. Unrelated reactive churn
@@ -460,7 +460,7 @@ class ProtvistaUniprot extends LitElement {
       changedProperties.has('data') ||
       changedProperties.has('config') ||
       changedProperties.has('sequence') ||
-      changedProperties.has('openCategories')
+      changedProperties.has('openGroups')
     ) {
       this._loadDataInComponents();
     }
@@ -604,17 +604,17 @@ class ProtvistaUniprot extends LitElement {
    *     pre-mount calls are never spuriously rejected.
    *   - Calls after mount trigger a re-run of the data pipeline so the
    *     new value flows through the track-level `filter:` sugar, the
-   *     tooltip resolver, and the category aggregate. URL-sourced
+   *     tooltip resolver, and the group aggregate. URL-sourced
    *     tracks continue to hit the network on each re-run — the
    *     browser's HTTP cache typically absorbs this, and no caching
    *     layer is added here to keep the pipeline transparent.
    *
-   * @param categoryId - The `id` of the enclosing category.
-   * @param trackId    - The `id` of the track within that category.
+   * @param groupId - The `id` of the enclosing group.
+   * @param trackId    - The `id` of the track within that group.
    * @param data       - Data conforming to the track's expected
    *                     representation (already in post-adapter shape).
    */
-  setTrackData(categoryId: string, trackId: string, data: unknown): void {
+  setTrackData(groupId: string, trackId: string, data: unknown): void {
     // Shape validation. The renderer hands `data` straight to a
     // Nightingale component's `.data` setter, so a primitive or
     // `null` would either be silently ignored (number, string) or
@@ -630,12 +630,12 @@ class ProtvistaUniprot extends LitElement {
     const isPlainObject = data !== null && typeof data === 'object' && !isArray;
     if (!isArray && !isPlainObject) {
       console.warn(
-        `[protvista-uniprot] setTrackData: expected an array or plain object for '${categoryId}/${trackId}', got ${data === null ? 'null' : typeof data}. Call ignored.`
+        `[protvista-uniprot] setTrackData: expected an array or plain object for '${groupId}/${trackId}', got ${data === null ? 'null' : typeof data}. Call ignored.`
       );
       return;
     }
 
-    const key = `${categoryId}-${trackId}`;
+    const key = `${groupId}-${trackId}`;
     // Copy-on-write so downstream `===` checks against the previous map
     // (should any appear) see a fresh reference.
     this.customTrackData = { ...this.customTrackData, [key]: data };
@@ -645,18 +645,18 @@ class ProtvistaUniprot extends LitElement {
     // needed here and no validation is possible yet (no config).
     if (!this.config) return;
 
-    const category = this.config.categories.find((c) => c.id === categoryId);
-    const track = category?.tracks.find((t) => t.id === trackId);
+    const group = this.config.groups.find((c) => c.id === groupId);
+    const track = group?.tracks.find((t) => t.id === trackId);
     if (!track) {
       console.warn(
-        `[protvista-uniprot] setTrackData: track '${categoryId}/${trackId}' not found in config.`
+        `[protvista-uniprot] setTrackData: track '${groupId}/${trackId}' not found in config.`
       );
       return;
     }
     const firstSource = track.data[0];
     if (firstSource?.from !== 'custom') {
       console.warn(
-        `[protvista-uniprot] setTrackData: track '${categoryId}/${trackId}' is not 'from: custom' (found '${firstSource?.from ?? 'undefined'}'). Injected data discarded; edit the config to change this track's data source.`
+        `[protvista-uniprot] setTrackData: track '${groupId}/${trackId}' is not 'from: custom' (found '${firstSource?.from ?? 'undefined'}'). Injected data discarded; edit the config to change this track's data source.`
       );
       return;
     }
@@ -775,56 +775,56 @@ class ProtvistaUniprot extends LitElement {
             ></nightingale-sequence>
           </div>
         </div>
-        ${this.config.categories.map((category) => {
-          if (!this.data[category.id]) return '';
+        ${this.config.groups.map((group) => {
+          if (!this.data[group.id]) return '';
           // Flatten the structured rendering block onto the plain-string
           // attribute shape Nightingale consumes. Track rendering is
-          // already cascaded (defaults → category → kind preset →
+          // already cascaded (defaults → group → kind preset →
           // track), so we don't need the legacy `track.color ||
-          // category.color` fallback chain any more.
-          const catAttrs = renderingToAttrs(category.rendering);
+          // group.color` fallback chain any more.
+          const groupAttrs = renderingToAttrs(group.rendering);
           return html`
-            <div class="category" id="category_${category.id}">
+            <div class="group" id="group_${group.id}">
               <div
-                class="category-label"
-                data-category-toggle="${category.id}"
-                title="${category.description ?? ''}"
-                @click="${this.handleCategoryClick}"
+                class="group-label"
+                data-group-toggle="${group.id}"
+                title="${group.description ?? ''}"
+                @click="${this.handleGroupClick}"
               >
-                ${category.helpPage
-                  ? html`<span data-article-id="${category.helpPage}"
-                      >${category.label}</span
+                ${group.helpPage
+                  ? html`<span data-article-id="${group.helpPage}"
+                      >${group.label}</span
                     >`
-                  : category.label}
+                  : group.label}
               </div>
               <div
-                data-id="category_${category.id}"
-                class="aggregate-track-content track-content ${category.component ===
+                data-id="group_${group.id}"
+                class="aggregate-track-content track-content ${group.component ===
                 'nightingale-colored-sequence'
                   ? 'track-content__coloured-sequence'
                   : ''}"
-                .style="${this.openCategories.includes(category.id)
+                .style="${this.openGroups.includes(group.id)
                   ? 'opacity:0'
                   : 'opacity:1'}"
               >
-                ${this.data[category.id] &&
+                ${this.data[group.id] &&
                 this.getTrack(
-                  category.component,
+                  group.component,
                   'non-overlapping',
-                  catAttrs.color,
-                  catAttrs.shape,
-                  category.id,
-                  catAttrs.scale,
-                  catAttrs.colorRange
+                  groupAttrs.color,
+                  groupAttrs.shape,
+                  group.id,
+                  groupAttrs.scale,
+                  groupAttrs.colorRange
                 )}
               </div>
             </div>
 
-            <!-- Expanded Categories -->
-            ${category.tracks &&
-            category.tracks.map((track) => {
-              if (this.openCategories.includes(category.id)) {
-                const trackData = this.data[`${category.id}-${track.id}`];
+            <!-- Expanded Groups -->
+            ${group.tracks &&
+            group.tracks.map((track) => {
+              if (this.openGroups.includes(group.id)) {
+                const trackData = this.data[`${group.id}-${track.id}`];
                 if (
                   !trackData ||
                   !(
@@ -836,11 +836,11 @@ class ProtvistaUniprot extends LitElement {
                 }
                 const attrs = renderingToAttrs(track.rendering);
                 return html`
-                  <div class="category__track" id="track_${track.id}">
+                  <div class="group__track" id="track_${track.id}">
                     <div class="track-label" title="${track.description ?? ''}">
                       ${(track.filterUI === 'nightingale-filter' &&
                         this.getFilterComponent(
-                          `${category.id}-${track.id}`
+                          `${group.id}-${track.id}`
                         )) ||
                       (track.labelUrl &&
                         this.accession &&
@@ -860,7 +860,7 @@ class ProtvistaUniprot extends LitElement {
                     </div>
                     <div
                       class="track-content"
-                      class="track-content ${category.component ===
+                      class="track-content ${group.component ===
                       'nightingale-colored-sequence'
                         ? 'track-content__coloured-sequence'
                         : ''}"
@@ -871,7 +871,7 @@ class ProtvistaUniprot extends LitElement {
                         'non-overlapping',
                         attrs.color,
                         attrs.shape,
-                        `${category.id}-${track.id}`,
+                        `${group.id}-${track.id}`,
                         attrs.scale,
                         attrs.colorRange
                       )}
@@ -907,28 +907,28 @@ class ProtvistaUniprot extends LitElement {
     `;
   }
 
-  handleCategoryClick(e: MouseEvent) {
+  handleGroupClick(e: MouseEvent) {
     let target = e.target as Element;
 
     if (target instanceof HTMLSpanElement) {
       target = target.parentElement as Element;
     }
 
-    const toggle = target.getAttribute('data-category-toggle');
+    const toggle = target.getAttribute('data-group-toggle');
 
     if (toggle && !target.classList.contains('open')) {
       target.classList.add('open');
-      this.openCategories = [...this.openCategories, toggle];
+      this.openGroups = [...this.openGroups, toggle];
     } else {
       target.classList.remove('open');
-      this.openCategories = [...this.openCategories].filter(
+      this.openGroups = [...this.openGroups].filter(
         (d) => d !== toggle
       );
     }
   }
 
-  groupByCategory(filters, category) {
-    return filters?.filter((f) => f.type.name === category);
+  groupByGroup(filters, group) {
+    return filters?.filter((f) => f.type.name === group);
   }
 
   getFilter(filters, filterName) {
@@ -944,11 +944,11 @@ class ProtvistaUniprot extends LitElement {
   // decouple the component from a single hardcoded kind.
   handleFilterClick(e: CustomEvent) {
     const target = e.target as Element as NightingaleFilter;
-    const consequenceFilters = this.groupByCategory(
+    const consequenceFilters = this.groupByGroup(
       target.filters,
       'consequence'
     );
-    const provenanceFilters = this.groupByCategory(
+    const provenanceFilters = this.groupByGroup(
       target.filters,
       'provenance'
     );
@@ -984,7 +984,7 @@ class ProtvistaUniprot extends LitElement {
     }
   }
 
-  getCategoryTypesAsString(tracks: NormalizedTrack[]) {
+  getGroupTypesAsString(tracks: NormalizedTrack[]) {
     return tracks.map((t) => t.filter).join(',');
   }
 

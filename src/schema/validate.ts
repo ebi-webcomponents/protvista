@@ -43,7 +43,7 @@ import type { ErrorObject, ValidateFunction } from 'ajv';
 import schema from './schema.json' with { type: 'json' };
 import type {
   ProtvistaViewerConfig,
-  CategoryConfig,
+  GroupConfig,
   TrackConfig,
   DataSourceDescriptor,
   Transform,
@@ -103,7 +103,7 @@ function getStructuralValidator(): ValidateFunction {
  *   - every `source:` / bare-`url:` reference resolves against the
  *     config's `sources` map;
  *   - every track has a rendering path (kind, explicit component, or
- *     inherited category component);
+ *     inherited group component);
  *   - if `{accession}` is referenced anywhere, `accession` is set;
  *   - `version` is in the supported set.
  */
@@ -130,7 +130,7 @@ export function validateConfig(
   const c = config as ProtvistaViewerConfig;
   checkVersion(c, issues);
   checkAccessionPlaceholders(c, issues);
-  checkCategories(c, registry, issues);
+  checkGroups(c, registry, issues);
 
   return { valid: issues.length === 0, issues };
 }
@@ -295,9 +295,9 @@ function containsAccessionPlaceholder(c: ProtvistaViewerConfig): boolean {
   }
   // Check `defaults.labelUrl`.
   if (c.defaults?.labelUrl?.includes(ACCESSION_PLACEHOLDER)) return true;
-  // Walk categories → tracks → data descriptors.
-  for (const cat of c.categories) {
-    for (const track of cat.tracks) {
+  // Walk groups → tracks → data descriptors.
+  for (const group of c.groups) {
+    for (const track of group.tracks) {
       if (track.labelUrl?.includes(ACCESSION_PLACEHOLDER)) return true;
       if (stringFieldIncludes(track.data, ACCESSION_PLACEHOLDER)) return true;
     }
@@ -334,7 +334,7 @@ function descriptorIncludes(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Per-category / per-track semantic checks
+// Per-group / per-track semantic checks
 // ─────────────────────────────────────────────────────────────
 
 /**
@@ -357,34 +357,34 @@ const KNOWN_COMPONENTS = new Set<string>([
   'nightingale-sequence-heatmap',
 ]);
 
-function checkCategories(
+function checkGroups(
   c: ProtvistaViewerConfig,
   registry: Registry,
   issues: ValidationIssue[]
 ): void {
   const sourceKeys = new Set(Object.keys(c.sources ?? {}));
-  for (const cat of c.categories) {
-    if (cat.component && !KNOWN_COMPONENTS.has(cat.component)) {
+  for (const group of c.groups) {
+    if (group.component && !KNOWN_COMPONENTS.has(group.component)) {
       issues.push({
-        path: `${cat.id}`,
-        message: `Unknown component: '${cat.component}' on category ${cat.id}. Valid components: ${listQuoted(KNOWN_COMPONENTS)}.`,
+        path: `${group.id}`,
+        message: `Unknown component: '${group.component}' on group ${group.id}. Valid components: ${listQuoted(KNOWN_COMPONENTS)}.`,
         code: 'unknown-component',
       });
     }
-    for (const track of cat.tracks) {
-      checkTrack(cat, track, sourceKeys, registry, issues);
+    for (const track of group.tracks) {
+      checkTrack(group, track, sourceKeys, registry, issues);
     }
   }
 }
 
 function checkTrack(
-  cat: CategoryConfig,
+  group: GroupConfig,
   track: TrackConfig,
   sourceKeys: Set<string>,
   registry: Registry,
   issues: ValidationIssue[]
 ): void {
-  const trackPath = `${cat.id}/${track.id}`;
+  const trackPath = `${group.id}/${track.id}`;
 
   // Unknown component on track.
   if (track.component && !KNOWN_COMPONENTS.has(track.component)) {
@@ -405,8 +405,8 @@ function checkTrack(
   }
 
   // Track has no rendering path.
-  //   specs/config-approach.md: "Track has no 'kind' or 'component', parent category has no 'component'"
-  if (!track.kind && !track.component && !cat.component) {
+  //   specs/config-approach.md: "Track has no 'kind' or 'component', parent group has no 'component'"
+  if (!track.kind && !track.component && !group.component) {
     issues.push({
       path: trackPath,
       message: `Track ${trackPath} has no 'kind' or 'component'. Set a semantic 'kind' (e.g. 'features') or provide 'component' explicitly.`,
@@ -415,11 +415,11 @@ function checkTrack(
   }
 
   // Rendering-level colorScale check.
-  const effectiveRendering = track.rendering ?? cat.rendering;
+  const effectiveRendering = track.rendering ?? group.rendering;
   if (effectiveRendering?.colorScale) {
     checkColorScale(trackPath, effectiveRendering.colorScale, registry, issues);
   }
-  if (cat.rendering?.colorScale && track.rendering?.colorScale === undefined) {
+  if (group.rendering?.colorScale && track.rendering?.colorScale === undefined) {
     // Already covered by `effectiveRendering` branch above — no
     // additional check needed. Kept explicit to make the reasoning
     // obvious to future readers.

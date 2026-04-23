@@ -1,5 +1,5 @@
 /**
- * Pure helpers that bridge `NormalizedTrack` / `NormalizedCategory`
+ * Pure helpers that bridge `NormalizedTrack` / `NormalizedGroup`
  * rendering state onto the low-level HTML attribute shape Nightingale's
  * web components consume.
  *
@@ -87,7 +87,7 @@ export interface NightingaleRenderAttrs {
 /**
  * Flatten a `RenderingOptions` to the plain-string attribute shape.
  * Safe to call on the always-present `rendering` field of any
- * `NormalizedCategory` or `NormalizedTrack`.
+ * `NormalizedGroup` or `NormalizedTrack`.
  */
 export function renderingToAttrs(r: RenderingOptions): NightingaleRenderAttrs {
   const out: NightingaleRenderAttrs = {};

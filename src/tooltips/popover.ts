@@ -15,8 +15,8 @@
  * coordinates. Floating UI's `flip` + `shift` middleware keep it
  * on-screen regardless of where on the track the user clicked.
  *
- * Dismissal: any click outside the popover, clicking a category label
- * (which toggles the category's track strip and would otherwise leave
+ * Dismissal: any click outside the popover, clicking a group label
+ * (which toggles the group's track strip and would otherwise leave
  * the popover stranded mid-air), Escape, or any scroll on the document
  * (capture phase — catches scrolls on any ancestor). Scroll *dismisses*
  * rather than repositions on purpose: the click point is a page
@@ -304,7 +304,7 @@ export function installClickTooltip(
   // popover itself hides it. That includes:
   //
   //   - clicks outside the host (dismiss)
-  //   - clicks on a category-label toggle (layout is about to shift)
+  //   - clicks on a group-label toggle (layout is about to shift)
   //   - clicks on empty space inside a track (Nightingale doesn't
   //     fire a `change` event for blank clicks, so without this the
   //     popover would stay pinned to the previously-clicked feature)

@@ -18,8 +18,8 @@
  * - Scroll anywhere on the document dismisses (we *don't* reposition —
  *   the click point is a page-coordinate snapshot and a tooltip sliding
  *   across the track during scroll reads as UI noise).
- * - Clicking a category-label toggle inside the host dismisses (the
- *   category strip is about to expand/collapse; a stranded popover
+ * - Clicking a group-label toggle inside the host dismisses (the
+ *   group strip is about to expand/collapse; a stranded popover
  *   pointing at the new layout would be wrong).
  * - `enabled: () => false` gates display (used for `notooltip=""`).
  */
@@ -231,14 +231,14 @@ describe('installClickTooltip', () => {
     inner.remove();
   });
 
-  it('dismisses when a category-label toggle inside the host is clicked', async () => {
+  it('dismisses when a group-label toggle inside the host is clicked', async () => {
     controller = installClickTooltip(host);
-    // Simulate the host containing a category-label (the caret that
+    // Simulate the host containing a group-label (the caret that
     // expands / collapses the track strip). `<protvista-uniprot>` stamps
-    // `data-category-toggle="<id>"` on the element.
+    // `data-group-toggle="<id>"` on the element.
     const toggle = document.createElement('div');
-    toggle.setAttribute('data-category-toggle', 'DOMAINS');
-    toggle.className = 'category-label';
+    toggle.setAttribute('data-group-toggle', 'DOMAINS');
+    toggle.className = 'group-label';
     host.append(toggle);
 
     fireChange(host, {
@@ -271,7 +271,7 @@ describe('installClickTooltip', () => {
     const popover = host.querySelector<HTMLElement>('[role="tooltip"]')!;
     expect(popover.hidden).toBe(false);
 
-    // A plain <div> inside the host — no feature, no category-toggle.
+    // A plain <div> inside the host — no feature, no group-toggle.
     const blank = document.createElement('div');
     host.append(blank);
     blank.dispatchEvent(
@@ -281,13 +281,13 @@ describe('installClickTooltip', () => {
     blank.remove();
   });
 
-  it('dismisses when a descendant of the category-label is clicked', async () => {
-    // Category labels can contain an inner <span> (for helpPage links).
-    // The closest('[data-category-toggle]') lookup must walk up from
+  it('dismisses when a descendant of the group-label is clicked', async () => {
+    // Group labels can contain an inner <span> (for helpPage links).
+    // The closest('[data-group-toggle]') lookup must walk up from
     // the event target to catch those clicks too.
     controller = installClickTooltip(host);
     const toggle = document.createElement('div');
-    toggle.setAttribute('data-category-toggle', 'DOMAINS');
+    toggle.setAttribute('data-group-toggle', 'DOMAINS');
     const inner = document.createElement('span');
     inner.textContent = 'Domains';
     toggle.append(inner);

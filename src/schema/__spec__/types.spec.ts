@@ -19,7 +19,7 @@ import { describe, it, expect } from 'vitest';
 
 import type {
   ProtvistaViewerConfig,
-  CategoryConfig,
+  GroupConfig,
   TrackConfig,
   DataSourceDescriptor,
   Transform,
@@ -49,7 +49,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
       sources: {
         features: 'https://www.ebi.ac.uk/proteins/api/features/{accession}',
       },
-      categories: [
+      groups: [
         {
           id: 'DOMAINS',
           tracks: [
@@ -66,12 +66,12 @@ describe('ProtvistaViewerConfig — type contract', () => {
       ],
     };
     expectType<ProtvistaViewerConfig>(config);
-    expect(config.categories).toHaveLength(1);
+    expect(config.groups).toHaveLength(1);
   });
 
   it('specs/config-approach.md Example 2: inline data (Starter Kit, no server)', () => {
     const config: ProtvistaViewerConfig = {
-      categories: [
+      groups: [
         {
           id: 'MY_ANNOTATIONS',
           label: 'My custom annotations',
@@ -105,7 +105,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
       ],
     };
     expectType<ProtvistaViewerConfig>(config);
-    expect(config.categories[0].tracks[0].data).toMatchObject({
+    expect(config.groups[0].tracks[0].data).toMatchObject({
       from: 'inline',
     });
   });
@@ -122,7 +122,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
         alphafoldPrediction:
           'https://alphafold.ebi.ac.uk/api/prediction/{accession}',
       },
-      categories: [
+      groups: [
         {
           id: 'ALPHAFOLD_CONFIDENCE',
           label: 'AlphaFold',
@@ -165,12 +165,12 @@ describe('ProtvistaViewerConfig — type contract', () => {
       ],
     };
     expectType<ProtvistaViewerConfig>(config);
-    expect(config.categories).toHaveLength(2);
+    expect(config.groups).toHaveLength(2);
   });
 
   it('specs/config-approach.md Example 4: BYO CSV + Vega-Lite transform pipeline + reusable theme', () => {
     const config: ProtvistaViewerConfig = {
-      categories: [
+      groups: [
         {
           id: 'MY_LAB',
           label: 'Lab predictions',
@@ -221,7 +221,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
     expectType<ProtvistaViewerConfig>(config);
     // Both transform forms (structured + calculate) survive the type check.
     const pipeline = (
-      config.categories[0].tracks[0].data as DataSourceDescriptor
+      config.groups[0].tracks[0].data as DataSourceDescriptor
     ).transform;
     expect(pipeline).toHaveLength(5);
   });
@@ -229,7 +229,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
   it('specs/config-approach.md Example 5: extends — one line, one new track', () => {
     const config: ProtvistaViewerConfig = {
       extends: '@ebi/uniprot-default',
-      categories: [
+      groups: [
         {
           id: 'MY_LAB',
           label: 'My lab',
@@ -429,8 +429,8 @@ describe('Escape-hatch API signatures', () => {
 });
 
 describe('Structural subsetting', () => {
-  it('CategoryConfig and TrackConfig require only `id` + `tracks`/`data`', () => {
-    const minimalCategory: CategoryConfig = {
+  it('GroupConfig and TrackConfig require only `id` + `tracks`/`data`', () => {
+    const minimalGroup: GroupConfig = {
       id: 'C',
       tracks: [],
     };
@@ -438,14 +438,14 @@ describe('Structural subsetting', () => {
       id: 't',
       data: 'features',
     };
-    expectType<CategoryConfig>(minimalCategory);
+    expectType<GroupConfig>(minimalGroup);
     expectType<TrackConfig>(minimalTrack);
-    expect(minimalCategory.tracks).toEqual([]);
+    expect(minimalGroup.tracks).toEqual([]);
   });
 
-  it('ProtvistaViewerConfig requires only `categories`', () => {
-    const c: ProtvistaViewerConfig = { categories: [] };
+  it('ProtvistaViewerConfig requires only `groups`', () => {
+    const c: ProtvistaViewerConfig = { groups: [] };
     expectType<ProtvistaViewerConfig>(c);
-    expect(c.categories).toEqual([]);
+    expect(c.groups).toEqual([]);
   });
 });

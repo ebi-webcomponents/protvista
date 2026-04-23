@@ -6,9 +6,9 @@
  *
  *   1. When a track's first data descriptor is `from: custom` and the
  *      consumer has supplied data via the `customTrackData` map, that
- *      data is written verbatim into `data[`${category}-${track}`]`
+ *      data is written verbatim into `data[`${group}-${track}`]`
  *      — no adapter step, and the value is also returned so it
- *      participates in the category-level aggregate the renderer reads.
+ *      participates in the group-level aggregate the renderer reads.
  *
  *   2. The track-level `filter:` sugar still applies to injected data
  *      so behaviour is symmetric with URL- and inline-sourced tracks.
@@ -20,7 +20,7 @@
  *      injected, the loader emits the exact console.info message the
  *      spec mandates (spec §Edge Cases) and leaves the slot unset —
  *      nothing under `data[trackKey]`, and the track contributes an
- *      `undefined` to the category aggregate (matching how the URL
+ *      `undefined` to the group aggregate (matching how the URL
  *      branch handles missing data).
  */
 
@@ -44,7 +44,7 @@ function makeConfig(track: NormalizedTrack): NormalizedConfig {
     version: '1.0',
     sources: {},
     defaults: { rendering: {} },
-    categories: [
+    groups: [
       {
         id: 'CAT',
         label: 'cat',
@@ -66,7 +66,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
     vi.restoreAllMocks();
   });
 
-  it('writes injected data verbatim to data[`${category}-${track}`] and skips fetch', async () => {
+  it('writes injected data verbatim to data[`${group}-${track}`] and skips fetch', async () => {
     const injected = [
       { type: 'DOMAIN', description: 'A', start: 1, end: 10 },
       { type: 'DOMAIN', description: 'B', start: 20, end: 30 },
@@ -96,7 +96,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
     expect(track).toBe(injected);
     expect(track).toHaveLength(2);
 
-    // Category-level aggregate picks up the track (most components do
+    // Group-level aggregate picks up the track (most components do
     // `.flat()` on the per-track array).
     expect(data.CAT).toEqual(injected);
 
@@ -188,7 +188,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       `Track CAT/mine is 'from: custom' but no data was provided via setTrackData().`
     );
     expect('CAT-mine' in data).toBe(false);
-    // Category aggregate is `.flat()` of the per-track return values.
+    // Group aggregate is `.flat()` of the per-track return values.
     // The missing-data branch `return`s with no value, so the track
     // contributes `undefined` to the aggregate — matching how the URL
     // branch handles a missing payload (parity with legacy behaviour).

@@ -90,7 +90,7 @@ export type AuthoredTooltipSpec =
  *
  * A valid JSON (or YAML-parsed-to-object) value conforming to this
  * interface is sufficient to mount a fully functional viewer. All
- * fields other than `categories` are optional; every field has a
+ * fields other than `groups` are optional; every field has a
  * documented default or fallback in the spec's Behavior / Edge Cases
  * sections.
  *
@@ -123,11 +123,11 @@ export interface ProtvistaViewerConfig {
    *
    *   - `sources`          — merged by key (child wins)
    *   - `defaults`         — merged field-wise (child wins)
-   *   - `categories`       — merged by `id`; a child category with a
+   *   - `groups`       — merged by `id`; a child group with a
    *                          known id extends the base; a new id is
    *                          appended at the end
-   *   - `tracks` within a  — merged by `id`; same rules as categories
-   *     merged category
+   *   - `tracks` within a  — merged by `id`; same rules as groups
+   *     merged group
    *   - `rendering` blocks — merged field-wise
    *
    * Cycles fail validation with `"Circular extends: a → b → a"`.
@@ -154,17 +154,17 @@ export interface ProtvistaViewerConfig {
   sources?: Record<string, string>;
 
   /**
-   * Global defaults applied to every category/track unless overridden.
+   * Global defaults applied to every group/track unless overridden.
    *
    * Precedence (highest first):
-   *   track.rendering > category.rendering > defaults.rendering
+   *   track.rendering > group.rendering > defaults.rendering
    *   track.labelUrl  > defaults.labelUrl
-   *   track.helpPage  > category.helpPage > defaults.helpPage
+   *   track.helpPage  > group.helpPage > defaults.helpPage
    */
   defaults?: ConfigDefaults;
 
-  /** Ordered list of categories displayed in the viewer. */
-  categories: CategoryConfig[];
+  /** Ordered list of groups displayed in the viewer. */
+  groups: GroupConfig[];
 }
 
 /**
@@ -185,8 +185,8 @@ export interface ConfigDefaults {
   helpPage?: string;
 }
 
-export interface CategoryConfig {
-  /** Unique identifier for this category (e.g. `"MOLECULE_PROCESSING"`). */
+export interface GroupConfig {
+  /** Unique identifier for this group (e.g. `"MOLECULE_PROCESSING"`). */
   id: string;
 
   /**
@@ -198,13 +198,13 @@ export interface CategoryConfig {
 
   /**
    * Short plain-text description shown as a native tooltip (the HTML
-   * `title` attribute) when hovering the category label. Plain text
+   * `title` attribute) when hovering the group label. Plain text
    * only — no Markdown, no HTML interpretation, no placeholders.
    */
   description?: string;
 
   /**
-   * Component used for the collapsed / aggregate category-level
+   * Component used for the collapsed / aggregate group-level
    * track. Optional — if omitted, inferred from the child tracks'
    * `kind`s. When all child tracks resolve to the same component,
    * that component is used; mixed components fall back to
@@ -212,18 +212,18 @@ export interface CategoryConfig {
    */
   component?: ComponentName;
 
-  /** Ordered list of tracks within the category. Display order preserved. */
+  /** Ordered list of tracks within the group. Display order preserved. */
   tracks: TrackConfig[];
 
-  /** Category-level rendering defaults; individual tracks inherit these. */
+  /** Group-level rendering defaults; individual tracks inherit these. */
   rendering?: RenderingOptions;
 
-  /** Optional URL slug for the help-page link on the category label. */
+  /** Optional URL slug for the help-page link on the group label. */
   helpPage?: string;
 }
 
 export interface TrackConfig {
-  /** Unique identifier within its parent category (e.g. `"signal"`). */
+  /** Unique identifier within its parent group (e.g. `"signal"`). */
   id: string;
 
   /** Human-readable label. Falls back to a title-cased form of `id`. */
@@ -249,7 +249,7 @@ export interface TrackConfig {
   /**
    * Advanced: explicit Nightingale component override.
    * When set, used verbatim and semantic-kind resolution is skipped.
-   * Inherits from the parent category if neither `kind` nor
+   * Inherits from the parent group if neither `kind` nor
    * `component` is set on the track.
    */
   component?: ComponentName;
@@ -340,7 +340,7 @@ export interface TrackConfig {
    */
   filterUI?: 'nightingale-filter';
 
-  /** Track-level rendering overrides; merged on top of category defaults. */
+  /** Track-level rendering overrides; merged on top of group defaults. */
   rendering?: RenderingOptions;
 
   /** Optional URL slug for the help-page link on the track label. */
@@ -477,7 +477,7 @@ export interface FieldPredicate {
 /**
  * Rendering options that control the visual presentation of a track.
  * Map directly to Nightingale component HTML attributes.
- * Track-level values override category-level values, which override
+ * Track-level values override group-level values, which override
  * `defaults.rendering`.
  */
 export interface RenderingOptions {
@@ -716,11 +716,11 @@ export interface ProtvistaRuntimeAPI {
    * Provide data directly for a specific track, bypassing URL fetching.
    * Used with `DataSourceDescriptor.from = "custom"`.
    *
-   * @param categoryId — the category's `id`.
+   * @param groupId — the group's `id`.
    * @param trackId    — the track's `id`.
    * @param data       — data conforming to the track's expected Representation.
    */
-  setTrackData(categoryId: string, trackId: string, data: unknown): void;
+  setTrackData(groupId: string, trackId: string, data: unknown): void;
 
   /**
    * Replace the entire viewer configuration at runtime. Triggers a
