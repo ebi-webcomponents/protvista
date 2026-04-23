@@ -62,12 +62,6 @@ groups:
         kind: features
         filter: SIGNAL
         data: features
-        # Example `dataTooltip` override (commented — the kind default
-        # handles this track in production). Bare-string form: a
-        # shorthand for `{ kind: markdown, template: "…" }`. Fields on
-        # the item are in scope as `$field`.
-        #
-        # dataTooltip: "**Signal peptide** {% $begin %}–{% $end %}"
         description: N-terminal signal peptide
         helpPage: signal
 
@@ -122,20 +116,6 @@ groups:
         kind: features
         filter: COMPBIAS
         data: features
-        # Example `dataTooltip` override (commented — the kind default
-        # handles this track in production). `kind: fields` form: each
-        # entry renders as `<h5>label</h5><p>value</p>`. `path` is a
-        # dotted path against the item (e.g. `association.0.name`);
-        # missing / empty values are skipped silently. `render:` opts a
-        # row into the `tooltipHelpers` registry.
-        #
-        # dataTooltip:
-        #   kind: fields
-        #   fields:
-        #     - { path: type,        label: Type }
-        #     - { path: description, label: Description }
-        #     - { path: begin,       label: Start }
-        #     - { path: end,         label: End }
         description: Position of regions of compositional bias within the protein and the particular amino acids that are over-represented within those regions
         helpPage: compbias
 
@@ -220,21 +200,6 @@ groups:
         kind: features
         filter: DOMAIN
         data: features
-        # Example `dataTooltip` override (commented — the kind default
-        # handles this track in production). `kind: markdown` form: a
-        # Markdoc template with `$field` interpolation. Three built-in
-        # tags are available:
-        #   {% xrefs xrefs=$field /%}      — cross-reference list
-        #   {% evidence codes=$field /%}   — ECO evidence list
-        #   {% link source=… id=… label=… /%} — URL registry anchor
-        # `{% if $x %}…{% /if %}` guards optional fragments.
-        #
-        # dataTooltip:
-        #   kind: markdown
-        #   template: |
-        #     ### {% $description %}
-        #     **Position:** {% $begin %}–{% $end %}
-        #     {% if $evidences %}{% evidence codes=$evidences /%}{% /if %}
         description: Specific combination of secondary structures organized into a characteristic three-dimensional structure or fold
         helpPage: domain
 
