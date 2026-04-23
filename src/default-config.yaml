@@ -25,7 +25,11 @@
 #     `titleCaseId()` would not reproduce.
 
 version: '1.0'
-$schema: https://ebi.ac.uk/protvista/config.schema.json
+# TODO(v5-release): replace with the real hosted schema URL once it's
+# published. The `.invalid` TLD (RFC 2606) is guaranteed never to
+# resolve, so editors surface an obvious fetch failure rather than
+# silently falling back to no validation against a 404'd URL.
+$schema: https://TODO-PUBLISH-BEFORE-V5-RELEASE.invalid/protvista/config.schema.json
 
 # ─────────────────────────────────────────────────────────────
 # Named URL templates. `{accession}` is interpolated at mount
