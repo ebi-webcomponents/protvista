@@ -148,3 +148,39 @@ issues:
       The cleanup applies to at least two groups in the default config (`VARIATION`, `RNA_EDITING`). Worth a quick audit of the other 13 groups before landing — if any others carry explicit group-level `component:` for the same reason, migrate them in the same commit. `STRUCTURE` and `PROTEOMICS` are plausible candidates; check their default-config entries.
     fields:
       Group: "Technical"
+
+  - title: "Add a generic `linegraph` semantic kind for bring-your-own-data authors"
+    labels: ["next"]
+    body: |
+      **Context**
+      Every semantic kind registered today is domain-specific — `features`, `variants`, `variant-counts`, `features-interpro`, `confidence-score`, `pathogenicity-score`, `pathogenicity-heatmap`, `rna-editing`, `rna-editing-counts`, and so on. Each bundles two things: a canonical adapter that understands a specific upstream wire format (the UniProt `/features/` stream, AlphaFold prediction API, AlphaMissense annotations, …), and a canonical component (`nightingale-track-canvas`, `nightingale-variation`, `nightingale-linegraph-track`, …). That design is deliberate and good — UniProt authors write one domain word and get the right behaviour for free, with colour ramps, filters, and tooltips wired up as a bundle.
+
+      The blind spot is the bring-your-own-data author. Say an external lab has "a list of `{position, value}` pairs I want rendered as a linegraph." None of the existing kinds fit — `variant-counts` assumes a UniProt variation response shape and runs it through a variation-specific adapter that would reject or mangle generic data. The only recourse today is to drop out of the semantic-kind surface and write a raw `component: nightingale-linegraph-track` plus a custom `adapter:` on the track, which the spec explicitly discourages ("Authors only write domain language … never Nightingale component names or adapter names").
+
+      A generic `linegraph` kind fills the gap: domain-agnostic, expects a minimal `{position, value}` record shape, renders with `nightingale-linegraph-track`. Authors who want linegraph rendering of their own data get a single-word answer; UniProt's variant-counts track keeps using its domain-specific kind unchanged.
+
+      **Task**
+      Register a built-in semantic kind named `linegraph` that maps to `nightingale-linegraph-track` with a shape-validating pass-through adapter. Document its expected data shape in the spec's semantic-kind vocabulary table. Add it to the `KnownSemanticKindName` union. Do not touch `variant-counts` or any other existing domain kind — this issue is additive.
+
+      **Scope:**
+      * Built-in adapter: add `src/schema/adapters/linegraph.ts`. Pass-through for arrays of `{position: number, value: number}` records. Reject non-array input, rows missing either field, rows where `position` or `value` aren't numbers. Error text names the offending row index and field so the author can debug their input: `"[linegraph] row 3: expected 'position' and 'value' (both numbers); got { position: '47', value: 0.9 } — 'position' is a string, not a number."`.
+      * Registry wiring: register the kind in the default kind registry (alongside wherever `variant-counts`, `confidence-score`, etc. are registered today). The kind resolves to component `nightingale-linegraph-track` and adapter `linegraph`.
+      * Types: add `"linegraph"` to the `KnownSemanticKindName` union in `src/schema/types.ts`. Add `"linegraph"` to the `KnownAdapterName` union for consistency (even though it's not an inference target from a file extension).
+      * Spec: add one row to the semantic-kind vocabulary table in `specs/config-approach.md` — kind name, canonical component, data shape (`{position, value}[]`), a sentence of guidance ("Use this kind for generic linegraph rendering when your data isn't one of the UniProt-specific variant-count sources. Keep using `variant-counts` for UniProt variation-API input.").
+      * Tests: `src/schema/adapters/__spec__/linegraph.spec.ts` — happy path (array of well-formed records), malformed-input cases (non-array, missing field, wrong types), and an integration test that renders a track with `kind: linegraph` and confirms the DOM is a `nightingale-linegraph-track`.
+      * Example in `docs/` or the spec's Examples section: a YAML snippet showing a BYOD linegraph track end-to-end, so authors searching for "how do I render my own linegraph data" find a worked answer.
+
+      **Notes:**
+      Four design decisions to make while wiring this up:
+
+      1. **Data shape: `{position, value}` vs `{x, y}`.** `{position, value}` matches the domain language the rest of the spec uses (`position`, `begin`, `end`, `score`) and reads naturally for sequence data. `{x, y}` is more general but foreign to this codebase. Leaning toward `{position, value}`; mention the alternative in the spec so future additions of `scatter` or `heatmap` generic kinds can converge on the same vocabulary.
+
+      2. **Validation strictness.** Pass-through (accept anything that looks vaguely correct at runtime) is simpler but defers errors to Nightingale, which tends to produce opaque failures. Shape-validating (reject malformed input at adapter time with a named error) is more work but gives the author a real debugging surface. Leaning strict — same stance the generic-format adapters in issue #1 are asked to take.
+
+      3. **Parallel generic kinds for other components.** `track-canvas` is the obvious next candidate — the existing `features` kind is close but tied to UniProt feature-record shape. A generic `track` kind that takes `{start, end, type?, description?}` would fill the same gap for rectangular feature rendering. Out of scope for this issue, but name it now so future work doesn't clash: reserve `track`, `colored-sequence`, `heatmap`, and `variation` (lowercase) as generic-kind names. Don't register them in this issue — register them as distinct issues once a concrete need appears, so each one gets its own adapter + shape decision.
+
+      4. **Namespace collision with adapter names.** Kinds and adapters live in separate registries in the current spec, so `kind: linegraph` and `adapter: linegraph` can coexist. The generic linegraph adapter this issue ships is named `linegraph` because it's the pass-through used by the kind — be explicit in the spec that this is a *generic* adapter, distinct from (for example) UniProt's variant-counts adapter which also feeds `nightingale-linegraph-track` but with domain-specific transforms.
+
+      Worth coordinating with issue #1 (generic-format adapters `features-json`/`features-csv`/`features-tsv`/`bed`) on the error-text format so BYOD authors get a consistent error-message vocabulary across the entire generic-kind / generic-format surface.
+    fields:
+      Group: "Technical"
