@@ -253,3 +253,33 @@ issues:
       Out of scope: migrating the host-side dev loop to run inside a container by default. This issue is strictly about providing the option, not mandating it.
     fields:
       Group: "Technical"
+
+  - title: "Namespace CSS class names with a `pv-` prefix to eliminate cross-component collisions"
+    labels: ["next"]
+    body: |
+      **Context**
+      `<protvista-uniprot>` renders in light DOM (required because of Mol* — `createRenderRoot()` in `protvista-uniprot.ts` returns `this`). Its stylesheet lives in `document.head` and uses generic class names (`.group`, `.group-label`, `.group__track`, `.track-label`, `.track-content`, `.feature`, `.proforma`, `.mod-link`, `.credits`, `.nav-track-label`, `.aggregate-track-content`). Child components that also render in light DOM — notably `<nightingale-filter>` — ship their own `<style>` blocks with unscoped rules on the same class names, which collide in the document's global selector scope.
+
+      The PR that introduced this issue shipped Option B of the documented trade-space: every rule in `src/styles/protvista-styles.ts` is now prefixed with the `protvista-uniprot` tag selector, so our rules gain specificity 0,1,1 and win cascade ties against unscoped third-party rules (0,1,0) whose class names happen to match. That's enough for today's problem (nightingale-filter's unscoped `.group { margin-bottom: 2.5rem }` no longer overrides our aggregate-row margin), and it keeps our rules from polluting the consumer's document outside `<protvista-uniprot>` subtrees.
+
+      But the defence isn't complete. If any future child component or consumer-side stylesheet emits a rule that *is* tag-scoped (e.g. `nightingale-filter .group { … }` at 0,1,1), the specificity tie-break reverts to source order — and since child components render their `<style>` blocks at render time, after ours hit the head at constructor time, theirs wins. The robust answer is to rename our classes so they can't collide with third-party class names at all.
+
+      **Task**
+      Rename protvista-uniprot's internal CSS classes and DOM id prefixes with a `pv-` prefix, collision-proof by construction. Data-model names (the YAML config field `groups:`, etc.) stay unchanged — this is a presentation-layer rename only.
+
+      **Scope:**
+      * `src/styles/protvista-styles.ts` — rename `.group` → `.pv-group`, `.group-label` → `.pv-group-label`, `.group__track` → `.pv-group__track`, `.track-label` → `.pv-track-label`, `.track-content` → `.pv-track-content`, `.track-content__coloured-sequence` → `.pv-track-content__coloured-sequence`, `.nav-container` → `.pv-nav-container`, `.nav-track-label` → `.pv-nav-track-label`, `.credits` → `.pv-credits`, `.feature` → `.pv-feature`, `.proforma` → `.pv-proforma`, `.mod-link` → `.pv-mod-link`, `.aggregate-track-content` → `.pv-aggregate-track-content`. Keep the tag-scoping from Option B (`protvista-uniprot .pv-group { … }`) — defence in depth.
+      * `src/protvista-uniprot.ts` — rename every `class="..."` and `id="..."` / `data-id="..."` in the render template to match. Group DOM ids: `group_${id}` → `pv-group_${id}`; track ids follow the same pattern.
+      * Query selectors and `data-group-toggle` / `data-article-id` attributes in event handlers — update to match.
+      * Tests: `src/__spec__/render-target.spec.ts` and its snapshot (class selectors and ids in assertions), plus any `set-track-data*` specs that reference the old class names.
+      * Remove the "If a third-party child component ever ships a tag-scoped rule …" paragraph from the header comment in `src/styles/protvista-styles.ts` — the `pv-` rename closes that loophole.
+      * Consumers' CSS: this is a breaking visual API change. Anyone overriding our styles with selectors like `.track-label { color: … }` now needs `.pv-track-label`. Document in CHANGELOG / migration note. Consider shipping one release that emits BOTH classes (backwards-compat alias) if external adoption is significant.
+
+      **Notes:**
+      Why the `pv-` prefix specifically: short, readable, matches the established (if informal) shorthand for "ProtVista" in Nightingale codebases. Alternatives considered — `protvista-` (verbose in class lists), `protvista-uniprot__` (BEM-strict but even more verbose), no prefix (status quo, leaves us exposed to any future tag-scoped collision). `pv-` is the sweet spot of short + obviously ours.
+
+      Coordinate timing with any upstream fix to `nightingale-filter` (and other Nightingale components that emit `<style>` blocks with generic class names). If the upstream packages adopt tag-scoped selectors or move to shadow DOM, the urgency of this rename drops — though the egress-hygiene benefit (our classes can't bleed onto a consumer's `.group`/`.feature` anywhere in the page) still applies.
+
+      Optional stretch: audit consumer-facing DOM id patterns at the same time. IDs like `track-${groupId}` are globally unique within one `<protvista-uniprot>` but collide if a page ever mounts multiple viewers. Issue currently scoped to class rename; ID namespacing for multi-instance is a separate concern and should be tracked on its own if/when multi-instance becomes a planned use case.
+    fields:
+      Group: "Technical"
