@@ -74,9 +74,15 @@ You can then use it like this:
 
 ## API
 
-- `accession`: `string`
-- `config?`: `Array` (see [Configuration](#configuration))
-- `nostructure?`: `boolean` (default: `false`)
+Reactive properties on the `<protvista-uniprot>` element (HTML attribute name in brackets where it differs from the JS property name):
+
+- `accession` [`accession`]: `string` — UniProt accession to display. Takes precedence over the `accession` field in `config` if both are set.
+- `configSrc` [`config-src`]: `string` — URL or file path to a YAML or JSON config. Fetched and parsed at mount time. See [Configuration](#configuration).
+- `config`: `ProtvistaViewerConfig` — a parsed config object, assigned as a JS property. Alternative to `config-src` when the embedder already has the config in memory.
+- `tooltips`: `Record<SemanticKind, TooltipSpec>` — per-kind tooltip overrides registered by the embedder. Takes precedence over defaults.
+- `nostructure` [`nostructure`]: `boolean` (default `false`) — suppresses the PDBe 3D structure group.
+- `notooltip` [`notooltip`]: `boolean` (default `false`) — suppresses the built-in click tooltip. Typically set by embedders rendering their own overlay.
+- `suspend` [`suspend`]: `boolean` (default `false`) — pauses rendering. Useful when the accession is about to change and you want to avoid a flash of intermediate state.
 
 ## Development
 
@@ -128,30 +134,61 @@ Captured 2026-04-20 via `yarn test:coverage` (v8 instrumentation, 29 tests acros
 
 ## Configuration
 
-You can pass your own configuration to the component using the `config` attribute/property.
+The viewer is driven by a declarative configuration — a document that lists the sequence-annotation groups to display, the tracks within each group, and where their data comes from. Authors write against a schema of high-level domain concepts (`kind: features`, `kind: variants`, `kind: confidence-score`, …) and never need to name Nightingale components or adapters directly. Two authoring forms are supported:
 
-```json
-{
-  "groups": [
-    {
-      "name": "string",
-      "label": "string",
-      "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation",
-      "adapter": "feature-adapter|structure-adapter|proteomics-adapter|variation-adapter",
-      "url": "string",
-      "tracks": [
-        {
-          "name": "string",
-          "label": "string",
-          "filter": "string",
-          "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation",
-          "tooltip": "string"
-        }
-      ]
-    }
-  ]
-}
+- **YAML** (recommended) — passed via the `config-src` attribute pointing at a URL or file path.
+- **JSON** — assigned to the `.config` property on the element.
+
+### Minimal config
+
+```yaml
+# my-config.yaml
+accession: P05067
+sources:
+  features: https://www.ebi.ac.uk/proteins/api/features/{accession}
+groups:
+  - id: DOMAINS
+    tracks:
+      - id: domain
+        kind: features
+        filter: DOMAIN
+        data: features
 ```
+
+Mount with:
+
+```html
+<protvista-uniprot config-src="./my-config.yaml"></protvista-uniprot>
+```
+
+The viewer renders a single collapsible group "Domains" (label title-cased from the id), containing one track "Domain", populated by the `features` URL (with `{accession}` substituted at fetch time) and filtered to items with `type === "DOMAIN"`. No `version`, no explicit `component:` / `adapter:`, no `label:` — minimal configs collapse to the minimum.
+
+### Extending the default
+
+External labs typically start from the canonical UniProt viewer and add their own tracks:
+
+```yaml
+extends: "https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml"
+
+groups:
+  - id: MY_LAB
+    label: My lab
+    tracks:
+      - id: predicted_sites
+        kind: features
+        data:
+          from: inline
+          inlineData:
+            - { type: BINDING, start: 45, end: 52, description: ATP binding }
+```
+
+`extends` pulls in the full `sources`, `defaults`, and 15 canonical UniProt groups; your `groups` block is appended at the end. Groups with the same `id` as one in the base are merged in place.
+
+### Learning more
+
+- **Schema reference.** [`specs/config-approach.md`](./specs/config-approach.md) documents every field (`groups`, `tracks`, `sources`, `defaults`, `extends`, `kind`, `data`, `transform`, `rendering`, `dataTooltip`) with worked examples and edge-case semantics. This is the normative source.
+- **Canonical default.** [`src/default-config.yaml`](./src/default-config.yaml) is the UniProt viewer itself, authored in the new schema. Useful as a reference.
+- **Authoring `dataTooltip`.** [`docs/data-tooltip.md`](./docs/data-tooltip.md) covers the three authoring forms (bare string, `kind: fields`, `kind: markdown`) with examples.
 
 ## Events
 
