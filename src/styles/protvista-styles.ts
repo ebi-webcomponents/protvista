@@ -1,42 +1,69 @@
 import { css } from 'lit';
 
+/**
+ * Every selector in this file is scoped under the `protvista-uniprot`
+ * element tag. Two reasons:
+ *
+ *   1. Ingress defence. We render in light DOM (see `createRenderRoot()`
+ *      in protvista-uniprot.ts) because Mol*. Child components like
+ *      `<nightingale-filter>` also render in light DOM and ship their
+ *      own unscoped `<style>` blocks into the document at render time
+ *      (e.g. nightingale-filter emits `.group { margin-bottom: 2.5rem }`
+ *      for its own internal checkbox groupings). Without our tag
+ *      scoping, their `.group` rule ties our `.group` on specificity
+ *      and wins by source order. Prefixing `protvista-uniprot ` bumps
+ *      our specificity from 0,1,0 to 0,1,1 — ours beats any unscoped
+ *      third-party `.group` / `.feature` / `.track-label` rule.
+ *
+ *   2. Egress hygiene. Our rules stop matching any element in the
+ *      document that isn't a descendant of `<protvista-uniprot>`.
+ *      Consumers embedding us alongside their own components whose
+ *      CSS happens to use the same class names (`.group`, `.feature`,
+ *      `.track-label`, …) are protected from our styles.
+ *
+ * If a third-party child component ever ships a *tag-scoped* rule
+ * (e.g. `nightingale-filter .group { … }` at 0,1,1), we'll tie on
+ * specificity and source order wins again. In that case we'd need to
+ * rename our classes with a `pv-` prefix; tracked as a follow-on
+ * issue in `next-branch-issues.yml`.
+ */
 export default css`
-  .track-content {
+  protvista-uniprot .track-content {
     width: 80vw;
   }
 
-  .track-content__coloured-sequence {
+  protvista-uniprot .track-content__coloured-sequence {
     display: flex;
     align-items: center;
   }
 
-  .nav-container,
-  .group__track {
+  protvista-uniprot .nav-container,
+  protvista-uniprot .group__track {
     display: flex;
     margin-bottom: 0.1rem;
   }
 
-  .group {
+  protvista-uniprot .group {
     display: none;
     margin-bottom: 0.1rem;
   }
 
-  .group-label,
-  .track-label,
-  .nav-track-label,
-  .credits {
+  protvista-uniprot .group-label,
+  protvista-uniprot .track-label,
+  protvista-uniprot .nav-track-label,
+  protvista-uniprot .credits {
     min-width: 20vw;
     max-width: 20vw;
     padding: 0.5em;
     line-height: normal;
   }
 
-  .group-label {
+  protvista-uniprot .group-label {
     background-color: #b2f5ff;
     cursor: pointer;
   }
 
-  .group-label::before {
+  protvista-uniprot .group-label::before {
     content: ' ';
     display: inline-block;
     width: 0;
@@ -51,7 +78,7 @@ export default css`
     transition: all 0.1s;
   }
 
-  .group-label.open::before {
+  protvista-uniprot .group-label.open::before {
     content: ' ';
     display: inline-block;
     width: 0;
@@ -62,39 +89,37 @@ export default css`
     margin-right: 5px;
   }
 
-  .track-label {
+  protvista-uniprot .track-label {
     background-color: #d9faff;
   }
 
-  nightingale-track-canvas {
+  protvista-uniprot nightingale-track-canvas {
     border-top: 1px solid #d9faff;
   }
 
-  nightingale-navigation {
-    .handle {
-      fill: darkgrey;
-      stroke: black;
-      stroke-width: 0.5px;
-      height: 19px;
-    }
+  protvista-uniprot nightingale-navigation .handle {
+    fill: darkgrey;
+    stroke: black;
+    stroke-width: 0.5px;
+    height: 19px;
   }
 
-  nightingale-filter {
+  protvista-uniprot nightingale-filter {
     font-size: 0.8rem;
   }
 
-  .feature {
+  protvista-uniprot .feature {
     cursor: pointer;
   }
 
-  .proforma {
+  protvista-uniprot .proforma {
     padding-left: 4em;
     white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
   }
 
-  .mod-link {
+  protvista-uniprot .mod-link {
     white-space: nowrap;
   }
 
@@ -111,7 +136,7 @@ export default css`
    * authors don't have to change the tooltip HTML shape to get a
    * compact definition-list look.
    * ------------------------------------------------------------------------- */
-  .protvista-tooltip {
+  protvista-uniprot .protvista-tooltip {
     background: #fff;
     color: #222;
     border: 1px solid #c5c8cc;
@@ -123,7 +148,7 @@ export default css`
     max-width: 320px;
   }
 
-  .protvista-tooltip .content {
+  protvista-uniprot .protvista-tooltip .content {
     display: grid;
     grid-template-columns: auto 1fr;
     column-gap: 0.6em;
@@ -131,7 +156,7 @@ export default css`
     align-items: baseline;
   }
 
-  .protvista-tooltip .content h5 {
+  protvista-uniprot .protvista-tooltip .content h5 {
     grid-column: 1;
     margin: 0;
     padding: 0;
@@ -141,11 +166,11 @@ export default css`
     white-space: nowrap;
   }
 
-  .protvista-tooltip .content h5::after {
+  protvista-uniprot .protvista-tooltip .content h5::after {
     content: ':';
   }
 
-  .protvista-tooltip .content p {
+  protvista-uniprot .protvista-tooltip .content p {
     grid-column: 2;
     margin: 0;
     padding: 0;
@@ -155,7 +180,7 @@ export default css`
   /* Anything the resolver emits that isn't an <h5>/<p> pair (e.g.
      markdown tooltips, custom render output, auto-fallback) falls back
      to spanning the full width of the grid. */
-  .protvista-tooltip .content > *:not(h5):not(p) {
+  protvista-uniprot .protvista-tooltip .content > *:not(h5):not(p) {
     grid-column: 1 / -1;
     margin: 0;
   }
@@ -169,22 +194,22 @@ export default css`
      attribute written by popover.ts on each reposition. The ^=
      selector matches plain sides plus the -start / -end variants
      flip() can produce. */
-  .protvista-tooltip .arrow {
+  protvista-uniprot .protvista-tooltip .arrow {
     background: #fff;
   }
-  .protvista-tooltip[data-placement^='top'] .arrow {
+  protvista-uniprot .protvista-tooltip[data-placement^='top'] .arrow {
     border-right: 1px solid #c5c8cc;
     border-bottom: 1px solid #c5c8cc;
   }
-  .protvista-tooltip[data-placement^='bottom'] .arrow {
+  protvista-uniprot .protvista-tooltip[data-placement^='bottom'] .arrow {
     border-left: 1px solid #c5c8cc;
     border-top: 1px solid #c5c8cc;
   }
-  .protvista-tooltip[data-placement^='left'] .arrow {
+  protvista-uniprot .protvista-tooltip[data-placement^='left'] .arrow {
     border-top: 1px solid #c5c8cc;
     border-right: 1px solid #c5c8cc;
   }
-  .protvista-tooltip[data-placement^='right'] .arrow {
+  protvista-uniprot .protvista-tooltip[data-placement^='right'] .arrow {
     border-bottom: 1px solid #c5c8cc;
     border-left: 1px solid #c5c8cc;
   }

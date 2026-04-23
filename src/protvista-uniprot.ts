@@ -211,8 +211,16 @@ class ProtvistaUniprot extends LitElement {
   }
 
   addStyles() {
-    // We are not using static get styles() as we are not using the shadowDOM because of Mol*
+    // We are not using static get styles() as we are not using the shadowDOM because of Mol*.
+    // Guard against double-install: without this, every <protvista-uniprot>
+    // instance on a page would append its own copy of the stylesheet to
+    // <head>. The marker attribute lets every instance share a single
+    // stylesheet node. (Multi-instance isolation — unique DOM ids, scoped
+    // tooltip popovers, etc. — is tracked separately as a next-branch
+    // issue; this guard is the speculative-use-case partial credit.)
+    if (document.querySelector('style[data-protvista-uniprot]')) return;
     const styleTag = document.createElement('style');
+    styleTag.setAttribute('data-protvista-uniprot', '');
     styleTag.textContent = `${protvistaStyles.toString()} ${loaderStyles.toString()}`;
     document.querySelector('head')?.append(styleTag);
   }
