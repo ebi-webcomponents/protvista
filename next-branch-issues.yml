@@ -104,3 +104,47 @@ issues:
       Do not try to support Markdoc block-level content (headings, lists, code blocks) inside labels — labels are a single-line UI element and the author intent for "paragraph of help content" is already served by `description` (the plain-text `title=` tooltip) and `dataTooltip` (the per-datapoint Markdoc popover). Consider restricting the label-level Markdoc surface to inline nodes only (emphasis, strong, code span, link, and registered custom tags); reject block-level constructs with a validator warning.
     fields:
       Group: "Technical"
+
+  - title: "Add `detailOnly: true` flag on tracks to replace group-level `component:` overrides"
+    labels: ["next"]
+    body: |
+      **Context**
+      Two groups in the default config — `VARIATION` and `RNA_EDITING` — carry an explicit `component:` override with a multi-line explanatory comment, because their child tracks resolve to different Nightingale components and the aggregate-component inference would otherwise fall back to `nightingale-track-canvas` and break visual parity with the legacy viewer. Example from `src/default-config.yaml`:
+
+      ```yaml
+      - id: VARIATION
+        label: Variants
+        # Explicit because the two child kinds (`variant-counts` +
+        # `variants`) resolve to different components — without this,
+        # the collapsed-group aggregate view would fall back to
+        # `nightingale-track-canvas`, breaking parity with the legacy
+        # viewer's linegraph aggregate.
+        component: nightingale-linegraph-track
+        ...
+      ```
+
+      This is the wrong layer to express the intent. The author isn't choosing a specific component for the aggregate — they're saying "the detail `variants` track shouldn't influence what the collapsed group looks like." Pushing that truth to the track that *is* detail-only makes the group-level override unnecessary and removes the comment.
+
+      **Task**
+      Introduce an optional `detailOnly: true` flag on `TrackConfig`. When set, the track is excluded from the group's aggregate-component inference. Use the flag to clean up `VARIATION` and `RNA_EDITING` in `src/default-config.yaml`.
+
+      **Scope:**
+      * Schema + types: add `detailOnly?: boolean` to `TrackConfig` in `src/schema/types.ts` and `src/schema/schema.json`. Not present on `GroupConfig` or `ConfigDefaults` — per-track only (see Notes).
+      * Renderer: in the aggregate-component inference path (today's implementation falls back to `nightingale-track-canvas` when child kinds resolve to mixed components), filter out tracks with `detailOnly: true` before computing the component set. If all remaining tracks resolve to the same component, use it; otherwise fall back as before.
+      * Validator: add a `semantic` issue if every track in a group is `detailOnly: true` — the aggregate has no tracks to infer from and no explicit `component:` to fall back to. Error text: `"Group <groupId>: all tracks are marked detailOnly, so the collapsed aggregate has no component. Set 'component:' on the group or un-mark at least one track."`.
+      * `src/default-config.yaml` migration: on `VARIATION`, remove the `component: nightingale-linegraph-track` override and the explanatory comment block; add `detailOnly: true` to the `variation` track. Same pattern on `RNA_EDITING`: remove `component: nightingale-linegraph-track` + comment, add `detailOnly: true` to the detail track (`'RNA Editing'`).
+      * Tests: `src/schema/__spec__/validate.spec.ts` — add a case for the all-detailOnly-no-component error. `src/__spec__/render-target.spec.ts` + its snapshot — regression test that `VARIATION` aggregate still renders as `nightingale-linegraph-track` after the migration. A small unit test directly against the inference helper covering {all same kind, mixed kinds, mixed kinds with one `detailOnly`}.
+      * Spec: add `detailOnly` to the `TrackConfig` interface block in `specs/config-approach.md`, one paragraph in the "Aggregate track" section explaining what it does and when to use it, and an Edge Cases row for the all-detailOnly-no-component case.
+
+      **Notes:**
+      Five design questions to pin down while writing the spec paragraph — the name `detailOnly` covers several possible semantics and the branch owner should decide explicitly:
+
+      1. **Scope of the flag's effect.** Is `detailOnly` purely about aggregate-component inference, or does it also exclude this track's *data* from whatever payload feeds the aggregate Nightingale element? Today `VARIATION`'s aggregate data comes from a separate pipeline (`variant-counts`'s adapter on the group-level data key), so for this specific case there is no shared data pool and the answer is "inference only." But across all groups — does the aggregate ever merge multiple child tracks' payloads? If yes, `detailOnly` should probably affect both.
+      2. **Validator floor.** All-detailOnly-on-every-track with no `component:` is the hard-error case above. What about *single*-track groups where that one track is `detailOnly`? Same error, or a softer warning ("group will never render an aggregate")? Leaning toward the same error.
+      3. **Interaction with `filterUI`.** The detail `variation` track in `VARIATION` has `filterUI: nightingale-filter`. The filter renders in the track's label area when the group is expanded. If the track is `detailOnly`, does the filter still render when the group is *collapsed*? Today: individual tracks don't render at all when collapsed, so the question is moot. But it's worth stating in the spec that `detailOnly` does not alter *individual-track* visibility rules — it only changes aggregate inference.
+      4. **`defaults.detailOnly` — not supported.** Setting `detailOnly: true` as a global default would mark every track `detailOnly` and break every group. Adding it at group level (`group.detailOnly`) is equally nonsense. Leaning toward: track-level only; schema rejects the field elsewhere. Document explicitly.
+      5. **Naming symmetry for a future `summaryOnly`.** The inverse pattern — a track that *is* the aggregate and has no detail-view representation — isn't needed today but is foreseeable. Reserve the name `summaryOnly: true` for that. No work now; just avoid picking up adjacent names like `aggregateOnly` that would clash.
+
+      The cleanup applies to at least two groups in the default config (`VARIATION`, `RNA_EDITING`). Worth a quick audit of the other 13 groups before landing — if any others carry explicit group-level `component:` for the same reason, migrate them in the same commit. `STRUCTURE` and `PROTEOMICS` are plausible candidates; check their default-config entries.
+    fields:
+      Group: "Technical"
