@@ -32,26 +32,7 @@ import Markdoc, { Tag, type RenderableTreeNode } from '@markdoc/markdoc';
 import type { TooltipContext, TooltipSpec, FieldSpec } from './types';
 import { tooltipHelpers, formatXrefs, formatEvidence } from './helpers';
 import { expandLink } from './links';
-
-// -----------------------------------------------------------------------------
-// Safe HTML escaping (for the `fields` branch fall-through)
-// -----------------------------------------------------------------------------
-
-/**
- * Escape the five characters that would otherwise let a field value
- * inject HTML structure. Matches the behaviour of
- * `MarkdownIt().utils.escapeHtml`, which Markdoc itself uses. Defined
- * locally so the `fields` branch doesn't have to instantiate a
- * `MarkdownIt` instance.
- */
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+import { escapeHtml } from '../utils/security';
 
 // -----------------------------------------------------------------------------
 // Dot-path resolver

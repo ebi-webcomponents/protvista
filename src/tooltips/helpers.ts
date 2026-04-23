@@ -32,30 +32,8 @@
  * Those live in `defaults.ts` and stay next to the data they format.
  */
 import ecoMap from '../adapters/config/evidence';
+import { escapeHtml } from '../utils/security';
 import type { TooltipHelper } from './types';
-
-// -----------------------------------------------------------------------------
-// Escaping primitives
-// -----------------------------------------------------------------------------
-
-/**
- * Escape the five characters that would otherwise let a value inject
- * HTML structure. Kept locally-scoped and duplicated from
- * `tooltips/resolve.ts` (same implementation, identical semantics) to
- * avoid a new import edge between peer modules in the tooltip package.
- *
- * Safe for both text-node contexts (where `&<>` matter) and
- * double- / single-quoted attribute contexts (where `"'` matter too).
- * Matches `MarkdownIt`'s `escapeHtml` byte-for-byte.
- */
-function escapeHtml(value: unknown): string {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 /**
  * Allowlist URL schemes permitted inside anchor `href=` attributes.
