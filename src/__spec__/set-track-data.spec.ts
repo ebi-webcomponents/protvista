@@ -1,6 +1,7 @@
 /**
  * Focused coverage for the `from: custom` / `setTrackData()` escape hatch
- * (spec AC #1143).
+ * (spec §Acceptance Criteria: "`from: custom` data sources are renderable
+ * via the `setTrackData()` escape-hatch API").
  *
  * The loader-level contract, exercised here:
  *

@@ -1,5 +1,7 @@
 /**
- * Component-level integration coverage for `setTrackData()` (spec AC #1143).
+ * Component-level integration coverage for `setTrackData()`
+ * (spec §Acceptance Criteria: "`from: custom` data sources are renderable
+ * via the `setTrackData()` escape-hatch API").
  *
  * `src/__spec__/set-track-data.spec.ts` covers the loader contract —
  * that injected data ends up at `data['CAT-track']`. This file is the

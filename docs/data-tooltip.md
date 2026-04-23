@@ -6,7 +6,7 @@ For the underlying semantics (security model, field-escape rules, URL-scheme all
 
 ## Bare-string form
 
-A one-line Markdoc template. The YAML value is a string, so no quoting games with nested maps. Shorthand for `{ kind: markdown, template: "…" }`. Fields on the datapoint are in scope as `$field`.
+A one-line Markdoc template. The YAML value is a string, so no quoting with nested maps needed. Shorthand for `{ kind: markdown, template: "…" }`. Fields on the datapoint are in scope as `$field`.
 
 ```yaml
 tracks:
@@ -15,7 +15,7 @@ tracks:
     kind: features
     filter: SIGNAL
     data: features
-    dataTooltip: "**Signal peptide** {% $begin %}–{% $end %}"
+    dataTooltip: '**Signal peptide** {% $begin %}–{% $end %}'
 ```
 
 ## `kind: fields` form
@@ -34,10 +34,10 @@ tracks:
     dataTooltip:
       kind: fields
       fields:
-        - { path: type,        label: Type }
+        - { path: type, label: Type }
         - { path: description, label: Description }
-        - { path: begin,       label: Start }
-        - { path: end,         label: End }
+        - { path: begin, label: Start }
+        - { path: end, label: End }
 ```
 
 ## `kind: markdown` form
