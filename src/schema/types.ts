@@ -57,8 +57,8 @@ interface AuthoredTooltipFieldsSpec {
 
 /**
  * Markdoc template rendered against the item's fields. `{% $field %}`
- * interpolates scalars; the registered tags `{% xrefs %}`, `{% evidence %}`,
- * and `{% link %}` produce formatted fragments.
+ * interpolates scalars; `{% if %}` / `{% else %}` / `{% /if %}` gates
+ * optional fragments.
  *
  * `variables` is merged into the Markdoc scope alongside the item's
  * fields, useful for threading track-level context (accession, trackId)
@@ -292,8 +292,8 @@ export interface TrackConfig {
    * Per-item tooltip for this track. Three authoring forms:
    *
    *   1. **String shorthand** — a Markdoc template. `{% $field %}`
-   *      interpolates scalar fields; `{% xrefs %}`, `{% evidence %}`,
-   *      and `{% link %}` are pre-registered tags.
+   *      interpolates scalar fields; `{% if %}` / `{% /if %}` gates
+   *      optional fragments.
    *
    *        dataTooltip: "### {% $name %}\n\n**Score:** `{% $score %}`"
    *
@@ -313,7 +313,7 @@ export interface TrackConfig {
    *
    *        dataTooltip:
    *          kind: markdown
-   *          template: "### {% $name %}\n{% xrefs xrefs=$refs /%}"
+   *          template: "### {% $name %}\n{% if $score %}Score: {% $score %}{% /if %}"
    *          variables: { siteName: "my-viewer" }
    *
    * When set, overrides the per-kind default in `tooltipDefaults[kind]`.

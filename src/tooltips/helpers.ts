@@ -19,13 +19,12 @@
  * affects characters that would otherwise let a payload change
  * structure.
  *
- * Callers (Markdoc tags, `FieldSpec.render`, and the per-kind
- * `tooltipDefaults` entries) consume these via the `tooltipHelpers`
- * registry at the bottom of the file. The registry is frozen at export
- * time so downstream code can't inject a helper that produces unescaped
- * `$raw-html` nodes — the `fields`/`markdown` resolver trusts helpers
- * unconditionally, so registry tamperability would be an XSS sink of
- * its own.
+ * Callers (`FieldSpec.render` and the per-kind `tooltipDefaults`
+ * entries) consume these via the `tooltipHelpers` registry at the
+ * bottom of the file. The registry is frozen at export time so
+ * downstream code can't inject a helper that produces unescaped
+ * HTML — the `fields` resolver trusts helpers unconditionally, so
+ * registry tamperability would be an XSS sink of its own.
  *
  * Out of scope for this module: kind-specific HTML construction (PTM
  * peptidoforms, variation population tables, RNA-editing link blocks).
@@ -75,9 +74,7 @@ interface Xref {
  * output.
  *
  * Kept as a module-internal helper rather than a registry entry because
- * it consumes a structured `EvidenceSource` object, not a plain value —
- * Markdoc templates that want a source link build one out of
- * `{% link source=... id=... /%}` instead.
+ * it consumes a structured `EvidenceSource` object, not a plain value.
  */
 export function formatSource(source: EvidenceSource): string {
   const id = escapeHtml(source.id);
@@ -160,19 +157,18 @@ export function formatXrefs(xrefs: Xref[]): string {
 
 /**
  * Every registered helper accepts `(value, ctx)` per the `TooltipHelper`
- * contract, so field specs and Markdoc tags can plug them in without
- * knowing the underlying typed signature. Callers that know the shape
- * (e.g. the ported `tooltipDefaults` entries) should import the typed
- * exports above instead.
+ * contract so field specs can plug them in without knowing the
+ * underlying typed signature. Callers that know the shape (e.g. the
+ * ported `tooltipDefaults` entries) should import the typed exports
+ * above instead.
  *
  * Frozen at export time so downstream code can't mutate the registry to
- * swap in a helper that returns an unescaped `$raw-html` payload. The
- * Markdoc renderer (`tooltips/resolve.ts`) trusts helper output
- * unconditionally — the `$raw-html` marker tag is a private contract
- * between this module and the renderer — so tamper-resistance here is
- * part of the XSS surface. Adopters who need a custom helper should
- * register it through a track's `tooltipOverrides` `kind: 'custom'`
- * render function and own the escaping themselves.
+ * swap in a helper that returns an unescaped payload. The `fields`
+ * resolver (`tooltips/resolve.ts`) trusts helper output unconditionally,
+ * so tamper-resistance here is part of the XSS surface. Adopters who
+ * need a custom helper should register it through a track's
+ * `tooltipOverrides` `kind: 'custom'` render function and own the
+ * escaping themselves.
  */
 export const tooltipHelpers: Readonly<Record<string, TooltipHelper>> =
   Object.freeze({

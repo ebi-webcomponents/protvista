@@ -131,11 +131,10 @@ describe('tooltipHelpers registry', () => {
   });
 
   it('is frozen — downstream code cannot tamper with the registry', () => {
-    // Tamper-resistance matters because the Markdoc renderer trusts
-    // helper output unconditionally via the `$raw-html` marker tag. A
-    // helper swap that returned `${userInput}` unescaped would bypass
-    // every other sanitisation layer, so the registry is `Object.freeze`d
-    // at export time.
+    // Tamper-resistance matters because the `fields` resolver trusts
+    // helper output unconditionally. A helper swap that returned
+    // `${userInput}` unescaped would bypass every other sanitisation
+    // layer, so the registry is `Object.freeze`d at export time.
     expect(Object.isFrozen(tooltipHelpers)).toBe(true);
     // `use strict` in TS modules makes assignments to frozen props
     // throw at runtime; we exercise the behaviour here.

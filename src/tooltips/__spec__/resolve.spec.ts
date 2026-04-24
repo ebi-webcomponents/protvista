@@ -87,32 +87,6 @@ describe('resolveTooltip — markdown branch', () => {
     expect(out).toContain('G12V');
   });
 
-  it('renders the {% xrefs %} tag via the helpers registry', () => {
-    const out = resolveTooltip(
-      { xrefs: [{ id: 'P01', name: 'UniProt', url: 'http://u' }] },
-      {
-        kind: 'markdown',
-        template: '{% if $xrefs %}{% xrefs xrefs=$xrefs /%}{% /if %}',
-      },
-      ctx
-    );
-    expect(out).toContain('<ul class="no-bullet">');
-    expect(out).toContain('<a href="http://u" target="_blank">P01</a>');
-  });
-
-  it('renders the {% link %} tag against the central URL registry', () => {
-    const out = resolveTooltip(
-      { pm: '12345' },
-      {
-        kind: 'markdown',
-        template: '{% link source="pubmed" id=$pm label="PubMed" /%}',
-      },
-      ctx
-    );
-    expect(out).toBe(
-      '<a href="https://pubmed.ncbi.nlm.nih.gov/12345" target="_blank" rel="noopener noreferrer">PubMed</a>'
-    );
-  });
 });
 
 describe('resolveTooltip — custom branch', () => {
@@ -288,26 +262,6 @@ describe('resolveTooltip — markdown renderer quirks', () => {
     // Nightingale popup.
     expect(out).not.toContain('<article>');
     expect(out).toContain('<p>plain text</p>');
-  });
-
-  it('renders the {% evidence %} tag via the helpers registry', () => {
-    const out = resolveTooltip(
-      {
-        evidence: [
-          {
-            code: 'ECO:0000269',
-            source: { id: 'X', name: 'Other', url: 'http://o' },
-          },
-        ],
-      },
-      {
-        kind: 'markdown',
-        template: '{% evidence codes=$evidence /%}',
-      },
-      ctx
-    );
-    expect(out).toContain('<li title=\'Manual assertion based on experiment\'>');
-    expect(out).toContain("<a href='http://o' target='_blank'>X</a>");
   });
 
   it('merges `variables` into the Markdoc scope alongside the item', () => {

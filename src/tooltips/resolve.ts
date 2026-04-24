@@ -10,28 +10,21 @@
  *   - `kind: 'markdown'` — Markdoc parse → transform → render. The item is
  *                         flattened into the Markdoc variable scope so
  *                         authors reference fields as `{% $fieldName %}`.
- *                         Three typed tags are pre-registered (`xrefs`,
- *                         `evidence`, `link`) and delegate to the helper
- *                         and link registries.
+ *                         Plain Markdoc only; no domain-specific tags.
  *   - `kind: 'custom'`   — verbatim call to the render function. The
  *                         programmatic escape hatch — no safety railings,
  *                         authors get full DOM access via their own Lit /
  *                         hand-rolled output.
  *
- * Markdoc's `renderers.html` HTML-escapes every string node (safe by
- * design), which means a helper that returns `<ul>…</ul>` would render
- * as `&lt;ul&gt;…`. To let helpers inject already-formatted HTML we use
- * a reserved marker tag `$raw-html` whose `html` attribute carries the
- * unescaped payload. The thin wrapper `renderNode` below recognises
- * that marker and returns its attribute verbatim; every other node
- * delegates to the stock Markdoc renderer. Only code in this module
- * and `tooltipHelpers` produces `$raw-html` nodes — template authors
- * cannot synthesise one from Markdoc source — so the tag can be trusted.
+ * The `kind: markdown` branch runs Markdoc's `renderers.html`, which
+ * HTML-escapes every string node by design. `renderNode` below is a
+ * thin walker that delegates to that stock renderer for every node
+ * kind we care about (text / paragraph / inline formatting /
+ * conditional blocks).
  */
 import Markdoc, { Tag, type RenderableTreeNode } from '@markdoc/markdoc';
 import type { TooltipContext, TooltipSpec, FieldSpec } from './types';
-import { tooltipHelpers, formatXrefs, formatEvidence } from './helpers';
-import { expandLink } from './links';
+import { tooltipHelpers } from './helpers';
 import { escapeHtml } from '../utils/security';
 
 // -----------------------------------------------------------------------------
@@ -55,24 +48,14 @@ function resolvePath(item: unknown, path: string): unknown {
 }
 
 // -----------------------------------------------------------------------------
-// Raw-HTML carrier for Markdoc
+// Renderer walker
 // -----------------------------------------------------------------------------
 
 /**
- * Reserved tag name that tells our renderer to emit its `html` attribute
- * verbatim. Using a `$`-prefixed name both avoids any collision with a
- * real HTML element and signals the "internal" status at call sites.
- */
-const RAW_HTML_TAG = '$raw-html';
-
-function rawHtml(html: string): Tag {
-  return new Tag(RAW_HTML_TAG, { html }, []);
-}
-
-/**
- * Walk a Markdoc `RenderableTreeNode` and emit an HTML string. Delegates
- * to the stock Markdoc HTML renderer for every node except our
- * `$raw-html` marker, which emerges verbatim.
+ * Walk a Markdoc `RenderableTreeNode` and emit an HTML string. Thin
+ * wrapper around `Markdoc.renderers.html` for scalar and array nodes;
+ * synthesises the tag markup for Tag nodes so nested children are
+ * rendered through this same walker.
  */
 function renderNode(node: RenderableTreeNode): string {
   if (typeof node === 'string' || typeof node === 'number') {
@@ -82,11 +65,6 @@ function renderNode(node: RenderableTreeNode): string {
     return node.map(renderNode).join('');
   }
   if (node == null || typeof node !== 'object' || !Tag.isTag(node)) return '';
-  if (node.name === RAW_HTML_TAG) {
-    return String(node.attributes?.html ?? '');
-  }
-  // Delegate to the stock HTML renderer for standard tags, with our
-  // own child walker handling any nested $raw-html markers.
   const { name, attributes, children = [] } = node;
   if (!name) return children.map(renderNode).join('');
   let output = `<${name}`;
@@ -113,9 +91,9 @@ function renderNode(node: RenderableTreeNode): string {
 // -----------------------------------------------------------------------------
 
 /**
- * Three built-in tags, deliberately kept small. Authors register custom
- * tags by extending `markdocConfig.tags` post-import — a hook exposed
- * via the `viewerConfig.tooltipTags` override.
+ * Markdoc config for the `kind: markdown` branch. Intentionally minimal:
+ * authors get plain Markdoc (fields via `{% $field %}`, conditionals via
+ * `{% if %}`/`{% /if %}`) and nothing more. No domain-specific tags.
  */
 const markdocConfig = {
   /**
@@ -128,62 +106,6 @@ const markdocConfig = {
    */
   nodes: {
     document: { ...Markdoc.nodes.document, render: null as unknown as string },
-  },
-  tags: {
-    /**
-     * `{% xrefs xrefs=$field /%}` — render a cross-reference list using
-     * the shared `formatXrefs` helper.
-     */
-    xrefs: {
-      attributes: { xrefs: { type: Array } },
-      transform(node: { transformAttributes(config: unknown): unknown }, config: unknown) {
-        const attrs = node.transformAttributes(config) as { xrefs?: unknown[] };
-        return rawHtml(formatXrefs((attrs.xrefs ?? []) as Parameters<typeof formatXrefs>[0]));
-      },
-    },
-    /**
-     * `{% evidence codes=$field /%}` — render an evidence-code list
-     * using the shared `formatEvidence` helper.
-     */
-    evidence: {
-      attributes: { codes: { type: Array } },
-      transform(node: { transformAttributes(config: unknown): unknown }, config: unknown) {
-        const attrs = node.transformAttributes(config) as { codes?: unknown[] };
-        return rawHtml(
-          formatEvidence(
-            (attrs.codes ?? []) as Parameters<typeof formatEvidence>[0]
-          )
-        );
-      },
-    },
-    /**
-     * `{% link source="pubmed" id=$accession label="PubMed" /%}` —
-     * build an anchor using the central link registry. Authors reach
-     * for this when they want a link that can be re-pointed by
-     * embedders (e.g. intranet mirrors) without editing every
-     * template.
-     */
-    link: {
-      selfClosing: true,
-      attributes: {
-        source: { type: String, required: true },
-        id: { type: String, required: true },
-        label: { type: String },
-      },
-      transform(node: { transformAttributes(config: unknown): unknown }, config: unknown) {
-        const attrs = node.transformAttributes(config) as {
-          source: string;
-          id: string;
-          label?: string;
-        };
-        const url = expandLink(attrs.source, attrs.id);
-        return new Tag(
-          'a',
-          { href: url, target: '_blank', rel: 'noopener noreferrer' },
-          [attrs.label ?? attrs.id]
-        );
-      },
-    },
   },
 };
 

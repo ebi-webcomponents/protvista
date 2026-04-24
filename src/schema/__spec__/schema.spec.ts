@@ -323,7 +323,7 @@ describe('JSON Schema — fine-grained acceptance', () => {
       {
         dataTooltip: {
           kind: 'markdown',
-          template: '### {% $name %}\n\n{% xrefs xrefs=$xrefs /%}',
+          template: '### {% $name %}\n\n{% if $score %}**Score:** {% $score %}{% /if %}',
           variables: { siteName: 'my-viewer' },
         },
       },

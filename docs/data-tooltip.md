@@ -42,13 +42,7 @@ tracks:
 
 ## `kind: markdown` form
 
-A full Markdoc template. Use this when the tooltip needs prose, conditional fragments, or built-in tags. Field interpolation uses `{% $field %}`; flow control uses Markdoc's `{% if %}` / `{% else %}` / `{% /if %}`.
-
-Three built-in tags ship with the viewer:
-
-- `{% xrefs xrefs=$field /%}` — renders a cross-reference list from an `xrefs` array.
-- `{% evidence codes=$field /%}` — renders an ECO evidence list from an `evidences` array.
-- `{% link source=… id=… label=… /%}` — renders an anchor resolved through the library's URL-template registry. Use this instead of a raw Markdown link when the target URL is a template keyed by source name.
+A full Markdoc template. Use this when the tooltip needs prose or conditional fragments. Field interpolation uses `{% $field %}`; flow control uses Markdoc's `{% if %}` / `{% else %}` / `{% /if %}`.
 
 ```yaml
 tracks:
@@ -62,7 +56,7 @@ tracks:
       template: |
         ### {% $description %}
         **Position:** {% $begin %}–{% $end %}
-        {% if $evidences %}{% evidence codes=$evidences /%}{% /if %}
+        {% if $score %}**Score:** {% $score %}{% /if %}
 ```
 
 ## When to leave `dataTooltip` off
