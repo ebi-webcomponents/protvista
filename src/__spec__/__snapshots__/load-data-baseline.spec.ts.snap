@@ -3293,182 +3293,146 @@ exports[`loadProtvistaData baseline (schema-driven default config) > produces a 
     "RNA_EDITING-RNA Editing": [
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "ACT_SITE",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "BINDING",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "CA_BIND",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "CARBOHYD",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "CHAIN",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "COMPBIAS",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "CONFLICT",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "CROSSLNK",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "DISULFID",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "DNA_BIND",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "DOMAIN",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "INIT_MET",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "INTRAMEM",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "LIPID",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "METAL",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "MOD_RES",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "MOD_RES_LS",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "MOTIF",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "MUTAGEN",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "NON_CONS",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "NON_STD",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "NON_TER",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "NP_BIND",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "PEPTIDE",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "PROPEP",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "REGION",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "REPEAT",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "SIGNAL",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "SITE",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "TOPO_DOM",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "TRANSIT",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "TRANSMEM",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "UNSURE",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "ZN_FING",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "non_unique",
       },
       {
         "_adapter": "uniprot-rna-editing-json",
-        "tooltipContent": "",
         "type": "unique",
       },
     ],
@@ -4401,182 +4365,146 @@ exports[`loadProtvistaData baseline (schema-driven default config) > produces a 
     "VARIATION-variation": [
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "ACT_SITE",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "BINDING",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "CA_BIND",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "CARBOHYD",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "CHAIN",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "COMPBIAS",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "CONFLICT",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "CROSSLNK",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "DISULFID",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "DNA_BIND",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "DOMAIN",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "INIT_MET",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "INTRAMEM",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "LIPID",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "METAL",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "MOD_RES",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "MOD_RES_LS",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "MOTIF",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "MUTAGEN",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "NON_CONS",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "NON_STD",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "NON_TER",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "NP_BIND",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "PEPTIDE",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "PROPEP",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "REGION",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "REPEAT",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "SIGNAL",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "SITE",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "TOPO_DOM",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "TRANSIT",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "TRANSMEM",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "UNSURE",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "ZN_FING",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "non_unique",
       },
       {
         "_adapter": "uniprot-variation-json",
-        "tooltipContent": "",
         "type": "unique",
       },
     ],
