@@ -350,7 +350,6 @@ function descriptorIncludes(
  */
 const KNOWN_COMPONENTS = new Set<string>([
   'nightingale-track-canvas',
-  'nightingale-interpro-track',
   'nightingale-colored-sequence',
   'nightingale-variation',
   'nightingale-linegraph-track',

@@ -664,7 +664,6 @@ type SemanticKind =
  */
 type KnownComponentName =
   | "nightingale-track-canvas"
-  | "nightingale-interpro-track"
   | "nightingale-colored-sequence"
   | "nightingale-variation"
   | "nightingale-linegraph-track"

@@ -382,16 +382,6 @@
     "@nightingale-elements/nightingale-new-core" "^5.6.0"
     lodash-es "4.17.11"
 
-"@nightingale-elements/nightingale-interpro-track@5.6.0":
-  version "5.6.0"
-  resolved "https://registry.yarnpkg.com/@nightingale-elements/nightingale-interpro-track/-/nightingale-interpro-track-5.6.0.tgz#2551c8606136f3f76c45e269b830c1aa34cb3e16"
-  integrity sha512-M+qcARayd5cjQqN8ToUZMHHUzbAgaFwqZHSXV2yfYiUa/P+PwD7xgnUgrQ3VX7GJl7/XGYx0tq08kmpxKw3hQA==
-  dependencies:
-    "@nightingale-elements/nightingale-new-core" "^5.6.0"
-    "@nightingale-elements/nightingale-track" "^5.6.0"
-    d3 "7.9.0"
-    lodash-es "4.17.15"
-
 "@nightingale-elements/nightingale-linegraph-track@5.6.0":
   version "5.6.0"
   resolved "https://registry.yarnpkg.com/@nightingale-elements/nightingale-linegraph-track/-/nightingale-linegraph-track-5.6.0.tgz#a492e04f7411c37151b2ce5920eefecff9035586"

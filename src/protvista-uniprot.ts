@@ -9,7 +9,6 @@ import NightingaleNavigation from '@nightingale-elements/nightingale-navigation'
 import NightingaleSequence from '@nightingale-elements/nightingale-sequence';
 import NightingaleColoredSequence from '@nightingale-elements/nightingale-colored-sequence';
 import NightingaleTrackCanvas from '@nightingale-elements/nightingale-track-canvas';
-import NightingaleInterproTrack from '@nightingale-elements/nightingale-interpro-track';
 import NightingaleVariation from '@nightingale-elements/nightingale-variation';
 import NightingaleLinegraphTrack from '@nightingale-elements/nightingale-linegraph-track';
 import NightingaleSequenceHeatmap from '@nightingale-elements/nightingale-sequence-heatmap';
@@ -229,7 +228,6 @@ class ProtvistaUniprot extends LitElement {
     loadComponent('nightingale-navigation', NightingaleNavigation);
     loadComponent('nightingale-track-canvas', NightingaleTrackCanvas);
     loadComponent('nightingale-colored-sequence', NightingaleColoredSequence);
-    loadComponent('nightingale-interpro-track', NightingaleInterproTrack);
     loadComponent('nightingale-sequence', NightingaleSequence);
     loadComponent('nightingale-variation', NightingaleVariation);
     loadComponent('nightingale-linegraph-track', NightingaleLinegraphTrack);
@@ -1033,21 +1031,6 @@ class ProtvistaUniprot extends LitElement {
             use-ctrl-to-zoom
           >
           </nightingale-track-canvas>
-        `;
-      case 'nightingale-interpro-track':
-        return html`
-          <nightingale-interpro-track
-            length="${this.sequence?.length}"
-            height="40"
-            color="${color}"
-            shape="${shape}"
-            display-start="${this.displayCoordinates?.start}"
-            display-end="${this.displayCoordinates?.end}"
-            id="track-${id}"
-            highlight-event="onclick"
-            use-ctrl-to-zoom
-          >
-          </nightingale-interpro-track>
         `;
       case 'nightingale-variation':
         return html`

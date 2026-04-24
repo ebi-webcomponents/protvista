@@ -841,14 +841,14 @@ describe('normalizeConfig — component resolution', () => {
         groups: [
           {
             id: 'C',
-            component: 'nightingale-interpro-track',
+            component: 'nightingale-linegraph-track',
             tracks: [track({ id: 't' })],
           },
         ],
       })
     );
     expect(out.groups[0].tracks[0].component).toBe(
-      'nightingale-interpro-track'
+      'nightingale-linegraph-track'
     );
   });
 
@@ -936,7 +936,7 @@ describe('normalizeConfig — group component inference', () => {
         groups: [
           {
             id: 'C',
-            component: 'nightingale-interpro-track',
+            component: 'nightingale-linegraph-track',
             tracks: [
               track({ id: 't1', kind: 'features' }),
               track({ id: 't2', kind: 'variants' }),
@@ -946,7 +946,7 @@ describe('normalizeConfig — group component inference', () => {
       }),
       { registry }
     );
-    expect(out.groups[0].component).toBe('nightingale-interpro-track');
+    expect(out.groups[0].component).toBe('nightingale-linegraph-track');
   });
 
   it('picks a default component for a zero-track group', () => {

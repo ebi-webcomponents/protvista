@@ -111,7 +111,7 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
   [
     'features-interpro',
     {
-      component: 'nightingale-interpro-track',
+      component: 'nightingale-track-canvas',
       adapter: 'interpro-entries-json',
     },
   ],

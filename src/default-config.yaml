@@ -205,20 +205,18 @@ groups:
 
       # InterPro representative domains — different endpoint and
       # adapter from the UniProt /features/ stream, expressed as a
-      # different semantic kind.
+      # different semantic kind. The InterPro-specific flattening
+      # (`locations[].representative` → synthetic features) happens
+      # in the adapter; the features themselves render through the
+      # standard `nightingale-track-canvas` component.
       #
       # Id is a display-style string (with spaces) for parity with the
       # pre-migration config — `load-data.ts` uses the id as part of
       # a data-map key, so preserving it byte-for-byte is the safest
-      # migration. `component` is pinned to `nightingale-track-canvas`
-      # because the legacy config rendered this track through the
-      # generic canvas, not the kind's canonical `nightingale-interpro-
-      # track` component. The interpro-specific flattening happens in
-      # the adapter, not the component.
+      # migration.
       - id: 'InterPro representative domain'
         label: InterPro Representative Domain
         kind: features-interpro
-        component: nightingale-track-canvas
         data: interproDomains
         description: InterPro representative domains
         helpPage: InterPro_rep_domain

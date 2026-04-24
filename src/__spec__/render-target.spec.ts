@@ -52,9 +52,6 @@ vi.mock('@nightingale-elements/nightingale-colored-sequence', () => ({
 vi.mock('@nightingale-elements/nightingale-track-canvas', () => ({
   default: class extends HTMLElement {},
 }));
-vi.mock('@nightingale-elements/nightingale-interpro-track', () => ({
-  default: class extends HTMLElement {},
-}));
 vi.mock('@nightingale-elements/nightingale-variation', () => ({
   default: class extends HTMLElement {},
 }));
@@ -128,7 +125,6 @@ function buildInstance(overrides: Partial<Record<string, unknown>> = {}) {
 
 const COMPONENT_NAMES: KnownComponentName[] = [
   'nightingale-track-canvas',
-  'nightingale-interpro-track',
   'nightingale-variation',
   'nightingale-linegraph-track',
   'nightingale-colored-sequence',
@@ -352,28 +348,6 @@ const testConfig: NormalizedConfig = {
         },
       ],
     },
-    {
-      id: 'CAT_INTERPRO',
-      label: 'InterPro group',
-      component: 'nightingale-track-canvas',
-      rendering: {},
-      tracks: [
-        {
-          id: 'interpro_track',
-          label: 'InterPro Track',
-          component: 'nightingale-interpro-track',
-          description: 'InterPro tooltip',
-          rendering: {},
-          data: [
-            {
-              from: 'url',
-              url: 'stub://interpro',
-              adapter: 'interpro-entries-json',
-            },
-          ],
-        },
-      ],
-    },
   ],
 };
 
@@ -397,8 +371,6 @@ const testData: Record<string, unknown> = {
   'CAT_COLORED_SEQ-colored_seq_track': [{ values: [0.5, 0.9] }],
   CAT_HEATMAP: [{ values: [] }],
   'CAT_HEATMAP-heatmap_track': [{ values: [] }],
-  CAT_INTERPRO: [{ accession: 'IPR000001', start: 1, end: 100 }],
-  'CAT_INTERPRO-interpro_track': [{ accession: 'IPR000001', start: 1, end: 100 }],
 };
 
 describe('full render — shell + per-group DOM with frozen fixtures', () => {

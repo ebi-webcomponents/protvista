@@ -53,9 +53,6 @@ vi.mock('@nightingale-elements/nightingale-colored-sequence', () => ({
 vi.mock('@nightingale-elements/nightingale-track-canvas', () => ({
   default: class extends HTMLElement {},
 }));
-vi.mock('@nightingale-elements/nightingale-interpro-track', () => ({
-  default: class extends HTMLElement {},
-}));
 vi.mock('@nightingale-elements/nightingale-variation', () => ({
   default: class extends HTMLElement {},
 }));
