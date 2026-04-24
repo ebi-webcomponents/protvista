@@ -2,22 +2,22 @@
  * Tooltip resolver — converts a `TooltipSpec` plus an item into an HTML
  * string that Nightingale will read off `feature.tooltipContent` on hover.
  *
- * Three branches:
+ * Two branches:
  *
  *   - `kind: 'fields'`   — deterministic HTML synthesis from a field list.
  *                         Each `FieldSpec` becomes `<h5>label</h5>` followed
  *                         by a plain `<p>`-wrapped escape of the value at
- *                         `path`. No per-field render hooks — consumers
- *                         that need custom rendering reach for
- *                         `tooltipOverrides[kind]` with `kind: 'custom'`.
+ *                         `path`.
  *   - `kind: 'markdown'` — Markdoc parse → transform → render. The item is
  *                         flattened into the Markdoc variable scope so
  *                         authors reference fields as `{% $fieldName %}`.
  *                         Plain Markdoc only; no domain-specific tags.
- *   - `kind: 'custom'`   — verbatim call to the render function. The
- *                         programmatic escape hatch — no safety railings,
- *                         authors get full DOM access via their own Lit /
- *                         hand-rolled output.
+ *
+ * There is no `kind: 'custom'` branch and no programmatic per-kind
+ * override surface. Consumers who need rich / interactive / stateful
+ * tooltips listen for the Nightingale `change` event, mount their
+ * own UI, and suppress the library's built-in popover with the
+ * `notooltip` attribute on the element.
  *
  * The `kind: markdown` branch runs Markdoc's `renderers.html`, which
  * HTML-escapes every string node by design. `renderNode` below is a
@@ -117,9 +117,10 @@ const markdocConfig = {
 
 /**
  * Render a `FieldSpec` value as a plain `<p>`-wrapped HTML-escape.
- * Rich, consumer-specific rendering goes through the per-kind
- * `tooltipOverrides[kind]` escape hatch with `kind: 'custom'` rather
- * than per-field hooks inside a `kind: 'fields'` spec.
+ * Rich, consumer-specific rendering goes through the event-listener
+ * pattern (listen for the Nightingale `change` event, mount your own
+ * UI, set `notooltip` on the element) rather than per-field hooks
+ * inside a `kind: 'fields'` spec.
  */
 function renderFieldValue(value: unknown): string {
   if (value == null || value === '') return '';
@@ -202,12 +203,11 @@ function renderAutoFallback(item: unknown): string {
  * Render a tooltip HTML string for a single item.
  *
  * When `spec` is `undefined` (e.g. a track with no configured
- * `dataTooltip`, no per-kind default, and no `tooltipOverrides` entry)
- * the resolver falls back to an auto-synthesized spec drawn from common
- * feature-shaped fields — see `renderAutoFallback`. If the item has
- * none of those fields the result is still `''`. Callers attach the
- * returned string to `feature.tooltipContent`; Nightingale reads it on
- * hover.
+ * `dataTooltip` and no per-kind default) the resolver falls back to
+ * an auto-synthesized spec drawn from common feature-shaped fields —
+ * see `renderAutoFallback`. If the item has none of those fields the
+ * result is still `''`. Callers attach the returned string to
+ * `feature.tooltipContent`; Nightingale reads it on hover.
  */
 export function resolveTooltip(
   item: unknown,
@@ -220,8 +220,6 @@ export function resolveTooltip(
       return renderFieldsSpec(item, spec.fields);
     case 'markdown':
       return renderMarkdownSpec(item, spec.template, spec.variables, ctx);
-    case 'custom':
-      return spec.render(item, ctx);
     default: {
       const _exhaustive: never = spec;
       return String(_exhaustive);

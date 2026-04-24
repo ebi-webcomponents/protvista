@@ -1,6 +1,6 @@
 /**
- * Smoke coverage for `resolveTooltip`. Each branch (`fields`, `markdown`,
- * `custom`) gets a representative input.
+ * Smoke coverage for `resolveTooltip`. Each branch (`fields`,
+ * `markdown`) gets a representative input.
  */
 import { describe, it, expect } from 'vitest';
 import { resolveTooltip } from '../resolve';
@@ -72,37 +72,6 @@ describe('resolveTooltip — markdown branch', () => {
     expect(out).toContain('G12V');
   });
 
-});
-
-describe('resolveTooltip — custom branch', () => {
-  it('delegates to the author-supplied render fn', () => {
-    const out = resolveTooltip(
-      { name: 'APP' },
-      {
-        kind: 'custom',
-        render: (item) =>
-          `<i>${(item as { name: string }).name}</i>`,
-      },
-      ctx
-    );
-    expect(out).toBe('<i>APP</i>');
-  });
-
-  it('exposes the full TooltipContext to the render fn', () => {
-    const seen: TooltipContext[] = [];
-    resolveTooltip(
-      {},
-      {
-        kind: 'custom',
-        render: (_item, received) => {
-          seen.push(received);
-          return '';
-        },
-      },
-      ctx
-    );
-    expect(seen).toEqual([ctx]);
-  });
 });
 
 describe('resolveTooltip — no spec (auto-fallback)', () => {
@@ -251,22 +220,3 @@ describe('resolveTooltip — markdown renderer quirks', () => {
   });
 });
 
-// -----------------------------------------------------------------------------
-// Branch: custom — surface contract
-// -----------------------------------------------------------------------------
-
-describe('resolveTooltip — custom branch contract', () => {
-  it('returns the render fn output verbatim (no wrapping, no escaping)', () => {
-    const out = resolveTooltip(
-      {},
-      {
-        kind: 'custom',
-        render: () => '<!-- raw --><script>ok</script>',
-      },
-      ctx
-    );
-    // Authors opt into `custom` for full control — the resolver MUST
-    // NOT silently escape or wrap their output.
-    expect(out).toBe('<!-- raw --><script>ok</script>');
-  });
-});

@@ -57,7 +57,7 @@ issues:
     labels: ['next']
     body: |
       **Context**
-      When a track has no `kind`, no `dataTooltip`, and no `tooltipOverrides` entry, the resolver synthesizes a minimal `fields` spec from the common feature-shaped record (`type`, `description`, `start`/`begin`, `end`) — see `src/tooltips/resolve.ts`. This is a reasonable floor, but it throws away a lot of information that adapters actually produce into the payload: scores, cross-references, sequence context, consequence types (for variants), AlphaMissense pathogenicity bands, and so on. Authors who haven't yet written a custom `dataTooltip` see a visibly impoverished tooltip compared to the old hard-coded ones, even when the adapter has clearly populated richer fields.
+      When a track has no `kind` and no `dataTooltip`, the resolver synthesizes a minimal `fields` spec from the common feature-shaped record (`type`, `description`, `start`/`begin`, `end`) — see `src/tooltips/resolve.ts`. This is a reasonable floor, but it throws away a lot of information that adapters actually produce into the payload: scores, cross-references, sequence context, consequence types (for variants), AlphaMissense pathogenicity bands, and so on. Authors who haven't yet written a custom `dataTooltip` see a visibly impoverished tooltip compared to the old hard-coded ones, even when the adapter has clearly populated richer fields.
 
       Goal: make the default tooltip pull more from what's already on the payload (including fields emitted by `calculate` transform steps) so that an out-of-the-box config produces a useful tooltip without the author writing one.
 
@@ -378,18 +378,17 @@ issues:
 
       **Scope:**
       * New section in `specs/config-approach.md` titled something like "React host integration" (placement: after the "Intent" section, before "Security and trust model"). Contents:
-        - When to use the built-in tooltip popover vs. a React-owned overlay (one paragraph).
-        - The `notooltip` attribute — what it does, when to set it, why a React host usually wants it. Note that `notooltip` does not suppress `feature.tooltipContent` resolution; it only disables the built-in popover's DOM mount.
+        - A preamble making the library-vs-consumer split explicit: declarative tooltips (`kind: fields` / `kind: markdown` in YAML, rendered by the library's built-in Floating-UI popover) OR consumer-owned rich tooltips (event listener + host-rendered overlay, with `notooltip` set on the element). There is no in-between — the library does not ship a programmatic per-kind override registry.
+        - The `notooltip` attribute — what it does, when to set it, why a React host always wants it. Note that `notooltip` does not suppress `feature.tooltipContent` resolution; it only disables the built-in popover's DOM mount, so a consumer can still read `detail.feature.tooltipContent` off the event if it wants the pre-rendered declarative string.
         - The event-listening pattern:
           - Attach a listener for the `change` event on the `<protvista-uniprot>` element.
           - Inspect `detail.eventType` — `click` opens a tooltip, `mouseover`/`mouseout`/`reset` drive your own hover and dismissal logic.
-          - Read `detail.feature.tooltipContent` (an HTML string) and `detail.coords` (an `[x, y]` tuple in page coordinates).
-          - Render your overlay into a React portal or Floating-UI-positioned div at `[x, y]`.
+          - Read `detail.feature` (the full adapter-output item, including any `tooltipContent` the library pre-computed) and `detail.coords` (an `[x, y]` tuple in page coordinates).
+          - Render your React overlay into a portal or Floating-UI-positioned div at `[x, y]`. Host owns the JSX, the lifecycle, and the styling.
           - Hide the overlay on `undefined` / `reset` / subsequent `click` events (the dismissal set that uniprot-website uses).
         - A worked minimal React example (no dependencies beyond React itself + Floating UI, roughly 30 lines). The uniprot-website `FeatureViewer.tsx` is the real reference but has a lot of ambient app concerns; a stripped-down example is more digestible for a new adopter.
-        - The `element.tooltips[kind] = { kind: 'custom', render: (item, ctx) => string }` escape hatch — how to use `renderToStaticMarkup` (from `react-dom/server`) to produce the `feature.tooltipContent` HTML string from a React component. Note the limitation: the resulting HTML is static; React event handlers, hooks, and portals do not survive because the overlay ultimately renders via `innerHTML`.
-      * README cross-link: the existing API-section entry for `tooltips` and `notooltip` gains a "See [React host integration](…) for the consumer-side pattern." pointer.
-      * JSDoc update on the `tooltips` and `notooltip` properties in `src/protvista-uniprot.ts`: a one-line link to the new spec section, so IDE tooltip-on-hover points the right way.
+      * README cross-link: the existing API-section entry for `notooltip` gains a "See [React host integration](…) for the consumer-side pattern." pointer.
+      * JSDoc update on the `notooltip` property in `src/protvista-uniprot.ts`: a one-line link to the new spec section, so IDE tooltip-on-hover points the right way.
       * `docs/react-integration.md`: optional second home for the same content, closer to `docs/data-tooltip.md`. Decide between "single source in the spec" vs. "tutorial-flavoured copy in `docs/` and normative contract in the spec" when drafting.
 
       **Notes:**

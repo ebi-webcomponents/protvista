@@ -3,8 +3,8 @@
  *
  * The library ships only small, declarative defaults (type / name /
  * description / position). Rich UniProt-specific rendering is out of
- * scope — consumers that want it register their own specs via the
- * programmatic `tooltipOverrides[kind]` escape hatch or via
+ * scope — consumers that want it listen for the Nightingale `change`
+ * event and mount their own UI, or override per-track via
  * `dataTooltip:` in YAML.
  *
  * These tests pin the exact output so authors and integrators can see

@@ -33,11 +33,7 @@ import type { NormalizedConfig } from './schema/normalize';
 import type { TransformedInterPro } from './adapters/types/interpro';
 import { resolveTooltip } from './tooltips/resolve';
 import { tooltipDefaults } from './tooltips/defaults';
-import type {
-  TooltipContext,
-  TooltipDefaultsRegistry,
-  TooltipSpec,
-} from './tooltips/types';
+import type { TooltipContext, TooltipSpec } from './tooltips/types';
 
 /**
  * Minimal shape the loader needs from an adapter: a function of the raw
@@ -83,18 +79,19 @@ type LoadResult = {
  * Consulted after the adapter has produced its output. Picks a spec in
  * this precedence order (highest wins):
  *
- *   1. `tooltipOverrides[track.kind]` — programmatic escape hatch on
- *                                        the `<protvista-uniprot>`
- *                                        element. The only authoring
- *                                        surface that admits a
- *                                        `custom` JS render function.
- *   2. `track.dataTooltip`            — YAML / config author override
- *   3. `tooltipDefaults[track.kind]`  — built-in per-kind default
- *   4. Auto-fallback: `renderAutoFallback` synthesizes a fields spec
+ *   1. `track.dataTooltip`            — YAML / config author override
+ *   2. `tooltipDefaults[track.kind]`  — built-in per-kind default
+ *   3. Auto-fallback: `renderAutoFallback` synthesizes a fields spec
  *                     from common feature-shaped fields
  *                     ({ type, description, start | begin, end }) so
  *                     that tracks with no configured spec still get a
  *                     sensible tooltip out of the box.
+ *
+ * Consumers who need rich / interactive / stateful tooltips bypass
+ * this pipeline entirely: listen for the Nightingale `change` event
+ * on the element, mount their own UI with the event's `detail.feature`
+ * as input, and set the `notooltip` attribute on the element to
+ * suppress the library's built-in popover.
  *
  * The resolver's output is the canonical source of `tooltipContent` —
  * adapters produce data, tooltips come from config and defaults.
@@ -177,7 +174,6 @@ export async function loadProtvistaData(
   config: NormalizedConfig,
   fetchOne: FetchOne,
   adapters: AdapterMap,
-  tooltipOverrides: TooltipDefaultsRegistry = {},
   customTrackData: CustomTrackData = {}
 ): Promise<LoadResult> {
   // Collect unique URL templates across all tracks. Dedup is a documented
@@ -241,9 +237,7 @@ export async function loadProtvistaData(
               : transformedData;
           if (filteredData == null) return;
           const spec: TooltipSpec | undefined =
-            (kind ? tooltipOverrides[kind] : undefined) ??
-            dataTooltip ??
-            (kind ? tooltipDefaults[kind] : undefined);
+            dataTooltip ?? (kind ? tooltipDefaults[kind] : undefined);
           const annotated = applyTooltipResolver(filteredData, spec, {
             accession,
             trackId,
@@ -302,16 +296,14 @@ export async function loadProtvistaData(
           return;
         }
 
-        // 3. Resolve per-item tooltips. Programmatic override wins,
-        //    then track-level `dataTooltip`, then the per-kind
-        //    built-in default, then an auto-fallback synthesized from
-        //    common feature-shaped fields. Graph tracks (linegraph,
-        //    colored-sequence, heatmap) have no per-item hover, so
-        //    the resolver returns `''` and no field is written.
+        // 3. Resolve per-item tooltips. Track-level `dataTooltip`
+        //    wins, then the per-kind built-in default, then an
+        //    auto-fallback synthesized from common feature-shaped
+        //    fields. Graph tracks (linegraph, colored-sequence,
+        //    heatmap) have no per-item hover, so the resolver returns
+        //    `''` and no field is written.
         const spec: TooltipSpec | undefined =
-          (kind ? tooltipOverrides[kind] : undefined) ??
-          dataTooltip ??
-          (kind ? tooltipDefaults[kind] : undefined);
+          dataTooltip ?? (kind ? tooltipDefaults[kind] : undefined);
         const annotated = applyTooltipResolver(filteredData, spec, {
           accession,
           trackId,

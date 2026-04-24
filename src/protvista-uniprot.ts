@@ -37,7 +37,6 @@ import ProtvistaUniprotStructure from './protvista-uniprot-structure';
 
 import { loadComponent } from './utils';
 import { loadProtvistaData, type CustomTrackData } from './load-data';
-import type { TooltipDefaultsRegistry } from './tooltips/types';
 import {
   installClickTooltip,
   type TooltipController,
@@ -129,23 +128,6 @@ class ProtvistaUniprot extends LitElement {
    */
   private configSrc?: string;
   /**
-   * Programmatic tooltip override registry. Keys are semantic kinds;
-   * values are `TooltipSpec`s — the only authoring surface that
-   * accepts a `kind: 'custom'` JS render function (YAML-authored
-   * `dataTooltip` is restricted to the declarative `fields` /
-   * `markdown` forms).
-   *
-   * Precedence (highest wins) applied by `loadProtvistaData`:
-   *   1. `tooltips[track.kind]`        — this registry
-   *   2. `track.dataTooltip`           — YAML / config author override
-   *   3. `tooltipDefaults[track.kind]` — built-in per-kind default
-   *
-   * Analogous to `adapters`: JS-only, not part of the JSON/YAML
-   * config surface.
-   */
-  private tooltips: TooltipDefaultsRegistry = {};
-
-  /**
    * Data injected via `setTrackData()` for tracks whose first data
    * descriptor is `from: custom`. Keyed by `${groupId}-${trackId}`;
    * `loadProtvistaData` reads this map and feeds values directly into
@@ -203,7 +185,6 @@ class ProtvistaUniprot extends LitElement {
       viewerConfig: { type: Object },
       // HTML attribute form is kebab-case: `config-src="./my-config.yaml"`.
       configSrc: { type: String, attribute: 'config-src', reflect: true },
-      tooltips: { type: Object },
       notooltip: { type: Boolean, reflect: true },
       nostructure: { type: Boolean, reflect: true },
     };
@@ -281,7 +262,6 @@ class ProtvistaUniprot extends LitElement {
         }
       },
       adapters,
-      this.tooltips,
       this.customTrackData
     );
 

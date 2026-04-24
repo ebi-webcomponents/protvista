@@ -220,12 +220,10 @@ export function installClickTooltip(
 
   const show = (ref: ReferenceElement, html: string) => {
     // `innerHTML` is intentional: `feature.tooltipContent` is the
-    // already-rendered HTML string produced by `tooltips/resolve.ts`
-    // (or by a `kind: 'custom'` render function the integrator owns).
-    // Escaping is the resolver's responsibility — the `fields` and
-    // `markdown` branches route every dynamic value through
-    // `escapeHtml` / `sanitizeUrl` before composing the string, and
-    // the `custom` branch is a documented escape-hatch surface.
+    // already-rendered HTML string produced by `tooltips/resolve.ts`.
+    // Escaping is the resolver's responsibility — both the `fields`
+    // and `markdown` branches route every dynamic value through
+    // `escapeHtml` / `sanitizeUrl` before composing the string.
     // Treating this as untrusted input here would defeat the
     // declarative formatting authors rely on.
     //

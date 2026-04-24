@@ -12,19 +12,22 @@
  *
  *   1. `track.dataTooltip` present → its spec wins over any per-kind
  *      default.
- *   2. Neither `dataTooltip` nor an override present → the auto-fallback
- *      synthesizes a fields spec from common feature-shaped fields.
- *      (The intermediate `tooltipDefaults[kind]` step has its own unit
- *      coverage in `defaults.spec.ts`.)
- *   3. Variation-shaped adapter output (`{ sequence, variants }`) has the
- *      resolver applied to each item in `variants`, not to the wrapper.
- *   4. The `TooltipContext` passed to the resolver carries the accession,
- *      track id, and kind verbatim.
- *   5. `tooltipOverrides[kind]` (the programmatic escape hatch) is looked
- *      up by kind: wins when a kind-matching entry is registered, falls
- *      through to `track.dataTooltip` when the registered entries are for
- *      other kinds. This surface is the only one that admits a
- *      `kind: 'custom'` JS render function.
+ *   2. Neither `dataTooltip` nor a per-kind default present → the
+ *      auto-fallback synthesizes a fields spec from common
+ *      feature-shaped fields. (The intermediate `tooltipDefaults[kind]`
+ *      step has its own unit coverage in `defaults.spec.ts`.)
+ *   3. Variation-shaped adapter output (`{ sequence, variants }`) has
+ *      the resolver applied to each item in `variants`, not to the
+ *      wrapper.
+ *   4. The `TooltipContext` passed to the resolver carries the
+ *      accession, track id, and kind verbatim, and is reachable from
+ *      a Markdoc template via `$ctx.accession` / `$ctx.trackId` /
+ *      `$ctx.kind`.
+ *
+ * Rich / interactive / stateful tooltips are NOT the loader's
+ * concern — consumers wire those via the Nightingale `change` event
+ * on the element, with `notooltip` set to suppress the built-in
+ * popover. There is no programmatic per-kind override surface.
  *
  * The config shape is hand-crafted against the `NormalizedConfig` API —
  * the renderer now consumes that directly, no legacy bridge in between.
@@ -105,10 +108,10 @@ describe('tooltip pipeline — loader-driven end-to-end', () => {
   });
 
   it('auto-synthesizes a fields tooltip when no spec is configured and the adapter sets nothing', async () => {
-    // No `kind`, no `dataTooltip`, no `tooltipOverrides` entry, and the
-    // adapter emits plain feature-shaped data without `tooltipContent`.
-    // The auto-fallback should kick in and produce a Type/Description/
-    // Start/End block out of the box.
+    // No `kind`, no `dataTooltip`, and the adapter emits plain
+    // feature-shaped data without `tooltipContent`. The auto-fallback
+    // should kick in and produce a Type/Description/Start/End block
+    // out of the box.
     const adapters: AdapterMap = {
       'uniprot-features-json': async () => [
         { type: 'DOMAIN', description: 'Kinase', start: 10, end: 50 },
@@ -185,78 +188,12 @@ describe('tooltip pipeline — loader-driven end-to-end', () => {
     expect(bundle.variants[1].tooltipContent).toBe('<h5>WT</h5><p>C</p>');
   });
 
-  it('`tooltipOverrides[kind]` is looked up by kind — matching entry wins, non-matching falls through to `dataTooltip`', async () => {
-    const overrideSpec: TooltipSpec = {
-      kind: 'custom',
-      render: (item) =>
-        `<strong>OVR:${(item as { description: string }).description}</strong>`,
-    };
-    const inlineSpec: TooltipSpec = {
-      kind: 'fields',
-      fields: [{ path: 'description', label: 'Inline' }],
-    };
-    const adapters: AdapterMap = {
-      'uniprot-features-json': async () => [
-        { type: 'DOMAIN', description: 'hit' },
-      ],
-    };
-    const config = makeConfig({
-      id: 't',
-      label: 't',
-      component: 'nightingale-track-canvas',
-      rendering: {},
-      kind: 'features',
-      dataTooltip: inlineSpec,
-      data: [
-        {
-          from: 'url',
-          url: 'u',
-          adapter: 'uniprot-features-json',
-        },
-      ],
-    });
-
-    // Matching kind → override wins over `dataTooltip` and any per-kind default.
-    {
-      const { data } = await loadProtvistaData(
-        ACCESSION,
-        config,
-        fetchOne,
-        adapters,
-        { features: overrideSpec }
-      );
-      const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
-      expect(item.tooltipContent).toBe('<strong>OVR:hit</strong>');
-    }
-
-    // Non-matching kind → falls through to `dataTooltip`.
-    {
-      const { data } = await loadProtvistaData(
-        ACCESSION,
-        config,
-        fetchOne,
-        adapters,
-        // Override registry targets a different kind — shouldn't fire here.
-        { variants: { kind: 'fields', fields: [] } }
-      );
-      const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
-      expect(item.tooltipContent).toBe('<h5>Inline</h5><p>hit</p>');
-    }
-  });
-
-  it('threads (accession, trackId, kind) into the `TooltipContext`', async () => {
-    // Plumbed through the `tooltipOverrides` registry — the only
-    // surface that admits a `kind: 'custom'` render function. The
-    // normalised `dataTooltip` slot is typed as `AuthoredTooltipSpec`
-    // (fields / markdown only), by design.
-    const seen: unknown[] = [];
-    const spec: TooltipSpec = {
-      kind: 'custom',
-      render: (_item, ctx) => {
-        seen.push(ctx);
-        return '';
-      },
-    };
+  it('threads (accession, trackId, kind) into the Markdoc `$ctx` scope', async () => {
+    // The `TooltipContext` is exposed to Markdoc templates under the
+    // `$ctx` variable. Authors reach the per-track accession / track
+    // id / kind as `{% $ctx.accession %}` etc. This test pins the
+    // plumbing that gets `ctx` from the loader call site into the
+    // resolver's Markdoc transform scope.
     const adapters: AdapterMap = {
       'uniprot-features-json': async () => [{ type: 'X' }],
     };
@@ -266,6 +203,11 @@ describe('tooltip pipeline — loader-driven end-to-end', () => {
       component: 'nightingale-track-canvas',
       rendering: {},
       kind: 'features-domain',
+      dataTooltip: {
+        kind: 'markdown',
+        template:
+          '{% $ctx.accession %} / {% $ctx.trackId %} / {% $ctx.kind %}',
+      },
       data: [
         {
           from: 'url',
@@ -275,11 +217,17 @@ describe('tooltip pipeline — loader-driven end-to-end', () => {
       ],
     });
 
-    await loadProtvistaData(ACCESSION, config, fetchOne, adapters, {
-      'features-domain': spec,
-    });
-    expect(seen).toEqual([
-      { accession: ACCESSION, trackId: 'my-track', kind: 'features-domain' },
-    ]);
+    const { data } = await loadProtvistaData(
+      ACCESSION,
+      config,
+      fetchOne,
+      adapters
+    );
+    const [item] = data['GROUP-my-track'] as Array<{
+      tooltipContent: string;
+    }>;
+    expect(item.tooltipContent).toContain(ACCESSION);
+    expect(item.tooltipContent).toContain('my-track');
+    expect(item.tooltipContent).toContain('features-domain');
   });
 });

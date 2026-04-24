@@ -5,18 +5,20 @@
  * common to every feature: type, name, description, position. Rich
  * UniProt-specific rendering (cross-references, evidence, disease
  * associations, population frequencies, …) lives in the consumer
- * application — the UniProt website registers React components via the
- * programmatic `tooltipOverrides[kind]` escape hatch, and downstream
- * embedders with other priorities register their own.
+ * application — the UniProt website listens for the Nightingale
+ * `change` event, mounts its own (React, Lit, whatever) UI, and sets
+ * the `notooltip` attribute on the element to suppress the library's
+ * built-in popover. Downstream embedders with other priorities wire
+ * the same way.
  *
- * The split is deliberate. Reproducing UniProt-specific HTML here means
- * every future evidence-source change has to land in two places. Keeping
- * library defaults minimal lets the consumer own the UX without fighting
- * the library.
+ * The split is deliberate. Reproducing UniProt-specific HTML here
+ * means every future evidence-source change has to land in two
+ * places. Keeping library defaults minimal lets the consumer own the
+ * rich UX without fighting the library.
  *
- * A track that wants richer defaults reaches for `dataTooltip:` in YAML
- * (either `kind: fields` with more rows or `kind: markdown` with a
- * template) or registers an override programmatically.
+ * A track that wants richer defaults reaches for `dataTooltip:` in
+ * YAML (either `kind: fields` with more rows or `kind: markdown` with
+ * a template).
  *
  * Graph tracks (`variant-counts`, `rna-editing-counts`, `confidence-score`,
  * `pathogenicity-score`, `pathogenicity-heatmap`) never had per-item

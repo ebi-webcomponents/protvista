@@ -12,37 +12,33 @@
  *                                          is handed to Nightingale
  *
  * `spec` is sourced in this order of precedence inside the resolver:
- *   1. element.tooltips[kind]              (programmatic escape hatch —
- *                                           JS `TooltipSpec` registry on
- *                                           the `<protvista-uniprot>`
- *                                           element; the only surface
- *                                           that accepts `kind: 'custom'`)
- *   2. track.dataTooltip                   (YAML author override)
- *   3. tooltipDefaults[kind]               (per-kind built-in default)
- *   4. () => ''                            (missing — e.g. graph tracks)
+ *   1. track.dataTooltip       (YAML author override)
+ *   2. tooltipDefaults[kind]   (per-kind built-in default)
+ *   3. auto-fallback           (common feature-shaped fields)
+ *
+ * There is no programmatic per-kind override surface on the element.
+ * Consumers who need rich / interactive / stateful tooltips listen for
+ * the Nightingale `change` event and mount their own UI (set the
+ * `notooltip` attribute on the element to suppress the library's
+ * built-in popover). That split — declarative tooltips in library,
+ * rich rendering in consumer — keeps the two concerns cleanly layered.
  */
 
 /**
  * `TooltipSpec` is the discriminated union of authoring surfaces.
  *
- * The three variants intentionally correspond to the three personas called
- * out in the roadmap:
  *   - `fields`   — curator / bioinformatician. Declarative, no syntax.
- *   - `markdown` — mixed author. Markdoc template + typed tags.
- *   - `custom`   — integrator. Full programmatic control.
- */
-export type TooltipSpec = FieldsSpec | MarkdownSpec | CustomSpec;
-
-/**
- * The YAML/JSON-authorable subset of `TooltipSpec`. Excludes `CustomSpec`
- * because a `render` function has no representation in a declarative config
- * file — authors who need `custom` reach for the runtime `tooltipOverrides`
- * escape hatch on the `<protvista-uniprot>` element instead.
+ *   - `markdown` — mixed author. Markdoc template.
  *
- * This is the contract the `dataTooltip` field in the config schema accepts
- * (alongside its string shorthand, which normalises to `MarkdownSpec`).
+ * Both variants are expressible in YAML/JSON, so the runtime union and
+ * the config-authored union are the same shape. `AuthoredTooltipSpec`
+ * aliases `TooltipSpec` for readability at call sites that specifically
+ * mean "what YAML accepts."
  */
-export type AuthoredTooltipSpec = FieldsSpec | MarkdownSpec;
+export type TooltipSpec = FieldsSpec | MarkdownSpec;
+
+/** Alias of `TooltipSpec` — identical shape; named separately for clarity at YAML-author-facing call sites. */
+export type AuthoredTooltipSpec = TooltipSpec;
 
 interface FieldsSpec {
   kind: 'fields';
@@ -52,16 +48,10 @@ interface FieldsSpec {
 
 interface MarkdownSpec {
   kind: 'markdown';
-  /** Markdoc template source. `{% $variable %}` and `{% tag /%}` available. */
+  /** Markdoc template source. `{% $variable %}` available for field interpolation. */
   template: string;
   /** Additional variables merged into the item as Markdoc `variables:`. */
   variables?: Record<string, unknown>;
-}
-
-interface CustomSpec {
-  kind: 'custom';
-  /** Pure function — produces the tooltip HTML for a single item. */
-  render: (item: unknown, ctx: TooltipContext) => string;
 }
 
 /**
@@ -69,9 +59,9 @@ interface CustomSpec {
  *
  * `path` is dot-notation against the item. The value at that path is
  * coerced to a string and HTML-escaped at the leaf — no per-field
- * render hook. Rich, consumer-specific rendering goes through
- * `tooltipOverrides[kind]` with `kind: 'custom'`, which replaces the
- * tooltip for that kind wholesale.
+ * render hook. Rich, consumer-specific rendering goes through the
+ * event-listener pattern (listen for the Nightingale `change` event,
+ * mount your own UI, set the `notooltip` attribute on the element).
  */
 export interface FieldSpec {
   path: string;

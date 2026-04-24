@@ -67,7 +67,6 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       config,
       fetchOne,
       noopAdapters,
-      {},
       customTrackData
     );
 
@@ -131,7 +130,6 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       config,
       fetchOne,
       noopAdapters,
-      {},
       customTrackData
     );
 
@@ -161,7 +159,6 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       config,
       fetchOne,
       noopAdapters,
-      {},
       customTrackData
     );
 
@@ -185,7 +182,6 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       config,
       fetchOne,
       noopAdapters,
-      {},
       {} // no customTrackData
     );
 
@@ -221,7 +217,6 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       config,
       fetchOne,
       noopAdapters,
-      {},
       customTrackData
     );
     const track = data['GROUP-mine'] as Array<{

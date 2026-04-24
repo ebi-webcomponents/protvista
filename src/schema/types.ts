@@ -35,10 +35,11 @@
 /**
  * One row in a `fields`-form tooltip. `path` is a dotted property path
  * against the item (e.g. `association.0.name`). The value at `path` is
- * coerced to string, HTML-escaped, and wrapped in `<p>` at the leaf —
- * no per-field render hook. Rich consumer-specific rendering goes
- * through the programmatic `tooltipOverrides[kind]` escape hatch with
- * `kind: 'custom'`, which replaces the tooltip for that kind wholesale.
+ * coerced to string, HTML-escaped, and wrapped in `<p>` at the leaf.
+ * Rich / interactive / stateful tooltips aren't a config concern —
+ * consumers listen for the Nightingale `change` event, mount their
+ * own UI, and set the `notooltip` attribute on the element to
+ * suppress the library's built-in popover.
  *
  * Shape mirrors `FieldSpec` in `src/tooltips/types.ts`, restated here to
  * keep this file type-only / runtime-free. The two definitions must stay
@@ -74,11 +75,12 @@ interface AuthoredTooltipMarkdownSpec {
 }
 
 /**
- * The YAML/JSON-authorable subset of the runtime `TooltipSpec`. The
- * runtime also admits a `custom` variant (a JS render function); that's
- * unreachable from a config file and is instead supplied via the
- * `<protvista-uniprot>` element's `tooltips` property, which takes a
- * `TooltipSpec` registry keyed by semantic kind.
+ * The YAML/JSON-authorable subset of the runtime `TooltipSpec`.
+ * Identical in shape to `TooltipSpec` itself: the two `kind` variants
+ * (`fields` and `markdown`) are both expressible in YAML, and there
+ * is no programmatic-only variant. Rich / interactive tooltips are
+ * not a config concern — they live in consumer code via the
+ * event-listener pattern.
  */
 export type AuthoredTooltipSpec =
   | AuthoredTooltipFieldsSpec
@@ -320,9 +322,10 @@ export interface TrackConfig {
    *          variables: { siteName: "my-viewer" }
    *
    * When set, overrides the per-kind default in `tooltipDefaults[kind]`.
-   * When omitted, the built-in default is used. The runtime-only
-   * `custom` form (JS render function) is not expressible here — it
-   * reaches the resolver via `viewerConfig.tooltips[kind]`.
+   * When omitted, the built-in default is used. Rich / interactive
+   * tooltips aren't a config concern — listen for the Nightingale
+   * `change` event and mount your own UI (with `notooltip` on the
+   * element to suppress the built-in popover).
    */
   dataTooltip?: string | AuthoredTooltipSpec;
 

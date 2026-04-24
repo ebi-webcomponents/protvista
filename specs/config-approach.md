@@ -319,9 +319,10 @@ interface TrackConfig {
    *         label: Description
    *
    *   // Markdoc template — plain Markdoc syntax with `{% $field %}`
-   *   // variable interpolation. No domain-specific tags: rich
-   *   // consumer-specific rendering goes through the programmatic
-   *   // `tooltipOverrides[kind]` escape hatch with `kind: 'custom'`.
+   *   // variable interpolation. No domain-specific tags; rich /
+   *   // interactive / stateful tooltips are a consumer concern (listen
+   *   // for the Nightingale `change` event, mount your own UI, set
+   *   // `notooltip` on the element to suppress the built-in popover).
    *   dataTooltip:
    *     kind: markdown
    *     template: |
@@ -332,7 +333,7 @@ interface TrackConfig {
    * the semantic `kind` (if any), then to an auto-fallback synthesized
    * from common feature-shaped fields (`type`, `description`,
    * `start | begin`, `end`). Resolution precedence is
-   * `tooltipOverrides[kind] > track.dataTooltip > tooltipDefaults[kind] > auto-fallback`.
+   * `track.dataTooltip > tooltipDefaults[kind] > auto-fallback`.
    * Adapters produce data only; `tooltipContent` on items is always
    * written by the resolver, never by the adapter.
    *
@@ -364,11 +365,12 @@ interface TrackConfig {
 }
 
 /**
- * The YAML/JSON-authorable subset of `TooltipSpec`. Excludes the
- * `custom` branch because a `render` function has no representation
- * in a declarative config file — authors who need `custom` reach for
- * the programmatic escape hatch (`tooltipOverrides[kind] = { kind:
- * "custom", render }`) on the runtime API instead.
+ * The YAML/JSON-authorable subset of `TooltipSpec` — identical in
+ * shape to `TooltipSpec`. Both variants (`fields` and `markdown`)
+ * round-trip through YAML; there is no programmatic-only variant.
+ * Rich / interactive tooltips aren't a config concern — consumers
+ * listen for the Nightingale `change` event, mount their own UI,
+ * and set `notooltip` on the element to suppress the built-in popover.
  */
 type AuthoredTooltipSpec =
   | {
@@ -705,31 +707,17 @@ interface ProtvistaRuntimeAPI {
   // Also available as HTML attribute: <protvista-uniprot config-src="./config.yaml">
 
   /**
-   * Opt-out for per-datapoint tooltips. When present as an HTML
-   * attribute (e.g. `<protvista-uniprot notooltip>`), the popover
-   * display is disabled while the rest of the viewer functions normally.
-   * Useful for embedded contexts where popover positioning or stacking
-   * is problematic.
+   * Opt-out for the library's built-in click popover. When present as
+   * an HTML attribute (e.g. `<protvista-uniprot notooltip>`), the
+   * popover display is disabled while the rest of the viewer functions
+   * normally. Consumers that render their own tooltip UI (React
+   * overlay, custom panel, etc.) listen for the Nightingale `change`
+   * event and pair that with `notooltip` to take full control of the
+   * per-datapoint surface. This event-listener pattern is the
+   * canonical path for rich / interactive / stateful tooltips — the
+   * library does not ship a programmatic per-kind override registry.
    */
   notooltip?: boolean; // HTML attribute only: <protvista-uniprot notooltip>
-
-  /**
-   * Programmatic tooltip overrides keyed by semantic kind.
-   * Values are TooltipSpec objects, including the `kind: "custom"`
-   * form that accepts a render function (not representable in YAML).
-   * Overrides the built-in defaults and any config-level `dataTooltip`
-   * for the matching kind. Useful for integrators who need rich
-   * interactive rendering or access to external data sources.
-   *
-   * Example:
-   *   element.tooltips = {
-   *     "evidence": {
-   *       kind: "custom",
-   *       render: (item) => `<strong>${item.accession}</strong>`
-   *     }
-   *   };
-   */
-  tooltips?: Record<string, TooltipSpec>;
 
   /**
    * Replace the entire viewer configuration at runtime.
@@ -776,8 +764,8 @@ Accessibility is a grant-level commitment (see the OMP) and is baked into the sc
 - **Colour-blind-safe defaults.** The built-in colour themes referenced from `colorScale.theme` — `alphafold-ramp` (pLDDT confidence) and `alphamissense-ramp` (pathogenicity) — are published as accessibility-reviewed palettes. Authors who rely on semantic kinds (`confidence-score`, `pathogenicity-score`) or name a built-in theme get WCAG-compliant colouring for free. Explicit `stops:` escape-hatch gradients remain authorable, but shift the accessibility responsibility to the author and should be used only when no built-in theme fits.
 - **Keyboard-accessible legends.** Colour-scale legends rendered from `ColorScaleConfig` are keyboard-focusable and announce their `label` via `aria-label`. The `label` field on `ColorStop` is the accessible name — authors who register custom themes via `registerTheme()` should supply labels for every stop, not only for legend clarity but for screen-reader output.
 - **Tooltip semantics.** Track- and group-level `description` fields render as plain-text native HTML `title` attributes — no Markdown, no HTML — so screen readers pick them up via the browser's default a11y path. Per-datapoint `dataTooltip` content flows through `@markdoc/markdoc` to produce HTML preserving the Markdown's semantic structure (headings, emphasis, lists) rather than flattening to a styled `<div>`. Field interpolations are HTML-escaped at the boundary so those semantic tags stay intact for screen readers. Per-datapoint tooltips are displayed as click-triggered popovers (not hover-triggered) with `role="tooltip"` and `tabindex="-1"`. Focus moves into the popover on open and is restored to the previously-focused element on close (Escape key, outside click, or scroll). The popover is dismissed by Escape, outside-click, or any document scroll.
-- **Library defaults are minimal.** The built-in `tooltipDefaults` registry ships a small `{ kind: "fields", fields: [...] }` spec per `SemanticKind` that emits a plain `<h5>Label</h5><p>value</p>` stream. Product-specific rich rendering (evidence icons, xref badges, taxonomy lookups) lives in consumer code via the `element.tooltipOverrides[kind]` escape hatch, not in the library.
-- **Sensible out-of-the-box fallback.** When a track has no `kind`, no `dataTooltip`, and no `tooltipOverrides` entry, the resolver synthesizes a `fields` spec from the common feature-shaped record (`type`, `description`, `start | begin`, `end`). Missing fields drop out; an item carrying none of them stays empty. Adapters only produce data — `tooltipContent` is always written by the resolver.
+- **Library defaults are minimal.** The built-in `tooltipDefaults` registry ships a small `{ kind: "fields", fields: [...] }` spec per `SemanticKind` that emits a plain `<h5>Label</h5><p>value</p>` stream. Product-specific rich rendering (evidence icons, xref badges, taxonomy lookups, React overlays, …) lives in consumer code via the Nightingale `change`-event pattern paired with `notooltip` on the element, not in the library.
+- **Sensible out-of-the-box fallback.** When a track has no `kind` and no `dataTooltip`, the resolver synthesizes a `fields` spec from the common feature-shaped record (`type`, `description`, `start | begin`, `end`). Missing fields drop out; an item carrying none of them stays empty. Adapters only produce data — `tooltipContent` is always written by the resolver.
 - **No colour-only encoding.** `RenderingOptions.shape` exists partly so tracks can encode distinctions redundantly (e.g. shape _and_ colour) rather than colour alone. Config authors building custom tracks are encouraged to use shape or label text as a secondary channel alongside colour.
 
 ## Security and trust model
@@ -789,7 +777,7 @@ The viewer runs in the embedder's browsing context and inherits the embedder's C
 - **`from: inline` data** never triggers a fetch and is the most trustworthy form for offline / local-dev use.
 - **`from: custom` data** is injected by the embedder via `setTrackData()`; the trust posture is whatever the embedder applies to its own data.
 - **`extends` resolution** can transitively introduce fetches at config-load time. The default fetcher accepts URLs (`http(s)://…`) and file paths (`/…`, `./…`, `../…`) and enforces a 2 MiB body ceiling; bare names are rejected unless the embedder supplies an `opts.resolver` that maps them to a parsed config. Authors are trusting the contents of whatever URL or file they name in `extends:` — including the `sources` URLs that target will introduce. Adopters who expose `extends:` values to end-users (dashboarding tools, admin UIs) should wrap the loader with their own origin allow-list before handing URLs on.
-- **Tooltip HTML** flows through Markdoc's own safe renderer — the document never reaches a raw `innerHTML` seam. User-interpolated data in `{% $field %}` placeholders is HTML-escaped before entering the Markdoc pipeline, so a malicious adapter payload cannot smuggle `<script>` into a tooltip. Authors registering custom adapters via `registerAdapter()` should nevertheless treat adapter output as the same trust level as the upstream data source. The `custom` branch of `dataTooltip` (the author-supplied render function) is out of this trust envelope by design — output is passed through verbatim, and authors who opt into `custom` take responsibility for their own escaping.
+- **Tooltip HTML** flows through Markdoc's own safe renderer — the document never reaches a raw `innerHTML` seam. User-interpolated data in `{% $field %}` placeholders is HTML-escaped before entering the Markdoc pipeline, so a malicious adapter payload cannot smuggle `<script>` into a tooltip. Authors registering custom adapters via `registerAdapter()` should nevertheless treat adapter output as the same trust level as the upstream data source. Consumers rendering their own tooltip UI via the Nightingale `change`-event pattern (with `notooltip` on the element to suppress the built-in popover) own their escaping in that path — the library's declarative tooltip pipeline is not in play there.
 
 ## Behavior
 
@@ -960,7 +948,7 @@ At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, me
 | `kind` (semantic) value is not in the semantic-kind vocabulary and is not registered                                              | Config validation fails: `"Unknown semantic kind: '<value>' in track <groupId>/<trackId>. Valid values: .... Register custom kinds with registerSemanticKind()."`.                                                                                                                                                                                                                                                                                                                      |
 | A track has no `kind`, no `component`, and the parent group has no `component`                                                    | Config validation fails: `"Track <groupId>/<trackId> has no 'kind' or 'component'. Set a semantic 'kind' (e.g. 'features') or provide 'component' explicitly."`.                                                                                                                                                                                                                                                                                                                        |
 | A `dataTooltip` template references a field that does not exist on the adapter's output                                           | That placeholder renders as an empty string. The viewer does not fail.                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| A `dataTooltip` template contains `<script>` or other dangerous HTML                                                              | For `kind: fields` and `kind: markdown`: all interpolated data from `{% $field %}` placeholders is HTML-escaped before rendering. Scripts and other raw markup are dropped. URL scheme whitelist: only `http:`, `https:`, and `mailto:` are allowed in anchor `href=` attributes; other schemes (e.g. `javascript:`) collapse to empty `href=""`. For `kind: custom`: the render function is a documented escape-hatch surface — the integrator is responsible for producing safe HTML. |
+| A `dataTooltip` template contains `<script>` or other dangerous HTML                                                              | For `kind: fields` and `kind: markdown`: all interpolated data from `{% $field %}` placeholders is HTML-escaped before rendering. Scripts and other raw markup are dropped. URL scheme whitelist: only `http:`, `https:`, and `mailto:` are allowed in anchor `href=` attributes; other schemes (e.g. `javascript:`) collapse to empty `href=""`. Consumer-owned tooltips (`change`-event pattern + `notooltip` on the element) are outside this trust envelope — the consumer is responsible for its own escaping.                                                                                                                                                         |
 | `colorScale.theme` references a name that is not built-in or registered                                                           | Config validation fails: `"Unknown colorScale theme: '<name>'. Registered themes: ..."`.                                                                                                                                                                                                                                                                                                                                                                                                |
 | `colorScale` has neither `theme` nor `stops`                                                                                      | Config validation fails: `"colorScale must specify either 'theme' or 'stops' ..."`.                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `version` is explicitly set to an unsupported value                                                                               | Validation fails: `"Unsupported config version: '<value>'. Supported: '1.0'."`. Omitting `version` is allowed (defaults to "1.0").                                                                                                                                                                                                                                                                                                                                                      |

@@ -22,7 +22,7 @@ tracks:
 
 A declarative list of labelled rows. Each entry renders as `<h5>label</h5><p>value</p>`. Use this when the tooltip is a flat property sheet without prose or conditional content.
 
-`path` is a dotted path against the item (e.g. `association.0.name`). Missing or empty values drop out silently rather than rendering an empty row. The value at `path` is coerced to string, HTML-escaped, and wrapped in `<p>` at the leaf. There is no per-field render hook — for rich consumer-specific rendering (xref badges, evidence icons, taxonomy lookups, …) use the programmatic `element.tooltipOverrides[kind]` escape hatch with `kind: 'custom'`, which replaces the tooltip for that kind wholesale.
+`path` is a dotted path against the item (e.g. `association.0.name`). Missing or empty values drop out silently rather than rendering an empty row. The value at `path` is coerced to string, HTML-escaped, and wrapped in `<p>` at the leaf. There is no per-field render hook — for rich, interactive, or stateful tooltips (xref badges, evidence icons, taxonomy lookups, React components, …), listen for the Nightingale `change` event on the element and mount your own UI, setting the `notooltip` attribute on `<protvista-uniprot>` to suppress the built-in popover.
 
 ```yaml
 tracks:

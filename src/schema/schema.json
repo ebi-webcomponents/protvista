@@ -110,7 +110,7 @@
     },
 
     "DataTooltip": {
-      "description": "Per-item tooltip. Three authoring forms: (a) a bare string — shorthand for a Markdoc template; (b) a fields object — declarative label/value rows; (c) a template object — explicit Markdoc template with optional extra variables. The `custom` form in `TooltipSpec` is not expressible in YAML/JSON — consumers needing a JS render function use the programmatic `viewerConfig.tooltips[kind]` hatch.",
+      "description": "Per-item tooltip. Three authoring forms: (a) a bare string — shorthand for a Markdoc template; (b) a fields object — declarative label/value rows; (c) a template object — explicit Markdoc template with optional extra variables. Rich, interactive, or stateful tooltips are not a config concern — listen for the Nightingale `change` event and mount your own UI, setting `notooltip` on the element to suppress the built-in popover.",
       "oneOf": [
         { "type": "string" },
         { "$ref": "#/$defs/TooltipFieldsSpec" },
@@ -119,7 +119,7 @@
     },
 
     "TooltipFieldsSpec": {
-      "description": "Declarative label/value rows. Each entry becomes `<h5>label</h5>` followed by the HTML-escaped value at `path`. For rich consumer-specific rendering use the programmatic `tooltipOverrides[kind]` hatch with `kind: 'custom'`.",
+      "description": "Declarative label/value rows. Each entry becomes `<h5>label</h5>` followed by the HTML-escaped value at `path`. Rich / interactive / stateful tooltips are not a config concern — consumers listen for the Nightingale `change` event, mount their own UI, and set `notooltip` on the element to suppress the built-in popover.",
       "type": "object",
       "required": ["kind", "fields"],
       "additionalProperties": false,
