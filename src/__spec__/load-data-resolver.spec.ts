@@ -8,17 +8,19 @@
  *
  *   1. `track.dataTooltip` present → its spec wins over any per-kind
  *      default.
- *   2. `track.kind` present, no `dataTooltip` → `tooltipDefaults[kind]`
- *      is consulted.
- *   3. Neither present → the auto-fallback synthesizes a fields spec
- *      from common feature-shaped fields.
- *   4. Variation-shaped adapter output (`{ sequence, variants }`) has the
+ *   2. Neither `dataTooltip` nor an override present → the auto-fallback
+ *      synthesizes a fields spec from common feature-shaped fields.
+ *      (The intermediate `tooltipDefaults[kind]` step has its own unit
+ *      coverage in `src/tooltips/__spec__/defaults.spec.ts`.)
+ *   3. Variation-shaped adapter output (`{ sequence, variants }`) has the
  *      resolver applied to each item in `variants`, not to the wrapper.
- *   5. The `TooltipContext` passed to the resolver carries the accession,
+ *   4. The `TooltipContext` passed to the resolver carries the accession,
  *      track id, and kind verbatim.
- *   6. `tooltipOverrides[kind]` (the programmatic escape hatch) wins over
- *      both `track.dataTooltip` and `tooltipDefaults[kind]`, and is the
- *      only surface that admits a `kind: 'custom'` JS render function.
+ *   5. `tooltipOverrides[kind]` (the programmatic escape hatch) is looked
+ *      up by kind: wins when a kind-matching entry is registered, falls
+ *      through to `track.dataTooltip` when the registered entries are for
+ *      other kinds. This surface is the only one that admits a
+ *      `kind: 'custom'` JS render function.
  *
  * The config shape is hand-crafted against the `NormalizedConfig` API —
  * the renderer now consumes that directly, no legacy bridge in between.
@@ -96,37 +98,6 @@ describe('loadProtvistaData — tooltip resolver wire-in', () => {
     const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, adapters);
     const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
     expect(item.tooltipContent).toBe('<h5>Override</h5><p>x</p>');
-  });
-
-  it('falls back to `tooltipDefaults[kind]` when no `dataTooltip` is set', async () => {
-    // The `features` default is a delegate to the legacy
-    // `featureTooltip` formatter, so exact HTML isn't asserted here —
-    // what matters is that the wire-in fired and produced a non-empty
-    // string.
-    const adapters: AdapterMap = {
-      'uniprot-features-json': async () => [
-        { type: 'DOMAIN', begin: 1, end: 10, description: 'x' },
-      ],
-    };
-    const config = makeConfig({
-      id: 't',
-      label: 't',
-      component: 'nightingale-track-canvas',
-      rendering: {},
-      kind: 'features',
-      data: [
-        {
-          from: 'url',
-          url: 'u',
-          adapter: 'uniprot-features-json',
-        },
-      ],
-    });
-
-    const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, adapters);
-    const [item] = data['GROUP-t'] as Array<{ tooltipContent?: string }>;
-    expect(item.tooltipContent).toBeTypeOf('string');
-    expect(item.tooltipContent!.length).toBeGreaterThan(0);
   });
 
   it('auto-synthesizes a fields tooltip when no spec is configured and the adapter sets nothing', async () => {
@@ -210,7 +181,7 @@ describe('loadProtvistaData — tooltip resolver wire-in', () => {
     expect(bundle.variants[1].tooltipContent).toBe('<h5>WT</h5><p>C</p>');
   });
 
-  it('`tooltipOverrides[kind]` wins over `dataTooltip` and the per-kind default', async () => {
+  it('`tooltipOverrides[kind]` is looked up by kind — matching entry wins, non-matching falls through to `dataTooltip`', async () => {
     const overrideSpec: TooltipSpec = {
       kind: 'custom',
       render: (item) =>
@@ -241,53 +212,32 @@ describe('loadProtvistaData — tooltip resolver wire-in', () => {
       ],
     });
 
-    const { data } = await loadProtvistaData(
-      ACCESSION,
-      config,
-      fetchOne,
-      adapters,
-      { features: overrideSpec }
-    );
-    const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
-    expect(item.tooltipContent).toBe('<strong>OVR:hit</strong>');
-  });
+    // Matching kind → override wins over `dataTooltip` and any per-kind default.
+    {
+      const { data } = await loadProtvistaData(
+        ACCESSION,
+        config,
+        fetchOne,
+        adapters,
+        { features: overrideSpec }
+      );
+      const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
+      expect(item.tooltipContent).toBe('<strong>OVR:hit</strong>');
+    }
 
-  it('falls through to `dataTooltip` when `tooltipOverrides` has no entry for this kind', async () => {
-    const inlineSpec: TooltipSpec = {
-      kind: 'fields',
-      fields: [{ path: 'description', label: 'Inline' }],
-    };
-    const adapters: AdapterMap = {
-      'uniprot-features-json': async () => [
-        { type: 'DOMAIN', description: 'hit' },
-      ],
-    };
-    const config = makeConfig({
-      id: 't',
-      label: 't',
-      component: 'nightingale-track-canvas',
-      rendering: {},
-      kind: 'features',
-      dataTooltip: inlineSpec,
-      data: [
-        {
-          from: 'url',
-          url: 'u',
-          adapter: 'uniprot-features-json',
-        },
-      ],
-    });
-
-    const { data } = await loadProtvistaData(
-      ACCESSION,
-      config,
-      fetchOne,
-      adapters,
-      // Override registry targets a different kind — shouldn't fire here.
-      { variants: { kind: 'fields', fields: [] } }
-    );
-    const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
-    expect(item.tooltipContent).toBe('<h5>Inline</h5><p>hit</p>');
+    // Non-matching kind → falls through to `dataTooltip`.
+    {
+      const { data } = await loadProtvistaData(
+        ACCESSION,
+        config,
+        fetchOne,
+        adapters,
+        // Override registry targets a different kind — shouldn't fire here.
+        { variants: { kind: 'fields', fields: [] } }
+      );
+      const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
+      expect(item.tooltipContent).toBe('<h5>Inline</h5><p>hit</p>');
+    }
   });
 
   it('threads (accession, trackId, kind) into the `TooltipContext`', async () => {
