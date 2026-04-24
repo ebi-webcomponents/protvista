@@ -3,11 +3,11 @@ common:
   project_owner: ebi-webcomponents
   project_number: 3
   fields:
-    Quarter: "Q2 (May–Jul 2026)"
+    Quarter: 'Q2 (May–Jul 2026)'
 
 issues:
-  - title: "Register and ship generic-format adapters (`features-json`, `features-csv`, `features-tsv`, `bed`)"
-    labels: ["next"]
+  - title: 'Register and ship generic-format adapters (`features-json`, `features-csv`, `features-tsv`, `bed`)'
+    labels: ['next']
     body: |
       **Context**
       `features-json`, `features-csv`, `features-tsv`, and `bed` are declared as canonical names in the `KnownAdapterName` union in `src/schema/types.ts`, and the file-extension shorthand in `src/schema/normalize.ts` infers them (`.csv → features-csv`, `.tsv → features-tsv`, `.json → features-json`, `.bed → bed`). But no runtime registration of these adapters exists — `registerBuiltinAdapters()` appears only in doc comments in `src/schema/registry.ts`. As a result, a config that relies on the inference (e.g. `data: "./x.csv"`) infers `adapter: features-csv` and then fails at validate/load time with "Unknown adapter" because no such adapter is registered.
@@ -29,10 +29,10 @@ issues:
       **Notes:**
       The payload shape these adapters produce should match what the resolved semantic-kind adapter consumer expects (feature-shaped records with `type`, `start`/`begin`, `end`, `description`, optional `score`). Validate against the existing nightingale-track-canvas component to confirm tracks render without any per-track glue code from the author.
     fields:
-      Group: "Technical"
+      Group: 'Technical'
 
-  - title: "Emit per-track summary `console.warn` for missing `dataTooltip` field references"
-    labels: ["next"]
+  - title: 'Emit per-track summary `console.warn` for missing `dataTooltip` field references'
+    labels: ['next']
     body: |
       **Context**
       After the first render pass, a single summary `console.warn` lists all missing fields for that track, not per data point. `src/tooltips/resolve.ts` silently substitutes missing fields as empty strings (which is correct behaviour at the per-cell level), but authors get no feedback when a `dataTooltip` template references a field the adapter never produced. This is a common foot-gun when authoring against an unfamiliar data source: the tooltip renders blank cells and the author has no breadcrumbs to the cause.
@@ -51,10 +51,10 @@ issues:
       **Notes:**
       Keep the allocation/accounting path on the hot render path cheap — a per-track `Set<string>` populated during field resolution, flushed once per render pass, should be sufficient. No observable behaviour change for correctly-authored configs.
     fields:
-      Group: "Technical"
+      Group: 'Technical'
 
-  - title: "Improve default `dataTooltip` with richer information from adapted payloads"
-    labels: ["next"]
+  - title: 'Improve default `dataTooltip` with richer information from adapted payloads'
+    labels: ['next']
     body: |
       **Context**
       When a track has no `kind`, no `dataTooltip`, and no `tooltipOverrides` entry, the resolver synthesizes a minimal `fields` spec from the common feature-shaped record (`type`, `description`, `start`/`begin`, `end`) — see `src/tooltips/resolve.ts`. This is a reasonable floor, but it throws away a lot of information that adapters actually produce into the payload: scores, cross-references, sequence context, consequence types (for variants), AlphaMissense pathogenicity bands, and so on. Authors who haven't yet written a custom `dataTooltip` see a visibly impoverished tooltip compared to the old hard-coded ones, even when the adapter has clearly populated richer fields.
@@ -74,10 +74,10 @@ issues:
       **Notes:**
       Keep the fallback compact — this is a safety net, not a replacement for authored tooltips. If the payload has fifteen fields, surface at most ~six; the rest are the author's call to include with an explicit `dataTooltip`. Pick the subset based on which UniProt/AlphaFold/variant adapters actually populate the fields — don't infer from type heuristics alone.
     fields:
-      Group: "Technical"
+      Group: 'Technical'
 
-  - title: "Make `label` a Markdoc string and drop `helpPage` / `labelUrl` from the schema"
-    labels: ["next"]
+  - title: 'Make `label` a Markdoc string and drop `helpPage` / `labelUrl` from the schema'
+    labels: ['next']
     body: |
       **Context**
       Group and track `label` is currently plain text. Rich-label behaviour is bolted on with two sibling fields: `helpPage` (an EBI-internal hook — renders `<span data-article-id="<slug>">…</span>`, which is interpreted by a help-article controller on uniprot.org but is dead markup everywhere else) and `labelUrl` (an external-link template with `{accession}` interpolation, used by the AlphaFold and AlphaMissense tracks). External adopters — the target audience for the config-as-data redesign — get no value from `helpPage`, and `labelUrl` duplicates what a hyperlink inside a label would express more directly.
@@ -103,10 +103,10 @@ issues:
 
       Do not try to support Markdoc block-level content (headings, lists, code blocks) inside labels — labels are a single-line UI element and the author intent for "paragraph of help content" is already served by `description` (the plain-text `title=` tooltip) and `dataTooltip` (the per-datapoint Markdoc popover). Consider restricting the label-level Markdoc surface to inline nodes only (emphasis, strong, code span, link, and registered custom tags); reject block-level constructs with a validator warning.
     fields:
-      Group: "Technical"
+      Group: 'Technical'
 
-  - title: "Add `detailOnly: true` flag on tracks to replace group-level `component:` overrides"
-    labels: ["next"]
+  - title: 'Add `detailOnly: true` flag on tracks to replace group-level `component:` overrides'
+    labels: ['next']
     body: |
       **Context**
       Two groups in the default config — `VARIATION` and `RNA_EDITING` — carry an explicit `component:` override with a multi-line explanatory comment, because their child tracks resolve to different Nightingale components and the aggregate-component inference would otherwise fall back to `nightingale-track-canvas` and break visual parity with the legacy viewer. Example from `src/default-config.yaml`:
@@ -147,10 +147,10 @@ issues:
 
       The cleanup applies to at least two groups in the default config (`VARIATION`, `RNA_EDITING`). Worth a quick audit of the other 13 groups before landing — if any others carry explicit group-level `component:` for the same reason, migrate them in the same commit. `STRUCTURE` and `PROTEOMICS` are plausible candidates; check their default-config entries.
     fields:
-      Group: "Technical"
+      Group: 'Technical'
 
-  - title: "Add a generic `linegraph` semantic kind for bring-your-own-data authors"
-    labels: ["next"]
+  - title: 'Add a generic `linegraph` semantic kind for bring-your-own-data authors'
+    labels: ['next']
     body: |
       **Context**
       Every semantic kind registered today is domain-specific — `features`, `variants`, `variant-counts`, `features-interpro`, `confidence-score`, `pathogenicity-score`, `pathogenicity-heatmap`, `rna-editing`, `rna-editing-counts`, and so on. Each bundles two things: a canonical adapter that understands a specific upstream wire format (the UniProt `/features/` stream, AlphaFold prediction API, AlphaMissense annotations, …), and a canonical component (`nightingale-track-canvas`, `nightingale-variation`, `nightingale-linegraph-track`, …). That design is deliberate and good — UniProt authors write one domain word and get the right behaviour for free, with colour ramps, filters, and tooltips wired up as a bundle.
@@ -183,10 +183,10 @@ issues:
 
       Worth coordinating with issue #1 (generic-format adapters `features-json`/`features-csv`/`features-tsv`/`bed`) on the error-text format so BYOD authors get a consistent error-message vocabulary across the entire generic-kind / generic-format surface.
     fields:
-      Group: "Technical"
+      Group: 'Technical'
 
-  - title: "Replace uniform adapter mocks in `load-data-baseline.spec.ts` with shape-correct per-adapter mocks"
-    labels: ["next"]
+  - title: 'Replace uniform adapter mocks in `load-data-baseline.spec.ts` with shape-correct per-adapter mocks'
+    labels: ['next']
     body: |
       **Context**
       `src/__spec__/load-data-baseline.spec.ts` currently stubs every adapter with the same uniform factory (`makeSimpleAdapter`), which returns one row per entry in `FILTER_TYPES_USED` — 35 `{ _adapter, type }` rows regardless of which adapter is being mocked. The intent was to surface loader wiring (who fires, how many times, which slot fills) without characterising adapter internals. The effect is that the snapshot shows UniProt feature types (`MOTIF`, `CHAIN`, `DOMAIN`, …) appearing under groups whose real adapters would produce entirely different shapes — `ALPHAFOLD_CONFIDENCE` (coloured-sequence string), `ALPHAMISSENSE_PATHOGENICITY` (heatmap / string), `VARIATION` group aggregate (linegraph points), and so on.
@@ -215,10 +215,10 @@ issues:
 
       Double-check the aggregation rule in `load-data.ts` (currently "`groupData[0]` for linegraph / colored-sequence groups, `.flat()` otherwise"). With shape-correct mocks, `data["ALPHAFOLD_CONFIDENCE"]` becomes the string the adapter produced (not an array of feature records), which matches what the real coloured-sequence component consumes.
     fields:
-      Group: "Technical"
+      Group: 'Technical'
 
-  - title: "Add a devcontainer / Dockerised dev environment for Linux-container test runs"
-    labels: ["next"]
+  - title: 'Add a devcontainer / Dockerised dev environment for Linux-container test runs'
+    labels: ['next']
     body: |
       **Context**
       Test runs are currently coupled to the contributor's host platform. Native bindings in `node_modules` (`@rolldown/binding-*`, `@rollup/rollup-*`, `@esbuild/*`, etc.) are resolved at `yarn install` time based on the installer's OS/arch. That works fine for a contributor running tests on their own machine — Mac contributors get Mac bindings, Linux contributors get Linux bindings — but breaks down for three real-world cases:
@@ -252,10 +252,10 @@ issues:
 
       Out of scope: migrating the host-side dev loop to run inside a container by default. This issue is strictly about providing the option, not mandating it.
     fields:
-      Group: "Technical"
+      Group: 'Technical'
 
-  - title: "Namespace CSS class names with a `pv-` prefix to eliminate cross-component collisions"
-    labels: ["next"]
+  - title: 'Namespace CSS class names with a `pv-` prefix to eliminate cross-component collisions'
+    labels: ['next']
     body: |
       **Context**
       `<protvista-uniprot>` renders in light DOM (required because of Mol* — `createRenderRoot()` in `protvista-uniprot.ts` returns `this`). Its stylesheet lives in `document.head` and uses generic class names (`.group`, `.group-label`, `.group__track`, `.track-label`, `.track-content`, `.feature`, `.proforma`, `.mod-link`, `.credits`, `.nav-track-label`, `.aggregate-track-content`). Child components that also render in light DOM — notably `<nightingale-filter>` — ship their own `<style>` blocks with unscoped rules on the same class names, which collide in the document's global selector scope.
@@ -282,10 +282,10 @@ issues:
 
       Optional stretch: audit consumer-facing DOM id patterns at the same time. IDs like `track-${groupId}` are globally unique within one `<protvista-uniprot>` but collide if a page ever mounts multiple viewers. Issue currently scoped to class rename; ID namespacing for multi-instance is a separate concern and should be tracked on its own if/when multi-instance becomes a planned use case.
     fields:
-      Group: "Technical"
+      Group: 'Technical'
 
-  - title: "Generalise URL-template substitution — harvest `data-*` attributes and a config `variables:` block; `accession` becomes an alias for `data-accession`"
-    labels: ["next"]
+  - title: 'Generalise URL-template substitution — harvest `data-*` attributes and a config `variables:` block; `accession` becomes an alias for `data-accession`'
+    labels: ['next']
     body: |
       **Context**
       Today the loader hard-codes a single substitution: `{accession}` in `sources:` URL templates resolves to `this.accession` via `url.replace('{accession}', this.accession)` in `src/load-data.ts`. Anyone wanting to parametrise on species, reference build, user id, dataset id, PDB id, authenticated token, or any other identifier has no hook — there is no way to interpolate anything other than `{accession}` into a URL template.
@@ -325,4 +325,42 @@ issues:
 
       Not in scope for this issue: collapsing the named `accession` attribute into `data-accession` entirely. That was considered and rejected — the backwards-compat and ergonomics cost outweighs the symmetry gain, and the alias approach already gives us uniform substitution semantics (both attributes flow into the same dict, named wins on conflict) without breaking existing integrations. Revisit only if a concrete "multiple first-class identifier types" requirement emerges (e.g. a future `<protvista-uniprot pdb-id="1ABC">` scenario).
     fields:
-      Group: "Technical"
+      Group: 'Technical'
+
+  - title: "Tame Nightingale's click-highlight fill swap on collapsed group aggregate tracks"
+    labels: ['next']
+    body: |
+      **Context**
+      Every `<nightingale-track-canvas>` we render — both the collapsed-group aggregate track and each expanded detail track — is mounted with `highlight-event="onclick"`. That attribute opts the track into Nightingale's built-in click-highlight behaviour: clicking a feature swaps its solid fill for a border-only "selected" state, and broadcasts the highlight range via `<nightingale-manager>` so other mounted components can co-highlight the same region.
+
+      This is longstanding Nightingale behaviour — visible on the currently-shipped production viewer at `https://www.uniprot.org/uniprotkb/P05067/feature-viewer`, and present at every point on the config-approach branch we bisected (from `945ca9f` forward). It is not a regression introduced by any commit on the branch.
+
+      The visual effect is functionally correct but perceptually jarring on the collapsed-group aggregate view specifically. The aggregate flattens every child track into a single dense canvas; when a feature is clicked there, the feature at the group-wide scale loses its fill and shows as a hollow outline. In the expanded detail view the same fill-swap happens, but the user's eye reads it as "that feature is selected now" because the context is clearer; in the aggregate view it reads as "something glitched." The most common visible offender is a `BINDING` feature in the `SITES` group's collapsed aggregate, but any feature on any canvas track can trigger it.
+
+      **Task**
+      Decide how the collapsed aggregate should visualise a click — keep the Nightingale default, suppress it on the aggregate only, or retheme the selected state to retain a fill. Implement the chosen path and regression-test against the live uniprot.org visual as the reference point.
+
+      **Scope:**
+      Three options with different cost/reward profiles; pick one before opening the PR:
+
+      1. **Drop `highlight-event="onclick"` from the aggregate-track render in `getTrack`.** Keep it on the detail-track render. Collapsed clicks then open the tooltip without toggling a selected state, and the feature stays filled. Smallest code change — a single conditional in `src/protvista-uniprot.ts` that threads "is this call rendering an aggregate?" into `getTrack`. Trade-off: cross-track highlight-sync via `<nightingale-manager>` is also disabled for aggregate clicks, so if a click on the aggregate should propagate to the expanded view (not today's UX, but a plausible future one), this path precludes it.
+
+      2. **Retheme the Nightingale selected state via CSS override.** Keep `highlight-event="onclick"` everywhere (preserves manager-driven sync) but target the class/attribute Nightingale writes for the selected feature and restore a fill. Requires inspecting the Nightingale-emitted DOM under DevTools to identify the selector, then adding the override in `src/styles/protvista-styles.ts` under the existing `protvista-uniprot` tag scope. Middle effort. Trade-off: selector is an implementation detail of Nightingale and could break on future upstream upgrades.
+
+      3. **File upstream on Nightingale.** Ask the Nightingale team to expose the selected-state visuals as CSS custom properties (`--nightingale-feature-selected-fill`, `--nightingale-feature-selected-stroke`) so consumers can theme the state without hacking internal selectors. Right answer long-term; timing depends on Nightingale's release cadence. Pair with option 2 as the interim fix while the upstream PR lands.
+
+      Acceptance:
+
+      * The binding-site fill → border-only toggle no longer occurs on the collapsed aggregate view of the `SITES` group (and every other canvas-track group with the same click shape). Verify at `accession=P05067` across all 15 default groups.
+      * Click-triggered tooltips still fire on the aggregate track (the fix must not suppress the tooltip).
+      * Expanded-view click behaviour is unchanged (features still highlight in their own track, tooltips still open, cross-track manager sync continues to work).
+      * A snapshot or DOM test exercising the collapsed-click → feature-element-attributes path so this doesn't silently regress again.
+
+      **Notes:**
+      The bisection summary is worth recording for future maintainers: multiple bisection attempts across the config-approach branch (`945ca9f` through HEAD) all landed on commits that either don't touch runtime code (`20016c6`, `f5dcef2`) or touch unrelated runtime paths (`cd3e295` — tooltip arrow borders only). The bug does not originate on this branch; it is a pre-existing Nightingale behaviour that the branch inherits. A fix here is a *visual quirk repair*, not a regression repair.
+
+      Before touching `highlight-event`, verify what manager-driven highlight-sync is actually used for in production. If no consumer depends on a click-in-aggregate triggering a highlight elsewhere, option 1 (strip the attribute from the aggregate) is clean and forward-compatible with either of the other options if the need emerges later. If cross-track sync from the aggregate is ever a requirement, lean on option 2 + 3.
+
+      Side note: the perceptual asymmetry between the collapsed and expanded views also suggests a broader UX question — whether a click on an aggregate-rendered feature should do anything at all beyond open a tooltip, given the feature "lives" on one of the detail tracks. That's out of scope for this issue but worth a separate design conversation if it comes up again.
+    fields:
+      Group: 'Technical'
