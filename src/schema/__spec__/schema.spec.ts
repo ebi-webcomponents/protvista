@@ -40,11 +40,6 @@ beforeAll(() => {
     allErrors: true,
     strict: true,
     strictRequired: false,
-    // Our FieldPredicate comparators accept `number | string` (Vega-Lite
-    // parity — strings are used for temporal predicates, numbers for
-    // ordinary comparisons). AJV's strict-types check wants this spelled
-    // as a `oneOf` but the JSON Schema spec permits a union type array.
-    allowUnionTypes: true,
   });
   validate = ajv.compile(schema);
 });
@@ -210,58 +205,6 @@ describe('JSON Schema — accepts specs/config-approach.md examples', () => {
     });
   });
 
-  it('Example 4: Vega-Lite transform pipeline on CSV', () => {
-    expectValid({
-      groups: [
-        {
-          id: 'MY_LAB',
-          label: 'Lab predictions',
-          tracks: [
-            {
-              id: 'hotspots',
-              label: 'High-confidence hotspots',
-              kind: 'features',
-              data: {
-                url: './my-hotspots.csv',
-                transform: [
-                  { filter: { field: 'score', gte: 0.8 } },
-                  {
-                    filter: {
-                      field: 'hotspot_type',
-                      oneOf: ['binding', 'catalytic'],
-                    },
-                  },
-                  {
-                    rename: {
-                      desc: 'description',
-                      pos_start: 'start',
-                      pos_end: 'end',
-                    },
-                  },
-                  { calculate: 'datum.end - datum.start', as: 'length' },
-                  { limit: 500 },
-                ],
-              },
-              dataTooltip:
-                '### {description}\n**Score:** `{score}` — length {length}',
-            },
-            {
-              id: 'custom_score',
-              label: 'My score',
-              component: 'nightingale-colored-sequence',
-              data: {
-                from: 'inline',
-                inlineData: [0.1, 0.3, 0.4, 0.8, 0.95],
-                adapter: 'features-json',
-              },
-              rendering: { colorScale: { theme: 'alphafold-ramp' } },
-            },
-          ],
-        },
-      ],
-    });
-  });
-
   it('Example 5: extends one base + one new track', () => {
     expectValid({
       extends: '@ebi/uniprot-default',
@@ -380,34 +323,6 @@ describe('JSON Schema — fine-grained acceptance', () => {
     });
   });
 
-  it('accepts every FieldPredicate comparison operator', () => {
-    const predicates = [
-      { field: 'x', equal: 1 },
-      { field: 'x', lt: 1 },
-      { field: 'x', lte: 1 },
-      { field: 'x', gt: 1 },
-      { field: 'x', gte: 1 },
-      { field: 'x', oneOf: ['a', 'b'] },
-      { field: 'x', range: [0, 1] },
-      { field: 'x', valid: true },
-    ];
-    for (const p of predicates) {
-      expectValid({
-        groups: [
-          {
-            id: 'C',
-            tracks: [
-              {
-                id: 't',
-                kind: 'features',
-                data: { url: './x.csv', transform: [{ filter: p }] },
-              },
-            ],
-          },
-        ],
-      });
-    }
-  });
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -428,29 +343,6 @@ describe('JSON Schema — rejection cases', () => {
         ],
       },
       /inlineData/
-    );
-  });
-
-  it('rejects a FieldPredicate with no comparison operator', () => {
-    expectInvalid(
-      {
-        groups: [
-          {
-            id: 'C',
-            tracks: [
-              {
-                id: 't',
-                kind: 'features',
-                data: {
-                  url: './x.csv',
-                  transform: [{ filter: { field: 'score' } }],
-                },
-              },
-            ],
-          },
-        ],
-      },
-      /anyOf|required/
     );
   });
 
@@ -552,28 +444,6 @@ describe('JSON Schema — rejection cases', () => {
     );
   });
 
-  it('rejects a Transform step with two operation keys', () => {
-    expectInvalid({
-      groups: [
-        {
-          id: 'C',
-          tracks: [
-            {
-              id: 't',
-              kind: 'features',
-              data: {
-                url: './x.csv',
-                transform: [
-                  { filter: 'datum.x > 0', calculate: 'datum.x', as: 'y' },
-                ],
-              },
-            },
-          ],
-        },
-      ],
-    });
-  });
-
   it('rejects a colorScale with neither theme nor stops', () => {
     expectInvalid(
       {
@@ -631,26 +501,6 @@ describe('JSON Schema — rejection cases', () => {
       },
       /additionalProperties|colour/
     );
-  });
-
-  it('rejects a Transform step with an unknown operation key', () => {
-    expectInvalid({
-      groups: [
-        {
-          id: 'C',
-          tracks: [
-            {
-              id: 't',
-              kind: 'features',
-              data: {
-                url: './x.csv',
-                transform: [{ aggregateBy: { field: 'type' } }],
-              },
-            },
-          ],
-        },
-      ],
-    });
   });
 
   it('rejects a FilterUI value other than "nightingale-filter"', () => {

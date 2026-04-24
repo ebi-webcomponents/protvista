@@ -16,8 +16,6 @@ export type {
   GroupConfig,
   TrackConfig,
   DataSourceDescriptor,
-  Transform,
-  FieldPredicate,
   RenderingOptions,
   ColorScaleConfig,
   ColorStop,
@@ -30,11 +28,10 @@ export type {
   ProtvistaRuntimeAPI,
   SemanticKindDefinition,
   AdapterFunction,
-  TransformFunction,
 } from './types';
 
 // ── Registry ─────────────────────────────────────────────────
-export { createRegistry, BUILTIN_TRANSFORM_OPERATORS } from './registry';
+export { createRegistry } from './registry';
 export type { Registry } from './registry';
 
 // ── Validator ────────────────────────────────────────────────

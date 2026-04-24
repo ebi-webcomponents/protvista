@@ -61,7 +61,6 @@ import type {
   RenderingOptions,
   ComponentName,
   AdapterName,
-  Transform,
   AuthoredTooltipSpec,
 } from './types';
 import type { Registry } from './registry';
@@ -148,7 +147,6 @@ export interface NormalizedDataSource {
   url?: string | string[];
   inlineData?: unknown;
   adapter?: AdapterName;
-  transform?: Transform[];
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -495,7 +493,6 @@ function expandDescriptor(
   if (resolvedUrl !== undefined) out.url = resolvedUrl;
   if (d.inlineData !== undefined) out.inlineData = d.inlineData;
   if (adapter !== undefined) out.adapter = adapter;
-  if (d.transform !== undefined) out.transform = d.transform;
   return out;
 }
 

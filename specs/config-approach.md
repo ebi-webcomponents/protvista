@@ -18,7 +18,7 @@ The target workflow — an external lab inheriting the full EBI UniProt viewer a
 # Inherit the published EBI UniProt config, then add one custom track.
 # Nothing else needs to be restated — `sources`, `defaults`, all 15 EBI
 # groups, every built-in colour theme: all pulled in from the base.
-extends: "https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml"
+extends: 'https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml'
 
 groups:
   - id: MY_LAB
@@ -34,19 +34,19 @@ A bench scientist writes only domain-level concepts (`kind: features`, `./hotspo
 ## Non-Goals
 
 - Defining the payload/data schemas for individual track types or adapters (those will be specified separately per track type; this schema only references them by name).
-- Implementing the runtime config loader, validator, or UI (this spec defines the *contract*; implementation is a separate task).
+- Implementing the runtime config loader, validator, or UI (this spec defines the _contract_; implementation is a separate task).
 - Redesigning the underlying Nightingale component API. The resolver translates this schema onto the existing Nightingale attribute surface; changes to Nightingale itself are out of scope.
 - Supporting components not currently implemented in Nightingale (the schema is extensible, but v1 covers the six existing `ComponentName` values).
 - Deep integration with SVS or any equivalent cross-viewer protocol during the grant. Alignment with SVS is a long-term goal outside the grant. Where individual ideas from SVS fit naturally into ProtVista's low-friction model (e.g. the `kind` discriminator used below), they may be adopted à la carte without committing to the full protocol — see [Relationship to 3D viewers](#relationship-to-3d-viewers-molstar--svs).
 - Handling viewer-to-viewer synchronisation, whether ProtVista↔ProtVista or ProtVista↔3D. The existing `nightingale-structure` SIFTS path continues to provide 1D↔3D coordination for standalone deployments and is unchanged by this spec.
-- Implementing the transform operators or the Vega-style expression evaluator. The schema defines the *shape* of `transform` steps and field predicates; the `filter` / `calculate` / `rename` / `pick` / `limit` execution, and the parser for Vega expression strings, live in runtime code outside this spec.
-- Specifying runtime UI state. Track reordering, individual track collapse/toggle, and other user-driven UI interactions are orthogonal to the config schema — the config describes the *initial mount*; any subsequent UI state lives in the viewer component, not in the config.
+- A declarative data-transform pipeline (`filter | calculate | rename | pick | limit` à la Vega-Lite). Planned as future work — the track-level `filter: "<value>"` shortcut covers every shipped config today. The full design brief (schema, types, runtime, tests, SQL-WHERE expression grammar) lives in [`specs/transform-engine.md`](../specs/transform-engine.md).
+- Specifying runtime UI state. Track reordering, individual track collapse/toggle, and other user-driven UI interactions are orthogonal to the config schema — the config describes the _initial mount_; any subsequent UI state lives in the viewer component, not in the config.
 
 ## Data Model
 
 The schema is split into two conceptual layers:
 
-1. **Intent** — the `ProtvistaViewerConfig` object that describes *what* the viewer should display and *how*.
+1. **Intent** — the `ProtvistaViewerConfig` object that describes _what_ the viewer should display and _how_.
 2. **Representation** — the data payloads returned by adapters and consumed by Nightingale track components. This spec does not define payload schemas, but the `DataSourceDescriptor` within Intent declares how to obtain them.
 
 ### Intent Layer
@@ -67,7 +67,7 @@ interface ProtvistaViewerConfig {
    * can skip it entirely. Set explicitly when authoring against a
    * specific published schema version.
    */
-  version?: "1.0";
+  version?: '1.0';
 
   /**
    * Optional list of base configs to merge under this one.
@@ -340,13 +340,9 @@ interface TrackConfig {
 
   /**
    * Shortcut: show only items whose `type` field equals this value.
-   *
-   * Equivalent to prepending
-   *   { filter: { field: "type", equal: "<value>" } }
-   * to every data source's `transform` pipeline. Most tracks that
-   * share an API endpoint with sibling tracks (`SIGNAL`, `CHAIN`,
-   * `DOMAIN`, …) only need this field and never touch `transform`
-   * directly.
+   * Most tracks that share an API endpoint with sibling tracks
+   * (`SIGNAL`, `CHAIN`, `DOMAIN`, …) only need this field to narrow
+   * their data by feature type.
    */
   filter?: string;
 
@@ -354,7 +350,7 @@ interface TrackConfig {
    * Attach a filter-UI widget alongside this track (currently: the
    * variant filter). This is a UI concern, not a data concern.
    */
-  filterUI?: "nightingale-filter";
+  filterUI?: 'nightingale-filter';
 
   /** Track-level rendering overrides; merged on top of group defaults. */
   rendering?: RenderingOptions;
@@ -372,7 +368,7 @@ interface TrackConfig {
  */
 type AuthoredTooltipSpec =
   | {
-      kind: "fields";
+      kind: 'fields';
       fields: {
         /** Dotted path into the adapter's output item. */
         path: string;
@@ -387,7 +383,7 @@ type AuthoredTooltipSpec =
       }[];
     }
   | {
-      kind: "markdown";
+      kind: 'markdown';
       /** Markdoc source with `{% $field %}` variable interpolation. */
       template: string;
       /** Extra scope merged alongside the adapter item at render time. */
@@ -412,7 +408,7 @@ interface DataSourceDescriptor {
    * - "file":   Path to a local file (for offline / local-dev use).
    * - "custom": Consumer provides data programmatically via the escape-hatch API.
    */
-  from?: "url" | "inline" | "file" | "custom";
+  from?: 'url' | 'inline' | 'file' | 'custom';
 
   /**
    * Explicit reference to a key in the root-level `sources` map.
@@ -454,73 +450,6 @@ interface DataSourceDescriptor {
    * or the parent track's semantic `kind`.
    */
   adapter?: AdapterName;
-
-  /**
-   * Declarative transformations applied to the adapter's output
-   * *before* the track renders. Ordered: each step's output is the
-   * next step's input.
-   *
-   * The vocabulary is a subset of Vega-Lite's `transform` pipeline
-   * (https://vega.github.io/vega-lite/docs/transform.html) so that
-   * authors familiar with Vega-Lite, Altair, or Observable Plot
-   * reuse existing knowledge. Field predicate operators (`equal`,
-   * `lt`, `lte`, `gt`, `gte`, `oneOf`, `range`, `valid`) match
-   * Vega-Lite's (https://vega.github.io/vega-lite/docs/filter.html).
-   *
-   * Most configs never need this — the track-level `filter` shortcut
-   * covers the common "pick items of a given type" case, and
-   * canonical adapters produce ready-to-render output. `transform`
-   * exists for the "almost right, just need to tweak" cases that
-   * would otherwise require writing a custom adapter.
-   */
-  transform?: Transform[];
-}
-
-/**
- * A single step in the data pipeline. Discriminated by which
- * operation key is present (`filter` | `calculate` | `rename` |
- * `pick` | `limit`). Exactly one operation per step.
- *
- * Shape mirrors Vega-Lite's `transform` entries. A `registerTransform()`
- * escape-hatch (see ProtvistaRuntimeAPI) lets advanced users add
- * custom operators while keeping the same discriminated-union shape.
- */
-type Transform =
-  /** Keep only items matching a predicate (structured or expression). */
-  | { filter: FieldPredicate | string }
-  /** Compute a derived field from an expression. */
-  | { calculate: string; as: string }
-  /** Rename fields on each item. Keys are old names, values are new names. */
-  | { rename: Record<string, string> }
-  /** Project each item to only the named fields. */
-  | { pick: string[] }
-  /** Keep at most N items (items beyond the limit are dropped). */
-  | { limit: number };
-
-/**
- * A structured field predicate, shape-compatible with Vega-Lite's
- * Field Predicate (https://vega.github.io/vega-lite/docs/filter.html#field-predicate).
- *
- * Exactly one comparison operator must be present alongside `field`:
- *
- *   { field: "score", gte: 0.8 }
- *   { field: "type",  oneOf: ["DOMAIN", "REGION"] }
- *   { field: "score", range: [0.5, 0.9] }
- *   { field: "start", valid: true }             // excludes null / NaN
- *
- * The expression-string form of `filter` accepts any Vega-compatible
- * predicate, e.g. `"datum.score > 0.8 && datum.type == 'DOMAIN'"`.
- */
-interface FieldPredicate {
-  field: string;
-  equal?: unknown;
-  lt?: number | string;
-  lte?: number | string;
-  gt?: number | string;
-  gte?: number | string;
-  oneOf?: unknown[];
-  range?: [unknown, unknown];
-  valid?: boolean;
 }
 
 /**
@@ -539,7 +468,7 @@ interface RenderingOptions {
   height?: number;
 
   /** Layout mode. Defaults to "non-overlapping". */
-  layout?: "non-overlapping" | "default";
+  layout?: 'non-overlapping' | 'default';
 
   /**
    * Continuous colour scale for colored-sequence and heatmap tracks.
@@ -628,29 +557,29 @@ interface ColorStop {
  */
 type SemanticKind =
   /** Generic UniProt-style features. Combine with `filter` to subset by type. */
-  | "features"
+  | 'features'
   /** InterPro domain hits (representative). */
-  | "features-interpro"
+  | 'features-interpro'
   /** Natural or disease-associated variants with detail panel. */
-  | "variants"
+  | 'variants'
   /** Per-position variant count (line graph). */
-  | "variant-counts"
+  | 'variant-counts'
   /** RNA editing events rendered as variants. */
-  | "rna-editing"
+  | 'rna-editing'
   /** Per-position RNA editing count (line graph). */
-  | "rna-editing-counts"
+  | 'rna-editing-counts'
   /** Proteomics peptide evidence. */
-  | "peptides"
+  | 'peptides'
   /** PTM-containing peptides (large-scale MS). */
-  | "peptides-ptm"
+  | 'peptides-ptm'
   /** PDB structure coverage intervals. */
-  | "structure-coverage"
+  | 'structure-coverage'
   /** AlphaFold per-residue confidence (pLDDT). Includes default colour ramp. */
-  | "confidence-score"
+  | 'confidence-score'
   /** AlphaMissense per-residue pathogenicity. Includes default colour ramp. */
-  | "pathogenicity-score"
+  | 'pathogenicity-score'
   /** AlphaMissense per-position × amino-acid heatmap. */
-  | "pathogenicity-heatmap";
+  | 'pathogenicity-heatmap';
 
 /**
  * Low-level Nightingale component names.
@@ -663,11 +592,11 @@ type SemanticKind =
  * for built-ins in TypeScript without narrowing the type.
  */
 type KnownComponentName =
-  | "nightingale-track-canvas"
-  | "nightingale-colored-sequence"
-  | "nightingale-variation"
-  | "nightingale-linegraph-track"
-  | "nightingale-sequence-heatmap";
+  | 'nightingale-track-canvas'
+  | 'nightingale-colored-sequence'
+  | 'nightingale-variation'
+  | 'nightingale-linegraph-track'
+  | 'nightingale-sequence-heatmap';
 
 type ComponentName = KnownComponentName | (string & {});
 
@@ -687,23 +616,23 @@ type ComponentName = KnownComponentName | (string & {});
  */
 type KnownAdapterName =
   // ── Source-specific (coupled to a particular API output) ──
-  | "uniprot-features-json"
-  | "uniprot-variation-json"
-  | "uniprot-variation-counts-json"
-  | "uniprot-proteomics-json"
-  | "uniprot-proteomics-ptm-json"
-  | "uniprot-rna-editing-json"
-  | "uniprot-rna-editing-counts-json"
-  | "uniprot-proteins-pdb-json"
-  | "interpro-entries-json"
-  | "alphafold-prediction-json"
-  | "alphamissense-average-csv"
-  | "alphamissense-full-csv"
+  | 'uniprot-features-json'
+  | 'uniprot-variation-json'
+  | 'uniprot-variation-counts-json'
+  | 'uniprot-proteomics-json'
+  | 'uniprot-proteomics-ptm-json'
+  | 'uniprot-rna-editing-json'
+  | 'uniprot-rna-editing-counts-json'
+  | 'uniprot-proteins-pdb-json'
+  | 'interpro-entries-json'
+  | 'alphafold-prediction-json'
+  | 'alphamissense-average-csv'
+  | 'alphamissense-full-csv'
   // ── Generic format adapters (bring your own data) ─────────
-  | "features-json"    // array of feature objects already in expected shape
-  | "features-csv"     // CSV with columns: type,start,end,description[,score]
-  | "features-tsv"     // TSV (tab-separated) with the same columns as features-csv
-  | "bed";             // standard BED (tab-separated)
+  | 'features-json' // array of feature objects already in expected shape
+  | 'features-csv' // CSV with columns: type,start,end,description[,score]
+  | 'features-tsv' // TSV (tab-separated) with the same columns as features-csv
+  | 'bed'; // standard BED (tab-separated)
 
 /** Open string — adapters registered via `registerAdapter()` are also valid. */
 type AdapterName = KnownAdapterName | (string & {});
@@ -747,20 +676,6 @@ interface ProtvistaRuntimeAPI {
   registerSemanticKind(name: string, def: SemanticKindDefinition): void;
 
   /**
-   * Register a custom transform operator so it can appear as a step
-   * in `DataSourceDescriptor.transform`. The operator name becomes
-   * the discriminator key in the transform step object.
-   *
-   * Example:
-   *   api.registerTransform("aggregateBy", (items, params) => { ... });
-   *
-   *   # in config:
-   *   transform:
-   *     - aggregateBy: { field: type, op: count }
-   */
-  registerTransform(name: string, fn: TransformFunction): void;
-
-  /**
    * Register a custom colour-scale theme (see `ColorScaleConfig.theme`).
    */
   registerTheme(name: string, stops: ColorStop[]): void;
@@ -783,7 +698,7 @@ interface ProtvistaRuntimeAPI {
    *   1. `viewerConfig` property — pass a parsed ProtvistaViewerConfig object
    *   2. `config-src` attribute — URL or file path to a YAML/JSON config
    *   3. Built-in bundled default config
-   * 
+   *
    * When `viewerConfig` is set, `config-src` and the default are ignored.
    * When only `config-src` is set, it is fetched and parsed.
    * If neither is set, the bundled default applies.
@@ -836,8 +751,7 @@ interface SemanticKindDefinition {
   rendering?: RenderingOptions;
 }
 
-type AdapterFunction   = (...rawResponses: any[]) => unknown | Promise<unknown>;
-type TransformFunction = (items: unknown[], params: unknown) => unknown[] | Promise<unknown[]>;
+type AdapterFunction = (...rawResponses: any[]) => unknown | Promise<unknown>;
 ```
 
 ## Relationship to 3D viewers (MolStar & SVS)
@@ -866,7 +780,7 @@ Accessibility is a grant-level commitment (see the OMP) and is baked into the sc
 - **Tooltip semantics.** Track- and group-level `description` fields render as plain-text native HTML `title` attributes — no Markdown, no HTML — so screen readers pick them up via the browser's default a11y path. Per-datapoint `dataTooltip` content flows through `@markdoc/markdoc` to produce HTML preserving the Markdown's semantic structure (headings, emphasis, lists) rather than flattening to a styled `<div>`. Field interpolations are HTML-escaped at the boundary so those semantic tags stay intact for screen readers. Per-datapoint tooltips are displayed as click-triggered popovers (not hover-triggered) with `role="tooltip"` and `tabindex="-1"`. Focus moves into the popover on open and is restored to the previously-focused element on close (Escape key, outside click, or scroll). The popover is dismissed by Escape, outside-click, or any document scroll.
 - **Library defaults are minimal.** The built-in `tooltipDefaults` registry ships a small `{ kind: "fields", fields: [...] }` spec per `SemanticKind` that emits a plain `<h5>Label</h5><p>value</p>` stream. Product-specific rich rendering (evidence icons, xref badges, taxonomy lookups) lives in consumer code via the `element.tooltipOverrides[kind]` escape hatch, not in the library.
 - **Sensible out-of-the-box fallback.** When a track has no `kind`, no `dataTooltip`, and no `tooltipOverrides` entry, the resolver synthesizes a `fields` spec from the common feature-shaped record (`type`, `description`, `start | begin`, `end`). Missing fields drop out; an item carrying none of them stays empty. Adapters only produce data — `tooltipContent` is always written by the resolver.
-- **No colour-only encoding.** `RenderingOptions.shape` exists partly so tracks can encode distinctions redundantly (e.g. shape *and* colour) rather than colour alone. Config authors building custom tracks are encouraged to use shape or label text as a secondary channel alongside colour.
+- **No colour-only encoding.** `RenderingOptions.shape` exists partly so tracks can encode distinctions redundantly (e.g. shape _and_ colour) rather than colour alone. Config authors building custom tracks are encouraged to use shape or label text as a secondary channel alongside colour.
 
 ## Security and trust model
 
@@ -884,23 +798,25 @@ The viewer runs in the embedder's browsing context and inherits the embedder's C
 ### Example 1: Minimal config — single group with one URL-sourced track
 
 **Input (YAML — recommended for authors):**
+
 ```yaml
-accession: P05067            # self-contained; HTML attribute overrides if present
+accession: P05067 # self-contained; HTML attribute overrides if present
 
 sources:
   features: https://www.ebi.ac.uk/proteins/api/features/{accession}
 
 groups:
-  - id: DOMAINS              # label defaults to "Domains"
+  - id: DOMAINS # label defaults to "Domains"
     tracks:
       - id: domain
         kind: features
-        filter: DOMAIN        # shortcut: keep only items where type == DOMAIN
-        data: features        # string shorthand — resolves via `sources`
+        filter: DOMAIN # shortcut: keep only items where type == DOMAIN
+        data: features # string shorthand — resolves via `sources`
         description: Specific combination of secondary structures organized into a characteristic 3D fold
 ```
 
 **Input (JSON — canonical wire format):**
+
 ```json
 {
   "accession": "P05067",
@@ -931,6 +847,7 @@ The viewer renders a single collapsible group "Domains" (label title-cased from 
 ### Example 2: Inline data (no server)
 
 **Input:**
+
 ```yaml
 groups:
   - id: MY_ANNOTATIONS
@@ -942,12 +859,12 @@ groups:
         data:
           from: inline
           inlineData:
-            - { type: BINDING, start: 45,  end: 52,  description: ATP binding }
+            - { type: BINDING, start: 45, end: 52, description: ATP binding }
             - { type: BINDING, start: 120, end: 128, description: Mg2+ binding }
         description: Binding sites predicted by my pipeline
         rendering:
-          color:  "#e74c3c"
-          shape:  diamond
+          color: '#e74c3c'
+          shape: diamond
 ```
 
 **Expected output (viewer behaviour):**
@@ -957,14 +874,15 @@ The viewer renders a "My custom annotations" group with a "Predicted binding sit
 ### Example 3: Full UniProt-equivalent config (excerpt showing inheritance, multi-URL adapter, filter UI)
 
 **Input:**
+
 ```yaml
 defaults:
-  labelUrl: "https://www.uniprot.org/uniprot/{accession}"     # every track inherits this
+  labelUrl: 'https://www.uniprot.org/uniprot/{accession}' # every track inherits this
 
 sources:
-  features:            https://www.ebi.ac.uk/proteins/api/features/{accession}
-  variation:           https://www.ebi.ac.uk/proteins/api/variation/{accession}
-  proteins:            https://www.ebi.ac.uk/proteins/api/proteins/{accession}
+  features: https://www.ebi.ac.uk/proteins/api/features/{accession}
+  variation: https://www.ebi.ac.uk/proteins/api/variation/{accession}
+  proteins: https://www.ebi.ac.uk/proteins/api/proteins/{accession}
   alphafoldPrediction: https://alphafold.ebi.ac.uk/api/prediction/{accession}
 
 groups:
@@ -974,10 +892,10 @@ groups:
     tracks:
       - id: alphafold_confidence
         label: AlphaFold Confidence
-        labelUrl: https://alphafold.ebi.ac.uk/entry/{accession}     # overrides defaults.labelUrl
+        labelUrl: https://alphafold.ebi.ac.uk/entry/{accession} # overrides defaults.labelUrl
         kind: confidence-score
         data:
-          source: [alphafoldPrediction, proteins]                   # two-URL adapter
+          source: [alphafoldPrediction, proteins] # two-URL adapter
         description: AlphaFold prediction confidence
         dataTooltip: |
           ### AlphaFold Confidence
@@ -998,7 +916,7 @@ groups:
 
       - id: variation
         kind: variants
-        filterUI: nightingale-filter          # attaches the variant filter widget
+        filterUI: nightingale-filter # attaches the variant filter widget
         data: variation
         description: Natural variants including polymorphisms and disease-associated mutations
 ```
@@ -1010,12 +928,13 @@ The AlphaFold group has no `rendering` block because `kind: "confidence-score"` 
 ### Example 4: Extending the EBI default — one line, one new track
 
 **Input (YAML):**
+
 ```yaml
 # An external lab's config: inherit the published EBI UniProt config,
 # then add one custom track in a new group. Nothing else needs to
 # be restated — `sources`, `defaults`, all 15 EBI groups, every
 # built-in colour theme: all pulled in from the base.
-extends: "https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml"
+extends: 'https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml'
 
 groups:
   - id: MY_LAB
@@ -1032,35 +951,32 @@ At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, me
 
 ## Edge Cases & Error Handling
 
-| Scenario | Expected Behavior |
-|----------|-------------------|
-| A `url` data source returns HTTP 4xx/5xx | The track is silently hidden (consistent with current behaviour). A `console.warn` is emitted. The rest of the viewer renders normally. The group is hidden if *all* its tracks have no data. |
-| A `source` (or bare `url`) value is not a URL, not a file path, and does not match any key in `sources` | Config validation fails at load time: `"Unknown source key: '<value>' in track <groupId>/<trackId>. Known sources: ..."`. Viewer does not mount. |
-| `data` string shorthand has an extension the resolver does not recognise (e.g. `./x.gff`) | Config validation fails: `"Cannot infer adapter for './x.gff' in track <groupId>/<trackId>. Use an object form with explicit `adapter:`."`. |
-| `adapter` name does not match any built-in or registered adapter | Config validation fails: `"Unknown adapter: <name> in track <groupId>/<trackId>. Did you forget to call registerAdapter()?"`. |
-| `kind` (semantic) value is not in the semantic-kind vocabulary and is not registered | Config validation fails: `"Unknown semantic kind: '<value>' in track <groupId>/<trackId>. Valid values: .... Register custom kinds with registerSemanticKind()."`. |
-| A track has no `kind`, no `component`, and the parent group has no `component` | Config validation fails: `"Track <groupId>/<trackId> has no 'kind' or 'component'. Set a semantic 'kind' (e.g. 'features') or provide 'component' explicitly."`. |
-| A `dataTooltip` template references a field that does not exist on the adapter's output | That placeholder renders as an empty string. The viewer does not fail. |
-| A `dataTooltip` template contains `<script>` or other dangerous HTML | For `kind: fields` and `kind: markdown`: all interpolated data from `{% $field %}` placeholders is HTML-escaped before rendering. Scripts and other raw markup are dropped. URL scheme whitelist: only `http:`, `https:`, and `mailto:` are allowed in anchor `href=` attributes; other schemes (e.g. `javascript:`) collapse to empty `href=""`. For `kind: custom`: the render function is a documented escape-hatch surface — the integrator is responsible for producing safe HTML. |
-| `colorScale.theme` references a name that is not built-in or registered | Config validation fails: `"Unknown colorScale theme: '<name>'. Registered themes: ..."`. |
-| `colorScale` has neither `theme` nor `stops` | Config validation fails: `"colorScale must specify either 'theme' or 'stops' ..."`. |
-| A `transform` step has no recognised operation key (`filter`, `calculate`, `rename`, `pick`, `limit`, or a registered custom operator) | Config validation fails: `"Unknown transform operator in track <groupId>/<trackId>. Valid operators: ...."`. |
-| A `filter` step's field predicate has no comparison operator (only `field:`) | Config validation fails: `"Filter predicate on field '<name>' must include one of: equal, lt, lte, gt, gte, oneOf, range, valid."`. |
-| A `calculate` step's expression fails to parse or evaluate | The step is skipped for items where it throws; the `as` field is set to `null` on those items. A single summary `console.warn` is emitted per track. |
-| `version` is explicitly set to an unsupported value | Validation fails: `"Unsupported config version: '<value>'. Supported: '1.0'."`. Omitting `version` is allowed (defaults to "1.0"). |
-| A group has zero tracks | Validation warning emitted; group is skipped (not rendered). |
-| `from: inline` with `inlineData` missing or null | Validation fails: `"inlineData is required when 'from' is 'inline' in track <groupId>/<trackId>."`. |
-| `from: custom` but `setTrackData()` never called at runtime | Track renders as empty/hidden. A `console.info` is emitted after initial load: `"Track <groupId>/<trackId> is 'from: custom' but no data was provided via setTrackData()."`. |
-| `extends` target cannot be fetched (404, file missing, or value is neither a URL nor file path and no `opts.resolver` handled it) | Validation fails: `"Cannot resolve extends: '<value>'. ..."`. Viewer does not mount. |
-| `extends` chain contains a cycle | Validation fails: `"Circular extends: <a> → <b> → <a>"`. Viewer does not mount. |
-| `extends` target is fetched but fails to parse (malformed JSON/YAML) | Validation fails: `"Failed to parse extends target '<name>': <parse error detail>"`. The target name (URL or file path) is included so the author can identify which file in a multi-level chain is broken. Viewer does not mount. |
-| `extends` target exceeds 2 MiB when fetched | Validation fails with a size-exceeded error. The default fetcher checks both the HTTP `Content-Length` header and the final decoded response length to prevent DoS from attacker-controlled servers. Adopters can supply a custom `opts.fetcher` with their own size policy. |
-| Duplicate `id` values within a group's tracks (after merge) | Validation fails: `"Duplicate track id '<id>' in group '<groupId>'."`. |
-| Duplicate group `id` values (after merge) | Validation fails: `"Duplicate group id '<id>'."`. |
-| `filter` shortcut is specified but adapter returns no items matching that type | Track is hidden. Group is hidden if all sibling tracks are also empty. |
-| Config JSON is syntactically invalid | Standard JSON parse error surfaced to the consumer. |
-| Config contains `{accession}` placeholders but no accession was provided via attribute or config | Validation fails: `"Config contains {accession} placeholders but no accession was provided via attribute or config."` |
-| Both the HTML attribute and the config file specify `accession` | The HTML attribute wins. No warning — this is the expected reuse pattern (one config, many entries). |
+| Scenario                                                                                                                          | Expected Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A `url` data source returns HTTP 4xx/5xx                                                                                          | The track is silently hidden (consistent with current behaviour). A `console.warn` is emitted. The rest of the viewer renders normally. The group is hidden if _all_ its tracks have no data.                                                                                                                                                                                                                                                                                           |
+| A `source` (or bare `url`) value is not a URL, not a file path, and does not match any key in `sources`                           | Config validation fails at load time: `"Unknown source key: '<value>' in track <groupId>/<trackId>. Known sources: ..."`. Viewer does not mount.                                                                                                                                                                                                                                                                                                                                        |
+| `data` string shorthand has an extension the resolver does not recognise (e.g. `./x.gff`)                                         | Config validation fails: `"Cannot infer adapter for './x.gff' in track <groupId>/<trackId>. Use an object form with explicit `adapter:`."`.                                                                                                                                                                                                                                                                                                                                             |
+| `adapter` name does not match any built-in or registered adapter                                                                  | Config validation fails: `"Unknown adapter: <name> in track <groupId>/<trackId>. Did you forget to call registerAdapter()?"`.                                                                                                                                                                                                                                                                                                                                                           |
+| `kind` (semantic) value is not in the semantic-kind vocabulary and is not registered                                              | Config validation fails: `"Unknown semantic kind: '<value>' in track <groupId>/<trackId>. Valid values: .... Register custom kinds with registerSemanticKind()."`.                                                                                                                                                                                                                                                                                                                      |
+| A track has no `kind`, no `component`, and the parent group has no `component`                                                    | Config validation fails: `"Track <groupId>/<trackId> has no 'kind' or 'component'. Set a semantic 'kind' (e.g. 'features') or provide 'component' explicitly."`.                                                                                                                                                                                                                                                                                                                        |
+| A `dataTooltip` template references a field that does not exist on the adapter's output                                           | That placeholder renders as an empty string. The viewer does not fail.                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| A `dataTooltip` template contains `<script>` or other dangerous HTML                                                              | For `kind: fields` and `kind: markdown`: all interpolated data from `{% $field %}` placeholders is HTML-escaped before rendering. Scripts and other raw markup are dropped. URL scheme whitelist: only `http:`, `https:`, and `mailto:` are allowed in anchor `href=` attributes; other schemes (e.g. `javascript:`) collapse to empty `href=""`. For `kind: custom`: the render function is a documented escape-hatch surface — the integrator is responsible for producing safe HTML. |
+| `colorScale.theme` references a name that is not built-in or registered                                                           | Config validation fails: `"Unknown colorScale theme: '<name>'. Registered themes: ..."`.                                                                                                                                                                                                                                                                                                                                                                                                |
+| `colorScale` has neither `theme` nor `stops`                                                                                      | Config validation fails: `"colorScale must specify either 'theme' or 'stops' ..."`.                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `version` is explicitly set to an unsupported value                                                                               | Validation fails: `"Unsupported config version: '<value>'. Supported: '1.0'."`. Omitting `version` is allowed (defaults to "1.0").                                                                                                                                                                                                                                                                                                                                                      |
+| A group has zero tracks                                                                                                           | Validation warning emitted; group is skipped (not rendered).                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `from: inline` with `inlineData` missing or null                                                                                  | Validation fails: `"inlineData is required when 'from' is 'inline' in track <groupId>/<trackId>."`.                                                                                                                                                                                                                                                                                                                                                                                     |
+| `from: custom` but `setTrackData()` never called at runtime                                                                       | Track renders as empty/hidden. A `console.info` is emitted after initial load: `"Track <groupId>/<trackId> is 'from: custom' but no data was provided via setTrackData()."`.                                                                                                                                                                                                                                                                                                            |
+| `extends` target cannot be fetched (404, file missing, or value is neither a URL nor file path and no `opts.resolver` handled it) | Validation fails: `"Cannot resolve extends: '<value>'. ..."`. Viewer does not mount.                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `extends` chain contains a cycle                                                                                                  | Validation fails: `"Circular extends: <a> → <b> → <a>"`. Viewer does not mount.                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `extends` target is fetched but fails to parse (malformed JSON/YAML)                                                              | Validation fails: `"Failed to parse extends target '<name>': <parse error detail>"`. The target name (URL or file path) is included so the author can identify which file in a multi-level chain is broken. Viewer does not mount.                                                                                                                                                                                                                                                      |
+| `extends` target exceeds 2 MiB when fetched                                                                                       | Validation fails with a size-exceeded error. The default fetcher checks both the HTTP `Content-Length` header and the final decoded response length to prevent DoS from attacker-controlled servers. Adopters can supply a custom `opts.fetcher` with their own size policy.                                                                                                                                                                                                            |
+| Duplicate `id` values within a group's tracks (after merge)                                                                       | Validation fails: `"Duplicate track id '<id>' in group '<groupId>'."`.                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Duplicate group `id` values (after merge)                                                                                         | Validation fails: `"Duplicate group id '<id>'."`.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `filter` shortcut is specified but adapter returns no items matching that type                                                    | Track is hidden. Group is hidden if all sibling tracks are also empty.                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Config JSON is syntactically invalid                                                                                              | Standard JSON parse error surfaced to the consumer.                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Config contains `{accession}` placeholders but no accession was provided via attribute or config                                  | Validation fails: `"Config contains {accession} placeholders but no accession was provided via attribute or config."`                                                                                                                                                                                                                                                                                                                                                                   |
+| Both the HTML attribute and the config file specify `accession`                                                                   | The HTML attribute wins. No warning — this is the expected reuse pattern (one config, many entries).                                                                                                                                                                                                                                                                                                                                                                                    |
 
 ## Design Invariants
 
@@ -1078,7 +994,7 @@ These hold across the configuration schema:
 
 The schema follows semantic versioning at the protocol level (distinct from the library's own npm version). `version: "1.0"` is the first published protocol version; later versions will increment additively.
 
-- **Additive-only evolution.** Every post-v1.0 addition is a new optional property, semantic kind, adapter name, or transform operator. Existing fields and their semantics are never repointed. A config authored against v1.0 validates and renders identically on every later compatible version.
+- **Additive-only evolution.** Every post-v1.0 addition is a new optional property, semantic kind, or adapter name. Existing fields and their semantics are never repointed. A config authored against v1.0 validates and renders identically on every later compatible version.
 - **Omitting `version` is valid** and is the recommended default for beginner configs — the loader assumes the latest supported protocol version. Authors who need to pin to a specific protocol version set `version` explicitly; this is only necessary when authoring against a historical schema revision.
 - **Version discovery.** New features added post-v1.0 are documented in `specs/config-approach.md`'s changelog. Editor autocomplete against the published JSON Schema will surface any newly-added optional fields to authors without requiring them to opt into a specific version string.
 - **Unknown-version rejection.** A `version` value that is not in the supported set fails validation with `"Unsupported config version: '<value>'. Supported: ..."`. The loader does **not** attempt to auto-migrate forward or backward — this keeps the validation surface deterministic and prevents silent behavioural drift. If a future breaking change is unavoidable, a new major-version loader will be shipped that can opt to accept legacy configs via an explicit migration step.
@@ -1089,9 +1005,7 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 
 ## Open Questions
 
-1. ~~**Transform-expression evaluator.**~~ **Resolved.** The Vega-Lite-style `filter: "<expr>"` and `calculate: "<expr>"` string forms are evaluated using Vega's safe expression parser (`vega-expression`). Larger dependency than an in-house minimal evaluator (~40 kB gzipped on top of the baseline runtime), but offers the widest compatibility — configs authored against Vega/Vega-Lite/Observable Plot "just work" without a separate expression dialect. Bundle-size implications are recorded in [Constraints](#constraints). The structured field-predicate form remains evaluator-free.
-
-2. ~~**Preset namespace.**~~ **Resolved.** `extends:` accepts URLs (`http(s)://…`) and file paths (`/…`, `./…`, `../…`); the default loader does not ship a preset registry. Embedders who want a registered-name indirection can pass `opts.resolver` when calling `mergeExtends`. No `@<org>/<name>` namespace is baked into the viewer.
+1. ~~**Preset namespace.**~~ **Resolved.** `extends:` accepts URLs (`http(s)://…`) and file paths (`/…`, `./…`, `../…`); the default loader does not ship a preset registry. Embedders who want a registered-name indirection can pass `opts.resolver` when calling `mergeExtends`. No `@<org>/<name>` namespace is baked into the viewer.
 
 ## Constraints
 
@@ -1102,10 +1016,9 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
   - `js-yaml` (YAML parser, ~16 kB gzipped) — **lazy-loaded**, imported dynamically only when a YAML config is actually encountered, so JSON-only adopters pay nothing for it.
   - `@markdoc/markdoc` (declarative Markdown renderer with a tag/variable system, used by `dataTooltip`'s markdown form, ~30 kB gzipped). Markdoc's safe renderer is used end-to-end — field interpolations are HTML-escaped at the boundary rather than running a separate sanitiser pass. `description` (group- and track-level label hover text) does not go through Markdoc — it is rendered as a plain-text native HTML `title` attribute.
   - `@floating-ui/dom` (~4 kB gzipped) — positions the click-triggered tooltip popover. Middleware `flip` + `shift` keep the popover on-screen regardless of where on the track the user clicked, and `autoUpdate` keeps the position in sync while the popover is open. The popover itself (`src/tooltips/popover.ts`) is a single `<div role="tooltip">` appended to the host element's light DOM; its only external dependency is Floating UI. Click-only by design — hover events are deliberately ignored to avoid flicker on canvas tracks and the a11y complications of hover-triggered popovers.
-  - `vega-expression` (Vega's safe expression parser, ~40 kB gzipped) — used for the string forms of `filter:` and `calculate:` transforms. The structured field-predicate form and the non-expression operators (`rename`, `pick`, `limit`) do not depend on this — it is lazy-loaded only when an expression string is encountered.
   - The JSON Schema file itself has zero dependencies.
 - **Forbidden dependencies:** Full-featured form libraries, heavyweight schema tools (e.g. Zod at runtime — fine for dev tooling), anything requiring a build step to consume the schema.
-- **Bundle-size target:** The *eagerly loaded* runtime additions introduced by P1 (validator + loader + normalize + merge; i.e. excluding the lazy-loaded YAML parser) must sit within ~130 kB gzipped. Adopters loading a JSON-only config never pay for `js-yaml` (lazy via dynamic `import()`). `vega-expression` is a runtime dependency used by the transform engine — it is imported statically by `src/schema/transforms.ts` and therefore only costs what it adds to the bundle once the transform engine is actually wired into the loader's fetch pipeline. Until that wiring lands, `transforms.ts` is tree-shaken out of the production build.
+- **Bundle-size target:** The _eagerly loaded_ runtime additions introduced by P1 (validator + loader + normalize + merge; i.e. excluding the lazy-loaded YAML parser) must sit within ~130 kB gzipped. Adopters loading a JSON-only config never pay for `js-yaml` (lazy via dynamic `import()`). The planned transform engine targets ~5 kB gzipped via an in-tree SQL-WHERE-flavored parser with no runtime dependency; see [`specs/transform-engine.md`](../specs/transform-engine.md).
 - **Performance requirements:** Config validation must complete in <50 ms for a config with 15 groups and 60 tracks. URL deduplication must match the current behaviour — identical URLs referenced by multiple tracks are fetched exactly once (sources keys are resolved before deduplication). All fetches execute in parallel (current `fetchAll` pattern).
 
 ## Acceptance Criteria
@@ -1117,9 +1030,8 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 - [x] A config with `from: inline` data renders tracks without any HTTP requests.
 - [x] A config with `from: url` using `source:` (or bare `url:`) sources-key resolution fetches correctly.
 - [x] `from: custom` data sources are renderable via the `setTrackData()` escape-hatch API.
-- [x] `registerAdapter()`, `registerSemanticKind()`, `registerTransform()`, and `registerTheme()` each allow a user-defined name to be referenced from config and function correctly.
-- [x] Vega-Lite-style `transform` pipelines work for the built-in operators (`filter`, `calculate`, `rename`, `pick`, `limit`). Field predicates accept `equal`, `lt`, `lte`, `gt`, `gte`, `oneOf`, `range`, `valid`. Expression-string filters (`"datum.score > 0.8"`) work for the same cases.
-- [x] Track-level `filter: "<value>"` shortcut produces the same output as the equivalent `transform: [{ filter: { field: "type", equal: "<value>" } }]` — parity test.
+- [x] `registerAdapter()`, `registerSemanticKind()`, and `registerTheme()` each allow a user-defined name to be referenced from config and function correctly.
+- [x] Track-level `filter: "<value>"` shortcut narrows a track's items to those whose `type` field equals the given value.
 - [x] `extends` resolves one or more base configs (URL or file path), merges per the documented rules (sources by key, groups by id, rendering field-wise, child wins). Cycles are detected and fail validation.
 - [x] `defaults.rendering`, `defaults.labelUrl`, and `defaults.helpPage` inherit to every group/track and are overridden at the group and track level per the documented precedence chain.
 - [x] Track rendering options (`color`, `shape`, `height`, `layout`, `colorScale`) correctly inherit from `defaults` → group → track, with track winning on conflict.
@@ -1130,7 +1042,7 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 - [x] Semantic kinds `confidence-score` and `pathogenicity-score` apply the canonical AlphaFold / AlphaMissense colour ramps automatically when `rendering.colorScale` is not specified.
 - [x] Explicit `component` on a track or `adapter` on a data source override the semantic-kind resolution.
 - [x] `filterUI: "nightingale-filter"` attaches the variant filter widget.
-- [x] `dataTooltip` accepts the three authoring forms — shorthand string, `kind: fields`, and `kind: markdown` — and renders correctly for each data point on the track. Markdown is rendered via `@markdoc/markdoc`; `{% $field %}` placeholders can reference fields produced by `calculate` transform steps and are HTML-escaped before substitution.
+- [x] `dataTooltip` accepts the three authoring forms — shorthand string, `kind: fields`, and `kind: markdown` — and renders correctly for each data point on the track. Markdown is rendered via `@markdoc/markdoc`; `{% $field %}` placeholders reference fields on the adapter's output and are HTML-escaped before substitution.
 - [x] YAML configs load and validate equivalently to JSON configs. A round-trip (JSON → YAML → JSON) on the default config is lossless.
 - [x] Adapter names follow the `<source>-<format>` convention. A config author can tell at a glance which adapter is tied to which API.
 - [x] Built-in themes `alphafold-ramp` and `alphamissense-ramp` are defined once, used by default in `confidence-score` / `pathogenicity-score` semantic kinds, and available to any track via `colorScale.theme`.
@@ -1140,177 +1052,155 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 ## Tests
 
 ```typescript
-import { describe, it, expect } from "vitest";
-import Ajv from "ajv";
-import schema from "../protvista-config.schema.json";
-import defaultConfig from "../src/default-config.yaml"; // migrated from config.ts
-import { normalize, mergeExtends, applyTransforms } from "../src/runtime";
+import { describe, it, expect } from 'vitest';
+import Ajv from 'ajv';
+import schema from '../protvista-config.schema.json';
+import defaultConfig from '../src/default-config.yaml'; // migrated from config.ts
+import { normalize, mergeExtends } from '../src/runtime';
 
 const ajv = new Ajv({ allErrors: true });
 const validate = ajv.compile(schema);
 
-describe("ProtVista Viewer Config Schema — JSON Schema layer", () => {
-  it("accepts the migrated default UniProt config", () => {
+describe('ProtVista Viewer Config Schema — JSON Schema layer', () => {
+  it('accepts the migrated default UniProt config', () => {
     expect(validate(defaultConfig)).toBe(true);
     expect(validate.errors).toBeNull();
   });
 
-  it("accepts a minimal config with no version, no label, no component", () => {
+  it('accepts a minimal config with no version, no label, no component', () => {
     const config = {
       groups: [
         {
-          id: "DOMAINS",
-          tracks: [{ id: "domain", kind: "features", filter: "DOMAIN", data: "features" }],
+          id: 'DOMAINS',
+          tracks: [
+            {
+              id: 'domain',
+              kind: 'features',
+              filter: 'DOMAIN',
+              data: 'features',
+            },
+          ],
         },
       ],
-      sources: { features: "https://example.com/features/{accession}" },
+      sources: { features: 'https://example.com/features/{accession}' },
     };
     expect(validate(config)).toBe(true);
   });
 
-  it("accepts all four shapes of the `data` field", () => {
+  it('accepts all four shapes of the `data` field', () => {
     const shapes = [
-      { data: "features" },                                       // sources-key shorthand
-      { data: "./hits.csv" },                                     // file-path shorthand
-      { data: { from: "inline", inlineData: [] } },               // single descriptor
-      { data: [{ source: "a" }, { source: "b" }] },               // array
+      { data: 'features' }, // sources-key shorthand
+      { data: './hits.csv' }, // file-path shorthand
+      { data: { from: 'inline', inlineData: [] } }, // single descriptor
+      { data: [{ source: 'a' }, { source: 'b' }] }, // array
     ];
     for (const s of shapes) {
       const config = {
-        groups: [{ id: "C", tracks: [{ id: "t", kind: "features", ...s }] }],
-        sources: { features: "https://x/{accession}", a: "https://a", b: "https://b" },
+        groups: [{ id: 'C', tracks: [{ id: 't', kind: 'features', ...s }] }],
+        sources: {
+          features: 'https://x/{accession}',
+          a: 'https://a',
+          b: 'https://b',
+        },
       };
       expect(validate(config)).toBe(true);
     }
   });
 
-  it("rejects inline data source with missing inlineData", () => {
-    const config = {
-      groups: [
-        { id: "C", tracks: [{ id: "t", kind: "features", data: { from: "inline" } }] },
-      ],
-    };
-    expect(validate(config)).toBe(false);
-  });
-
-  it("accepts a Vega-Lite-style transform pipeline", () => {
+  it('rejects inline data source with missing inlineData', () => {
     const config = {
       groups: [
         {
-          id: "C",
-          tracks: [{
-            id: "t",
-            kind: "features",
-            data: {
-              url: "./hits.csv",
-              transform: [
-                { filter: { field: "score", gte: 0.8 } },
-                { filter: { field: "type", oneOf: ["A", "B"] } },
-                { rename: { desc: "description" } },
-                { calculate: "datum.end - datum.start", as: "length" },
-                { limit: 500 },
-              ],
-            },
-          }],
-        },
-      ],
-    };
-    expect(validate(config)).toBe(true);
-  });
-
-  it("rejects a filter predicate with no comparison operator", () => {
-    const config = {
-      groups: [
-        {
-          id: "C",
-          tracks: [{
-            id: "t",
-            kind: "features",
-            data: { url: "./x.csv", transform: [{ filter: { field: "score" } }] },
-          }],
+          id: 'C',
+          tracks: [{ id: 't', kind: 'features', data: { from: 'inline' } }],
         },
       ],
     };
     expect(validate(config)).toBe(false);
   });
 
-  it("accepts top-level extends and defaults", () => {
+  it('accepts top-level extends and defaults', () => {
     const config = {
-      extends: "https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml",
-      defaults: { rendering: { layout: "non-overlapping" }, labelUrl: "https://x/{id}" },
-      groups: [{ id: "MY", tracks: [{ id: "t", kind: "features", data: "./x.csv" }] }],
+      extends:
+        'https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml',
+      defaults: {
+        rendering: { layout: 'non-overlapping' },
+        labelUrl: 'https://x/{id}',
+      },
+      groups: [
+        { id: 'MY', tracks: [{ id: 't', kind: 'features', data: './x.csv' }] },
+      ],
     };
     expect(validate(config)).toBe(true);
   });
 });
 
-describe("ProtVista Viewer Config Schema — runtime layer", () => {
-  it("title-cases group id when label is omitted", () => {
+describe('ProtVista Viewer Config Schema — runtime layer', () => {
+  it('title-cases group id when label is omitted', () => {
     const cfg = normalize({
-      groups: [{ id: "MOLECULE_PROCESSING", tracks: [] }],
+      groups: [{ id: 'MOLECULE_PROCESSING', tracks: [] }],
     });
-    expect(cfg.groups[0].label).toBe("Molecule processing");
+    expect(cfg.groups[0].label).toBe('Molecule processing');
   });
 
-  it("treats `filter: X` as sugar for transform filter by type == X", () => {
-    const items = [
-      { type: "DOMAIN", start: 1, end: 10 },
-      { type: "SIGNAL", start: 11, end: 20 },
-    ];
-    const shortcut    = applyTransforms(items, [], { filter: "DOMAIN" });
-    const equivalent  = applyTransforms(items,
-      [{ filter: { field: "type", equal: "DOMAIN" } }],
-      {});
-    expect(shortcut).toEqual(equivalent);
-    expect(shortcut).toHaveLength(1);
-  });
-
-  it("merges an extends chain per documented rules", async () => {
+  it('merges an extends chain per documented rules', async () => {
     const base = {
-      sources: { features: "https://base/{accession}" },
+      sources: { features: 'https://base/{accession}' },
       groups: [
-        { id: "A", tracks: [{ id: "t1", kind: "features", data: "features" }] },
+        { id: 'A', tracks: [{ id: 't1', kind: 'features', data: 'features' }] },
       ],
     };
     const child = {
-      extends: "base",
+      extends: 'base',
       groups: [
-        { id: "A", tracks: [{ id: "t2", kind: "features", data: "features" }] },
-        { id: "B", tracks: [{ id: "t3", kind: "features", data: "features" }] },
+        { id: 'A', tracks: [{ id: 't2', kind: 'features', data: 'features' }] },
+        { id: 'B', tracks: [{ id: 't3', kind: 'features', data: 'features' }] },
       ],
     };
     const merged = await mergeExtends(child, { base });
     // Group A has both tracks; Group B is appended at the end
-    expect(merged.groups.map((c) => c.id)).toEqual(["A", "B"]);
-    expect(merged.groups[0].tracks.map((t) => t.id)).toEqual(["t1", "t2"]);
-    expect(merged.sources.features).toBe("https://base/{accession}");
+    expect(merged.groups.map((c) => c.id)).toEqual(['A', 'B']);
+    expect(merged.groups[0].tracks.map((t) => t.id)).toEqual(['t1', 't2']);
+    expect(merged.sources.features).toBe('https://base/{accession}');
   });
 
-  it("rejects duplicate group ids within a single config", () => {
-    expect(() => normalize({
-      groups: [
-        { id: "DUPED", tracks: [] },
-        { id: "DUPED", tracks: [] },
-      ],
-    })).toThrow(/Duplicate group id 'DUPED'/);
+  it('rejects duplicate group ids within a single config', () => {
+    expect(() =>
+      normalize({
+        groups: [
+          { id: 'DUPED', tracks: [] },
+          { id: 'DUPED', tracks: [] },
+        ],
+      })
+    ).toThrow(/Duplicate group id 'DUPED'/);
   });
 
-  it("detects circular extends chains", async () => {
-    const a = { extends: "b", groups: [] };
-    const b = { extends: "a", groups: [] };
+  it('detects circular extends chains', async () => {
+    const a = { extends: 'b', groups: [] };
+    const b = { extends: 'a', groups: [] };
     await expect(mergeExtends(a, { a, b })).rejects.toThrow(/Circular extends/);
   });
 
-  it("deduplicates URLs across tracks sharing the same source key", () => {
+  it('deduplicates URLs across tracks sharing the same source key', () => {
     const config = normalize({
-      sources: { features: "https://example.com/features/{accession}" },
+      sources: { features: 'https://example.com/features/{accession}' },
       groups: [
         {
-          id: "SITES",
+          id: 'SITES',
           tracks: [
-            { id: "metal",   kind: "features", filter: "METAL",   data: "features" },
-            { id: "site",    kind: "features", filter: "SITE",    data: "features" },
-            { id: "binding", kind: "features", filter: "BINDING", data: "features" },
+            {
+              id: 'metal',
+              kind: 'features',
+              filter: 'METAL',
+              data: 'features',
+            },
+            { id: 'site', kind: 'features', filter: 'SITE', data: 'features' },
+            {
+              id: 'binding',
+              kind: 'features',
+              filter: 'BINDING',
+              data: 'features',
+            },
           ],
         },
       ],

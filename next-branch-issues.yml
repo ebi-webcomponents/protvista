@@ -365,8 +365,8 @@ issues:
     fields:
       Group: 'Technical'
 
-  - title: "Document the canonical React integration pattern (`notooltip` + `change`-event listener)"
-    labels: ["next"]
+  - title: 'Document the canonical React integration pattern (`notooltip` + `change`-event listener)'
+    labels: ['next']
     body: |
       **Context**
       `<protvista-uniprot>` is a light-DOM Web Component consumed by React hosts, most prominently uniprot-website. The current React integration pattern — disable the built-in tooltip popover via `notooltip`, listen for `change` events on the element, read `detail.feature.tooltipContent` + `detail.coords`, render a React-controlled overlay positioned at those coordinates — works cleanly and has been in production use. But it is nowhere documented in this repo. A new React adopter today has to reverse-engineer the pattern from consumer code (uniprot-website's `FeatureViewer.tsx`), which is both friction and a correctness hazard (the event shape, attribute name, and dismissal vocabulary are all load-bearing and aren't discoverable from the viewer's types or README).
@@ -410,7 +410,7 @@ issues:
       Group: 'Technical'
 
   - title: "Eliminate `transformedVariants` — lift variation-filter wiring out of the hardcoded `track.id === 'variation'` match"
-    labels: ["next"]
+    labels: ['next']
     body: |
       **Context**
       `<protvista-uniprot>` carries a private field `transformedVariants?: { sequence: string; variants: TransformedVariant[] }` that mirrors the unfiltered variation-track payload. It exists because the variation-filter UI's change handler (`_filterChange` in `src/protvista-uniprot.ts`, around line 972) applies user-selected filters against a pristine baseline, then writes the filtered result back to `this.data['VARIATION-variation']`. Without a separate baseline, subsequent filter interactions would compound — each filter applied to the result of the previous filter rather than to the full list.
@@ -456,5 +456,39 @@ issues:
       5. **Filter-UI integration beyond variation.** If the fix genuinely de-hardcodes the variation path, a consumer could wire up `filterUI: 'nightingale-filter'` on an RNA-editing or arbitrary features track and get the same behaviour. Worth a sentence in the spec's "Track configuration" section explicitly stating that.
 
       Zero schema changes required under shape A — the schema already carries `filterUI?` on `TrackConfig`. Pure component-internal wiring cleanup that happens to remove a legacy private field.
+    fields:
+      Group: 'Technical'
+
+  - title: 'Implement the Vega-Lite-style `transform` pipeline with SQL-WHERE expression strings'
+    labels: ['next']
+    body: |
+      **Context**
+      The track-level `filter: "<value>"` shortcut covers every track in the shipped default config by narrowing to a single `type` value (`SIGNAL`, `DOMAIN`, `CHAIN`, …). Consumers bringing their own data will hit the "almost right, just need to tweak" cases the shortcut cannot express: `score >= 0.8 AND type IN ('binding', 'catalytic')`, renaming a column from `desc` to `description`, projecting 40 fields down to 4, capping at N rows, or deriving `length = end - start`. That need is the motivation for a declarative `transform:` pipeline on `DataSourceDescriptor`, modelled on Vega-Lite's transform vocabulary (`filter | calculate | rename | pick | limit`).
+
+      The design is fully specified in [`specs/transform-engine.md`](./specs/transform-engine.md): TypeScript types, JSON Schema additions, a ~250-line hand-rolled SQL-WHERE-flavored expression parser in `src/schema/expressions.ts` (zero runtime dependency, ~2–4 kB gzipped), the engine proper in `src/schema/transforms.ts`, validator + normalizer + loader wire-in, the three test suites, and an implementation plan with acceptance criteria.
+
+      **Task**
+      Implement the design in `specs/transform-engine.md` as a single PR.
+
+      **Scope** (brief — see the design doc for the full spec):
+      * Extend `src/schema/types.ts` with `Transform`, `FieldPredicate`, `TransformFunction`, `DataSourceDescriptor.transform?:`, and `ProtvistaRuntimeAPI.registerTransform()`.
+      * Extend `src/schema/schema.json` with the `Transform` and `FieldPredicate` `$defs` and the `transform:` property on `DataSourceDescriptor`.
+      * Extend `src/schema/registry.ts` with a transforms bucket and `BUILTIN_TRANSFORM_OPERATORS`.
+      * Re-export the new types + `BUILTIN_TRANSFORM_OPERATORS` from `src/schema/index.ts`.
+      * Create `src/schema/expressions.ts` — hand-rolled lexer, recursive-descent parser by precedence level, and AST-to-closure compiler for the SQL-WHERE-flavored grammar (`AND` / `OR` / `NOT`, `=` / `!=` / `<>` / `<` / `<=` / `>` / `>=`, `IN` / `NOT IN`, `BETWEEN` / `NOT BETWEEN`, `LIKE` / `NOT LIKE`, `IS [NOT] NULL`, `+` / `-` / `*` / `/`, dotted-path identifiers, single-quoted strings, number literals, parens).
+      * Create `src/schema/transforms.ts` — engine, `applyTransforms()`, `fieldPredicateToFn()`, `registerBuiltinTransforms()`.
+      * Extend `src/schema/validate.ts` with `checkTransform()`, the FieldPredicate `anyOf` → `missing-predicate-operator` special-case, and (optional but recommended) parse-time expression validation so authors see typos at config-load instead of track-load.
+      * Preserve `transform` in `src/schema/normalize.ts` (`NormalizedDataSource.transform?:` + `expandDescriptor` passthrough).
+      * Replace the two inline `.filter(...)` call sites in `src/load-data.ts` with `applyTransforms(...)`. Thread `Registry` through the loader signature and call `registerBuiltinTransforms(registry)` once at loader init.
+      * Write the three test suites: `expressions.spec.ts` (lexer + parser precedence + parser errors + evaluator + operator coverage + null safety + dotted paths), `transforms.spec.ts` (engine contract), and restore the transform-vocabulary cases in `schema.spec.ts` / `validate.spec.ts` / `types.spec.ts` / `normalize.spec.ts` / `registry.spec.ts`.
+      * Update `specs/config-approach.md`: add the Non-Goals bullet, the Data Model blocks, the Edge Cases rows, the acceptance criteria, and the Example 4 pipeline. See §7 of the design doc for the exact passages.
+      * Remove the two planning comments in `src/schema/types.ts` (near line 21) and `src/schema/registry.ts` (near line 38) that point at this issue's design doc.
+
+      **Notes:**
+      The design deliberately borrows SQL-WHERE *syntax* and not SQL NULL *semantics*: missing / `undefined` / `null` / `NaN` are all falsy, `IS NULL` matches any of them, `x = NULL` is `false` (two-valued logic). Identifier fields are case-sensitive; keywords are case-insensitive. Strings use single quotes only; `LIKE` uses SQL wildcards (`%` / `_`) compiled to anchored regex. Dotted-path identifiers (`association.disease`, `locations.0.start`) walk the item via the same `readDottedPath` helper the structured `FieldPredicate` already uses — 32-segment depth cap.
+
+      Acceptance hinges on four measurable things: the default UniProt config still loads and renders identically (no one needs to add a `transform:` block); the Example 4 YAML in the design doc validates / loads / renders end-to-end; the track-level `filter: "DOMAIN"` shortcut is output-equal to `transform: [{ filter: { field: "type", equal: "DOMAIN" } }]` (parity test); and the bundle-size delta for the engine + parser stays under 5 kB gzipped.
+
+      No new runtime dependency. No `vega-expression`, no `filtrex`, no full SQL parser — the in-tree parser is the whole thing.
     fields:
       Group: 'Technical'

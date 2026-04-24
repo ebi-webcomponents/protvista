@@ -1,22 +1,20 @@
 /**
  * Registry contract tests.
  *
- * Covers the four buckets (semantic kinds, adapters, transforms,
- * themes), built-in seeding, collision detection, list ordering,
- * and registry isolation (each `createRegistry()` call is independent).
+ * Covers the three buckets (semantic kinds, adapters, themes),
+ * built-in seeding, collision detection, list ordering, and registry
+ * isolation (each `createRegistry()` call is independent).
  */
 
 import { describe, it, expect } from 'vitest';
 import {
   createRegistry,
-  BUILTIN_TRANSFORM_OPERATORS,
   RegistryCollisionError,
   type Registry,
 } from '../registry';
 import type {
   SemanticKindDefinition,
   AdapterFunction,
-  TransformFunction,
   ColorStop,
 } from '../types';
 
@@ -84,22 +82,11 @@ describe('Registry — built-in seeding', () => {
     }
   });
 
-  it('exports the five built-in transform operator names', () => {
-    // Transform operator *function bodies* live in the transform engine;
-    // the registry just publishes the names so the validator can close
-    // the transform-step discriminator union in error messages.
-    expect([...BUILTIN_TRANSFORM_OPERATORS].sort()).toEqual(
-      ['calculate', 'filter', 'limit', 'pick', 'rename'].sort()
-    );
-  });
-
-  it('ships with no pre-registered adapters or transforms', () => {
+  it('ships with no pre-registered adapters', () => {
     // Adapter function bodies are registered by the loader.
-    // Transform function bodies are registered by the transform engine.
-    // A fresh registry therefore holds neither.
+    // A fresh registry therefore holds none.
     const r = createRegistry();
     expect(r.listAdapters()).toEqual([]);
-    expect(r.listTransforms()).toEqual([]);
   });
 });
 
@@ -114,8 +101,6 @@ describe('Registry — lookup semantics', () => {
     expect(r.hasSemanticKind('unknown-kind')).toBe(false);
     expect(r.getAdapter('unknown-adapter')).toBeUndefined();
     expect(r.hasAdapter('unknown-adapter')).toBe(false);
-    expect(r.getTransform('aggregateBy')).toBeUndefined();
-    expect(r.hasTransform('aggregateBy')).toBe(false);
     expect(r.getTheme('viridis')).toBeUndefined();
     expect(r.hasTheme('viridis')).toBe(false);
   });
@@ -153,14 +138,6 @@ describe('Registry — custom registration', () => {
     r.registerAdapter('my-crispr-json', adapter);
     expect(r.getAdapter('my-crispr-json')).toBe(adapter);
     expect(r.hasAdapter('my-crispr-json')).toBe(true);
-  });
-
-  it('registers a custom transform operator and retrieves it', () => {
-    const r = createRegistry();
-    const op: TransformFunction = (items) => items.slice(0, 1);
-    r.registerTransform('head', op);
-    expect(r.getTransform('head')).toBe(op);
-    expect(r.listTransforms()).toEqual(['head']);
   });
 
   it('registers a custom colour-scale theme', () => {
@@ -205,15 +182,6 @@ describe('Registry — collision detection', () => {
     const fn: AdapterFunction = (x) => x;
     r.registerAdapter('my-adapter', fn);
     expect(() => r.registerAdapter('my-adapter', fn)).toThrow(
-      RegistryCollisionError
-    );
-  });
-
-  it('throws when registering the same custom transform name twice', () => {
-    const r = createRegistry();
-    const fn: TransformFunction = (x) => x;
-    r.registerTransform('head', fn);
-    expect(() => r.registerTransform('head', fn)).toThrow(
       RegistryCollisionError
     );
   });

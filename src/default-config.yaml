@@ -11,7 +11,8 @@
 #     `variants`, `confidence-score`, …). No `component` + `adapter`
 #     pair at track level — those are resolved by the kind registry.
 #   • `filter:` shortcuts replace the legacy per-track filter string.
-#     (`filter: SIGNAL` ≡ `transform: [{ filter: { field: type, equal: SIGNAL } }]`.)
+#     (`filter: SIGNAL` narrows the track's data to items where
+#     `type === "SIGNAL"`.)
 #   • AlphaFold / AlphaMissense tracks carry no explicit colour scale;
 #     the `confidence-score` / `pathogenicity-score` / `pathogenicity-heatmap`
 #     kinds apply the canonical `alphafold-ramp` / `alphamissense-ramp`

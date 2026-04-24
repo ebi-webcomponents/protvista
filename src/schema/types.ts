@@ -9,15 +9,18 @@
  * Organisation follows the spec's data-model layering:
  *
  *   1. Intent layer         — ProtvistaViewerConfig + nested config types
- *   2. Transform vocabulary — Vega-Lite-inspired pipeline shape
- *   3. Rendering options    — map to Nightingale component HTML attributes
- *   4. Component / adapter  — open string unions for built-ins + custom
- *   5. Semantic kinds       — author-facing stable vocabulary
- *   6. Escape-hatch API     — programmatic surface exposed at runtime
+ *   2. Rendering options    — map to Nightingale component HTML attributes
+ *   3. Component / adapter  — open string unions for built-ins + custom
+ *   4. Semantic kinds       — author-facing stable vocabulary
+ *   5. Escape-hatch API     — programmatic surface exposed at runtime
  *
  * The types are the source-of-truth for the JSON Schema authored in
  * `schema.json`. Any change here must be mirrored there and both
  * must stay in lockstep with `specs/config-approach.md`.
+ *
+ * A declarative `transform` pipeline (filter / calculate / rename / pick / limit)
+ * is planned as a future feature and is not currently  expressible
+ * in config. The full design brief lives in `specs/transform-engine.md`.
  *
  * The `(string & {})` idiom on ComponentName / AdapterName / SemanticKind
  * preserves IntelliSense for the built-in literals while still allowing
@@ -325,12 +328,8 @@ export interface TrackConfig {
 
   /**
    * Shortcut: show only items whose `type` field equals this value.
-   *
-   * Equivalent to prepending
-   *   `{ filter: { field: "type", equal: "<value>" } }`
-   * to every data source's `transform` pipeline. Most tracks that
-   * share an API endpoint with siblings (`SIGNAL`, `CHAIN`, `DOMAIN`)
-   * only need this field and never touch `transform` directly.
+   * Most tracks that share an API endpoint with siblings (`SIGNAL`,
+   * `CHAIN`, `DOMAIN`) only need this field to narrow by feature type.
    */
   filter?: string;
 
@@ -401,77 +400,10 @@ export interface DataSourceDescriptor {
    * or the parent track's semantic `kind`.
    */
   adapter?: AdapterName;
-
-  /**
-   * Declarative transformations applied to the adapter's output
-   * *before* the track renders. Ordered: each step's output is
-   * the next step's input.
-   *
-   * The vocabulary is a subset of Vega-Lite's `transform` pipeline
-   * (https://vega.github.io/vega-lite/docs/transform.html). Field
-   * predicate operators match
-   * (https://vega.github.io/vega-lite/docs/filter.html).
-   *
-   * Most configs never need this — the track-level `filter` shortcut
-   * covers the common "pick items of a given type" case, and canonical
-   * adapters produce ready-to-render output.
-   */
-  transform?: Transform[];
 }
 
 // ─────────────────────────────────────────────────────────────
-// 2. Transform vocabulary
-// ─────────────────────────────────────────────────────────────
-
-/**
- * A single step in the data pipeline. Discriminated by which
- * operation key is present. Exactly one operation per step.
- *
- * Shape mirrors Vega-Lite's `transform` entries. A `registerTransform()`
- * escape hatch lets advanced users add custom operators while keeping
- * the same discriminated-union shape.
- */
-export type Transform =
-  /** Keep only items matching a predicate (structured or expression). */
-  | { filter: FieldPredicate | string }
-  /** Compute a derived field from an expression. */
-  | { calculate: string; as: string }
-  /** Rename fields on each item. Keys are old names, values new names. */
-  | { rename: Record<string, string> }
-  /** Project each item to only the named fields. */
-  | { pick: string[] }
-  /** Keep at most N items (items beyond the limit are dropped). */
-  | { limit: number };
-
-/**
- * A structured field predicate, shape-compatible with Vega-Lite's
- * Field Predicate
- * (https://vega.github.io/vega-lite/docs/filter.html#field-predicate).
- *
- * Exactly one comparison operator must be present alongside `field`:
- *
- *     { field: "score", gte: 0.8 }
- *     { field: "type",  oneOf: ["DOMAIN", "REGION"] }
- *     { field: "score", range: [0.5, 0.9] }
- *     { field: "start", valid: true }             // excludes null / NaN
- *
- * The expression-string form of `filter` accepts any Vega-compatible
- * predicate, e.g. `"datum.score > 0.8 && datum.type == 'DOMAIN'"`.
- */
-export interface FieldPredicate {
-  field: string;
-  equal?: unknown;
-  lt?: number | string;
-  lte?: number | string;
-  gt?: number | string;
-  gte?: number | string;
-  oneOf?: unknown[];
-  range?: [unknown, unknown];
-  valid?: boolean;
-}
-
-// ─────────────────────────────────────────────────────────────
-// 3. Rendering options
+// 2. Rendering options
 // ─────────────────────────────────────────────────────────────
 
 /**
@@ -543,7 +475,7 @@ export interface ColorStop {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 4. Semantic kind vocabulary (author-facing)
+// 3. Semantic kind vocabulary (author-facing)
 // ─────────────────────────────────────────────────────────────
 
 /**
@@ -592,7 +524,7 @@ export type KnownSemanticKind =
 export type SemanticKind = KnownSemanticKind | (string & {});
 
 // ─────────────────────────────────────────────────────────────
-// 5. Low-level component / adapter vocabulary
+// 4. Low-level component / adapter vocabulary
 // ─────────────────────────────────────────────────────────────
 
 /**
@@ -652,7 +584,7 @@ export type KnownAdapterName =
 export type AdapterName = KnownAdapterName | (string & {});
 
 // ─────────────────────────────────────────────────────────────
-// 6. Escape-hatch API (programmatic — 20% advanced use cases)
+// 5. Escape-hatch API (programmatic — 20% advanced use cases)
 // ─────────────────────────────────────────────────────────────
 
 /**
@@ -661,8 +593,8 @@ export type AdapterName = KnownAdapterName | (string & {});
  *
  * The declarative config schema covers the 80% common case; this
  * API exists for the remaining 20% — registering custom adapters,
- * semantic kinds, transforms, or colour themes; injecting data
- * programmatically; subscribing to viewer events.
+ * semantic kinds, or colour themes; injecting data programmatically;
+ * subscribing to viewer events.
  */
 export interface ProtvistaRuntimeAPI {
   /**
@@ -690,21 +622,6 @@ export interface ProtvistaRuntimeAPI {
    *     //   data: guides
    */
   registerSemanticKind(name: string, def: SemanticKindDefinition): void;
-
-  /**
-   * Register a custom transform operator so it can appear as a step
-   * in `DataSourceDescriptor.transform`. The operator name becomes
-   * the discriminator key in the transform step object.
-   *
-   * Example:
-   *
-   *     api.registerTransform("aggregateBy", (items, params) => { ... });
-   *
-   *     # in config:
-   *     transform:
-   *       - aggregateBy: { field: type, op: count }
-   */
-  registerTransform(name: string, fn: TransformFunction): void;
 
   /**
    * Register a custom colour-scale theme (see `ColorScaleConfig.theme`).
@@ -750,13 +667,3 @@ export interface SemanticKindDefinition {
 export type AdapterFunction = (
   ...rawResponses: unknown[]
 ) => unknown | Promise<unknown>;
-
-/**
- * Signature of a custom transform operator registered via
- * `registerTransform()`. Receives the current items array and the
- * operator's parameters, returns the transformed items.
- */
-export type TransformFunction = (
-  items: unknown[],
-  params: unknown
-) => unknown[] | Promise<unknown[]>;

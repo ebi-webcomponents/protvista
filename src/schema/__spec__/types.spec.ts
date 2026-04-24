@@ -22,8 +22,6 @@ import type {
   GroupConfig,
   TrackConfig,
   DataSourceDescriptor,
-  Transform,
-  FieldPredicate,
   RenderingOptions,
   ColorScaleConfig,
   SemanticKind,
@@ -168,64 +166,6 @@ describe('ProtvistaViewerConfig — type contract', () => {
     expect(config.groups).toHaveLength(2);
   });
 
-  it('specs/config-approach.md Example 4: BYO CSV + Vega-Lite transform pipeline + reusable theme', () => {
-    const config: ProtvistaViewerConfig = {
-      groups: [
-        {
-          id: 'MY_LAB',
-          label: 'Lab predictions',
-          tracks: [
-            {
-              id: 'hotspots',
-              label: 'High-confidence hotspots',
-              kind: 'features',
-              data: {
-                url: './my-hotspots.csv',
-                transform: [
-                  { filter: { field: 'score', gte: 0.8 } },
-                  {
-                    filter: {
-                      field: 'hotspot_type',
-                      oneOf: ['binding', 'catalytic'],
-                    },
-                  },
-                  {
-                    rename: {
-                      desc: 'description',
-                      pos_start: 'start',
-                      pos_end: 'end',
-                    },
-                  },
-                  { calculate: 'datum.end - datum.start', as: 'length' },
-                  { limit: 500 },
-                ],
-              },
-              dataTooltip:
-                '### {description}\n**Score:** `{score}` — length {length}\nResidues **{start}–{end}**',
-            },
-            {
-              id: 'custom_score',
-              label: 'My score',
-              component: 'nightingale-colored-sequence',
-              data: {
-                from: 'inline',
-                inlineData: [0.1, 0.3, 0.4, 0.8, 0.95],
-                adapter: 'features-json',
-              },
-              rendering: { colorScale: { theme: 'alphafold-ramp' } },
-            },
-          ],
-        },
-      ],
-    };
-    expectType<ProtvistaViewerConfig>(config);
-    // Both transform forms (structured + calculate) survive the type check.
-    const pipeline = (
-      config.groups[0].tracks[0].data as DataSourceDescriptor
-    ).transform;
-    expect(pipeline).toHaveLength(5);
-  });
-
   it('specs/config-approach.md Example 5: extends — one line, one new track', () => {
     const config: ProtvistaViewerConfig = {
       extends: '@ebi/uniprot-default',
@@ -273,50 +213,6 @@ describe('ProtvistaViewerConfig — type contract', () => {
       expectType<DataSourceDescriptor>(d);
     }
     expect(froms).toHaveLength(5);
-  });
-});
-
-describe('Transform & FieldPredicate — discriminated unions', () => {
-  it('every built-in transform operator type-checks', () => {
-    const filterStructured: Transform = {
-      filter: { field: 'score', gte: 0.8 },
-    };
-    const filterExpression: Transform = { filter: 'datum.score > 0.8' };
-    const calc: Transform = { calculate: 'datum.end - datum.start', as: 'len' };
-    const rename: Transform = { rename: { desc: 'description' } };
-    const pick: Transform = { pick: ['type', 'start', 'end'] };
-    const limit: Transform = { limit: 500 };
-    const ops = [
-      filterStructured,
-      filterExpression,
-      calc,
-      rename,
-      pick,
-      limit,
-    ];
-    for (const op of ops) {
-      expectType<Transform>(op);
-    }
-    expect(ops).toHaveLength(6);
-  });
-
-  it('field predicate accepts every documented comparison operator', () => {
-    const equal: FieldPredicate = { field: 'type', equal: 'DOMAIN' };
-    const lt: FieldPredicate = { field: 'score', lt: 0.5 };
-    const lte: FieldPredicate = { field: 'score', lte: 0.5 };
-    const gt: FieldPredicate = { field: 'score', gt: 0.5 };
-    const gte: FieldPredicate = { field: 'score', gte: 0.5 };
-    const oneOf: FieldPredicate = {
-      field: 'type',
-      oneOf: ['DOMAIN', 'REGION'],
-    };
-    const range: FieldPredicate = { field: 'score', range: [0.5, 0.9] };
-    const valid: FieldPredicate = { field: 'start', valid: true };
-    const all = [equal, lt, lte, gt, gte, oneOf, range, valid];
-    for (const p of all) {
-      expectType<FieldPredicate>(p);
-    }
-    expect(all).toHaveLength(8);
   });
 });
 
@@ -410,7 +306,6 @@ describe('Escape-hatch API signatures', () => {
     const api: ProtvistaRuntimeAPI = {
       registerAdapter: noop,
       registerSemanticKind: noop,
-      registerTransform: noop,
       registerTheme: noop,
       setTrackData: noop,
       setConfig: noop,

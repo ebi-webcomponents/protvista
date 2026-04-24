@@ -2,19 +2,17 @@
  * ProtVista runtime registry.
  *
  * The registry is the single source of truth for every name referenced
- * from a config: semantic kinds, adapters, transforms, and colour-scale
- * themes. It is consumed by:
+ * from a config: semantic kinds, adapters, and colour-scale themes.
+ * It is consumed by:
  *
  *   - the runtime validator to close the open-string unions
  *     declared in `types.ts` / `schema.json` ("Unknown adapter: <name>.
  *     Did you forget to call registerAdapter()?");
  *   - the loader to resolve semantic kinds into concrete
  *     (component, adapter, rendering) tuples at mount time;
- *   - the transform engine to dispatch built-in and custom
- *     operators;
  *   - the escape-hatch runtime API (`registerAdapter`,
- *     `registerSemanticKind`, `registerTransform`, `registerTheme`)
- *     exposed on `<protvista-uniprot>` per `ProtvistaRuntimeAPI`.
+ *     `registerSemanticKind`, `registerTheme`) exposed on
+ *     `<protvista-uniprot>` per `ProtvistaRuntimeAPI`.
  *
  * Design notes:
  *
@@ -24,12 +22,9 @@
  *     spec's escape-hatch docstrings say "must not collide with
  *     built-ins" and silent overrides would make the viewer's
  *     behaviour depend on call order.
- *   - Adapter *function bodies* and transform *operator bodies* are
- *     intentionally not seeded here — adapters are registered by the
- *     loader when it boots, and the five built-in transform operators
- *     (filter / calculate / rename / pick / limit) are registered by
- *     the transform engine. This keeps this file dependency-free and
- *     trivially unit-testable.
+ *   - Adapter *function bodies* are intentionally not seeded here —
+ *     adapters are registered by the loader when it boots. This keeps
+ *     this file dependency-free and trivially unit-testable.
  *   - The 12 built-in semantic kinds reference adapter names that are
  *     not yet registered. That is fine: `resolveSemanticKind()` returns
  *     the adapter *name* (a string), and the loader looks up the
@@ -39,12 +34,16 @@
  *     so tests and downstream embedders can instantiate isolated
  *     registries. The `<protvista-uniprot>` element will hold one
  *     per instance.
+ *
+ * A transforms bucket (register/get/has/listTransforms +
+ * BUILTIN_TRANSFORM_OPERATORS) will be added here when the planned
+ * Vega-Lite-style transform engine is implemented — see
+ * `specs/transform-engine.md`.
  */
 
 import type {
   SemanticKindDefinition,
   AdapterFunction,
-  TransformFunction,
   ColorStop,
   KnownSemanticKind,
   KnownComponentName,
@@ -67,12 +66,6 @@ export interface Registry {
   getAdapter(name: string): AdapterFunction | undefined;
   hasAdapter(name: string): boolean;
   listAdapters(): string[];
-
-  // ── Transforms ────────────────────────────────────────────
-  registerTransform(name: string, fn: TransformFunction): void;
-  getTransform(name: string): TransformFunction | undefined;
-  hasTransform(name: string): boolean;
-  listTransforms(): string[];
 
   // ── Themes ────────────────────────────────────────────────
   registerTheme(name: string, stops: ColorStop[]): void;
@@ -209,27 +202,9 @@ const ALPHAMISSENSE_RAMP: readonly ColorStop[] = [
   { value: 1, color: '#ca1615', label: 'Pathogenic' },
 ];
 
-const BUILTIN_THEMES: ReadonlyArray<readonly [string, readonly ColorStop[]]> =
-  [
-    ['alphafold-ramp', ALPHAFOLD_RAMP],
-    ['alphamissense-ramp', ALPHAMISSENSE_RAMP],
-  ];
-
-// ─────────────────────────────────────────────────────────────
-// Built-in transform operator names
-//
-// The five operators from the Vega-Lite subset. Their function bodies
-// live in the transform engine; exporting the names here lets the
-// transform engine register them and lets the validator close the
-// operator union for error messages.
-// ─────────────────────────────────────────────────────────────
-
-export const BUILTIN_TRANSFORM_OPERATORS: readonly string[] = [
-  'filter',
-  'calculate',
-  'rename',
-  'pick',
-  'limit',
+const BUILTIN_THEMES: ReadonlyArray<readonly [string, readonly ColorStop[]]> = [
+  ['alphafold-ramp', ALPHAFOLD_RAMP],
+  ['alphamissense-ramp', ALPHAMISSENSE_RAMP],
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -238,9 +213,9 @@ export const BUILTIN_TRANSFORM_OPERATORS: readonly string[] = [
 
 /**
  * Thrown when the same name is registered twice in the same bucket
- * (semantic kinds, adapters, transforms, or themes). The spec's
- * escape-hatch docstrings require "unique … must not collide with
- * built-ins"; a silent override would make behaviour order-dependent.
+ * (semantic kinds, adapters, or themes). The spec's escape-hatch
+ * docstrings require "unique … must not collide with built-ins"; a
+ * silent override would make behaviour order-dependent.
  */
 export class RegistryCollisionError extends Error {
   public readonly bucket: string;
@@ -270,7 +245,6 @@ export class RegistryCollisionError extends Error {
 export function createRegistry(): Registry {
   const semanticKinds = new Map<string, SemanticKindDefinition>();
   const adapters = new Map<string, AdapterFunction>();
-  const transforms = new Map<string, TransformFunction>();
   const themes = new Map<string, ColorStop[]>();
 
   // Seed built-in semantic kinds. Rendering presets are copied
@@ -339,20 +313,6 @@ export function createRegistry(): Registry {
     },
     listAdapters() {
       return [...adapters.keys()].sort();
-    },
-
-    // ── Transforms ──────────────────────────────────────────
-    registerTransform(name, fn) {
-      registerInto('transform', transforms, name, fn);
-    },
-    getTransform(name) {
-      return transforms.get(name);
-    },
-    hasTransform(name) {
-      return transforms.has(name);
-    },
-    listTransforms() {
-      return [...transforms.keys()].sort();
     },
 
     // ── Themes ──────────────────────────────────────────────

@@ -11,11 +11,10 @@
  *      malformed config would produce confusing secondary errors.
  *
  *   2. **Semantic.** Closed-set checks against the runtime
- *      `Registry` (adapters, kinds, components, transforms, themes)
- *      plus a handful of cross-field checks that the static schema
- *      cannot express (unknown `sources` key, `{accession}`
- *      placeholder without an accession, filter predicate without a
- *      comparison operator, …).
+ *      `Registry` (adapters, kinds, components, themes) plus a
+ *      handful of cross-field checks that the static schema cannot
+ *      express (unknown `sources` key, `{accession}` placeholder
+ *      without an accession, …).
  *
  * Error messages match specs/config-approach.md's Edge Cases & Error Handling table
  * character-for-character. Adopters who grep their logs for
@@ -46,12 +45,9 @@ import type {
   GroupConfig,
   TrackConfig,
   DataSourceDescriptor,
-  Transform,
-  FieldPredicate,
   ColorScaleConfig,
 } from './types';
 import type { Registry } from './registry';
-import { BUILTIN_TRANSFORM_OPERATORS } from './registry';
 import type {
   ValidationIssue,
   ValidationResult,
@@ -98,8 +94,8 @@ function getStructuralValidator(): ValidateFunction {
  *
  * A `valid: true` result guarantees:
  *   - the input conforms to `schema.json`;
- *   - every `adapter`, `kind`, `component`, `transform` operator, and
- *     `colorScale.theme` name resolves against the registry;
+ *   - every `adapter`, `kind`, `component`, and `colorScale.theme`
+ *     name resolves against the registry;
  *   - every `source:` / bare-`url:` reference resolves against the
  *     config's `sources` map;
  *   - every track has a rendering path (kind, explicit component, or
@@ -118,7 +114,7 @@ export function validateConfig(
   const ok = structural(config);
   if (!ok) {
     for (const err of structural.errors ?? []) {
-      issues.push(ajvErrorToIssue(err, config));
+      issues.push(ajvErrorToIssue(err));
     }
     // Semantic checks would walk into `undefined` fields, producing
     // spurious errors. Stop here and let the caller fix structural
@@ -146,40 +142,9 @@ export function validateConfig(
  * messages already follow JSON-Schema convention ("must be string",
  * "must have required property 'id'"). Consumers that want the raw
  * Ajv error with `params` still available can use Ajv directly.
- *
- * Special-cased: `FieldPredicate` `anyOf` failures are promoted to a
- * `missing-predicate-operator` issue with the specs/config-approach.md-worded message
- * (including the `field` name) so authors grepping for "Filter
- * predicate" find the same string we promise in the spec. Without
- * this, Ajv emits a generic "must match a schema in anyOf" whose text
- * contains none of the useful context.
  */
-function ajvErrorToIssue(
-  err: ErrorObject,
-  rootData: unknown
-): ValidationIssue {
+function ajvErrorToIssue(err: ErrorObject): ValidationIssue {
   const path = err.instancePath === '' ? '/' : err.instancePath;
-
-  // FieldPredicate anyOf → missing comparison operator.
-  if (
-    err.keyword === 'anyOf' &&
-    typeof err.schemaPath === 'string' &&
-    err.schemaPath.includes('/FieldPredicate/anyOf')
-  ) {
-    const pred = resolvePointer(rootData, err.instancePath) as
-      | { field?: unknown }
-      | undefined;
-    const field =
-      pred && typeof pred.field === 'string' ? pred.field : '(unknown)';
-    return {
-      path,
-      message: `Filter predicate on field '${field}' must include one of: ${STRUCTURED_PREDICATE_OPERATORS.join(
-        ', '
-      )}.`,
-      code: 'missing-predicate-operator',
-    };
-  }
-
   const message = formatAjvMessage(err);
   return { path, message, code: 'schema' };
 }
@@ -195,35 +160,6 @@ function formatAjvMessage(err: ErrorObject): string {
       : (err.message ?? 'missing required property');
   }
   return err.message ?? 'schema violation';
-}
-
-/**
- * Resolve a JSON Pointer (RFC 6901) against a root value. Ajv
- * already normalises its `instancePath` to JSON Pointer form — empty
- * string means "root", otherwise leading `/` with `~0` / `~1`
- * escapes. Returns `undefined` on any traversal miss.
- */
-function resolvePointer(root: unknown, pointer: string): unknown {
-  if (pointer === '') return root;
-  if (!pointer.startsWith('/')) return undefined;
-  const parts = pointer
-    .slice(1)
-    .split('/')
-    .map((p) => p.replace(/~1/g, '/').replace(/~0/g, '~'));
-  let cur: unknown = root;
-  for (const part of parts) {
-    if (cur === null || cur === undefined) return undefined;
-    if (Array.isArray(cur)) {
-      const idx = Number(part);
-      if (!Number.isInteger(idx)) return undefined;
-      cur = cur[idx];
-    } else if (typeof cur === 'object') {
-      cur = (cur as Record<string, unknown>)[part];
-    } else {
-      return undefined;
-    }
-  }
-  return cur;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -497,12 +433,6 @@ function checkDescriptor(
     }
   }
 
-  // Transform vocabulary.
-  if (d.transform) {
-    for (const step of d.transform) {
-      checkTransform(trackPath, step, registry, issues);
-    }
-  }
 }
 
 /**
@@ -565,66 +495,6 @@ function hasKnownExtension(value: string): boolean {
 function extensionOf(value: string): string | undefined {
   const idx = value.lastIndexOf('.');
   return idx === -1 ? undefined : value.slice(idx);
-}
-
-// ─────────────────────────────────────────────────────────────
-// Transform / predicate checks
-// ─────────────────────────────────────────────────────────────
-
-const STRUCTURED_PREDICATE_OPERATORS = [
-  'equal',
-  'lt',
-  'lte',
-  'gt',
-  'gte',
-  'oneOf',
-  'range',
-  'valid',
-] as const;
-
-function checkTransform(
-  trackPath: string,
-  step: Transform,
-  registry: Registry,
-  issues: ValidationIssue[]
-): void {
-  const keys = Object.keys(step);
-  const knownOps = new Set<string>([
-    ...BUILTIN_TRANSFORM_OPERATORS,
-    ...registry.listTransforms(),
-    // `calculate` needs a sibling `as`, but the op key is still `calculate`.
-    // BUILTIN_TRANSFORM_OPERATORS already contains it.
-  ]);
-  const op = keys.find((k) => knownOps.has(k));
-  if (!op) {
-    issues.push({
-      path: trackPath,
-      message: `Unknown transform operator in track ${trackPath}. Valid operators: ${listQuoted(knownOps)}.`,
-      code: 'unknown-transform-operator',
-    });
-    return;
-  }
-
-  // Structured field predicate: must have at least one comparison
-  // operator. Covered by schema.json's `anyOf`, but we duplicate the
-  // check here so we emit the specs/config-approach.md-worded message rather than Ajv's
-  // generic "must match a schema in anyOf" verbiage.
-  if (op === 'filter') {
-    const filterStep = step as { filter: FieldPredicate | string };
-    if (typeof filterStep.filter === 'object' && filterStep.filter !== null) {
-      const pred = filterStep.filter as FieldPredicate;
-      const hasComparison = STRUCTURED_PREDICATE_OPERATORS.some(
-        (k) => k in pred
-      );
-      if (!hasComparison) {
-        issues.push({
-          path: trackPath,
-          message: `Filter predicate on field '${pred.field}' must include one of: ${STRUCTURED_PREDICATE_OPERATORS.join(', ')}.`,
-          code: 'missing-predicate-operator',
-        });
-      }
-    }
-  }
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -1078,41 +1078,6 @@ describe('normalizeConfig — without a registry', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// Transform passthrough
-// ─────────────────────────────────────────────────────────────
-
-describe('normalizeConfig — transform pipeline passthrough', () => {
-  it('preserves the transform array on descriptors verbatim', () => {
-    const out = normalizeConfig(
-      cfg({
-        groups: [
-          {
-            id: 'C',
-            tracks: [
-              track({
-                id: 't',
-                data: {
-                  url: './x.csv',
-                  transform: [
-                    { filter: { field: 'score', gte: 0.8 } },
-                    { limit: 100 },
-                  ],
-                },
-              }),
-            ],
-          },
-        ],
-      })
-    );
-    const d = out.groups[0].tracks[0].data[0];
-    expect(d.transform).toEqual([
-      { filter: { field: 'score', gte: 0.8 } },
-      { limit: 100 },
-    ]);
-  });
-});
-
-// ─────────────────────────────────────────────────────────────
 // End-to-end shape guarantees
 // ─────────────────────────────────────────────────────────────
 
