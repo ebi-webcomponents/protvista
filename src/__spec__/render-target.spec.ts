@@ -31,59 +31,11 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// ---------- mock all nightingale packages ----------
-// Each import is `import X from '@nightingale-elements/nightingale-X'` so
-// the mock only needs to provide a `default` export that's a harmless
-// custom-element constructor. `vi.mock` factories are hoisted to the
-// top of the file, so `StubElement` must be constructed inside each
-// factory rather than shared from a module-level binding.
-vi.mock('@nightingale-elements/nightingale-manager', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-navigation', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-sequence', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-colored-sequence', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-track-canvas', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-variation', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-linegraph-track', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-sequence-heatmap', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-filter', () => ({
-  default: class extends HTMLElement {},
-}));
-// `amColorScale` is only used in `_loadDataInComponents`, which we
-// never invoke in these tests. A no-op stub is fine.
-vi.mock('@nightingale-elements/nightingale-structure', () => ({
-  amColorScale: () => '#000000',
-}));
-
-// The structure sub-component pulls Mol* transitively. Stub it the same
-// way; it's only referenced via `loadComponent('protvista-uniprot-
-// structure', …)` and in the large-group branch we don't exercise.
-vi.mock('../protvista-uniprot-structure', () => ({
-  default: class extends HTMLElement {},
-}));
-
-// These imports resolve to raw SVG/CSS strings via vite plugins; in a
-// vitest run they'd otherwise need the plugins configured for the test
-// pipeline. Returning a trivial stub keeps the module graph loadable.
-vi.mock('../icons/spinner.svg', () => ({ default: '' }));
-
-// `vi.mock` calls above are hoisted by vitest so these static imports
-// resolve against the stubs, not the real nightingale packages.
+// `vi.mock` calls for every `@nightingale-elements/*` module + the
+// structure sub-component + the SVG icon import are registered
+// globally via `src/__spec__/nightingale-mocks.ts`, wired through
+// `setupFiles` in `vite.config.mjs`. Static imports below therefore
+// resolve against the stubs.
 import { render } from 'lit';
 import type { KnownComponentName, RenderingOptions } from '../schema/types';
 import type { NormalizedConfig } from '../schema/normalize';

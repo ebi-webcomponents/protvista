@@ -31,31 +31,12 @@ import {
   type AdapterMap,
   type CustomTrackData,
 } from '../load-data';
-import type { NormalizedConfig, NormalizedTrack } from '../schema/normalize';
 import type { TooltipSpec } from '../tooltips/types';
-
-const ACCESSION = 'P05067';
+import { ACCESSION, makeConfig } from './fixtures';
 
 // The `from: custom` branch short-circuits before URL fetch, so fetchOne
 // should never be consulted. A spying stub lets tests assert that.
 const fetchOne = vi.fn(async (url: string) => ({ url }));
-
-function makeConfig(track: NormalizedTrack): NormalizedConfig {
-  return {
-    version: '1.0',
-    sources: {},
-    defaults: { rendering: {} },
-    groups: [
-      {
-        id: 'GROUP',
-        label: 'group',
-        component: track.component,
-        rendering: {},
-        tracks: [track],
-      },
-    ],
-  };
-}
 
 const noopAdapters: AdapterMap = {};
 

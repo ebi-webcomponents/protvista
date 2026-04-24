@@ -28,29 +28,10 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { loadProtvistaData, type AdapterMap } from '../load-data';
-import type { NormalizedConfig, NormalizedTrack } from '../schema/normalize';
 import type { TooltipSpec } from '../tooltips/types';
-
-const ACCESSION = 'P05067';
+import { ACCESSION, makeConfig } from './fixtures';
 
 const fetchOne = vi.fn(async (url: string) => ({ url })); // payload is irrelevant — adapters below ignore it
-
-function makeConfig(track: NormalizedTrack): NormalizedConfig {
-  return {
-    version: '1.0',
-    sources: {},
-    defaults: { rendering: {} },
-    groups: [
-      {
-        id: 'GROUP',
-        label: 'group',
-        component: track.component,
-        rendering: {},
-        tracks: [track],
-      },
-    ],
-  };
-}
 
 describe('loadProtvistaData — tooltip resolver wire-in', () => {
   it('applies `dataTooltip` to every item in an array adapter output', async () => {

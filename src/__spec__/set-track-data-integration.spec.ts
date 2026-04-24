@@ -35,46 +35,11 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Stub every nightingale package before the module import so the
-// decorator-side-effect registration in `protvista-uniprot.ts` reaches
-// the stubs, not the real packages. Mirrors render-target.spec.ts.
-vi.mock('@nightingale-elements/nightingale-manager', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-navigation', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-sequence', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-colored-sequence', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-track-canvas', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-variation', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-linegraph-track', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-sequence-heatmap', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-filter', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('@nightingale-elements/nightingale-structure', () => ({
-  amColorScale: () => '#000000',
-}));
-vi.mock('../protvista-uniprot-structure', () => ({
-  default: class extends HTMLElement {},
-}));
-vi.mock('../icons/spinner.svg', () => ({ default: '' }));
-
-// Side-effect import: registers `<protvista-uniprot>` with the custom
-// element registry. Must come AFTER all `vi.mock` calls.
+// `vi.mock` calls for every `@nightingale-elements/*` module + the
+// structure sub-component + the SVG icon import are registered
+// globally via `src/__spec__/nightingale-mocks.ts`, wired through
+// `setupFiles` in `vite.config.mjs`. The side-effect import below
+// therefore reaches the stubs, not the real packages.
 import '../protvista-uniprot';
 import type { NormalizedConfig } from '../schema/normalize';
 
