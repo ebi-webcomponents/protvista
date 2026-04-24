@@ -40,7 +40,7 @@ export async function parseConfigText(
  * the right thing for common YAML documents (which almost never
  * start with a bracket).
  */
-export function detectFormat(text: string): 'json' | 'yaml' {
+function detectFormat(text: string): 'json' | 'yaml' {
   const trimmed = text.trimStart();
   const first = trimmed.charAt(0);
   if (first === '{' || first === '[') return 'json';

@@ -16,7 +16,7 @@ export type RnaEditing = {
   features: RnaEditingFeature[];
 };
 
-export type RnaEditingFeature = {
+type RnaEditingFeature = {
   type: Type;
   xrefs: Xref[];
   dbReferenceType: DBReferenceType[];
@@ -32,12 +32,6 @@ export type TransformedRnaEditing = RnaEditingFeature & {
   start: number;
   end: number;
   consequenceType: string;
-  /**
-   * Injected by the tooltip resolver in `load-data.ts` after the
-   * adapter returns. Optional because the field is absent on the
-   * adapter's own output.
-   */
-  tooltipContent?: string;
 };
 
 type DBReferenceType = {

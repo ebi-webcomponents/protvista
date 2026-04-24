@@ -3,7 +3,7 @@
  *
  * Contract at a glance:
  *
- *   +--------+  adapter output (no tooltipContent)
+ *   +--------+  adapter output (data only — tooltips come from config)
  *   | item   | ---> resolveTooltip(item, spec, ctx) ---> HTML string
  *   +--------+                                              |
  *                                                           v
@@ -44,13 +44,13 @@ export type TooltipSpec = FieldsSpec | MarkdownSpec | CustomSpec;
  */
 export type AuthoredTooltipSpec = FieldsSpec | MarkdownSpec;
 
-export interface FieldsSpec {
+interface FieldsSpec {
   kind: 'fields';
   /** Ordered rows to render as a definition list. */
   fields: FieldSpec[];
 }
 
-export interface MarkdownSpec {
+interface MarkdownSpec {
   kind: 'markdown';
   /** Markdoc template source. `{% $variable %}` and `{% tag /%}` available. */
   template: string;
@@ -58,7 +58,7 @@ export interface MarkdownSpec {
   variables?: Record<string, unknown>;
 }
 
-export interface CustomSpec {
+interface CustomSpec {
   kind: 'custom';
   /** Pure function — produces the tooltip HTML for a single item. */
   render: (item: unknown, ctx: TooltipContext) => string;

@@ -39,7 +39,7 @@
  * keep this file type-only / runtime-free. The two definitions must stay
  * in lockstep — the runtime module holds the canonical contract.
  */
-export interface AuthoredTooltipFieldSpec {
+interface AuthoredTooltipFieldSpec {
   path: string;
   label: string;
   render?: string;
@@ -50,7 +50,7 @@ export interface AuthoredTooltipFieldSpec {
  * followed by the value at `path`, optionally routed through a named
  * `tooltipHelpers` entry.
  */
-export interface AuthoredTooltipFieldsSpec {
+interface AuthoredTooltipFieldsSpec {
   kind: 'fields';
   fields: AuthoredTooltipFieldSpec[];
 }
@@ -64,7 +64,7 @@ export interface AuthoredTooltipFieldsSpec {
  * fields, useful for threading track-level context (accession, trackId)
  * into per-item templates.
  */
-export interface AuthoredTooltipMarkdownSpec {
+interface AuthoredTooltipMarkdownSpec {
   kind: 'markdown';
   template: string;
   variables?: Record<string, unknown>;

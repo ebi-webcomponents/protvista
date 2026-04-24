@@ -66,7 +66,7 @@ export interface ExpressionEvaluator {
 // applyTransforms
 // ─────────────────────────────────────────────────────────────
 
-export interface ApplyTransformsOptions {
+interface ApplyTransformsOptions {
   /**
    * Registry used for *custom-operator* dispatch. Built-in operators
    * never touch the registry; custom operators registered via

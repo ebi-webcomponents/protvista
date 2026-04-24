@@ -270,9 +270,9 @@ function renderMarkdownSpec(
  *
  * `start` takes precedence over `begin` (the raw UniProt API form) so
  * the "Start" label doesn't appear twice on items that have both.
- * Returns `''` when the item carries none of the recognised fields —
- * matching the previous "no spec" behaviour and letting the loader
- * preserve any adapter-supplied `tooltipContent`.
+ * Returns `''` when the item carries none of the recognised fields;
+ * the caller skips the assignment rather than stamping an empty
+ * `tooltipContent`.
  */
 function renderAutoFallback(item: unknown, ctx: TooltipContext): string {
   if (item == null || typeof item !== 'object') return '';

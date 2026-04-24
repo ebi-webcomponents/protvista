@@ -45,11 +45,11 @@ import type {
  * Kept `any` because adapter output shapes are deliberately heterogeneous
  * (feature arrays, linegraph points, variation graphs, heatmap matrices…).
  */
-export type AdapterFn = (...rawArgs: any[]) => unknown | Promise<unknown>;
+type AdapterFn = (...rawArgs: any[]) => unknown | Promise<unknown>;
 
 export type AdapterMap = Record<string, AdapterFn>;
 
-export type FetchOne = (url: string) => Promise<unknown>;
+type FetchOne = (url: string) => Promise<unknown>;
 
 /**
  * Map of `${groupId}-${trackId}` → pre-shaped data for `from: custom`
@@ -64,7 +64,7 @@ export type FetchOne = (url: string) => Promise<unknown>;
  */
 export type CustomTrackData = Record<string, unknown>;
 
-export type LoadResult = {
+type LoadResult = {
   /** Keyed by the *template* URL (pre-substitution), matching the legacy
    *  `this.rawData` shape the renderer reads. */
   rawData: Record<string, unknown>;
@@ -94,11 +94,8 @@ export type LoadResult = {
  *                     that tracks with no configured spec still get a
  *                     sensible tooltip out of the box.
  *
- * When a configured spec (1–3) is found, the resolver's HTML replaces
- * whatever the adapter set so the declarative override always wins.
- * When only the auto-fallback applies, any adapter-supplied
- * `tooltipContent` already on the item is left untouched — the
- * fallback is a sensible-default path, not a stomper.
+ * The resolver's output is the canonical source of `tooltipContent` —
+ * adapters produce data, tooltips come from config and defaults.
  *
  * Handles the two shapes adapters emit:
  *   - an array of feature-like objects (most adapters);
@@ -113,16 +110,8 @@ function applyTooltipResolver(
 ): void {
   const assign = (item: unknown) => {
     if (!item || typeof item !== 'object') return;
-    const rec = item as Record<string, unknown>;
-    if (spec) {
-      rec.tooltipContent = resolveTooltip(item, spec, ctx);
-      return;
-    }
-    // No configured spec. Defer to the auto-fallback, but preserve a
-    // `tooltipContent` the adapter already stashed on the item.
-    if (rec.tooltipContent != null && rec.tooltipContent !== '') return;
-    const auto = resolveTooltip(item, undefined, ctx);
-    if (auto) rec.tooltipContent = auto;
+    const html = resolveTooltip(item, spec, ctx);
+    if (html) (item as Record<string, unknown>).tooltipContent = html;
   };
   if (Array.isArray(transformedData)) {
     for (const item of transformedData) assign(item);
@@ -307,10 +296,9 @@ export async function loadProtvistaData(
         // 3. Resolve per-item tooltips. Programmatic override wins,
         //    then track-level `dataTooltip`, then the per-kind
         //    built-in default, then an auto-fallback synthesized from
-        //    common feature-shaped fields. `applyTooltipResolver`
-        //    preserves any adapter-supplied `tooltipContent` when only
-        //    the auto-fallback applies, so graph tracks / unregistered
-        //    kinds still behave as before.
+        //    common feature-shaped fields. Graph tracks (linegraph,
+        //    colored-sequence, heatmap) have no per-item hover, so
+        //    the resolver returns `''` and no field is written.
         const spec: TooltipSpec | undefined =
           (kind ? tooltipOverrides[kind] : undefined) ??
           dataTooltip ??

@@ -10,7 +10,7 @@ type Result = {
   proteins: Protein[];
 };
 
-export type Metadata = {
+type Metadata = {
   accession: string;
   name: string;
   source_database: string;
@@ -73,10 +73,4 @@ export type TransformedInterPro = {
   integrated: null | string;
   member_databases: MemberDatabases | null;
   go_terms: GoTerm[] | null;
-  /**
-   * Injected by the tooltip resolver in `load-data.ts` after the
-   * adapter returns. Optional because the field is absent on the
-   * adapter's own output.
-   */
-  tooltipContent?: string;
 }[];

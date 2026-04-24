@@ -77,7 +77,7 @@ export function colorScaleToAttrs(
  * `<nightingale-*>` elements. All fields are optional strings —
  * callers typically spread or destructure only the keys they need.
  */
-export interface NightingaleRenderAttrs {
+interface NightingaleRenderAttrs {
   color?: string;
   shape?: string;
   scale?: string;

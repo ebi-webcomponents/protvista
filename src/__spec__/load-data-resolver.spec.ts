@@ -7,11 +7,11 @@
  * single post-adapter step added for the declarative tooltip system:
  *
  *   1. `track.dataTooltip` present → its spec wins over any per-kind
- *      default and over any `tooltipContent` the adapter set itself.
+ *      default.
  *   2. `track.kind` present, no `dataTooltip` → `tooltipDefaults[kind]`
  *      is consulted.
- *   3. Neither present → the adapter's own `tooltipContent` (if any) is
- *      left intact.
+ *   3. Neither present → the auto-fallback synthesizes a fields spec
+ *      from common feature-shaped fields.
  *   4. Variation-shaped adapter output (`{ sequence, variants }`) has the
  *      resolver applied to each item in `variants`, not to the wrapper.
  *   5. The `TooltipContext` passed to the resolver carries the accession,
@@ -146,31 +146,6 @@ describe('loadProtvistaData — tooltip resolver wire-in', () => {
     const [item] = data['GROUP-t'] as Array<{ tooltipContent?: string }>;
     expect(item.tooltipContent).toBeTypeOf('string');
     expect(item.tooltipContent!.length).toBeGreaterThan(0);
-  });
-
-  it('leaves adapter-set `tooltipContent` alone when neither spec is configured', async () => {
-    const adapters: AdapterMap = {
-      'uniprot-features-json': async () => [
-        { type: 'X', tooltipContent: '<p>from adapter</p>' },
-      ],
-    };
-    const config = makeConfig({
-      id: 't',
-      label: 't',
-      component: 'nightingale-track-canvas',
-      rendering: {},
-      data: [
-        {
-          from: 'url',
-          url: 'u',
-          adapter: 'uniprot-features-json',
-        },
-      ],
-    });
-
-    const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, adapters);
-    const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
-    expect(item.tooltipContent).toBe('<p>from adapter</p>');
   });
 
   it('auto-synthesizes a fields tooltip when no spec is configured and the adapter sets nothing', async () => {

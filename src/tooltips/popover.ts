@@ -62,7 +62,7 @@ export interface TooltipController {
 /**
  * Options accepted by `installClickTooltip`. All fields optional.
  */
-export interface InstallOptions {
+interface InstallOptions {
   /**
    * Called before each click is acted on. Returning `false` cancels
    * display — used for the legacy `notooltip` opt-out.
