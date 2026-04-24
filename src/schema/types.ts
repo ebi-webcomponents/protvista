@@ -34,9 +34,11 @@
 
 /**
  * One row in a `fields`-form tooltip. `path` is a dotted property path
- * against the item (e.g. `association.0.name`). `render` names a helper
- * in the runtime `tooltipHelpers` registry; when omitted the value is
- * coerced to string, HTML-escaped, and wrapped in `<p>`.
+ * against the item (e.g. `association.0.name`). The value at `path` is
+ * coerced to string, HTML-escaped, and wrapped in `<p>` at the leaf —
+ * no per-field render hook. Rich consumer-specific rendering goes
+ * through the programmatic `tooltipOverrides[kind]` escape hatch with
+ * `kind: 'custom'`, which replaces the tooltip for that kind wholesale.
  *
  * Shape mirrors `FieldSpec` in `src/tooltips/types.ts`, restated here to
  * keep this file type-only / runtime-free. The two definitions must stay
@@ -45,13 +47,11 @@
 interface AuthoredTooltipFieldSpec {
   path: string;
   label: string;
-  render?: string;
 }
 
 /**
  * Declarative label/value tooltip. Each entry becomes `<h5>label</h5>`
- * followed by the value at `path`, optionally routed through a named
- * `tooltipHelpers` entry.
+ * followed by the HTML-escaped value at `path`.
  */
 interface AuthoredTooltipFieldsSpec {
   kind: 'fields';
@@ -303,14 +303,13 @@ export interface TrackConfig {
    *
    *   2. **Fields form** — declarative label/value rows. No template
    *      syntax to learn; each row becomes `<h5>label</h5>` followed
-   *      by the value at `path`, optionally routed through a
-   *      `tooltipHelpers` entry named in `render`.
+   *      by the HTML-escaped value at `path`.
    *
    *        dataTooltip:
    *          kind: fields
    *          fields:
-   *            - { path: name,    label: Name }
-   *            - { path: xrefs,   label: References, render: xrefs }
+   *            - { path: name,        label: Name }
+   *            - { path: description, label: Description }
    *
    *   3. **Template form** — explicit Markdoc spec, with optional
    *      extra variables merged into the Markdoc scope:

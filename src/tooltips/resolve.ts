@@ -6,7 +6,10 @@
  *
  *   - `kind: 'fields'`   — deterministic HTML synthesis from a field list.
  *                         Each `FieldSpec` becomes `<h5>label</h5>` followed
- *                         by a helper-rendered block or a plain `<p>`.
+ *                         by a plain `<p>`-wrapped escape of the value at
+ *                         `path`. No per-field render hooks — consumers
+ *                         that need custom rendering reach for
+ *                         `tooltipOverrides[kind]` with `kind: 'custom'`.
  *   - `kind: 'markdown'` — Markdoc parse → transform → render. The item is
  *                         flattened into the Markdoc variable scope so
  *                         authors reference fields as `{% $fieldName %}`.
@@ -24,7 +27,6 @@
  */
 import Markdoc, { Tag, type RenderableTreeNode } from '@markdoc/markdoc';
 import type { TooltipContext, TooltipSpec, FieldSpec } from './types';
-import { tooltipHelpers } from './helpers';
 import { escapeHtml } from '../utils/security';
 
 // -----------------------------------------------------------------------------
@@ -114,42 +116,22 @@ const markdocConfig = {
 // -----------------------------------------------------------------------------
 
 /**
- * Apply a `FieldSpec.render` hook — either a named entry in the helper
- * registry or, if unknown, fall through to a plain `<p>`-wrapped escape
- * of the value.
+ * Render a `FieldSpec` value as a plain `<p>`-wrapped HTML-escape.
+ * Rich, consumer-specific rendering goes through the per-kind
+ * `tooltipOverrides[kind]` escape hatch with `kind: 'custom'` rather
+ * than per-field hooks inside a `kind: 'fields'` spec.
  */
-function renderFieldValue(
-  field: FieldSpec,
-  value: unknown,
-  ctx: TooltipContext
-): string {
-  if (field.render) {
-    const helper = tooltipHelpers[field.render];
-    if (helper) return helper(value, ctx);
-    // Unknown helper name — print the value (caller will see an empty
-    // or partial tooltip and have a chance to spot the typo). We don't
-    // throw; the roadmap's "didYouMean" pass is the better place to
-    // surface registry typos.
-    return `<p>${escapeHtml(String(value ?? ''))}</p>`;
-  }
+function renderFieldValue(value: unknown): string {
   if (value == null || value === '') return '';
   return `<p>${escapeHtml(String(value))}</p>`;
 }
 
-function renderFieldsSpec(
-  item: unknown,
-  fields: FieldSpec[],
-  ctx: TooltipContext
-): string {
+function renderFieldsSpec(item: unknown, fields: FieldSpec[]): string {
   return fields
     .map((field) => {
       const value = resolvePath(item, field.path);
       if (value == null || value === '') return '';
-      return `<h5>${escapeHtml(field.label)}</h5>${renderFieldValue(
-        field,
-        value,
-        ctx
-      )}`;
+      return `<h5>${escapeHtml(field.label)}</h5>${renderFieldValue(value)}`;
     })
     .filter(Boolean)
     .join('');
@@ -196,7 +178,7 @@ function renderMarkdownSpec(
  * the caller skips the assignment rather than stamping an empty
  * `tooltipContent`.
  */
-function renderAutoFallback(item: unknown, ctx: TooltipContext): string {
+function renderAutoFallback(item: unknown): string {
   if (item == null || typeof item !== 'object') return '';
   const obj = item as Record<string, unknown>;
   const isPresent = (v: unknown): boolean => v != null && v !== '';
@@ -209,7 +191,7 @@ function renderAutoFallback(item: unknown, ctx: TooltipContext): string {
     fields.push({ path: 'begin', label: 'Start' });
   if (isPresent(obj.end)) fields.push({ path: 'end', label: 'End' });
   if (fields.length === 0) return '';
-  return renderFieldsSpec(item, fields, ctx);
+  return renderFieldsSpec(item, fields);
 }
 
 // -----------------------------------------------------------------------------
@@ -232,10 +214,10 @@ export function resolveTooltip(
   spec: TooltipSpec | undefined,
   ctx: TooltipContext
 ): string {
-  if (!spec) return renderAutoFallback(item, ctx);
+  if (!spec) return renderAutoFallback(item);
   switch (spec.kind) {
     case 'fields':
-      return renderFieldsSpec(item, spec.fields, ctx);
+      return renderFieldsSpec(item, spec.fields);
     case 'markdown':
       return renderMarkdownSpec(item, spec.template, spec.variables, ctx);
     case 'custom':

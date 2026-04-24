@@ -4,7 +4,6 @@
  *
  *   - `resolve.spec.ts`   — `resolveTooltip()` in isolation.
  *   - `defaults.spec.ts`  — the per-kind `tooltipDefaults` registry.
- *   - `helpers.spec.ts`   — the `tooltipHelpers` formatters.
  *   - `popover.spec.ts`   — the click-tooltip installer.
  *
  * Tests here drive `loadProtvistaData` (which calls

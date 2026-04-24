@@ -119,7 +119,7 @@
     },
 
     "TooltipFieldsSpec": {
-      "description": "Declarative label/value rows. Each entry becomes `<h5>label</h5>` followed by the value at `path`, optionally routed through a named `tooltipHelpers` entry.",
+      "description": "Declarative label/value rows. Each entry becomes `<h5>label</h5>` followed by the HTML-escaped value at `path`. For rich consumer-specific rendering use the programmatic `tooltipOverrides[kind]` hatch with `kind: 'custom'`.",
       "type": "object",
       "required": ["kind", "fields"],
       "additionalProperties": false,
@@ -134,14 +134,13 @@
     },
 
     "TooltipFieldSpec": {
-      "description": "One row in a `fields`-form tooltip. `path` is a dotted property path against the item (e.g. `association.0.name`). `render` names an entry in the `tooltipHelpers` registry; when omitted the value is HTML-escaped and wrapped in `<p>`.",
+      "description": "One row in a `fields`-form tooltip. `path` is a dotted property path against the item (e.g. `association.0.name`). The value at `path` is coerced to string, HTML-escaped, and wrapped in `<p>` at the leaf.",
       "type": "object",
       "required": ["path", "label"],
       "additionalProperties": false,
       "properties": {
         "path": { "type": "string", "minLength": 1 },
-        "label": { "type": "string" },
-        "render": { "type": "string", "minLength": 1 }
+        "label": { "type": "string" }
       }
     },
 

@@ -309,24 +309,24 @@ interface TrackConfig {
    *   dataTooltip: "### {% $name %}\n**Score:** {% $score %}"
    *
    *   // Field list — emits <h5>label</h5><p>value</p> per populated
-   *   // entry, with dotted paths and optional named helpers:
+   *   // entry with dotted paths:
    *   dataTooltip:
    *     kind: fields
    *     fields:
    *       - path: name
    *         label: Name
-   *       - path: xrefs
-   *         label: Cross-references
-   *         render: xrefs
+   *       - path: description
+   *         label: Description
    *
-   *   // Markdoc template — full Markdoc syntax with `{% $field %}`
-   *   // variable interpolation and built-in tags `{% link %}`,
-   *   // `{% xrefs %}`, `{% evidence %}`:
+   *   // Markdoc template — plain Markdoc syntax with `{% $field %}`
+   *   // variable interpolation. No domain-specific tags: rich
+   *   // consumer-specific rendering goes through the programmatic
+   *   // `tooltipOverrides[kind]` escape hatch with `kind: 'custom'`.
    *   dataTooltip:
    *     kind: markdown
    *     template: |
    *       ### {% $description %}
-   *       {% if $evidences %}{% evidence codes=$evidences /%}{% /if %}
+   *       {% if $score %}**Score:** {% $score %}{% /if %}
    *
    * When omitted, the track falls back to the built-in default for
    * the semantic `kind` (if any), then to an auto-fallback synthesized
@@ -378,12 +378,6 @@ type AuthoredTooltipSpec =
         path: string;
         /** Human-readable label rendered above the value. */
         label: string;
-        /**
-         * Optional name of a helper registered on `tooltipHelpers`
-         * (built-ins: `xrefs`, `evidence`). Unknown names fall
-         * through to default escaped-value rendering.
-         */
-        render?: string;
       }[];
     }
   | {

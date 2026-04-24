@@ -266,7 +266,7 @@ describe('JSON Schema — fine-grained acceptance', () => {
           kind: 'fields',
           fields: [
             { path: 'name', label: 'Name' },
-            { path: 'xrefs', label: 'References', render: 'xrefs' },
+            { path: 'description', label: 'Description' },
           ],
         },
       },

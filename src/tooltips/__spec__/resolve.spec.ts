@@ -56,21 +56,6 @@ describe('resolveTooltip — fields branch', () => {
     expect(out).not.toContain('<script>x</script>');
   });
 
-  it('invokes helpers registered under `render:`', () => {
-    const out = resolveTooltip(
-      {
-        xrefs: [{ id: 'X01', name: 'ChEMBL', url: 'http://x' }],
-      },
-      {
-        kind: 'fields',
-        fields: [{ path: 'xrefs', label: 'References', render: 'xrefs' }],
-      },
-      ctx
-    );
-    expect(out).toContain('<h5>References</h5>');
-    expect(out).toContain('<ul class="no-bullet">');
-    expect(out).toContain('<a href="http://x" target="_blank">X01</a>');
-  });
 });
 
 describe('resolveTooltip — markdown branch', () => {
@@ -223,20 +208,8 @@ describe('resolveTooltip — fields dot-path resolution', () => {
   });
 });
 
-describe('resolveTooltip — fields render fall-through', () => {
-  it('prints the value as <p>escaped</p> when the helper name is unknown', () => {
-    const out = resolveTooltip(
-      { note: '<script>' },
-      {
-        kind: 'fields',
-        fields: [{ path: 'note', label: 'Note', render: 'does-not-exist' }],
-      },
-      ctx
-    );
-    expect(out).toBe('<h5>Note</h5><p>&lt;script&gt;</p>');
-  });
-
-  it('escapes special characters in the field label too', () => {
+describe('resolveTooltip — fields label / value escaping', () => {
+  it('escapes special characters in the field label', () => {
     const out = resolveTooltip(
       { v: 1 },
       { kind: 'fields', fields: [{ path: 'v', label: '<x>' }] },

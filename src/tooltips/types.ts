@@ -67,14 +67,15 @@ interface CustomSpec {
 /**
  * One row in a `fields`-form tooltip.
  *
- * `path` is dot-notation against the item. `render:` names a helper in the
- * `tooltipHelpers` registry; when omitted the value is coerced to a string
- * and HTML-escaped at the leaf.
+ * `path` is dot-notation against the item. The value at that path is
+ * coerced to a string and HTML-escaped at the leaf — no per-field
+ * render hook. Rich, consumer-specific rendering goes through
+ * `tooltipOverrides[kind]` with `kind: 'custom'`, which replaces the
+ * tooltip for that kind wholesale.
  */
 export interface FieldSpec {
   path: string;
   label: string;
-  render?: string;
 }
 
 /**
@@ -86,12 +87,6 @@ export interface TooltipContext {
   trackId: string;
   kind: string;
 }
-
-/**
- * Signature for entries in the `tooltipHelpers` registry and the value-side
- * of `render:` hooks on `FieldSpec`. Helpers are pure — no DOM, no network.
- */
-export type TooltipHelper = (value: unknown, ctx: TooltipContext) => string;
 
 /**
  * Map of kind name → default spec. `tooltipDefaults[kind]` is consulted when

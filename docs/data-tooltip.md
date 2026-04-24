@@ -22,7 +22,7 @@ tracks:
 
 A declarative list of labelled rows. Each entry renders as `<h5>label</h5><p>value</p>`. Use this when the tooltip is a flat property sheet without prose or conditional content.
 
-`path` is a dotted path against the item (e.g. `association.0.name`). Missing or empty values drop out silently rather than rendering an empty row. An optional `render:` opts a row into the `tooltipHelpers` registry — use it for xref badges, evidence icons, and similar small helpers the library already knows how to draw.
+`path` is a dotted path against the item (e.g. `association.0.name`). Missing or empty values drop out silently rather than rendering an empty row. The value at `path` is coerced to string, HTML-escaped, and wrapped in `<p>` at the leaf. There is no per-field render hook — for rich consumer-specific rendering (xref badges, evidence icons, taxonomy lookups, …) use the programmatic `element.tooltipOverrides[kind]` escape hatch with `kind: 'custom'`, which replaces the tooltip for that kind wholesale.
 
 ```yaml
 tracks:
