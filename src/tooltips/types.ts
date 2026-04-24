@@ -94,13 +94,6 @@ export interface TooltipContext {
 export type TooltipHelper = (value: unknown, ctx: TooltipContext) => string;
 
 /**
- * The external-URL template registry. Values are strings containing exactly
- * one `{id}` placeholder; `expandLink(source, id)` substitutes and returns
- * the full URL. Embedders replace entries to point at internal mirrors.
- */
-export type TooltipLinkRegistry = Record<string, string>;
-
-/**
  * Map of kind name → default spec. `tooltipDefaults[kind]` is consulted when
  * no per-track override is supplied. Covers every built-in kind; downstream
  * tools can register their own.

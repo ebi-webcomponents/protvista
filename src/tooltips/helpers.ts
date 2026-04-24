@@ -2,8 +2,8 @@
  * General-purpose formatter registry for tooltip rendering.
  *
  * These helpers take an arbitrary value plucked from the feature at a
- * `FieldSpec.path` (or from a Markdoc tag attribute) and return an HTML
- * string. Each is pure — no DOM, no network, no `this`.
+ * `FieldSpec.path` and return an HTML string. Each is pure — no DOM,
+ * no network, no `this`.
  *
  * Ported from the inline formatters previously embedded inside
  * `src/tooltips/feature-tooltip.ts`. The pre-refactor pipeline trusted
@@ -19,12 +19,12 @@
  * affects characters that would otherwise let a payload change
  * structure.
  *
- * Callers (`FieldSpec.render` and the per-kind `tooltipDefaults`
- * entries) consume these via the `tooltipHelpers` registry at the
- * bottom of the file. The registry is frozen at export time so
- * downstream code can't inject a helper that produces unescaped
- * HTML — the `fields` resolver trusts helpers unconditionally, so
- * registry tamperability would be an XSS sink of its own.
+ * Callers (`FieldSpec.render` on `kind: fields` tooltips) consume
+ * these via the `tooltipHelpers` registry at the bottom of the file.
+ * The registry is frozen at export time so downstream code can't
+ * inject a helper that produces unescaped HTML — the `fields`
+ * resolver trusts helpers unconditionally, so registry tamperability
+ * would be an XSS sink of its own.
  *
  * Out of scope for this module: kind-specific HTML construction (PTM
  * peptidoforms, variation population tables, RNA-editing link blocks).
@@ -152,7 +152,7 @@ export function formatXrefs(xrefs: Xref[]): string {
 }
 
 // -----------------------------------------------------------------------------
-// Registry — for Markdoc tag resolution and FieldSpec.render hooks
+// Registry — for FieldSpec.render hooks on `kind: fields` tooltips
 // -----------------------------------------------------------------------------
 
 /**
