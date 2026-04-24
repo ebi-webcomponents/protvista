@@ -758,26 +758,26 @@ describe('normalizeConfig — labelUrl / helpPage inheritance', () => {
         sources: { features: 'https://x' },
         groups: [
           {
-            id: 'CAT1',
-            helpPage: 'cat1-help',
+            id: 'GROUP1',
+            helpPage: 'group1-help',
             tracks: [
               track({ id: 't1' }),
               track({ id: 't2', helpPage: 'track-help' }),
             ],
           },
           {
-            id: 'CAT2',
+            id: 'GROUP2',
             tracks: [track({ id: 't3' })],
           },
         ],
       })
     );
-    expect(out.groups[0].tracks[0].helpPage).toBe('cat1-help');
+    expect(out.groups[0].tracks[0].helpPage).toBe('group1-help');
     expect(out.groups[0].tracks[1].helpPage).toBe('track-help');
     expect(out.groups[1].tracks[0].helpPage).toBe('default-help');
-    // Group helpPage resolution: CAT1 uses its own; CAT2 inherits
+    // Group helpPage resolution: GROUP1 uses its own; GROUP2 inherits
     // from defaults.
-    expect(out.groups[0].helpPage).toBe('cat1-help');
+    expect(out.groups[0].helpPage).toBe('group1-help');
     expect(out.groups[1].helpPage).toBe('default-help');
   });
 });

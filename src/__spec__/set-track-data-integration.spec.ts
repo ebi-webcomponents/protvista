@@ -4,7 +4,7 @@
  * via the `setTrackData()` escape-hatch API").
  *
  * `src/__spec__/set-track-data.spec.ts` covers the loader contract —
- * that injected data ends up at `data['CAT-track']`. This file is the
+ * that injected data ends up at `data['GROUP-track']`. This file is the
  * higher-level sanity check: the escape-hatch works end-to-end across
  * an actual `<protvista-uniprot>` instance, not just via direct
  * `loadProtvistaData()` calls.
@@ -12,7 +12,7 @@
  * Specifically guards:
  *
  *   1. A post-mount `setTrackData()` call on a `from: custom` track
- *      propagates the injected value into `element.data['CAT-track']`
+ *      propagates the injected value into `element.data['GROUP-track']`
  *      and flips Lit's reactive `data` reference so an `updated()`
  *      cycle fires.
  *   2. Shape-validation in `setTrackData()` rejects non-object values
@@ -98,8 +98,8 @@ function buildConfig(): NormalizedConfig {
     defaults: { rendering: {} },
     groups: [
       {
-        id: 'CAT',
-        label: 'cat',
+        id: 'GROUP',
+        label: 'group',
         component: 'nightingale-track-canvas',
         rendering: {},
         tracks: [
@@ -164,7 +164,7 @@ describe('<protvista-uniprot>.setTrackData() — component-level integration', (
   it('writes injected data into element.data after _loadData completes', async () => {
     const el = buildElement();
     // Pre-condition: slot is empty.
-    expect(el.data['CAT-custom-track']).toBeUndefined();
+    expect(el.data['GROUP-custom-track']).toBeUndefined();
 
     const injected = [
       { type: 'DOMAIN', description: 'first', start: 1, end: 10 },
@@ -177,10 +177,10 @@ describe('<protvista-uniprot>.setTrackData() — component-level integration', (
     // completion. Both paths mutate the same state — awaiting the
     // explicit call is equivalent to awaiting the implicit one
     // `setTrackData` spawns, but is deterministic in test code.
-    el.setTrackData('CAT', 'custom-track', injected);
+    el.setTrackData('GROUP', 'custom-track', injected);
     await el._loadData();
 
-    const stored = el.data['CAT-custom-track'] as unknown[];
+    const stored = el.data['GROUP-custom-track'] as unknown[];
     expect(Array.isArray(stored)).toBe(true);
     expect(stored).toHaveLength(2);
     // The resolver's auto-fallback synthesises a `tooltipContent` on
@@ -204,27 +204,27 @@ describe('<protvista-uniprot>.setTrackData() — component-level integration', (
     const el = buildElement();
     // `null` — the most common pitfall when a consumer forgets to
     // wrap a single item in an array.
-    el.setTrackData('CAT', 'custom-track', null);
+    el.setTrackData('GROUP', 'custom-track', null);
     expect(warn).toHaveBeenCalled();
-    expect('CAT-custom-track' in el.customTrackData).toBe(false);
+    expect('GROUP-custom-track' in el.customTrackData).toBe(false);
 
     warn.mockClear();
 
     // `undefined` — same treatment.
-    el.setTrackData('CAT', 'custom-track', undefined);
+    el.setTrackData('GROUP', 'custom-track', undefined);
     expect(warn).toHaveBeenCalled();
 
     warn.mockClear();
 
     // Primitive scalar — same treatment.
-    el.setTrackData('CAT', 'custom-track', 42);
+    el.setTrackData('GROUP', 'custom-track', 42);
     expect(warn).toHaveBeenCalled();
-    expect('CAT-custom-track' in el.customTrackData).toBe(false);
+    expect('GROUP-custom-track' in el.customTrackData).toBe(false);
   });
 
   it('warns and discards when called for a non-`from: custom` track', async () => {
     const el = buildElement();
-    el.setTrackData('CAT', 'url-track', [{ type: 'X' }]);
+    el.setTrackData('GROUP', 'url-track', [{ type: 'X' }]);
     // The initial customTrackData write still happens (copy-on-write
     // preserves it for future config edits), but the pipeline warns
     // and returns without triggering a load.
@@ -235,7 +235,7 @@ describe('<protvista-uniprot>.setTrackData() — component-level integration', (
 
   it('warns and discards when called for an unknown track', () => {
     const el = buildElement();
-    el.setTrackData('CAT', 'does-not-exist', [{ type: 'X' }]);
+    el.setTrackData('GROUP', 'does-not-exist', [{ type: 'X' }]);
     expect(warn).toHaveBeenCalledWith(
       expect.stringMatching(/not found in config/)
     );
@@ -251,11 +251,11 @@ describe('<protvista-uniprot>.setTrackData() — component-level integration', (
     el.customTrackData = {};
 
     const injected = [{ type: 'X' }];
-    el.setTrackData('CAT', 'custom-track', injected);
+    el.setTrackData('GROUP', 'custom-track', injected);
 
     // No warning was emitted; the map holds the injected value ready
     // for the first `_loadData()` run.
     expect(warn).not.toHaveBeenCalled();
-    expect(el.customTrackData['CAT-custom-track']).toBe(injected);
+    expect(el.customTrackData['GROUP-custom-track']).toBe(injected);
   });
 });

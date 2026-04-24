@@ -42,8 +42,8 @@ function makeConfig(track: NormalizedTrack): NormalizedConfig {
     defaults: { rendering: {} },
     groups: [
       {
-        id: 'CAT',
-        label: 'cat',
+        id: 'GROUP',
+        label: 'group',
         component: track.component,
         rendering: {},
         tracks: [track],
@@ -80,7 +80,7 @@ describe('loadProtvistaData — tooltip resolver wire-in', () => {
     });
 
     const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, adapters);
-    const items = data['CAT-domain'] as Array<{ tooltipContent: string }>;
+    const items = data['GROUP-domain'] as Array<{ tooltipContent: string }>;
     expect(items).toHaveLength(2);
     expect(items[0].tooltipContent).toBe('<h5>Desc</h5><p>first</p>');
     expect(items[1].tooltipContent).toBe('<h5>Desc</h5><p>second</p>');
@@ -113,7 +113,7 @@ describe('loadProtvistaData — tooltip resolver wire-in', () => {
     });
 
     const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, adapters);
-    const [item] = data['CAT-t'] as Array<{ tooltipContent: string }>;
+    const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
     expect(item.tooltipContent).toBe('<h5>Override</h5><p>x</p>');
   });
 
@@ -143,7 +143,7 @@ describe('loadProtvistaData — tooltip resolver wire-in', () => {
     });
 
     const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, adapters);
-    const [item] = data['CAT-t'] as Array<{ tooltipContent?: string }>;
+    const [item] = data['GROUP-t'] as Array<{ tooltipContent?: string }>;
     expect(item.tooltipContent).toBeTypeOf('string');
     expect(item.tooltipContent!.length).toBeGreaterThan(0);
   });
@@ -169,7 +169,7 @@ describe('loadProtvistaData — tooltip resolver wire-in', () => {
     });
 
     const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, adapters);
-    const [item] = data['CAT-t'] as Array<{ tooltipContent: string }>;
+    const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
     expect(item.tooltipContent).toBe('<p>from adapter</p>');
   });
 
@@ -198,7 +198,7 @@ describe('loadProtvistaData — tooltip resolver wire-in', () => {
     });
 
     const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, adapters);
-    const [item] = data['CAT-t'] as Array<{ tooltipContent: string }>;
+    const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
     expect(item.tooltipContent).toBe(
       '<h5>Type</h5><p>DOMAIN</p>' +
         '<h5>Description</h5><p>Kinase</p>' +
@@ -246,7 +246,7 @@ describe('loadProtvistaData — tooltip resolver wire-in', () => {
       fetchNonEmpty,
       adapters
     );
-    const bundle = data['CAT-variation'] as {
+    const bundle = data['GROUP-variation'] as {
       variants: Array<{ tooltipContent: string; wildType: string }>;
     };
     expect(bundle.variants).toHaveLength(2);
@@ -292,7 +292,7 @@ describe('loadProtvistaData — tooltip resolver wire-in', () => {
       adapters,
       { features: overrideSpec }
     );
-    const [item] = data['CAT-t'] as Array<{ tooltipContent: string }>;
+    const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
     expect(item.tooltipContent).toBe('<strong>OVR:hit</strong>');
   });
 
@@ -330,7 +330,7 @@ describe('loadProtvistaData — tooltip resolver wire-in', () => {
       // Override registry targets a different kind — shouldn't fire here.
       { variants: { kind: 'fields', fields: [] } }
     );
-    const [item] = data['CAT-t'] as Array<{ tooltipContent: string }>;
+    const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
     expect(item.tooltipContent).toBe('<h5>Inline</h5><p>hit</p>');
   });
 

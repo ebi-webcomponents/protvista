@@ -200,11 +200,11 @@ describe('getTrack() per component — config → nightingale attribute mapping'
 // building the per-track entries below (group rendering is already
 // cascaded onto each track after normalize, so the renderer doesn't
 // walk a fallback chain — the fixture mirrors that).
-const CAT_CANVAS_RENDERING: RenderingOptions = {
+const GROUP_CANVAS_RENDERING: RenderingOptions = {
   color: '#112233',
   shape: 'rectangle',
 };
-const CAT_COLORED_SEQ_RENDERING: RenderingOptions = {
+const GROUP_COLORED_SEQ_RENDERING: RenderingOptions = {
   colorScale: {
     stops: [
       { value: 0, color: '#ffffff' },
@@ -219,10 +219,10 @@ const testConfig: NormalizedConfig = {
   defaults: { rendering: {} },
   groups: [
     {
-      id: 'CAT_CANVAS',
+      id: 'GROUP_CANVAS',
       label: 'Canvas group',
       component: 'nightingale-track-canvas',
-      rendering: CAT_CANVAS_RENDERING,
+      rendering: GROUP_CANVAS_RENDERING,
       helpPage: 'canvas_help',
       tracks: [
         {
@@ -232,7 +232,7 @@ const testConfig: NormalizedConfig = {
           description: 'Canvas track tooltip',
           // Rendering is already cascaded: group rendering lives on
           // the track as well after normalize.
-          rendering: { ...CAT_CANVAS_RENDERING },
+          rendering: { ...GROUP_CANVAS_RENDERING },
           data: [
             {
               from: 'url',
@@ -259,7 +259,7 @@ const testConfig: NormalizedConfig = {
       ],
     },
     {
-      id: 'CAT_LINEGRAPH',
+      id: 'GROUP_LINEGRAPH',
       label: 'Linegraph group',
       component: 'nightingale-linegraph-track',
       rendering: {},
@@ -281,7 +281,7 @@ const testConfig: NormalizedConfig = {
       ],
     },
     {
-      id: 'CAT_VARIATION',
+      id: 'GROUP_VARIATION',
       label: 'Variation group',
       component: 'nightingale-linegraph-track',
       rendering: {},
@@ -304,10 +304,10 @@ const testConfig: NormalizedConfig = {
       ],
     },
     {
-      id: 'CAT_COLORED_SEQ',
+      id: 'GROUP_COLORED_SEQ',
       label: 'Colored sequence group',
       component: 'nightingale-colored-sequence',
-      rendering: CAT_COLORED_SEQ_RENDERING,
+      rendering: GROUP_COLORED_SEQ_RENDERING,
       tracks: [
         {
           id: 'colored_seq_track',
@@ -315,7 +315,7 @@ const testConfig: NormalizedConfig = {
           labelUrl: 'https://example.com/{accession}',
           component: 'nightingale-colored-sequence',
           description: 'Colored sequence tooltip',
-          rendering: { ...CAT_COLORED_SEQ_RENDERING },
+          rendering: { ...GROUP_COLORED_SEQ_RENDERING },
           data: [
             {
               from: 'url',
@@ -327,7 +327,7 @@ const testConfig: NormalizedConfig = {
       ],
     },
     {
-      id: 'CAT_HEATMAP',
+      id: 'GROUP_HEATMAP',
       label: 'Heatmap group',
       component: 'nightingale-colored-sequence',
       rendering: {},
@@ -360,17 +360,17 @@ const testConfig: NormalizedConfig = {
  * renders.
  */
 const testData: Record<string, unknown> = {
-  CAT_CANVAS: [{ type: 'DOMAIN', start: 1, end: 100 }],
-  'CAT_CANVAS-canvas_track_A': [{ type: 'DOMAIN', start: 1, end: 50 }],
-  'CAT_CANVAS-canvas_track_B': [{ type: 'REGION', start: 60, end: 80 }],
-  CAT_LINEGRAPH: [{ values: [1, 2, 3] }],
-  'CAT_LINEGRAPH-linegraph_track': [{ values: [1, 2, 3] }],
-  CAT_VARIATION: { sequence: SEQUENCE, variants: [] },
-  'CAT_VARIATION-variation': { sequence: SEQUENCE, variants: [] },
-  CAT_COLORED_SEQ: [{ values: [0.5, 0.9] }],
-  'CAT_COLORED_SEQ-colored_seq_track': [{ values: [0.5, 0.9] }],
-  CAT_HEATMAP: [{ values: [] }],
-  'CAT_HEATMAP-heatmap_track': [{ values: [] }],
+  GROUP_CANVAS: [{ type: 'DOMAIN', start: 1, end: 100 }],
+  'GROUP_CANVAS-canvas_track_A': [{ type: 'DOMAIN', start: 1, end: 50 }],
+  'GROUP_CANVAS-canvas_track_B': [{ type: 'REGION', start: 60, end: 80 }],
+  GROUP_LINEGRAPH: [{ values: [1, 2, 3] }],
+  'GROUP_LINEGRAPH-linegraph_track': [{ values: [1, 2, 3] }],
+  GROUP_VARIATION: { sequence: SEQUENCE, variants: [] },
+  'GROUP_VARIATION-variation': { sequence: SEQUENCE, variants: [] },
+  GROUP_COLORED_SEQ: [{ values: [0.5, 0.9] }],
+  'GROUP_COLORED_SEQ-colored_seq_track': [{ values: [0.5, 0.9] }],
+  GROUP_HEATMAP: [{ values: [] }],
+  'GROUP_HEATMAP-heatmap_track': [{ values: [] }],
 };
 
 describe('full render — shell + per-group DOM with frozen fixtures', () => {

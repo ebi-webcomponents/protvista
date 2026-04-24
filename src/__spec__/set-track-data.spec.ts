@@ -47,8 +47,8 @@ function makeConfig(track: NormalizedTrack): NormalizedConfig {
     defaults: { rendering: {} },
     groups: [
       {
-        id: 'CAT',
-        label: 'cat',
+        id: 'GROUP',
+        label: 'group',
         component: track.component,
         rendering: {},
         tracks: [track],
@@ -72,7 +72,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       { type: 'DOMAIN', description: 'A', start: 1, end: 10 },
       { type: 'DOMAIN', description: 'B', start: 20, end: 30 },
     ];
-    const customTrackData: CustomTrackData = { 'CAT-mine': injected };
+    const customTrackData: CustomTrackData = { 'GROUP-mine': injected };
     const config = makeConfig({
       id: 'mine',
       label: 'mine',
@@ -93,13 +93,13 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
     // Track-level slot holds the injected array; identity is preserved
     // at the element level (resolver may add `tooltipContent`, but the
     // array itself isn't re-allocated).
-    const track = data['CAT-mine'] as unknown[];
+    const track = data['GROUP-mine'] as unknown[];
     expect(track).toBe(injected);
     expect(track).toHaveLength(2);
 
     // Group-level aggregate picks up the track (most components do
     // `.flat()` on the per-track array).
-    expect(data.CAT).toEqual(injected);
+    expect(data.GROUP).toEqual(injected);
 
     // No URL was queued for this track, so no fetch should have fired.
     expect(fetchOne).not.toHaveBeenCalled();
@@ -111,7 +111,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       { type: 'REGION', description: 'drop' },
       { type: 'DOMAIN', description: 'keep2' },
     ];
-    const customTrackData: CustomTrackData = { 'CAT-mine': injected };
+    const customTrackData: CustomTrackData = { 'GROUP-mine': injected };
     const config = makeConfig({
       id: 'mine',
       label: 'mine',
@@ -130,7 +130,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       customTrackData
     );
 
-    const track = data['CAT-mine'] as Array<{ type: string }>;
+    const track = data['GROUP-mine'] as Array<{ type: string }>;
     expect(track).toHaveLength(2);
     expect(track.map((t) => t.type)).toEqual(['DOMAIN', 'DOMAIN']);
   });
@@ -141,7 +141,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       fields: [{ path: 'description', label: 'Desc' }],
     };
     const injected = [{ type: 'DOMAIN', description: 'hello' }];
-    const customTrackData: CustomTrackData = { 'CAT-mine': injected };
+    const customTrackData: CustomTrackData = { 'GROUP-mine': injected };
     const config = makeConfig({
       id: 'mine',
       label: 'mine',
@@ -160,7 +160,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       customTrackData
     );
 
-    const [item] = data['CAT-mine'] as Array<{ tooltipContent: string }>;
+    const [item] = data['GROUP-mine'] as Array<{ tooltipContent: string }>;
     expect(item.tooltipContent).toBe('<h5>Desc</h5><p>hello</p>');
   });
 
@@ -186,14 +186,14 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
 
     expect(info).toHaveBeenCalledTimes(1);
     expect(info).toHaveBeenCalledWith(
-      `Track CAT/mine is 'from: custom' but no data was provided via setTrackData().`
+      `Track GROUP/mine is 'from: custom' but no data was provided via setTrackData().`
     );
-    expect('CAT-mine' in data).toBe(false);
+    expect('GROUP-mine' in data).toBe(false);
     // Group aggregate is `.flat()` of the per-track return values.
     // The missing-data branch `return`s with no value, so the track
     // contributes `undefined` to the aggregate — matching how the URL
     // branch handles a missing payload (parity with legacy behaviour).
-    expect(data.CAT).toEqual([undefined]);
+    expect(data.GROUP).toEqual([undefined]);
     expect(fetchOne).not.toHaveBeenCalled();
   });
 
@@ -202,7 +202,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
     // accretes into the map; the first load sees it. This test models
     // that via direct map population and verifies the loader reads it.
     const injected = [{ type: 'X', description: 'pre' }];
-    const customTrackData: CustomTrackData = { 'CAT-mine': injected };
+    const customTrackData: CustomTrackData = { 'GROUP-mine': injected };
     const config = makeConfig({
       id: 'mine',
       label: 'mine',
@@ -219,6 +219,6 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       {},
       customTrackData
     );
-    expect(data['CAT-mine']).toBe(injected);
+    expect(data['GROUP-mine']).toBe(injected);
   });
 });
