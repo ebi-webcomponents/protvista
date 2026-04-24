@@ -492,3 +492,47 @@ issues:
       No new runtime dependency. No `vega-expression`, no `filtrex`, no full SQL parser — the in-tree parser is the whole thing.
     fields:
       Group: 'Technical'
+
+  - title: 'Surface errors to users instead of silently falling through to the empty-state render'
+    labels: ['next']
+    body: |
+      **Context**
+      Every error path in `<protvista-uniprot>` today terminates at `console.warn` or `console.error` and then falls through to the silent "no data" render. A handful of representative failure modes:
+
+      * **Malformed config.** `_init()` catches `ConfigValidationError` at `src/protvista-uniprot.ts` ~L503 and logs `console.error('[protvista-uniprot] Failed to load config.', err)`. The viewer then renders its empty-state branch. The author sees a blank element; the full `issues[]` array with paths and codes (unknown source key, missing-accession, unknown adapter, etc.) is only visible in devtools.
+      * **Missing sequence.** `loadEntry()` returns `undefined` or a 4xx body → `console.warn('… loadEntry returned no usable sequence …')` and empty-state render. No visible signal that the identifier was bad or the API was unreachable.
+      * **Per-track fetch failure.** The spec's Edge Cases table documents `A url data source returns HTTP 4xx/5xx → The track is silently hidden. A console.warn is emitted. The rest of the viewer renders normally. The group is hidden if all its tracks have no data.` That's the documented contract today — silent hide on failure. Fine for transient network blips, hostile when it's really a bad source-key substitution.
+      * **`setTrackData` misuse.** Primitive value rejection, unknown `groupId`/`trackId`, `from: url` track receiving injected data — all warn-and-discard at the console.
+      * **`calculate` expression errors** (under the deferred transform engine; see `docs/transform-engine.md`) — one aggregated `console.warn` per track, items get `null`.
+      * **`dataTooltip` field-miss** (filed separately as a distinct issue) — silent empty substitution today, planned per-track aggregated `console.warn`.
+
+      The viewer's authoring audience is bench scientists and bioinformaticians writing YAML, not web developers with devtools open. A blank component with no visible diagnostic is the worst possible feedback loop for someone typo-ing a sources key, mis-spelling a `kind:`, or pointing at an unreachable URL. For UniProt-website-style embeds the same errors may need to reach the page's own error-handling surface, not just the component.
+
+      **Task**
+      Design and implement a user-facing error-surfacing layer: a visible in-viewer diagnostic panel for mount-level failures, small inline indicators for per-track failures, and an event surface so embedders can pipe errors into their own UI. Preserve the current `console.*` logs as the developer-diagnostic channel — the goal is to add a user channel on top, not replace the existing one.
+
+      **Scope:**
+      * **Mount-level error panel.** When `_init()` catches `ConfigValidationError`, render a visible panel (`role="alert"`, `aria-live="polite"`) instead of the silent empty-state. Show a one-line summary ("Config validation failed: 3 issues"), a collapsible list of individual issues with their `path`, `message`, and `code`, and a "Copy to clipboard" action for bug reports. Same treatment for the `loadEntry()` empty-sequence path ("No sequence found for accession 'P05067X'. Check that the identifier is valid and reachable.") and for generic parse errors.
+      * **Per-track error indicator.** When a track's URL fetch 4xx/5xxs, keep the current "silently hide" default but add an opt-in `showErrors?: boolean` (on `ProtvistaViewerConfig`, defaulting to `false` in production but `true` in dev bundles / starter-kit configs) that swaps the hide for a small `⚠` badge next to the track label, with the HTTP status and URL visible on hover. Group-level same treatment when all child tracks have failed. The default behaviour stays backward-compatible; the opt-in is the bench-scientist-friendly posture.
+      * **`protvista-error` custom event.** Dispatch a bubbling `CustomEvent('protvista-error', { detail: { phase, issues, context } })` whenever an error would reach one of the user-facing surfaces above. Embedders (the UniProt website, for example) can listen and route to their own toast / modal / analytics. `phase` is one of `'config' | 'sequence' | 'track-fetch' | 'set-track-data' | 'transform-calculate' | 'tooltip-field-miss'`. `context` carries the relevant `groupId`/`trackId`/`accession` where applicable. Document the event shape in the spec's escape-hatch section alongside `on()`.
+      * **Error-formatting helpers.** A tiny `src/errors/format.ts` module that turns `ConfigValidationError.issues` into a rendering-friendly shape (grouped by path, formatted for display). Tree-shakeable / lazy-loaded so non-error paths don't pay for the formatting code.
+      * **A11y.** Error panels carry `role="alert"` (for mount-level) or `role="status"` (for warnings). Focus moves to the alert panel when it appears, with a visible close / dismiss control that returns focus to the previously-focused element. Track-level badges are keyboard-focusable and expose the error detail via `aria-describedby` rather than a native `title` tooltip alone.
+      * **Authoring-time "strict" mode.** Optional `ProtvistaViewerConfig.strict?: boolean` that promotes every warning to a mount-failure with the error panel shown — useful during config authoring where you want silent hides to fail loudly. Off by default.
+      * **Tests.**
+        - `src/__spec__/error-surface.spec.ts` — mounts an element with a malformed config and asserts the error panel renders, the issues are listed, and a `protvista-error` event fires with the right `phase: 'config'`.
+        - Mounts with a bogus accession and asserts the sequence-level error panel.
+        - Mounts with a real URL that the fetch stub returns 404 for, asserts the per-track badge renders when `showErrors: true` and the silent-hide default when it's not.
+        - `setTrackData` misuse fires a `protvista-error` with `phase: 'set-track-data'`.
+        - A11y: focus is captured on the error panel; `role="alert"` is set; close button restores focus to the triggering element.
+
+      **Notes:**
+
+      * The visible-panel UI is the load-bearing piece. Without it, "better error reporting" just means "more console noise." Get the panel working against `ConfigValidationError` first (highest-value path — every authoring typo goes through validation), then extend to sequence / per-track / setTrackData.
+      * Keep the `console.*` logs. Removing them would regress devtools workflows that the web-dev audience relies on; the goal is an *additional* surface, not a replacement. Route both through a shared reporter so the message text stays in lockstep.
+      * The default per-track behaviour has to stay "silently hide" for backward compatibility — `default-config.yaml` relies on this when an adapter's API is transiently down. `showErrors: true` is the opt-in that makes per-track failures visible for dev / authoring contexts.
+      * Event phase names should match the `ValidationIssueCode` taxonomy where possible (`unknown-source-key`, `unknown-adapter`, etc.) so embedders can switch on a single stable vocabulary.
+      * Coordinate with the `dataTooltip` field-miss warning issue — both should emit through the same `protvista-error` event surface with different `phase` values, so an embedder has one listener to wire up for all error flavours.
+      * Bundle cost must stay under ~2 kB gzipped. The panel markup is small; the formatter is the only non-trivial piece. No runtime dep.
+      * If the error-panel styling needs to match the viewer's own visual identity, reuse the existing design tokens rather than introducing new CSS variables. The spec's section on CSS classes (see the `pv-`-prefixing issue) is the right place to coordinate.
+    fields:
+      Group: 'Technical'
