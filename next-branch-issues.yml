@@ -408,3 +408,53 @@ issues:
       * Issue "Add a generic `linegraph` semantic kind for bring-your-own-data authors" — BYOD consumers who pair generic kinds with a React host are the second audience for this doc; worth cross-referencing.
     fields:
       Group: 'Technical'
+
+  - title: "Eliminate `transformedVariants` — lift variation-filter wiring out of the hardcoded `track.id === 'variation'` match"
+    labels: ["next"]
+    body: |
+      **Context**
+      `<protvista-uniprot>` carries a private field `transformedVariants?: { sequence: string; variants: TransformedVariant[] }` that mirrors the unfiltered variation-track payload. It exists because the variation-filter UI's change handler (`_filterChange` in `src/protvista-uniprot.ts`, around line 972) applies user-selected filters against a pristine baseline, then writes the filtered result back to `this.data['VARIATION-variation']`. Without a separate baseline, subsequent filter interactions would compound — each filter applied to the result of the previous filter rather than to the full list.
+
+      Two symptoms of legacy wiring converge on this field:
+
+      1. **Hardcoded track id.** After every `loadProtvistaData` call, the component walks `this.config.groups` and, for any track with `track.id === 'variation'`, copies `data['${group.id}-${track.id}']` into `this.transformedVariants`. Already flagged by `TODO(#variation-hardcoded)` at ~line 304. A consumer who renames the variation track — a perfectly valid config operation — silently breaks the filter. This tightly couples the filter UI to a specific id string rather than a declarative per-track role.
+
+      2. **Redundant storage.** The baseline exists in two places: `data['VARIATION-variation']` (pre-first-filter-apply) and `this.transformedVariants`. The second copy only exists because the first one gets overwritten by the filter handler. Either we should not overwrite the first, or we shouldn't maintain the second.
+
+      The broader tech-debt theme is "per-track UI roles should be data-driven, not hardcoded." This issue pairs with #5 (`detailOnly` flag) and #10 (URL-template substitution / `data-*` attributes) as the third leg of lifting hardcoded assumptions out of `protvista-uniprot.ts`.
+
+      **Task**
+      Replace `transformedVariants` + the `track.id === 'variation'` post-load copy loop with a declarative mechanism on the track config (or a dedicated `this.data` key) that gives the filter handler a pristine baseline without hardcoding the track identity.
+
+      **Scope:**
+      Two viable implementation shapes; decide when the work starts:
+
+      * **Shape A — preserve-unfiltered key in `this.data`.** When the loader writes `data['${groupId}-${trackId}']` for a track whose `filterUI === 'nightingale-filter'` (or carries a new explicit `role` flag — see Notes), also write the same payload under `data['${groupId}-${trackId}__unfiltered']` (or similar sentinel suffix). The filter handler reads from the `__unfiltered` key, produces a filtered copy, writes it to the primary key. Zero hardcoded ids anywhere; the filter behaviour follows whichever track opts into `filterUI: 'nightingale-filter'`.
+
+      * **Shape B — filter state separated from data.** The filter handler records `selectedFilters` in a component field; a getter / memoised selector produces the filtered view on demand from the unfiltered source (still `this.data['${groupId}-${trackId}']`, which is never overwritten). Nightingale's variation component consumes the getter result. Cleaner mental model but more intrusive — every reader of `data['VARIATION-variation']` has to route through the getter.
+
+      Shape A is my lean for the first cut: smaller surface-area change, no getter churn, and every existing consumer of `data['VARIATION-variation']` keeps working without edits. Shape B can land later if the getter pattern feels better under real use.
+
+      * Delete `private transformedVariants?` declaration, its constructor init, and the post-load copy loop in the loader wrapper (~20 lines of subtraction).
+      * Rewrite `_filterChange` to read from the pristine-copy key (shape A) or the getter (shape B) instead of `this.transformedVariants`.
+      * Update the loader's JSDoc — the `transformedVariants` side-effect-preservation comment (currently in `src/load-data.ts` ~L27) goes away; replace with a note that describes whichever mechanism replaces it.
+      * Update `src/__spec__/render-target.spec.ts` and any other test fixture that sets `transformedVariants` directly (grep for `transformedVariants` to find).
+      * Add a test in `src/__spec__/` covering the filter-change → filtered-data write path against a track whose id is NOT `variation` (e.g. `variants_rna` or `user-defined-variants`), proving the hardcode is gone.
+      * Remove the `TODO(#variation-hardcoded)` marker at `src/protvista-uniprot.ts` ~L304 — the fix is this issue's landing condition.
+
+      **Notes:**
+      Design decisions to pin down before starting:
+
+      1. **`filterUI === 'nightingale-filter'` as the role signal, or a dedicated `role`/`flag` field?** Using `filterUI` is cheapest — it's already in the schema, already set on the variation track in the default config. Downside: it couples the "I need an unfiltered baseline" contract to the filter-UI component name, which is arguably conflating two concerns. A dedicated `role: 'filterable-list'` (or similar) on `TrackConfig` would be more explicit. Lean `filterUI` first; rename/split later if another role emerges.
+
+      2. **Sentinel suffix for the unfiltered key.** `${key}__unfiltered` is one option. Others: `${key}.pristine`, `${key}:original`, or a separate map (`this.unfilteredData`). Whichever is picked should document the wire-in contract so consumers reading `this.data` directly don't mistake it for live payload.
+
+      3. **Memory cost.** Duplicating the variation payload is fine (variants arrays are typically tens to low thousands of records per protein). If this generalises to other filterable tracks with larger payloads, revisit — but shape A's duplication is cheap for realistic inputs.
+
+      4. **Interaction with issue #5 (`detailOnly`) and #10 (`variables:` / `data-*`).** All three are about lifting hardcoded assumptions out of the component into the declarative schema. They don't conflict but should be sequenced — ideally detailOnly first (smallest, unlocks clean aggregate-inference testing), then this, then the generic variables dict.
+
+      5. **Filter-UI integration beyond variation.** If the fix genuinely de-hardcodes the variation path, a consumer could wire up `filterUI: 'nightingale-filter'` on an RNA-editing or arbitrary features track and get the same behaviour. Worth a sentence in the spec's "Track configuration" section explicitly stating that.
+
+      Zero schema changes required under shape A — the schema already carries `filterUI?` on `TrackConfig`. Pure component-internal wiring cleanup that happens to remove a legacy private field.
+    fields:
+      Group: 'Technical'
