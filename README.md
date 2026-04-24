@@ -163,27 +163,6 @@ Mount with:
 
 The viewer renders a single collapsible group "Domains" (label title-cased from the id), containing one track "Domain", populated by the `features` URL (with `{accession}` substituted at fetch time) and filtered to items with `type === "DOMAIN"`. No `version`, no explicit `component:` / `adapter:`, no `label:` — minimal configs collapse to the minimum.
 
-### Extending the default
-
-A common pattern is to start from the canonical UniProt viewer and layer your own tracks on top:
-
-```yaml
-extends: "https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml"
-
-groups:
-  - id: MY_LAB
-    label: My lab
-    tracks:
-      - id: predicted_sites
-        kind: features
-        data:
-          from: inline
-          inlineData:
-            - { type: BINDING, start: 45, end: 52, description: ATP binding }
-```
-
-`extends` pulls in the full `sources`, `defaults`, and 15 canonical UniProt groups; your `groups` block is appended at the end. Groups with the same `id` as one in the base are merged in place.
-
 ### Learning more
 
 - **Schema reference.** [`specs/config-approach.md`](./specs/config-approach.md) documents every field (`groups`, `tracks`, `sources`, `defaults`, `extends`, `kind`, `data`, `transform`, `rendering`, `dataTooltip`) with worked examples and edge-case semantics. This is the normative source.
