@@ -13,9 +13,9 @@
  *   - custom-operator dispatch through the registry;
  *   - the `registerBuiltinTransforms()` wiring used by the loader.
  *
- * Expression evaluation is injected via a mock compiler so that these
- * tests do not depend on vega-expression (which is lazy-loaded at
- * runtime; see specs/config-approach.md's Constraints section).
+ * Expression-string filters and `calculate` steps are compiled through
+ * the same `vega-expression` path production uses — one evaluator,
+ * same for test and prod.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -23,43 +23,9 @@ import {
   applyTransforms,
   fieldPredicateToFn,
   registerBuiltinTransforms,
-  type ExpressionEvaluator,
-  type CompiledExpression,
 } from '../transforms';
 import { createRegistry } from '../registry';
 import type { Transform, FieldPredicate, TransformFunction } from '../types';
-
-// ─────────────────────────────────────────────────────────────
-// Expression evaluator mock
-// ─────────────────────────────────────────────────────────────
-
-// A tiny hand-written evaluator that knows just the expressions these
-// tests use. Production wires vega-expression in its place; the
-// interface is identical.
-const mockEvaluator: ExpressionEvaluator = {
-  compile(expr): CompiledExpression {
-    switch (expr) {
-      case 'datum.score > 0.8':
-        return (d) =>
-          typeof (d as { score?: unknown }).score === 'number' &&
-          ((d as { score: number }).score as number) > 0.8;
-      case 'datum.end - datum.start':
-        return (d) =>
-          ((d as { end: number }).end as number) -
-          ((d as { start: number }).start as number);
-      case 'datum.a.b':
-        return (d) =>
-          (d as { a: { b: unknown } }).a.b; // throws when d.a is undefined
-      case 'datum.score >= 0 && datum.type == "DOMAIN"':
-        return (d) => {
-          const dd = d as { score?: number; type?: string };
-          return (dd.score ?? -1) >= 0 && dd.type === 'DOMAIN';
-        };
-      default:
-        throw new Error(`mock evaluator: unknown expression '${expr}'`);
-    }
-  },
-};
 
 // ─────────────────────────────────────────────────────────────
 // fieldPredicateToFn
@@ -160,50 +126,26 @@ describe('applyTransforms — built-in operators', () => {
     expect(out.map((i) => (i as { desc: string }).desc)).toEqual(['A', 'C']);
   });
 
-  it('filter with an expression string uses the evaluator', () => {
-    const out = applyTransforms(
-      sample,
-      [{ filter: 'datum.score > 0.8' }],
-      { expressionEvaluator: mockEvaluator }
-    );
+  it('filter with an expression string compiles it through vega-expression', () => {
+    const out = applyTransforms(sample, [{ filter: 'datum.score > 0.8' }]);
     expect(out.map((i) => (i as { desc: string }).desc)).toEqual(['A', 'C']);
-  });
-
-  it('filter with a string expression and no evaluator throws a clear error', () => {
-    expect(() =>
-      applyTransforms(sample, [{ filter: 'datum.score > 0.8' }])
-    ).toThrow(/expression evaluator/i);
   });
 
   it('filter with an expression that throws treats that item as out', () => {
     const items = [{ a: { b: 1 } }, { a: null } as unknown, { other: true }];
-    const out = applyTransforms(
-      items,
-      [{ filter: 'datum.a.b' }],
-      { expressionEvaluator: mockEvaluator }
-    );
-    // Only the first item has a truthy result; the other two throw or
-    // return undefined → filtered out.
+    const out = applyTransforms(items, [{ filter: 'datum.a.b' }]);
+    // Only the first item has a truthy result; the other two throw
+    // (null.b, undefined.b) → filtered out.
     expect(out).toEqual([{ a: { b: 1 } }]);
   });
 
   it('calculate derives a field from an expression', () => {
-    const out = applyTransforms(
-      sample,
-      [{ calculate: 'datum.end - datum.start', as: 'length' }],
-      { expressionEvaluator: mockEvaluator }
-    );
+    const out = applyTransforms(sample, [
+      { calculate: 'datum.end - datum.start', as: 'length' },
+    ]);
     expect(out.map((i) => (i as { length: number }).length)).toEqual([
       9, 3, 5,
     ]);
-  });
-
-  it('calculate throws without an evaluator', () => {
-    expect(() =>
-      applyTransforms(sample, [
-        { calculate: 'datum.end - datum.start', as: 'length' },
-      ])
-    ).toThrow(/expression evaluator/i);
   });
 
   it('rename applies the mapping and keeps unmapped keys', () => {
@@ -268,7 +210,7 @@ describe("calculate — error handling matches specs/config-approach.md's table"
     const out = applyTransforms(
       items,
       [{ calculate: 'datum.a.b', as: 'derived' }],
-      { expressionEvaluator: mockEvaluator, trackRef: 'GROUP/track' }
+      { trackRef: 'GROUP/track' }
     );
     expect(out).toEqual([
       { a: { b: 1 }, derived: 1 },
@@ -282,7 +224,7 @@ describe("calculate — error handling matches specs/config-approach.md's table"
     applyTransforms(
       items,
       [{ calculate: 'datum.a.b', as: 'derived' }],
-      { expressionEvaluator: mockEvaluator, trackRef: 'GROUP/track' }
+      { trackRef: 'GROUP/track' }
     );
     expect(warnSpy).toHaveBeenCalledTimes(1);
     const msg = (warnSpy.mock.calls[0]?.[0] ?? '') as string;
@@ -387,9 +329,7 @@ describe("applyTransforms — specs/config-approach.md Example 4 pipeline", () =
       { calculate: 'datum.end - datum.start', as: 'length' },
       { limit: 2 },
     ];
-    const out = applyTransforms(items, steps, {
-      expressionEvaluator: mockEvaluator,
-    });
+    const out = applyTransforms(items, steps);
 
     expect(out).toEqual([
       {

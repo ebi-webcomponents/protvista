@@ -21,11 +21,12 @@
  * Expression strings:
  *
  *   `filter: "<vega-expression>"` and `calculate: "<vega-expression>"`
- *   require a compiled evaluator. Production wires `vega-expression`
- *   (~40 kB gzipped, lazy-loaded by the loader); tests inject a
- *   minimal in-process compiler. Structured predicates and the
- *   non-expression operators (`rename` / `pick` / `limit`) never need
- *   an evaluator.
+ *   are compiled via Vega's own `vega-expression` package (parser +
+ *   codegen). One evaluator, same for production and tests — the
+ *   previous pluggable `ExpressionEvaluator` abstraction added
+ *   mental overhead for no observable win. Structured predicates and
+ *   the non-expression operators (`rename` / `pick` / `limit`) never
+ *   touch the expression path.
  *
  * Error handling (see specs/config-approach.md → Error Handling table):
  *
@@ -41,25 +42,37 @@
  *     dispatch (e.g. if a caller bypasses the validator).
  */
 
+import { parseExpression, codegenExpression } from 'vega-expression';
 import type { Transform, FieldPredicate, TransformFunction } from './types';
 import type { Registry } from './registry';
 
 // ─────────────────────────────────────────────────────────────
-// Expression evaluator — pluggable / lazy-loaded
+// Expression compiler (vega-expression)
 // ─────────────────────────────────────────────────────────────
 
 /** Compiled expression: a closure that evaluates against one datum. */
-export type CompiledExpression = (datum: Record<string, unknown>) => unknown;
+type CompiledExpression = (datum: Record<string, unknown>) => unknown;
+
+// `allowed: ['datum']` lets `datum.x` references through untouched.
+// `globalvar` rewrites every OTHER free identifier to a non-existent
+// name, so a malicious expression can't reach `window`, `document`,
+// or `process`. Matches Vega-Lite's safe-expression posture.
+const codegen = codegenExpression({
+  globalvar: (id) => `__no_globals_${id}`,
+  allowed: ['datum'],
+});
 
 /**
- * Pluggable expression compiler. Production uses `vega-expression`'s
- * safe evaluator; tests inject a tiny in-process stub. The loader is
- * responsible for wiring this up lazily (only on first string-form
- * `filter`/`calculate` step) so that JSON configs without expressions
- * never pay the ~40 kB gzipped cost.
+ * Parse a Vega-expression string and return a reusable closure that
+ * evaluates it against a single `datum`. `new Function` is the
+ * standard Vega-expression compile step; it carries the same trust
+ * posture as eval, but the `globalvar` rewrite above sandboxes the
+ * scope so authored expressions can only reach `datum`.
  */
-export interface ExpressionEvaluator {
-  compile(expression: string): CompiledExpression;
+function compileExpression(expression: string): CompiledExpression {
+  const ast = parseExpression(expression);
+  const { code } = codegen(ast);
+  return new Function('datum', `"use strict"; return ${code};`) as CompiledExpression;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -73,15 +86,6 @@ interface ApplyTransformsOptions {
    * `registerTransform()` do.
    */
   registry?: Registry;
-
-  /**
-   * Compiles Vega-Lite expression strings
-   * (`filter: "datum.score > 0.8"`,
-   * `calculate: "datum.end - datum.start"`). Not required when all
-   * `filter` steps use structured predicates and no `calculate` step
-   * is present.
-   */
-  expressionEvaluator?: ExpressionEvaluator;
 
   /**
    * The track-level `filter: "<value>"` shortcut (see `TrackConfig`).
@@ -127,7 +131,7 @@ function applyStep(
 ): unknown[] {
   // Built-in fast path — ordered by expected popularity.
   if ('filter' in step) {
-    return filterStep(items, step.filter, opts);
+    return filterStep(items, step.filter);
   }
   if ('calculate' in step && 'as' in step) {
     return calculateStep(items, step, opts);
@@ -179,18 +183,10 @@ function applyStep(
 
 function filterStep(
   items: unknown[],
-  predicate: FieldPredicate | string,
-  opts: ApplyTransformsOptions
+  predicate: FieldPredicate | string
 ): unknown[] {
   if (typeof predicate === 'string') {
-    if (!opts.expressionEvaluator) {
-      throw new Error(
-        `filter: "<expression>" requires an expression evaluator. ` +
-          `Pass \`expressionEvaluator\` in applyTransforms() options ` +
-          `(the loader lazy-loads vega-expression for this).`
-      );
-    }
-    const fn = opts.expressionEvaluator.compile(predicate);
+    const fn = compileExpression(predicate);
     return items.filter((item) => {
       try {
         return Boolean(fn(isRecord(item) ? item : {}));
@@ -298,13 +294,7 @@ function calculateStep(
   step: { calculate: string; as: string },
   opts: ApplyTransformsOptions
 ): unknown[] {
-  if (!opts.expressionEvaluator) {
-    throw new Error(
-      `'calculate' step requires an expression evaluator. ` +
-        `Pass \`expressionEvaluator\` in applyTransforms() options.`
-    );
-  }
-  const fn = opts.expressionEvaluator.compile(step.calculate);
+  const fn = compileExpression(step.calculate);
   let failures = 0;
   const out = items.map((item) => {
     const datum = isRecord(item) ? item : {};
@@ -388,8 +378,8 @@ function limitStep(items: unknown[], n: number): unknown[] {
  *
  * Note: the registered `filter` / `calculate` wrappers handle only
  * the *structured* / *non-expression* shapes. Expression strings go
- * through `applyTransforms`, which owns the evaluator injection
- * point. Custom transforms registered via `registerTransform()`
+ * through `applyTransforms`, which owns the vega-expression pipeline
+ * end to end. Custom transforms registered via `registerTransform()`
  * follow the natural `(items, stepValue) => items` convention.
  */
 export function registerBuiltinTransforms(registry: Registry): void {
@@ -397,7 +387,7 @@ export function registerBuiltinTransforms(registry: Registry): void {
     if (typeof params === 'string') {
       throw new Error(
         `Expression-string filter is not supported via registry dispatch; ` +
-          `use applyTransforms() with \`expressionEvaluator\` instead.`
+          `use applyTransforms() directly.`
       );
     }
     return (items as unknown[]).filter(

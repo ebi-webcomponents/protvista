@@ -50,7 +50,8 @@
     "js-yaml": "4.1.0",
     "lit": "3.3.2",
     "lodash-es": "4.18.1",
-    "timing-functions": "2.0.1"
+    "timing-functions": "2.0.1",
+    "vega-expression": "6.1.0"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -72,7 +73,6 @@
     "svg-inline-loader": "0.8.2",
     "typescript": "6.0.3",
     "typescript-eslint": "8.58.2",
-    "vega-expression": "6.1.0",
     "vite": "8.0.9",
     "vite-plugin-dts": "4.5.4",
     "vite-plugin-env-compatible": "2.0.1",
