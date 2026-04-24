@@ -451,6 +451,30 @@ class ProtvistaUniprot extends LitElement {
       this._init();
     }
 
+    // Post-mount `accession` change → re-run `_init()` so `loadEntry()`
+    // refetches the sequence and `_loadData()` refetches the track
+    // data against the new ID. Consumers like UniProt's own feature
+    // viewer navigate between entries without unmounting the element,
+    // so this is a live UX path.
+    //
+    // Guard: `changedProperties.get('accession') !== undefined` so the
+    // initial-mount transition (`undefined → "<value>"`) doesn't
+    // double-run — that transition is already covered by
+    // `connectedCallback() → _init()`.
+    //
+    // Intentional early return: `_init()` is async and will update
+    // `this.config` / `this.sequence` / `this.data` on its own
+    // schedule, each firing another `updated()` cycle that will hit
+    // the gate below. Running the push on THIS tick would inject
+    // stale (old-accession) data into components.
+    if (
+      changedProperties.has('accession') &&
+      changedProperties.get('accession') !== undefined
+    ) {
+      this._init();
+      return;
+    }
+
     // Only push data into Nightingale when something that could
     // affect the per-track payload or the track DOM has actually
     // changed. `updated()` fires for every reactive property —
