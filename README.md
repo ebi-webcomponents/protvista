@@ -165,7 +165,7 @@ The viewer renders a single collapsible group "Domains" (label title-cased from 
 
 ### Extending the default
 
-External labs typically start from the canonical UniProt viewer and add their own tracks:
+A common pattern is to start from the canonical UniProt viewer and layer your own tracks on top:
 
 ```yaml
 extends: "https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml"

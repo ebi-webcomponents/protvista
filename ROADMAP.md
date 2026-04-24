@@ -159,7 +159,7 @@ Year 3 is intended to deepen ProtVista’s interoperability with the MSS ecosyst
 
 ## 1\. Architectural Sustainability (Reducing Technical Debt)
 
-The core Year 1 deliverable is transforming ProtVista from a tightly coupled, EBI-specific tool into a data-agnostic, configuration-driven component. By replacing hardcoded API endpoints and group lists with a documented JSON schema, we drastically lower the barrier for external labs and industry partners to adapt ProtVista for their own data. Every new adopter becomes a potential contributor and stakeholder, naturally scaling the pool of people invested in the tool's maintenance.
+The core Year 1 deliverable is transforming ProtVista from a tightly coupled, EBI-specific tool into a data-agnostic, configuration-driven component. By replacing hardcoded API endpoints and group lists with a documented JSON schema, we drastically lower the barrier for labs and industry partners to adapt ProtVista for their own data. Every new adopter becomes a potential contributor and stakeholder, naturally scaling the pool of people invested in the tool's maintenance.
 
 Furthermore, the configuration-first, modular architecture will be highly compatible with emerging AI coding tools. By defining clear boundaries and machine-readable JSON schemas, we ensure that post-grant maintenance, bug fixes, and the development of custom tracks can be achieved with significantly reduced developer overhead.
 
