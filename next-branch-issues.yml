@@ -364,3 +364,47 @@ issues:
       Side note: the perceptual asymmetry between the collapsed and expanded views also suggests a broader UX question — whether a click on an aggregate-rendered feature should do anything at all beyond open a tooltip, given the feature "lives" on one of the detail tracks. That's out of scope for this issue but worth a separate design conversation if it comes up again.
     fields:
       Group: 'Technical'
+
+  - title: "Document the canonical React integration pattern (`notooltip` + `change`-event listener)"
+    labels: ["next"]
+    body: |
+      **Context**
+      `<protvista-uniprot>` is a light-DOM Web Component consumed by React hosts, most prominently uniprot-website. The current React integration pattern — disable the built-in tooltip popover via `notooltip`, listen for `change` events on the element, read `detail.feature.tooltipContent` + `detail.coords`, render a React-controlled overlay positioned at those coordinates — works cleanly and has been in production use. But it is nowhere documented in this repo. A new React adopter today has to reverse-engineer the pattern from consumer code (uniprot-website's `FeatureViewer.tsx`), which is both friction and a correctness hazard (the event shape, attribute name, and dismissal vocabulary are all load-bearing and aren't discoverable from the viewer's types or README).
+
+      This gap became visible during a uniprot-website migration discussion on the config-approach branch. The consumer already uses the event-listening pattern and asked how they are "supposed to" integrate with the new config-approach tooltip pipeline. The answer is simple — add `notooltip`, keep everything else — but that answer doesn't exist as canonical documentation yet.
+
+      **Task**
+      Add a "React integration" section to `specs/config-approach.md` (or a standalone page under `docs/`) that codifies the event-listening pattern as the canonical path for React hosts, and cross-link it from the README's API section and from the `tooltips` property's JSDoc on `<protvista-uniprot>`.
+
+      **Scope:**
+      * New section in `specs/config-approach.md` titled something like "React host integration" (placement: after the "Intent" section, before "Security and trust model"). Contents:
+        - When to use the built-in tooltip popover vs. a React-owned overlay (one paragraph).
+        - The `notooltip` attribute — what it does, when to set it, why a React host usually wants it. Note that `notooltip` does not suppress `feature.tooltipContent` resolution; it only disables the built-in popover's DOM mount.
+        - The event-listening pattern:
+          - Attach a listener for the `change` event on the `<protvista-uniprot>` element.
+          - Inspect `detail.eventType` — `click` opens a tooltip, `mouseover`/`mouseout`/`reset` drive your own hover and dismissal logic.
+          - Read `detail.feature.tooltipContent` (an HTML string) and `detail.coords` (an `[x, y]` tuple in page coordinates).
+          - Render your overlay into a React portal or Floating-UI-positioned div at `[x, y]`.
+          - Hide the overlay on `undefined` / `reset` / subsequent `click` events (the dismissal set that uniprot-website uses).
+        - A worked minimal React example (no dependencies beyond React itself + Floating UI, roughly 30 lines). The uniprot-website `FeatureViewer.tsx` is the real reference but has a lot of ambient app concerns; a stripped-down example is more digestible for a new adopter.
+        - The `element.tooltips[kind] = { kind: 'custom', render: (item, ctx) => string }` escape hatch — how to use `renderToStaticMarkup` (from `react-dom/server`) to produce the `feature.tooltipContent` HTML string from a React component. Note the limitation: the resulting HTML is static; React event handlers, hooks, and portals do not survive because the overlay ultimately renders via `innerHTML`.
+      * README cross-link: the existing API-section entry for `tooltips` and `notooltip` gains a "See [React host integration](…) for the consumer-side pattern." pointer.
+      * JSDoc update on the `tooltips` and `notooltip` properties in `src/protvista-uniprot.ts`: a one-line link to the new spec section, so IDE tooltip-on-hover points the right way.
+      * `docs/react-integration.md`: optional second home for the same content, closer to `docs/data-tooltip.md`. Decide between "single source in the spec" vs. "tutorial-flavoured copy in `docs/` and normative contract in the spec" when drafting.
+
+      **Notes:**
+      Three things to pin down while writing the section, all surfaced during the original discussion:
+
+      1. **`detail.eventType` value vocabulary.** Current values: `'click'`, `'mouseover'`, `'mouseout'`, `'reset'`. Document every one, including what `reset` means (Nightingale emits it when the user scrolls / zooms, effectively "stop showing any per-feature tooltip"). The set is load-bearing — uniprot-website's `hideTooltipEvents = new Set([undefined, 'reset', 'click'])` assumes all three dismissal triggers.
+
+      2. **`detail.coords` coordinate space.** Document that these are page-coordinates (`clientX` / `clientY`-style) so the consumer knows whether they need to transform to container-local coordinates. Worth sanity-checking against the Nightingale source before committing a statement either way.
+
+      3. **React 19 forward-looking note.** The uniprot-website code has a TODO referencing `ref`-callback-with-cleanup — a React 19 feature that replaces the separate mount/unmount `useEffect` pair. Worth mentioning in the doc as the preferred pattern once React 19 is available, so new adopters don't copy the older split-useEffect shape as the canonical form.
+
+      No code changes in this issue — pure documentation. The existing event-listening integration path works today on the config-approach branch; the gap is that nobody would know from the docs alone that this is the intended path. Estimated effort: half a day to draft, half a day to shake down with a real uniprot-website migration trial run.
+
+      Cross-links with existing next-branch issues:
+      * Issue "Tame Nightingale's click-highlight fill swap on collapsed group aggregate tracks" — if that one lands as option 1 (drop `highlight-event="onclick"` from the aggregate), the React integration doc should mention that a click on the collapsed aggregate opens a tooltip *without* a highlight state change, distinct from a click on the expanded detail track.
+      * Issue "Add a generic `linegraph` semantic kind for bring-your-own-data authors" — BYOD consumers who pair generic kinds with a React host are the second audience for this doc; worth cross-referencing.
+    fields:
+      Group: 'Technical'
