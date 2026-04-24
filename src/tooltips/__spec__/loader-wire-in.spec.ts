@@ -1,17 +1,22 @@
 /**
- * Focused coverage for the tooltip-resolver wire-in inside
- * `loadProtvistaData`.
+ * Integration coverage for how the tooltip resolver plugs into the
+ * loader pipeline. Sits alongside the other tooltip test files
+ * (`resolve.spec.ts`, `defaults.spec.ts`, `popover.spec.ts`,
+ * `helpers.spec.ts`) rather than under `src/__spec__/` because the
+ * subject under test is the tooltip system — the test just happens to
+ * drive it by calling `loadProtvistaData`.
  *
- * The baseline snapshot test (`load-data-baseline.spec.ts`) exercises the
- * whole pipeline against the real config. This file narrows in on the
- * single post-adapter step added for the declarative tooltip system:
+ * The baseline snapshot test (`src/__spec__/load-data-baseline.spec.ts`)
+ * exercises the whole pipeline against the real config. This file
+ * narrows in on the single post-adapter step that the declarative
+ * tooltip system installs:
  *
  *   1. `track.dataTooltip` present → its spec wins over any per-kind
  *      default.
  *   2. Neither `dataTooltip` nor an override present → the auto-fallback
  *      synthesizes a fields spec from common feature-shaped fields.
  *      (The intermediate `tooltipDefaults[kind]` step has its own unit
- *      coverage in `src/tooltips/__spec__/defaults.spec.ts`.)
+ *      coverage in `defaults.spec.ts`.)
  *   3. Variation-shaped adapter output (`{ sequence, variants }`) has the
  *      resolver applied to each item in `variants`, not to the wrapper.
  *   4. The `TooltipContext` passed to the resolver carries the accession,
@@ -29,9 +34,9 @@
  * resolver inputs the test exercises.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { loadProtvistaData, type AdapterMap } from '../load-data';
-import type { TooltipSpec } from '../tooltips/types';
-import { ACCESSION, makeConfig } from './fixtures';
+import { loadProtvistaData, type AdapterMap } from '../../load-data';
+import type { TooltipSpec } from '../types';
+import { ACCESSION, makeConfig } from '../../__spec__/fixtures';
 
 const fetchOne = vi.fn(async (url: string) => ({ url })); // payload is irrelevant — adapters below ignore it
 
