@@ -329,8 +329,8 @@ interface TrackConfig {
    * from common feature-shaped fields (`type`, `description`,
    * `start | begin`, `end`). Resolution precedence is
    * `tooltipOverrides[kind] > track.dataTooltip > tooltipDefaults[kind] > auto-fallback`.
-   * The auto-fallback is a sensible-default path: if an adapter already
-   * stashed a `tooltipContent` on the item, the loader leaves it alone.
+   * Adapters produce data only; `tooltipContent` on items is always
+   * written by the resolver, never by the adapter.
    *
    * Interpolated field values are HTML-escaped before they enter the
    * Markdoc render, so a malicious adapter payload cannot smuggle
@@ -865,7 +865,7 @@ Accessibility is a grant-level commitment (see the OMP) and is baked into the sc
 - **Keyboard-accessible legends.** Colour-scale legends rendered from `ColorScaleConfig` are keyboard-focusable and announce their `label` via `aria-label`. The `label` field on `ColorStop` is the accessible name — authors who register custom themes via `registerTheme()` should supply labels for every stop, not only for legend clarity but for screen-reader output.
 - **Tooltip semantics.** Track- and group-level `description` fields render as plain-text native HTML `title` attributes — no Markdown, no HTML — so screen readers pick them up via the browser's default a11y path. Per-datapoint `dataTooltip` content flows through `@markdoc/markdoc` to produce HTML preserving the Markdown's semantic structure (headings, emphasis, lists) rather than flattening to a styled `<div>`. Field interpolations are HTML-escaped at the boundary so those semantic tags stay intact for screen readers. Per-datapoint tooltips are displayed as click-triggered popovers (not hover-triggered) with `role="tooltip"` and `tabindex="-1"`. Focus moves into the popover on open and is restored to the previously-focused element on close (Escape key, outside click, or scroll). The popover is dismissed by Escape, outside-click, or any document scroll.
 - **Library defaults are minimal.** The built-in `tooltipDefaults` registry ships a small `{ kind: "fields", fields: [...] }` spec per `SemanticKind` that emits a plain `<h5>Label</h5><p>value</p>` stream. Product-specific rich rendering (evidence icons, xref badges, taxonomy lookups) lives in consumer code via the `element.tooltipOverrides[kind]` escape hatch, not in the library.
-- **Sensible out-of-the-box fallback.** When a track has no `kind`, no `dataTooltip`, and no `tooltipOverrides` entry, the resolver synthesizes a `fields` spec from the common feature-shaped record (`type`, `description`, `start | begin`, `end`). Missing fields drop out; an item carrying none of them stays empty. Any `tooltipContent` an adapter already stashed on the item is preserved — the fallback never stomps.
+- **Sensible out-of-the-box fallback.** When a track has no `kind`, no `dataTooltip`, and no `tooltipOverrides` entry, the resolver synthesizes a `fields` spec from the common feature-shaped record (`type`, `description`, `start | begin`, `end`). Missing fields drop out; an item carrying none of them stays empty. Adapters only produce data — `tooltipContent` is always written by the resolver.
 - **No colour-only encoding.** `RenderingOptions.shape` exists partly so tracks can encode distinctions redundantly (e.g. shape *and* colour) rather than colour alone. Config authors building custom tracks are encouraged to use shape or label text as a secondary channel alongside colour.
 
 ## Security and trust model
