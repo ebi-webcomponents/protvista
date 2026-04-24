@@ -71,16 +71,40 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       customTrackData
     );
 
-    // Track-level slot holds the injected array; identity is preserved
-    // at the element level (resolver may add `tooltipContent`, but the
-    // array itself isn't re-allocated).
-    const track = data['GROUP-mine'] as unknown[];
-    expect(track).toBe(injected);
+    // Track-level slot holds the injected content (by value, not by
+    // reference — the resolver returns an annotated copy, so `data[...]`
+    // is a new array whose items carry the synthesised `tooltipContent`).
+    const track = data['GROUP-mine'] as Array<{
+      type: string;
+      description: string;
+      start: number;
+      end: number;
+      tooltipContent?: string;
+    }>;
     expect(track).toHaveLength(2);
+    expect(track[0]).toMatchObject({
+      type: 'DOMAIN',
+      description: 'A',
+      start: 1,
+      end: 10,
+    });
+    expect(track[1]).toMatchObject({
+      type: 'DOMAIN',
+      description: 'B',
+      start: 20,
+      end: 30,
+    });
+
+    // Purity guarantee: the injected array is not mutated — items stay
+    // free of `tooltipContent`, which only appears on the annotated copy.
+    expect(injected[0]).not.toHaveProperty('tooltipContent');
+    expect(injected[1]).not.toHaveProperty('tooltipContent');
 
     // Group-level aggregate picks up the track (most components do
     // `.flat()` on the per-track array).
-    expect(data.GROUP).toEqual(injected);
+    const aggregate = data.GROUP as Array<{ type: string }>;
+    expect(aggregate).toHaveLength(2);
+    expect(aggregate.map((a) => a.type)).toEqual(['DOMAIN', 'DOMAIN']);
 
     // No URL was queued for this track, so no fetch should have fired.
     expect(fetchOne).not.toHaveBeenCalled();
@@ -200,6 +224,13 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       {},
       customTrackData
     );
-    expect(data['GROUP-mine']).toBe(injected);
+    const track = data['GROUP-mine'] as Array<{
+      type: string;
+      description: string;
+    }>;
+    expect(track).toHaveLength(1);
+    expect(track[0]).toMatchObject({ type: 'X', description: 'pre' });
+    // Purity: injected input is untouched by the loader.
+    expect(injected[0]).not.toHaveProperty('tooltipContent');
   });
 });

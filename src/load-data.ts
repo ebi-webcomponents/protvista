@@ -76,7 +76,9 @@ type LoadResult = {
 };
 
 /**
- * Resolve and attach per-item `tooltipContent` strings.
+ * Resolve per-item `tooltipContent` strings and return an annotated
+ * copy. Pure — the input `transformedData` is never mutated; callers
+ * must use the return value to see the attached tooltips.
  *
  * Consulted after the adapter has produced its output. Picks a spec in
  * this precedence order (highest wins):
@@ -98,31 +100,38 @@ type LoadResult = {
  * adapters produce data, tooltips come from config and defaults.
  *
  * Handles the two shapes adapters emit:
- *   - an array of feature-like objects (most adapters);
- *   - a `{ sequence, variants }` object (variation / rna-editing).
+ *   - an array of feature-like objects (most adapters) — returns a new
+ *     array of items with `tooltipContent` spread in;
+ *   - a `{ sequence, variants }` object (variation / rna-editing) —
+ *     returns a new wrapper with the annotated `variants` array, other
+ *     fields preserved by reference.
  * Anything else (colored-sequence point arrays, linegraph data, …) is
- * ignored — those tracks have no per-item hover to populate.
+ * passed through unchanged — those tracks have no per-item hover to
+ * populate.
  */
 function applyTooltipResolver(
   transformedData: unknown,
   spec: TooltipSpec | undefined,
   ctx: TooltipContext
-): void {
-  const assign = (item: unknown) => {
-    if (!item || typeof item !== 'object') return;
+): unknown {
+  const annotate = (item: unknown): unknown => {
+    if (!item || typeof item !== 'object') return item;
     const html = resolveTooltip(item, spec, ctx);
-    if (html) (item as Record<string, unknown>).tooltipContent = html;
+    return html ? { ...item, tooltipContent: html } : item;
   };
   if (Array.isArray(transformedData)) {
-    for (const item of transformedData) assign(item);
-    return;
+    return transformedData.map(annotate);
   }
   if (transformedData && typeof transformedData === 'object') {
     const variants = (transformedData as { variants?: unknown }).variants;
     if (Array.isArray(variants)) {
-      for (const item of variants) assign(item);
+      return {
+        ...(transformedData as Record<string, unknown>),
+        variants: variants.map(annotate),
+      };
     }
   }
+  return transformedData;
 }
 
 /**
@@ -235,13 +244,13 @@ export async function loadProtvistaData(
             (kind ? tooltipOverrides[kind] : undefined) ??
             dataTooltip ??
             (kind ? tooltipDefaults[kind] : undefined);
-          applyTooltipResolver(filteredData, spec, {
+          const annotated = applyTooltipResolver(filteredData, spec, {
             accession,
             trackId,
             kind: kind ?? '',
           });
-          data[trackKey] = filteredData;
-          return filteredData;
+          data[trackKey] = annotated;
+          return annotated;
         }
 
         const trackData = (Array.isArray(url) ? url : [url ?? ''])
@@ -303,15 +312,15 @@ export async function loadProtvistaData(
           (kind ? tooltipOverrides[kind] : undefined) ??
           dataTooltip ??
           (kind ? tooltipDefaults[kind] : undefined);
-        applyTooltipResolver(filteredData, spec, {
+        const annotated = applyTooltipResolver(filteredData, spec, {
           accession,
           trackId,
           kind: kind ?? '',
         });
 
         // 4. Assign track data
-        data[`${groupId}-${trackId}`] = filteredData;
-        return filteredData;
+        data[`${groupId}-${trackId}`] = annotated;
+        return annotated;
       })
     );
 
