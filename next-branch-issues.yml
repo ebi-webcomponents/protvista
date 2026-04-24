@@ -283,3 +283,46 @@ issues:
       Optional stretch: audit consumer-facing DOM id patterns at the same time. IDs like `track-${groupId}` are globally unique within one `<protvista-uniprot>` but collide if a page ever mounts multiple viewers. Issue currently scoped to class rename; ID namespacing for multi-instance is a separate concern and should be tracked on its own if/when multi-instance becomes a planned use case.
     fields:
       Group: "Technical"
+
+  - title: "Generalise URL-template substitution — harvest `data-*` attributes and a config `variables:` block; `accession` becomes an alias for `data-accession`"
+    labels: ["next"]
+    body: |
+      **Context**
+      Today the loader hard-codes a single substitution: `{accession}` in `sources:` URL templates resolves to `this.accession` via `url.replace('{accession}', this.accession)` in `src/load-data.ts`. Anyone wanting to parametrise on species, reference build, user id, dataset id, PDB id, authenticated token, or any other identifier has no hook — there is no way to interpolate anything other than `{accession}` into a URL template.
+
+      The intended long-term shape is a uniform template-substitution surface that accepts any `{token}` in any URL template and resolves it against a merged variables dictionary. Three sources feed that dictionary:
+
+      1. **`data-*` HTML attributes on the host element** — `<protvista-uniprot data-species="human" data-build="v2024.12">` populates `{species}` and `{build}`. Uses the HTML spec's reserved `data-*` namespace so nothing in the author's custom variables collides with `class` / `id` / `role` / `aria-*` / etc. Reactivity is handled by a `MutationObserver` that re-renders on attribute changes.
+      2. **A top-level `variables:` block in the config** — `variables: { species: human }` at the top of the YAML provides baseline values shared by every mount of that config.
+      3. **The named `accession` attribute** — kept for backwards compatibility and for ergonomics of the predominant use case. Acts as an alias for `data-accession`: if both `accession="A"` and `data-accession="B"` are set, the named attribute wins. This preserves `<protvista-uniprot accession="P05067">` as a zero-learning-curve happy path.
+
+      **Task**
+      Implement the three-source variables dict, update the loader's template substitution to iterate every `{token}` in any URL and resolve via the merged dict, and add validator coverage for references-to-undefined-variables.
+
+      **Scope:**
+      * Schema (`src/schema/types.ts`, `src/schema/schema.json`): add `variables?: Record<string, string>` at the top level of `ProtvistaViewerConfig`. Document that every token appearing in any `sources[]` URL template must resolve against at least one of the three variables sources.
+      * Loader (`src/load-data.ts`): replace the single-token `url.replace('{accession}', accession)` with a generic substitution pass that walks every `{name}` occurrence in the URL and looks it up in the merged dict. Retain `{accession}` end-to-end behaviour (guaranteed backwards-compat).
+      * Variables-merge helper: new small module (`src/schema/variables.ts` or inline in the loader) that computes the merged dict from `{ ...element.dataset, ...config.variables, ...(element.accession ? { accession: element.accession } : {}) }`. Document the precedence — later sources override earlier. Named `accession` wins over `data-accession` because the later spread overrides.
+      * Element (`src/protvista-uniprot.ts`): add a `MutationObserver` on `this` watching `{ attributes: true }` with no attribute filter (needed because `data-*` names are open-ended). On mutation, re-trigger the loader if any `data-*` or `accession` attribute changed. Debounce to coalesce bursts.
+      * Validator (`src/schema/validate.ts`): add a `missing-variable` issue that fires when a URL in `sources[]` references a `{token}` that isn't defined in `config.variables` and isn't `accession`. The `data-*` attributes can't be known at config-validation time (they're runtime state), so the validator warns on "never-defined-anywhere" tokens, not on "defined only via data-\*" tokens. Error text: `"Source '<name>' references undefined variable '{<token>}'. Define it in top-level 'variables:' or pass it as a data-<token> attribute at runtime."`.
+      * Spec (`specs/config-approach.md`): one paragraph in the "Intent" section describing the three-source variables dict and the `accession` alias. Add an example showing a multi-variable URL (`https://api.example.org/{species}/{build}/features/{accession}`) with accompanying YAML (`variables: { species: human, build: v2024.12 }`) plus HTML mount snippet. Edge Cases table row for the `missing-variable` validator error.
+      * README (`README.md`): extend the Configuration section with a short subsection on variables. Show a minimal example using `data-species` alongside `accession`. Call out that the top-level `variables:` block provides baseline defaults.
+      * Tests: `src/schema/__spec__/validate.spec.ts` for the missing-variable rule; `src/__spec__/load-data-*.spec.ts` for the substitution pass (happy path, multi-token URL, `data-*` override of `variables:`, named `accession` winning over `data-accession`); an integration test that mutates a `data-*` attribute after mount and confirms the loader re-runs.
+      * Types (`src/schema/types.ts`): `Record<string, string>` is the value shape. Consider a branded string type for token names (`{name: string}` where name is a valid JS-ident / kebab-case subset) if the validator ends up enforcing a naming rule. Decide in spec before shipping — being permissive ("any string is a valid token") is the low-risk default.
+
+      **Notes:**
+      A handful of design decisions to pin down while writing the spec paragraph:
+
+      1. **Case sensitivity.** HTML attribute names are case-insensitive at the DOM level (`data-Species` and `data-species` collide). `this.dataset.species` (the DOMStringMap) normalises to camelCase. URL templates typically want lowercase. Lean: tokens are case-sensitive in the URL, `data-*` reads as camelCase via `dataset`, so write `data-species` in HTML and `{species}` in URLs — the predominant pattern.
+
+      2. **Token-name character set.** URL templates need some grammar. Safe bet: `{[a-zA-Z][a-zA-Z0-9_]*}` — JS-identifier-ish, no dashes (which would collide with `data-foo-bar` → `dataset.fooBar` camelCase translation). Document that `data-kebab-case-name` becomes `{camelCaseName}` in URLs.
+
+      3. **Injection safety.** Values are substituted raw into URL templates. If an author puts a user-controlled value in `accession`, that value flows into every URL. The substitution itself must URL-encode (`encodeURIComponent`) the value — otherwise `{accession}=P05067%20injected%2Furl` becomes a real problem. Today's hard-coded substitution doesn't encode — shipping the generic version is a natural moment to fix that. Worth explicit testing.
+
+      4. **Reactivity timing.** Changing a `data-*` attribute on a live element re-triggers the loader. Is that always the right behaviour? A page could set several `data-*` attributes in quick succession; without debouncing, we fire N fetches. The `_loadAbortController` pattern already exists in the element — reuse it. Debounce via `requestAnimationFrame` so a batch of attribute sets coalesces to one load.
+
+      5. **Interaction with `setConfig()` / `config-src` fetches.** If the config was loaded via `config-src` and the URL template inside it references `{species}`, the loader needs access to the element's `dataset` at fetch time — post-config-load, pre-URL-fetch. Load order is: parse config → validate → normalize → fetch URLs. The dataset read happens at the "fetch URLs" step. Verify the existing order in `src/load-data.ts` supports this without refactor.
+
+      Not in scope for this issue: collapsing the named `accession` attribute into `data-accession` entirely. That was considered and rejected — the backwards-compat and ergonomics cost outweighs the symmetry gain, and the alias approach already gives us uniform substitution semantics (both attributes flow into the same dict, named wins on conflict) without breaking existing integrations. Revisit only if a concrete "multiple first-class identifier types" requirement emerges (e.g. a future `<protvista-uniprot pdb-id="1ABC">` scenario).
+    fields:
+      Group: "Technical"
