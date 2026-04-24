@@ -1,5 +1,5 @@
 /**
- * normalize / expand pipeline contract tests (#21).
+ * normalize / expand pipeline contract tests.
  *
  * Covers:
  *   - the four `data:` shorthand shapes (string, string w/ extension,
@@ -1053,7 +1053,7 @@ describe('normalizeConfig — top-level fields', () => {
 describe('normalizeConfig — without a registry', () => {
   it("keeps unresolved kinds on tracks rather than throwing", () => {
     // Tests can exercise expansion/inheritance without setting up a
-    // registry at all. The validator (#22) raises "Unknown semantic
+    // registry at all. The validator raises "Unknown semantic
     // kind" later.
     const out = normalizeConfig(
       cfg({

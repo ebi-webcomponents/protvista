@@ -1,10 +1,10 @@
 /**
- * ProtVista config normalize / expand pipeline (#21).
+ * ProtVista config normalize / expand pipeline.
  *
  * Canonicalises a parsed-and-merged `ProtvistaViewerConfig` into a
- * uniform shape the loader (#22 / #24) can hand straight to the
- * rendering layer. Runs between `mergeExtends` (#20) and the
- * Ajv-based validator (#22).
+ * uniform shape the loader can hand straight to the
+ * rendering layer. Runs between `mergeExtends` and the
+ * Ajv-based validator.
  *
  * What normalize does:
  *
@@ -37,7 +37,7 @@
  *      the root `sources` map, leaving the `source:` field in place
  *      for downstream introspection (validator error messages).
  *
- * What normalize does NOT do (delegated to the validator, #22):
+ * What normalize does NOT do (delegated to the validator):
  *
  *   - Shape-check the input (assumes Ajv-valid on the normal load
  *     path; defensive enough for tests that pass object literals).
@@ -46,7 +46,7 @@
  *     value after normalize has already run.
  *   - Surface "Unknown source key" / "Unknown semantic kind" /
  *     "Cannot infer adapter for './x.gff'" errors. Those live in the
- *     validator (#22) so that the same error messages are raised for
+ *     validator so that the same error messages are raised for
  *     both raw and programmatically-constructed configs. Normalize is
  *     deliberately non-throwing for unknowns and returns a best-
  *     effort output — callers that skip the validator are responsible
@@ -250,7 +250,7 @@ function normalizeGroup(
       component = 'nightingale-track-canvas';
     }
   } else {
-    // Zero-track group — validator (#22) emits a warning and hides
+    // Zero-track group — validator emits a warning and hides
     // the group. Pick a sensible default so nothing downstream
     // blows up if it is rendered anyway.
     component = 'nightingale-track-canvas';
@@ -397,7 +397,7 @@ function expandData(
  *
  * Note: this function is deliberately non-throwing. An unknown value
  * (neither a sources key, URL, path, nor a known extension) still
- * yields a descriptor — the validator (#22) is responsible for
+ * yields a descriptor — the validator is responsible for
  * surfacing "Unknown source key: '<value>' ..." with the known-keys
  * list so that the author sees one clean error message rather than a
  * stack of internal-looking ones.

@@ -1,6 +1,6 @@
 /**
- * Shared JSON / YAML parser used by `loadConfig` (#22) and the
- * `extends` merger (#20).
+ * Shared JSON / YAML parser used by `loadConfig` and the
+ * `extends` merger.
  *
  * Kept in its own module (rather than a private helper inside
  * `load.ts`) because the `extends` resolver also needs to parse

@@ -1,5 +1,5 @@
 /**
- * Error types raised by the ProtVista config validator and loader (#22).
+ * Error types raised by the ProtVista config validator and loader.
  *
  * A single `ConfigValidationError` type carries every validation
  * failure — both the structural ones produced by Ajv against
@@ -54,7 +54,7 @@ export type ValidationIssueCode =
   | 'invalid-color-scale'
   | 'unsupported-version'
   | 'missing-accession'
-  // ── Extends resolution (#20) ─────────────────────────────────
+  // ── Extends resolution ─────────────────────────────────
   /** The `extends` chain forms a cycle (a → b → a). */
   | 'circular-extends'
   /** A name in `extends` could not be resolved via the resolver or fetched as a URL/path. */

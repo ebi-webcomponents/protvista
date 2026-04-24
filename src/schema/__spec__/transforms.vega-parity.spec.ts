@@ -1,5 +1,5 @@
 /**
- * Vega-Lite parity check for `fieldPredicateToFn` (#19 — follow-up).
+ * Vega-Lite parity check for `fieldPredicateToFn`.
  *
  * The spec promises that ProtVista's structured `FieldPredicate` is
  * "shape-compatible with Vega-Lite's Field Predicate". We implement
@@ -56,7 +56,7 @@ function compileExpression(
   const { code } = codegen(ast);
   // The generated code is a plain JS expression that reads `datum.x`.
   // `new Function` is the standard way to turn it into a callable —
-  // this mirrors how the runtime loader (#22) will use vega-expression.
+  // this mirrors how the runtime loader will use vega-expression.
   return new Function('datum', `"use strict"; return ${code};`) as (
     datum: Record<string, unknown>
   ) => unknown;

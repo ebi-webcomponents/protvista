@@ -1,5 +1,5 @@
 /**
- * `extends` chain resolver & merger (#20).
+ * `extends` chain resolver & merger.
  *
  * Implements the merge semantics documented in `specs/config-approach.md`:
  *

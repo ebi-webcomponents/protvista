@@ -1,5 +1,5 @@
 /**
- * ProtVista transform engine (#19).
+ * ProtVista transform engine.
  *
  * Implements the Vega-Lite subset documented in `specs/config-approach.md`:
  *
@@ -35,7 +35,7 @@
  *   - An expression-string `filter` that throws for an item → the item
  *     is treated as filtered out (matches Vega-Lite semantics).
  *   - Unknown operator keys, empty predicates, bad comparator operand
- *     types, etc. are validation-layer errors (#22). The engine trusts
+ *     types, etc. are validation-layer errors. The engine trusts
  *     its input and assumes schema-valid data; a defensive runtime
  *     error is still thrown if an unknown operator actually reaches
  *     dispatch (e.g. if a caller bypasses the validator).
@@ -142,7 +142,7 @@ function applyStep(
     return limitStep(items, step.limit);
   }
 
-  // Custom operator — dispatch via registry. The validator (#22) has
+  // Custom operator — dispatch via registry. The validator has
   // already closed the operator union against
   // `BUILTIN_TRANSFORM_OPERATORS ∪ registry.listTransforms()`, so
   // reaching this path with a missing registration means either a
@@ -207,7 +207,7 @@ function filterStep(
 
 /**
  * Compile a structured `FieldPredicate` into an `(item) => boolean`
- * closure. Exported so the normalize layer (#21) and future operators
+ * closure. Exported so the normalize layer and future operators
  * can reuse the comparator logic without coupling to the engine.
  *
  * Missing-field semantics: if the item is not an object, or the field

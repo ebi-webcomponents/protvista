@@ -1,16 +1,16 @@
 /**
- * ProtVista runtime registry (#18).
+ * ProtVista runtime registry.
  *
  * The registry is the single source of truth for every name referenced
  * from a config: semantic kinds, adapters, transforms, and colour-scale
  * themes. It is consumed by:
  *
- *   - the runtime validator (#22) to close the open-string unions
+ *   - the runtime validator to close the open-string unions
  *     declared in `types.ts` / `schema.json` ("Unknown adapter: <name>.
  *     Did you forget to call registerAdapter()?");
- *   - the loader (#22 / #24) to resolve semantic kinds into concrete
+ *   - the loader to resolve semantic kinds into concrete
  *     (component, adapter, rendering) tuples at mount time;
- *   - the transform engine (#19) to dispatch built-in and custom
+ *   - the transform engine to dispatch built-in and custom
  *     operators;
  *   - the escape-hatch runtime API (`registerAdapter`,
  *     `registerSemanticKind`, `registerTransform`, `registerTheme`)
@@ -26,10 +26,10 @@
  *     behaviour depend on call order.
  *   - Adapter *function bodies* and transform *operator bodies* are
  *     intentionally not seeded here — adapters are registered by the
- *     loader (#22/#23 config.ts → YAML cutover), and the five built-in
- *     transform operators (filter / calculate / rename / pick / limit)
- *     are registered by the transform engine (#19). This keeps this
- *     file dependency-free and trivially unit-testable.
+ *     loader when it boots, and the five built-in transform operators
+ *     (filter / calculate / rename / pick / limit) are registered by
+ *     the transform engine. This keeps this file dependency-free and
+ *     trivially unit-testable.
  *   - The 12 built-in semantic kinds reference adapter names that are
  *     not yet registered. That is fine: `resolveSemanticKind()` returns
  *     the adapter *name* (a string), and the loader looks up the
@@ -87,8 +87,7 @@ export interface Registry {
 // Each built-in maps a SemanticKind to (component, adapter) plus an
 // optional rendering preset. Adapter names follow the spec's
 // `<source>-<format>` convention; these names are registered with
-// their function bodies by `registerBuiltinAdapters()` at loader init
-// (task #22/#23).
+// their function bodies by `registerBuiltinAdapters()` at loader init.
 // ─────────────────────────────────────────────────────────────
 
 type BuiltinSemanticKindEntry = readonly [
@@ -220,9 +219,9 @@ const BUILTIN_THEMES: ReadonlyArray<readonly [string, readonly ColorStop[]]> =
 // Built-in transform operator names
 //
 // The five operators from the Vega-Lite subset. Their function bodies
-// live in the transform engine (#19); exporting the names here lets
-// #19 register them and lets the validator (#22) close the operator
-// union for error messages.
+// live in the transform engine; exporting the names here lets the
+// transform engine register them and lets the validator close the
+// operator union for error messages.
 // ─────────────────────────────────────────────────────────────
 
 export const BUILTIN_TRANSFORM_OPERATORS: readonly string[] = [

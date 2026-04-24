@@ -45,7 +45,7 @@ export type { ValidationIssueCode } from './validate';
 export { loadConfig } from './load';
 export type { LoadConfigOptions } from './load';
 
-// ── Extends merger (#20) ─────────────────────────────────────
+// ── Extends merger ─────────────────────────────────────
 export { mergeExtends } from './extends';
 export type {
   ExtendsResolver,

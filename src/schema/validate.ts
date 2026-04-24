@@ -1,5 +1,5 @@
 /**
- * ProtVista config validator (#22).
+ * ProtVista config validator.
  *
  * Runs two passes over a parsed config:
  *

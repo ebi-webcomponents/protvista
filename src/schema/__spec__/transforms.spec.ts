@@ -1,5 +1,5 @@
 /**
- * Transform engine contract tests (#19).
+ * Transform engine contract tests.
  *
  * Covers:
  *   - the five built-in operators (filter / calculate / rename / pick /

@@ -1,5 +1,5 @@
 /**
- * Registry contract tests (#18).
+ * Registry contract tests.
  *
  * Covers the four buckets (semantic kinds, adapters, transforms,
  * themes), built-in seeding, collision detection, list ordering,
@@ -85,18 +85,18 @@ describe('Registry — built-in seeding', () => {
   });
 
   it('exports the five built-in transform operator names', () => {
-    // Transform operator *function bodies* belong to #19; the registry
-    // just publishes the names so the validator (#22) can close the
-    // transform-step discriminator union in error messages.
+    // Transform operator *function bodies* live in the transform engine;
+    // the registry just publishes the names so the validator can close
+    // the transform-step discriminator union in error messages.
     expect([...BUILTIN_TRANSFORM_OPERATORS].sort()).toEqual(
       ['calculate', 'filter', 'limit', 'pick', 'rename'].sort()
     );
   });
 
   it('ships with no pre-registered adapters or transforms', () => {
-    // Adapter function bodies are registered by the loader (#22/#23).
-    // Transform function bodies are registered by the transform engine
-    // (#19). A fresh registry therefore holds neither.
+    // Adapter function bodies are registered by the loader.
+    // Transform function bodies are registered by the transform engine.
+    // A fresh registry therefore holds neither.
     const r = createRegistry();
     expect(r.listAdapters()).toEqual([]);
     expect(r.listTransforms()).toEqual([]);

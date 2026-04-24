@@ -45,7 +45,7 @@ import {
 
 import filterConfig, { colorConfig } from './filter-config';
 
-// Schema-driven config pipeline (#22 / #24). The default YAML is
+// Schema-driven config pipeline. The default YAML is
 // bundled as a raw string so `js-yaml` stays lazy-loaded — adopters
 // who pass a parsed `viewerConfig` object never pull in the parser.
 import defaultConfigYaml from './default-config.yaml?raw';

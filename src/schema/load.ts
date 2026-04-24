@@ -1,10 +1,10 @@
 /**
- * ProtVista config loader (#22).
+ * ProtVista config loader.
  *
  * Orchestrates the parse → validate → normalize pipeline that takes
  * author input (a JSON string, a YAML string, or an already-parsed
  * object) and returns the `NormalizedConfig` shape that
- * `<protvista-uniprot>` (#24) can mount directly.
+ * `<protvista-uniprot>` can mount directly.
  *
  *   author input  →  parse  →  validate  →  normalize  →  render
  *                    ^         ^            ^

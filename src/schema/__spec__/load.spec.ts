@@ -1,5 +1,5 @@
 /**
- * Loader contract tests (#22).
+ * Loader contract tests.
  *
  * Covers:
  *   - all three input forms (object, JSON string, YAML string);

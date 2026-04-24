@@ -16,7 +16,7 @@
  *   6. Escape-hatch API     — programmatic surface exposed at runtime
  *
  * The types are the source-of-truth for the JSON Schema authored in
- * `schema.json` (#16). Any change here must be mirrored there and both
+ * `schema.json`. Any change here must be mirrored there and both
  * must stay in lockstep with `specs/config-approach.md`.
  *
  * The `(string & {})` idiom on ComponentName / AdapterName / SemanticKind

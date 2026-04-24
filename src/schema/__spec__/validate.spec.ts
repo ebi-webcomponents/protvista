@@ -1,5 +1,5 @@
 /**
- * Validator contract tests (#22).
+ * Validator contract tests.
  *
  * Covers every row of specs/config-approach.md's "Edge Cases & Error Handling" table
  * that `validateConfig` is responsible for — the non-runtime ones

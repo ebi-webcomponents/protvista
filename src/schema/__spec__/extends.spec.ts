@@ -1,5 +1,5 @@
 /**
- * `extends` merger contract tests (#20).
+ * `extends` merger contract tests.
  *
  * Covers every rule specs/config-approach.md documents for `extends`:
  *   - sources merged by key (child wins)

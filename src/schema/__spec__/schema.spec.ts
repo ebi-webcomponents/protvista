@@ -1,5 +1,5 @@
 /**
- * JSON Schema contract tests (#16).
+ * JSON Schema contract tests.
  *
  * Validates the draft-2020-12 schema in `src/schema/schema.json` against
  * the canonical examples from `specs/config-approach.md` and against the rejection cases
@@ -8,7 +8,7 @@
  *
  * Closed-set validation for `kind` / `component` / `adapter` names is out
  * of scope here — those unions are open-string in the JSON Schema so the
- * runtime validator can overlay the registry-aware closed check (#22).
+ * runtime validator can overlay the registry-aware closed check.
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
