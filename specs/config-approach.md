@@ -18,7 +18,9 @@ The target workflow — an external lab inheriting the full EBI UniProt viewer a
 # Inherit the published EBI UniProt config, then add one custom track.
 # Nothing else needs to be restated — `sources`, `defaults`, all 15 EBI
 # groups, every built-in colour theme: all pulled in from the base.
-extends: 'https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml'
+# The exact URL / distribution mechanism for the shipped default is
+# still open — see the Open Question on distribution below.
+extends: '<published-uniprot-default-config-url>'
 
 groups:
   - id: MY_LAB
@@ -92,9 +94,11 @@ interface ProtvistaViewerConfig {
    *   - `rendering` blocks   merged field-wise
    *
    * The canonical use case is "start from the EBI UniProt default,
-   * add one track":
+   * add one track". The exact URL / preset-name the shipped default
+   * will be addressable by is an open question — see the Open
+   * Question on distribution below:
    *
-   *   extends: "https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml"
+   *   extends: "<published-uniprot-default-config-url>"
    *   groups:
    *     - id: MY_TRACKS
    *       tracks:
@@ -933,8 +937,10 @@ The AlphaFold group has no `rendering` block because `kind: "confidence-score"` 
 # An external lab's config: inherit the published EBI UniProt config,
 # then add one custom track in a new group. Nothing else needs to
 # be restated — `sources`, `defaults`, all 15 EBI groups, every
-# built-in colour theme: all pulled in from the base.
-extends: 'https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml'
+# built-in colour theme: all pulled in from the base. The `extends:`
+# value is a placeholder — the distribution mechanism for the shipped
+# default config is an Open Question below.
+extends: '<published-uniprot-default-config-url>'
 
 groups:
   - id: MY_LAB
@@ -947,7 +953,7 @@ groups:
 
 **Expected output (viewer behaviour):**
 
-At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, merges its `sources`, `defaults`, and 15 groups underneath this config, then appends the `MY_LAB` group at the end of the group list. The user sees the full canonical UniProt viewer with their one extra track tacked on — authored in a handful of lines of YAML. Overriding a specific EBI track is equally cheap: declare a group with the same `id` as one in the base and the merge rules fold it in field-wise. The URL can equally be a relative file path (`./uniprot-default.yaml`) if the adopter hosts their own copy of the base config.
+At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, merges its `sources`, `defaults`, and 15 groups underneath this config, then appends the `MY_LAB` group at the end of the group list. The user sees the full canonical UniProt viewer with their one extra track tacked on — authored in a handful of lines of YAML. Overriding a specific EBI track is equally cheap: declare a group with the same `id` as one in the base and the merge rules fold it in field-wise. The `extends:` value can equally be a relative file path (`./uniprot-default.yaml`) if the adopter hosts their own copy of the base config.
 
 ## Edge Cases & Error Handling
 
@@ -1006,6 +1012,15 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 ## Open Questions
 
 1. ~~**Preset namespace.**~~ **Resolved.** `extends:` accepts URLs (`http(s)://…`) and file paths (`/…`, `./…`, `../…`); the default loader does not ship a preset registry. Embedders who want a registered-name indirection can pass `opts.resolver` when calling `mergeExtends`. No `@<org>/<name>` namespace is baked into the viewer.
+
+2. **Distribution mechanism for the EBI-published default config.** The default UniProt config is authored in `src/default-config.yaml` and ships in the npm package (via `"files": ["dist", "src"]` in `package.json`), which means it is incidentally reachable via public CDN mirrors like `https://cdn.jsdelivr.net/npm/protvista-uniprot@<v>/src/default-config.yaml`. That incidental reachability is not yet a deliberate distribution commitment. Open sub-questions:
+
+   - **Is `src/default-config.yaml` the public artifact adopters should `extends:` against**, or should we ship a separate, stable, explicitly-documented "base config" endpoint so the file layout stays a refactor-safe internal concern?
+   - **Which URL do we commit to in examples?** Options include the npm-to-CDN mirror (`jsdelivr`, `unpkg`, etc.), an EBI-hosted stable URL (`https://<ebi-host>/protvista/configs/uniprot-default.yaml`), or a versioned URL that ties adopters to a specific release.
+   - **Do we ship a preset-name indirection as part of v1.0**, so adopters can write `extends: "@ebi/uniprot-default"` and let the resolver insulate them from URL changes? If yes, a matching default resolver ships alongside; if no, every adopter hard-codes whichever URL we pick.
+   - **Versioning story.** A stable unversioned URL tracks the live default (updates propagate automatically, but adopters lose reproducibility). A versioned URL pins the base (adopters reproduce exactly, but must bump manually). Both can be offered; the examples should pick one as canonical.
+
+   Until this is resolved, the spec's examples use `<published-uniprot-default-config-url>` as a literal placeholder and tests use relative file paths like `./base-config.yaml`. No schema-level commitment has been made — `extends:` is still an open-string field that accepts any of URL / file path / resolver-supplied preset name.
 
 ## Constraints
 
@@ -1121,8 +1136,8 @@ describe('ProtVista Viewer Config Schema — JSON Schema layer', () => {
 
   it('accepts top-level extends and defaults', () => {
     const config = {
-      extends:
-        'https://cdn.jsdelivr.net/npm/protvista-uniprot@5/src/default-config.yaml',
+      // Placeholder path — distribution mechanism is an Open Question.
+      extends: './base-config.yaml',
       defaults: {
         rendering: { layout: 'non-overlapping' },
         labelUrl: 'https://x/{id}',

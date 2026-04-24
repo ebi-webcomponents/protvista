@@ -206,8 +206,16 @@ describe('JSON Schema — accepts specs/config-approach.md examples', () => {
   });
 
   it('Example 5: extends one base + one new track', () => {
+    // NOTE: this is a schema-shape test — `expectValid` only checks
+    // the JSON Schema, it does not resolve `extends:`. The fixture
+    // uses a relative file path because that's one of the forms the
+    // default loader supports without a custom resolver. See the
+    // Open Question "Distribution mechanism for the EBI-published
+    // default config" in specs/config-approach.md — the canonical
+    // URL / preset name for the shipped default has not been
+    // decided yet, so tests deliberately avoid naming one.
     expectValid({
-      extends: '@ebi/uniprot-default',
+      extends: './base-config.yaml',
       groups: [
         {
           id: 'MY_LAB',
@@ -287,12 +295,17 @@ describe('JSON Schema — fine-grained acceptance', () => {
   });
 
   it('accepts `extends` as both a single string and an array', () => {
+    // Schema-shape test: strings are accepted regardless of whether
+    // they are URLs, file paths, or (resolver-supplied) preset names.
+    // Fixtures use file paths to avoid naming a distribution URL
+    // that hasn't been decided — see the Open Question in
+    // specs/config-approach.md.
     expectValid({
-      extends: '@ebi/uniprot-default',
+      extends: './base-config.yaml',
       groups: [{ id: 'C', tracks: [] }],
     });
     expectValid({
-      extends: ['@ebi/uniprot-default', './overlay.yaml'],
+      extends: ['./base-config.yaml', './overlay.yaml'],
       groups: [{ id: 'C', tracks: [] }],
     });
   });

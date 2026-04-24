@@ -167,8 +167,14 @@ describe('ProtvistaViewerConfig — type contract', () => {
   });
 
   it('specs/config-approach.md Example 5: extends — one line, one new track', () => {
+    // Type-surface test: any string assigns to `extends?: string |
+    // string[]`. The fixture uses a relative path because the
+    // distribution mechanism for the shipped default config is not
+    // yet decided — see the Open Question in
+    // specs/config-approach.md. Avoid naming a specific URL or
+    // preset here so the test doesn't imply a canonical choice.
     const config: ProtvistaViewerConfig = {
-      extends: '@ebi/uniprot-default',
+      extends: './base-config.yaml',
       groups: [
         {
           id: 'MY_LAB',
@@ -180,7 +186,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
       ],
     };
     expectType<ProtvistaViewerConfig>(config);
-    expect(config.extends).toBe('@ebi/uniprot-default');
+    expect(config.extends).toBe('./base-config.yaml');
   });
 
   it('supports all four shapes of the `data` field', () => {

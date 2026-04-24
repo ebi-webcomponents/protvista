@@ -118,7 +118,8 @@ export interface ProtvistaViewerConfig {
    * Optional list of base configs to merge under this one.
    *
    * Each entry is a URL, a file path, or a registered preset name
-   * (e.g. `"@ebi/uniprot-default"`). Resolution is left-to-right,
+   * (e.g. `"@my-org/base-config"` resolved via `opts.resolver`).
+   * Resolution is left-to-right,
    * with later entries overriding earlier ones and the current
    * config overriding all of them.
    *

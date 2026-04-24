@@ -141,7 +141,7 @@ export async function loadConfig(
   const parsed = await parseInput(input, opts.format ?? 'auto');
 
   // `extends` resolution runs BETWEEN parse and validate so partial
-  // child configs (e.g. `extends: "@ebi/uniprot-default"` plus one
+  // child configs (e.g. `extends: "./base-config.yaml"` plus one
   // tiny override) merge against their bases before the required-
   // fields check fires. `mergeExtends` is a no-op (sans the
   // unconditional strip of `extends`) for configs that don't use the

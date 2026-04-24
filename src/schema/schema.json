@@ -14,7 +14,7 @@
       "const": "1.0"
     },
     "extends": {
-      "description": "One or more base configs to merge under this one. Each entry is a URL, a file path, or a registered preset name (e.g. \"@ebi/uniprot-default\").",
+      "description": "One or more base configs to merge under this one. Each entry is a URL, a file path, or a registered preset name resolved via an embedder-supplied resolver.",
       "oneOf": [
         { "type": "string", "minLength": 1 },
         {

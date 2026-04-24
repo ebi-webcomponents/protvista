@@ -71,10 +71,10 @@
  *
  *   - The default fetcher only runs for literals that look like URLs
  *     or file paths (`isUrlOrPath` — `http(s)://…`, `/…`, `./…`,
- *     `../…`). Bare preset names (`@ebi/uniprot-default`, etc.) only
- *     resolve through an `opts.resolver` the embedder supplies, so
- *     there is no way for an author to inject a URL fetch via a
- *     surprise preset.
+ *     `../…`). Bare preset names (any string that doesn't match that
+ *     shape — e.g. `@my-org/base-config`) only resolve through an
+ *     `opts.resolver` the embedder supplies, so there is no way for
+ *     an author to inject a URL fetch via a surprise preset.
  *   - The default fetcher enforces a 2 MiB ceiling on response
  *     bodies (`MAX_EXTENDS_BYTES` below) to cap the worst case for
  *     an attacker-controlled server. Adopters who need larger
@@ -106,7 +106,7 @@ import { parseConfigText } from './parse';
 
 /**
  * Caller-supplied preset resolver. Receives a raw `extends` name
- * (e.g. `"@ebi/uniprot-default"`) and returns either:
+ * (e.g. `"@my-org/base-config"`) and returns either:
  *
  *   - the parsed config object,
  *   - the raw config text (JSON or YAML; the merger re-parses it), or
