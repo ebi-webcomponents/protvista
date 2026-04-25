@@ -46,12 +46,12 @@
  *     the loader, because the HTML attribute can override the config
  *     value after normalize has already run.
  *   - Surface "Unknown source key" / "Unknown semantic kind" /
- *     "Cannot infer adapter for './x.gff'" errors. Those live in the
- *     validator so that the same error messages are raised for
- *     both raw and programmatically-constructed configs. Normalize is
- *     deliberately non-throwing for unknowns and returns a best-
- *     effort output — callers that skip the validator are responsible
- *     for their own unknown-name handling.
+ *     "Unknown adapter" errors. Those live in the validator so that
+ *     the same error messages are raised for both raw and
+ *     programmatically-constructed configs. Normalize is deliberately
+ *     non-throwing for unknowns and returns a best-effort output —
+ *     callers that skip the validator are responsible for their own
+ *     unknown-name handling.
  */
 
 import type {
@@ -138,9 +138,9 @@ export interface NormalizedTrack {
  *   - `from` is always present.
  *   - `source` references have already been looked up and the
  *     corresponding `url` populated.
- *   - `adapter` has had extension-based and kind-based inference
- *     applied (still `undefined` if neither yielded a match — the
- *     validator surfaces that to the author).
+ *   - `adapter` has had kind-based inference applied (still
+ *     `undefined` if the track has no `kind` and no explicit
+ *     `adapter:` — the validator surfaces that to the author).
  */
 export interface NormalizedDataSource {
   from: 'url' | 'inline' | 'file' | 'custom';
@@ -161,10 +161,9 @@ export interface NormalizeOptions {
    * folded into each track's resolved shape. Without a registry,
    * tracks keep their `kind` verbatim and `component` / `adapter` are
    * inferred from whatever explicit fields the author supplied plus
-   * the group `component` / extension-based adapter rules. This
-   * keeps `normalize()` callable from unit tests that exercise
-   * shorthand expansion or inheritance without setting up a full
-   * registry.
+   * the group `component`. This keeps `normalize()` callable from
+   * unit tests that exercise shorthand expansion or inheritance
+   * without setting up a full registry.
    */
   registry?: Registry;
 }
@@ -249,9 +248,8 @@ function normalizeGroup(
       component = 'nightingale-track-canvas';
     }
   } else {
-    // Zero-track group — validator emits a warning and hides
-    // the group. Pick a sensible default so nothing downstream
-    // blows up if it is rendered anyway.
+    // Zero-track group — pick a sensible default so nothing
+    // downstream blows up if the group ends up rendered anyway.
     component = 'nightingale-track-canvas';
   }
 
@@ -368,11 +366,12 @@ function expandData(
 ): NormalizedDataSource[] {
   const raw = t.data;
 
-  // Step 1: unify the four input shapes into a DataSourceDescriptor[].
-  // We still tag string entries with a marker so the shorthand rules
-  // can run on them below — resolving them here mixes two concerns
-  // (array-wrapping and string-shorthand) and makes the inner
-  // function harder to read.
+  // Step 1: unify the three input shapes (single string, array of
+  // string-or-descriptor, single descriptor) into a
+  // DataSourceDescriptor[]. We still tag string entries with a marker
+  // so the shorthand rules can run on them below — resolving them
+  // here mixes two concerns (array-wrapping and string-shorthand) and
+  // makes the inner function harder to read.
   let descriptors: DataSourceDescriptor[];
   if (typeof raw === 'string') {
     descriptors = [resolveStringShorthand(raw, sources)];
@@ -436,18 +435,12 @@ function expandDescriptor(
   const from: NormalizedDataSource['from'] =
     d.from ?? (d.inlineData !== undefined ? 'inline' : 'url');
 
-  // Adapter inference order:
-  //   1. Explicit `adapter:` wins.
-  //   2. Kind's canonical adapter (applies regardless of file path —
-  //      a `kind: confidence-score` track pointed at a raw API URL
-  //      still wants `alphafold-prediction-json`).
-  //
+  // Adapter inference: explicit `adapter:` wins; otherwise fall back
+  // to the kind's canonical adapter (e.g. a `kind: confidence-score`
+  // track pointed at a raw API URL gets `alphafold-prediction-json`).
   // File-extension inference (`./x.csv` → `features-csv` etc.) is
   // left as future work.
-  let adapter = d.adapter;
-  if (!adapter && kindAdapter) {
-    adapter = kindAdapter;
-  }
+  const adapter = d.adapter ?? kindAdapter;
 
   // Resolve `source:` to concrete URL(s) via the sources map. Both
   // fields stay on the descriptor so the validator can still produce
