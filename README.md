@@ -79,7 +79,6 @@ Reactive properties on the `<protvista-uniprot>` element (HTML attribute name in
 - `accession` [`accession`]: `string` — UniProt accession to display. Takes precedence over the `accession` field in `config` if both are set.
 - `configSrc` [`config-src`]: `string` — URL or file path to a YAML or JSON config. Fetched and parsed at mount time. See [Configuration](#configuration).
 - `config`: `ProtvistaViewerConfig` — a parsed config object, assigned as a JS property. Alternative to `config-src` when the embedder already has the config in memory.
-- `tooltips`: `Record<SemanticKind, TooltipSpec>` — per-kind tooltip overrides registered by the embedder. Takes precedence over defaults.
 - `nostructure` [`nostructure`]: `boolean` (default `false`) — suppresses the PDBe 3D structure group.
 - `notooltip` [`notooltip`]: `boolean` (default `false`) — suppresses the built-in click tooltip. Typically set by embedders rendering their own overlay.
 - `suspend` [`suspend`]: `boolean` (default `false`) — pauses rendering. Useful when the accession is about to change and you want to avoid a flash of intermediate state.
