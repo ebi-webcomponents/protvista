@@ -1,7 +1,7 @@
 /**
  * `extends` chain resolver & merger.
  *
- * Implements the merge semantics documented in `specs/config-approach.md`:
+ * Merge semantics:
  *
  *   - `sources`    — merged by key (child wins)
  *   - `defaults`   — merged field-wise (child wins); `rendering`
@@ -19,11 +19,11 @@
  *     wins.
  *
  *
- * ## Resolver strategy — deferred Q4 friendly
+ * ## Resolver strategy — namespace-decision friendly
  *
- * `specs/config-approach.md`'s Open Question Q4 ("What namespace do we use for shipped
- * presets?") is still open at the time of writing. The merger is
- * designed to make that decision pluggable rather than baked in:
+ * The namespace for shipped presets is still an open decision. The
+ * merger is designed to make that decision pluggable rather than
+ * baked in:
  *
  *   - A caller-supplied `resolver` (a function or a
  *     `Record<string, …>`) is consulted FIRST for every name in
@@ -47,9 +47,10 @@
  *
  * Chain membership is tracked by the literal string used in
  * `extends` (URL / path / preset name). Cycles fail fast with
- * `ConfigValidationError` code `circular-extends` and the specs/config-approach.md-
- * worded message `"Circular extends: a → b → a"` so the diagnostic
- * names every link in the loop in the order the resolver walked them.
+ * `ConfigValidationError` code `circular-extends` and a stable
+ * message of the form `"Circular extends: a → b → a"` so the
+ * diagnostic names every link in the loop in the order the resolver
+ * walked them.
  *
  *
  * ## Output
@@ -275,7 +276,7 @@ async function resolveParent(
   // Cycle detection. `chain` is the stack of extends names currently
   // being resolved from root downward; if `name` is already in it we
   // have a loop. The message names every link in the cycle in walk
-  // order — matching specs/config-approach.md's exact wording.
+  // order so the author can see the full path.
   if (chain.includes(name)) {
     const loop = [...chain.slice(chain.indexOf(name)), name].join(' → ');
     throw new ConfigValidationError([

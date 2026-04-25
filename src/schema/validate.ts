@@ -16,10 +16,9 @@
  *      express (unknown `sources` key, `{accession}` placeholder
  *      without an accession, …).
  *
- * Error messages match specs/config-approach.md's Edge Cases & Error Handling table
- * character-for-character. Adopters who grep their logs for
- * `"Unknown adapter"` continue to find the same string we promise
- * in the spec.
+ * Error messages are stable: adopters who grep their logs for
+ * `"Unknown adapter"` continue to find the same string release over
+ * release. The full set of issue codes lives in `errors.ts`.
  *
  * The pair is deliberately synchronous — Ajv compiles once per
  * process (memoised on the module), and the semantic pass is pure
@@ -193,15 +192,14 @@ function checkVersion(
 /**
  * Walk every string-typed field in the config looking for
  * `{accession}` placeholders. If any appear and no `accession` is
- * set, fail with the exact message from specs/config-approach.md §Edge Cases.
+ * set, fail with a stable message naming the missing accession.
  *
- * This covers the fields specs/config-approach.md calls out as supporting the
- * placeholder: `sources` values, track `labelUrl`, and any `url:`
- * inside a `DataSourceDescriptor` (both the scalar and array forms).
- * We do not search `dataTooltip` because it is rendered per-item at
- * display time with a different interpolation routine (Markdoc's
- * own variable expansion), and `description` is plain text that
- * does not accept placeholders.
+ * Fields that support the placeholder: `sources` values, track
+ * `labelUrl`, and any `url:` inside a `DataSourceDescriptor` (both
+ * the scalar and array forms). We do not search `dataTooltip`
+ * because it is rendered per-item at display time with a different
+ * interpolation routine (Markdoc's own variable expansion), and
+ * `description` is plain text that does not accept placeholders.
  */
 function checkAccessionPlaceholders(
   c: ProtvistaViewerConfig,
@@ -339,8 +337,8 @@ function checkTrack(
     });
   }
 
-  // Track has no rendering path.
-  //   specs/config-approach.md: "Track has no 'kind' or 'component', parent group has no 'component'"
+  // Track has no rendering path: no `kind`, no track-level
+  // `component`, and no parent-group `component` to inherit.
   if (!track.kind && !track.component && !group.component) {
     issues.push({
       path: trackPath,

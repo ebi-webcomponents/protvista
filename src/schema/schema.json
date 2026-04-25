@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ebi.ac.uk/protvista/config.schema.json",
   "title": "ProtvistaViewerConfig",
-  "description": "Declarative configuration for a ProtVista viewer instance (v1). Source-of-truth JSON Schema, authored in lockstep with src/schema/types.ts and the canonical specs/config-approach.md.",
+  "description": "Declarative configuration for a ProtVista viewer instance (v1). Source-of-truth JSON Schema, authored in lockstep with src/schema/types.ts.",
 
   "type": "object",
   "required": ["groups"],

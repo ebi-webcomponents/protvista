@@ -161,10 +161,7 @@ function trackUrl(
  */
 const ACCESSION_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
 
-function safeSubstituteAccession(
-  template: string,
-  accession: string
-): string {
+function safeSubstituteAccession(template: string, accession: string): string {
   const safe = ACCESSION_PATTERN.test(accession) ? accession : '';
   return template.replace('{accession}', safe);
 }
@@ -208,7 +205,13 @@ export async function loadProtvistaData(
     const groupId = group.id;
     const groupData = await Promise.all(
       group.tracks.map(async (track) => {
-        const { data: dataConfig, id: trackId, filter, kind, dataTooltip } = track;
+        const {
+          data: dataConfig,
+          id: trackId,
+          filter,
+          kind,
+          dataTooltip,
+        } = track;
         const first = dataConfig[0];
         if (!first) return;
         const trackKey = `${groupId}-${trackId}`;
@@ -216,11 +219,11 @@ export async function loadProtvistaData(
         const adapter = first.adapter;
 
         // `from: custom` — consumer-supplied data bypasses fetch + adapter
-        // entirely. Spec §Edge Cases: if the descriptor declares `custom`
-        // but no data was injected via `setTrackData()`, emit a
-        // `console.info` and leave the slot empty. Injected data still
-        // flows through the downstream `filter:` sugar and tooltip
-        // resolver so behaviour is symmetric with URL-sourced tracks.
+        // entirely. If the descriptor declares `custom` but no data
+        // was injected via `setTrackData()`, emit a `console.info`
+        // and leave the slot empty. Injected data still flows through
+        // the downstream `filter:` sugar and tooltip resolver so behaviour
+        // is symmetric with URL-sourced tracks.
         if (first.from === 'custom') {
           if (!(trackKey in customTrackData)) {
             console.info(
@@ -247,8 +250,9 @@ export async function loadProtvistaData(
           return annotated;
         }
 
-        const trackData = (Array.isArray(url) ? url : [url ?? ''])
-          .map((u) => rawData[u as string] || []);
+        const trackData = (Array.isArray(url) ? url : [url ?? '']).map(
+          (u) => rawData[u as string] || []
+        );
 
         // variation-adapter refuses to run against an empty payload
         // (behaviour preserved from the legacy loader).

@@ -351,9 +351,7 @@ class ProtvistaUniprot extends LitElement {
         (data.length > 0 || data.variants?.length)
       ) {
         // Make group element visible
-        const groupElt = this.findById<HTMLElement>(
-          `group_${currentGroup.id}`
-        );
+        const groupElt = this.findById<HTMLElement>(`group_${currentGroup.id}`);
         if (groupElt) {
           groupElt.style.display = 'flex';
         }
@@ -593,7 +591,6 @@ class ProtvistaUniprot extends LitElement {
 
   /**
    * Runtime escape-hatch for `from: custom` tracks
-   * (ProtvistaRuntimeAPI#setTrackData, spec §Escape-Hatch API).
    *
    * Provides data for a specific track programmatically, bypassing URL
    * fetching. Use this when your data doesn't live at a stable URL —
@@ -849,9 +846,7 @@ class ProtvistaUniprot extends LitElement {
                   <div class="group__track" id="track_${track.id}">
                     <div class="track-label" title="${track.description ?? ''}">
                       ${(track.filterUI === 'nightingale-filter' &&
-                        this.getFilterComponent(
-                          `${group.id}-${track.id}`
-                        )) ||
+                        this.getFilterComponent(`${group.id}-${track.id}`)) ||
                       (track.labelUrl &&
                         this.accession &&
                         html`<a
@@ -931,9 +926,7 @@ class ProtvistaUniprot extends LitElement {
       this.openGroups = [...this.openGroups, toggle];
     } else {
       target.classList.remove('open');
-      this.openGroups = [...this.openGroups].filter(
-        (d) => d !== toggle
-      );
+      this.openGroups = [...this.openGroups].filter((d) => d !== toggle);
     }
   }
 
@@ -954,14 +947,8 @@ class ProtvistaUniprot extends LitElement {
   // decouple the component from a single hardcoded kind.
   handleFilterClick(e: CustomEvent) {
     const target = e.target as Element as NightingaleFilter;
-    const consequenceFilters = this.groupByGroup(
-      target.filters,
-      'consequence'
-    );
-    const provenanceFilters = this.groupByGroup(
-      target.filters,
-      'provenance'
-    );
+    const consequenceFilters = this.groupByGroup(target.filters, 'consequence');
+    const provenanceFilters = this.groupByGroup(target.filters, 'provenance');
 
     const selectedFilters = e.detail?.value;
 

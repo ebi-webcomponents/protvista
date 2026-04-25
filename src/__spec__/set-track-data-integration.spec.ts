@@ -1,7 +1,5 @@
 /**
  * Component-level integration coverage for `setTrackData()`
- * (spec §Acceptance Criteria: "`from: custom` data sources are renderable
- * via the `setTrackData()` escape-hatch API").
  *
  * `src/__spec__/set-track-data.spec.ts` covers the loader contract —
  * that injected data ends up at `data['GROUP-track']`. This file is the
@@ -157,9 +155,9 @@ describe('<protvista-uniprot>.setTrackData() — component-level integration', (
     // The tooltip auto-fallback should have decorated each item with
     // a non-empty HTML string, proving the pipeline ran the resolver
     // path and didn't just write the raw array.
-    expect(
-      (stored[0] as { tooltipContent?: string }).tooltipContent
-    ).toMatch(/<h5>Type<\/h5>/);
+    expect((stored[0] as { tooltipContent?: string }).tooltipContent).toMatch(
+      /<h5>Type<\/h5>/
+    );
 
     // Loading flag should be cleared after the pipeline settles.
     expect(el.loading).toBe(false);

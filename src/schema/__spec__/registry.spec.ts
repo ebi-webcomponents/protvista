@@ -25,8 +25,8 @@ import type {
 describe('Registry — built-in seeding', () => {
   it('seeds exactly the 12 documented semantic kinds', () => {
     const r = createRegistry();
-    // Keep this list in lockstep with specs/config-approach.md's SemanticKind vocabulary
-    // (and with KnownSemanticKind in types.ts).
+    // Keep this list in lockstep with `KnownSemanticKind` in
+    // types.ts — that union is the type-level source of truth.
     expect(r.listSemanticKinds()).toEqual([
       'confidence-score',
       'features',

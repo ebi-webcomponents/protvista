@@ -30,7 +30,7 @@
  *
  *   6. Infers group `component` from child-track `component`s when
  *      omitted (all-same → that component; mixed →
- *      `nightingale-track-canvas`), per specs/config-approach.md §Behavior.
+ *      `nightingale-track-canvas`).
  *   7. Applies the title-cased `id` → `label` fallback for both
  *      groups and tracks.
  *   8. Detects duplicate group / track ids and throws.
@@ -290,8 +290,7 @@ function normalizeTrack(
   // group inheriting `color: red` still lets the kind override
   // that for a `confidence-score` track (kind-canonical ramp wins
   // over group red), while (b) the track author can still put an
-  // explicit override on top of a kind preset. Matches specs/config-approach.md
-  // "Defaults are canonical".
+  // explicit override on top of a kind preset.
   const rendering: RenderingOptions = {
     ...parentRendering,
     ...(kindDef?.rendering ?? {}),

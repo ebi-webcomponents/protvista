@@ -5,10 +5,10 @@
  * runtime-free. Instead it uses TypeScript's structural typing as a
  * cheap, in-CI guard against type regressions:
  *
- *   - Every example config in `specs/config-approach.md` is expressed as a literal
- *     typed as `ProtvistaViewerConfig`. If any optional field is
- *     wrongly marked required (or any required field is dropped),
- *     the build fails before tests even run.
+ *   - A representative cross-section of authored configs is
+ *     expressed as a literal typed as `ProtvistaViewerConfig`. If
+ *     any optional field is wrongly marked required (or any required
+ *     field is dropped), the build fails before tests even run.
  *   - A minimal `expectType<T>(x: T)` helper pins the parameter's
  *     type without requiring a dependency on `tsd` / `expect-type`.
  *   - Runtime assertions are `expect(true).toBe(true)` so the spec
@@ -41,7 +41,7 @@ function expectType<T>(value: T): T {
 }
 
 describe('ProtvistaViewerConfig — type contract', () => {
-  it('specs/config-approach.md Example 1: minimal config (string shorthand data, inferred label)', () => {
+  it('Example 1: minimal config (string shorthand data, inferred label)', () => {
     const config: ProtvistaViewerConfig = {
       accession: 'P05067',
       sources: {
@@ -67,7 +67,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
     expect(config.groups).toHaveLength(1);
   });
 
-  it('specs/config-approach.md Example 2: inline data (Starter Kit, no server)', () => {
+  it('Example 2: inline data (Starter Kit, no server)', () => {
     const config: ProtvistaViewerConfig = {
       groups: [
         {
@@ -108,7 +108,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
     });
   });
 
-  it('specs/config-approach.md Example 3: inheritance, multi-URL adapter, filter UI', () => {
+  it('Example 3: inheritance, multi-URL adapter, filter UI', () => {
     const config: ProtvistaViewerConfig = {
       defaults: {
         labelUrl: 'https://www.uniprot.org/uniprot/{accession}',
@@ -166,13 +166,12 @@ describe('ProtvistaViewerConfig — type contract', () => {
     expect(config.groups).toHaveLength(2);
   });
 
-  it('specs/config-approach.md Example 4: extends — one line, one new track', () => {
+  it('Example 4: extends — one line, one new track', () => {
     // Type-surface test: any string assigns to `extends?: string |
     // string[]`. The fixture uses a relative path because the
     // distribution mechanism for the shipped default config is not
-    // yet decided — see the Open Question in
-    // specs/config-approach.md. Avoid naming a specific URL or
-    // preset here so the test doesn't imply a canonical choice.
+    // yet decided — avoid naming a specific URL or preset here so
+    // the test doesn't imply a canonical choice.
     const config: ProtvistaViewerConfig = {
       extends: './base-config.yaml',
       sources: {

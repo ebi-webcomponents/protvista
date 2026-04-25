@@ -1,7 +1,5 @@
 /**
  * Focused coverage for the `from: custom` / `setTrackData()` escape hatch
- * (spec §Acceptance Criteria: "`from: custom` data sources are renderable
- * via the `setTrackData()` escape-hatch API").
  *
  * The loader-level contract, exercised here:
  *
@@ -18,11 +16,10 @@
  *      decorates injected items with `tooltipContent`.
  *
  *   4. When a track declares `from: custom` but no data has been
- *      injected, the loader emits the exact console.info message the
- *      spec mandates (spec §Edge Cases) and leaves the slot unset —
- *      nothing under `data[trackKey]`, and the track contributes an
- *      `undefined` to the group aggregate (matching how the URL
- *      branch handles missing data).
+ *      injected, the loader emits the a console.info message
+ *      and leaves the slot unset —  nothing under `data[trackKey]`,
+ *      and the track contributes an `undefined` to the group
+ *      aggregate (matching how the URL branch handles missing data).
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

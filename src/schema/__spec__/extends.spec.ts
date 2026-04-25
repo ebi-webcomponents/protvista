@@ -1,7 +1,7 @@
 /**
  * `extends` merger contract tests.
  *
- * Covers every rule specs/config-approach.md documents for `extends`:
+ * Covers every documented rule for `extends`:
  *   - sources merged by key (child wins)
  *   - defaults merged field-wise; rendering + colorScale nested
  *   - groups merged by id (extend in place, append new at end)

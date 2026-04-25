@@ -2,9 +2,9 @@
  * ProtVista viewer configuration schema — TypeScript contract (v1).
  *
  * This file is the authoritative TypeScript type surface for the
- * `ProtvistaViewerConfig` schema described in `specs/config-approach.md`. It is intentionally
- * type-only and runtime-free: no imports, no executable code, nothing that
- * would pull into a consumer's bundle.
+ * `ProtvistaViewerConfig` schema. It is intentionally type-only and
+ * runtime-free: no imports, no executable code, nothing that would
+ * pull into a consumer's bundle.
  *
  * Organisation follows the spec's data-model layering:
  *
@@ -15,8 +15,7 @@
  *   5. Escape-hatch API     — programmatic surface exposed at runtime
  *
  * The types are the source-of-truth for the JSON Schema authored in
- * `schema.json`. Any change here must be mirrored there and both
- * must stay in lockstep with `specs/config-approach.md`.
+ * `schema.json`. Any change here must be mirrored there.
  *
  * A declarative `transform` pipeline (filter / calculate / rename /
  * pick / limit) is left as future work and is not currently
@@ -125,7 +124,7 @@ export interface ProtvistaViewerConfig {
    * with later entries overriding earlier ones and the current
    * config overriding all of them.
    *
-   * Merge rules are documented in `specs/config-approach.md`:
+   * Merge rules:
    *
    *   - `sources`              — merged by key (child wins)
    *   - `defaults`             — merged field-wise (child wins)

@@ -11,7 +11,7 @@
  *   - `from` defaulting (`inline` when `inlineData` is present,
  *     `url` otherwise);
  *   - source → URL resolution through the root `sources` map,
- *     including dedup parity for the specs/config-approach.md runtime-layer test;
+ *     including dedup parity with the runtime-layer behaviour;
  *   - rendering cascade (defaults → group → kind preset → track)
  *     with the kind preset layered between group and track so
  *     canonical ramps win over group colour but lose to explicit
@@ -444,12 +444,14 @@ describe('normalizeConfig — adapter inference precedence', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// Source → URL resolution (incl. spec dedupe test)
+// Source → URL resolution (incl. dedupe across tracks)
 // ─────────────────────────────────────────────────────────────
 
 describe('normalizeConfig — source → url resolution', () => {
-  it('deduplicates URLs across tracks sharing the same source key (spec test)', () => {
-    // Ported verbatim from specs/config-approach.md's runtime-layer test block.
+  it('deduplicates URLs across tracks sharing the same source key', () => {
+    // Two tracks pointing at the same `sources` key should resolve
+    // to the same URL string instance — the runtime layer relies on
+    // this for cache-key equality.
     const out = normalizeConfig({
       sources: { features: 'https://example.com/features/{accession}' },
       groups: [

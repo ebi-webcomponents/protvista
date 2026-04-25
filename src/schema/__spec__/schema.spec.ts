@@ -2,9 +2,9 @@
  * JSON Schema contract tests.
  *
  * Validates the draft-2020-12 schema in `src/schema/schema.json` against
- * the canonical examples from `specs/config-approach.md` and against the rejection cases
- * that the static schema is expected to catch at load time (i.e. anything
- * not requiring registry lookup).
+ * a representative cross-section of authored configs and against the
+ * rejection cases that the static schema is expected to catch at load
+ * time (i.e. anything not requiring registry lookup).
  *
  * Closed-set validation for `kind` / `component` / `adapter` names is out
  * of scope here — those unions are open-string in the JSON Schema so the
@@ -80,10 +80,10 @@ describe('JSON Schema — compilation', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// Spec.md Example acceptance
+// Example acceptance
 // ─────────────────────────────────────────────────────────────
 
-describe('JSON Schema — accepts specs/config-approach.md examples', () => {
+describe('JSON Schema — accepts representative authored configs', () => {
   it('Example 1: minimal config with string shorthand + filter', () => {
     expectValid({
       accession: 'P05067',
@@ -209,11 +209,9 @@ describe('JSON Schema — accepts specs/config-approach.md examples', () => {
     // NOTE: this is a schema-shape test — `expectValid` only checks
     // the JSON Schema, it does not resolve `extends:`. The fixture
     // uses a relative file path because that's one of the forms the
-    // default loader supports without a custom resolver. See the
-    // Open Question "Distribution mechanism for the EBI-published
-    // default config" in specs/config-approach.md — the canonical
-    // URL / preset name for the shipped default has not been
-    // decided yet, so tests deliberately avoid naming one.
+    // default loader supports without a custom resolver. The
+    // canonical URL / preset name for the shipped default has not
+    // been decided yet, so tests deliberately avoid naming one.
     expectValid({
       extends: './base-config.yaml',
       sources: { my_features: 'https://example.org/my-features/{accession}' },
@@ -301,8 +299,7 @@ describe('JSON Schema — fine-grained acceptance', () => {
     // Schema-shape test: strings are accepted regardless of whether
     // they are URLs, file paths, or (resolver-supplied) preset names.
     // Fixtures use file paths to avoid naming a distribution URL
-    // that hasn't been decided — see the Open Question in
-    // specs/config-approach.md.
+    // that hasn't been decided.
     expectValid({
       extends: './base-config.yaml',
       groups: [{ id: 'C', tracks: [] }],
@@ -342,7 +339,7 @@ describe('JSON Schema — fine-grained acceptance', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// Rejection cases from specs/config-approach.md's Error Handling table
+// Rejection cases — structural errors the static schema must catch
 // ─────────────────────────────────────────────────────────────
 
 describe('JSON Schema — rejection cases', () => {

@@ -1,9 +1,8 @@
 # ProtVista UniProt — canonical default viewer configuration.
 #
 # Migrated from the hard-coded `src/config.ts` as part of the SSI/RSMF
-# config-as-data redesign (specs/config-approach.md §Behavior, acceptance criterion
-# "All 15 existing UniProt groups render correctly when driven by
-# the new config format").
+# config-as-data redesign. All 15 existing UniProt groups render
+# correctly when driven by the new config format.
 #
 # Authoring conventions followed in this file:
 #

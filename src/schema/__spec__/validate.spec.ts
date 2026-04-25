@@ -1,10 +1,9 @@
 /**
  * Validator contract tests.
  *
- * Covers every row of specs/config-approach.md's "Edge Cases & Error Handling" table
- * that `validateConfig` is responsible for — the non-runtime ones
- * (URL 4xx/5xx, malformed adapter input, runtime tooltip warnings,
- * etc. are the loader's / adapter's concern).
+ * Covers every edge case `validateConfig` is responsible for — the
+ * non-runtime ones (URL 4xx/5xx, malformed adapter input, runtime
+ * tooltip warnings, etc. are the loader's / adapter's concern).
  *
  * Each test also asserts on the emitted `code` so downstream tools
  * can rely on the stable machine-readable discriminator without
