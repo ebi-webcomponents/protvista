@@ -349,21 +349,18 @@ function checkTrack(
     });
   }
 
-  // Rendering-level colorScale check.
+  // Rendering-level colorScale check. `effectiveRendering` already
+  // covers the inheritance case (group's colorScale flows through
+  // when the track doesn't override), so a separate group-only branch
+  // would be redundant.
   const effectiveRendering = track.rendering ?? group.rendering;
   if (effectiveRendering?.colorScale) {
     checkColorScale(trackPath, effectiveRendering.colorScale, registry, issues);
   }
-  if (group.rendering?.colorScale && track.rendering?.colorScale === undefined) {
-    // Already covered by `effectiveRendering` branch above — no
-    // additional check needed. Kept explicit to make the reasoning
-    // obvious to future readers.
-  }
 
   // Data descriptors.
-  const descriptors = collectDescriptors(track);
-  for (let i = 0; i < descriptors.length; i++) {
-    checkDescriptor(trackPath, i, descriptors[i], sourceKeys, registry, issues);
+  for (const descriptor of collectDescriptors(track)) {
+    checkDescriptor(trackPath, descriptor, sourceKeys, registry, issues);
   }
 }
 
@@ -387,7 +384,6 @@ function isShorthand(
 
 function checkDescriptor(
   trackPath: string,
-  _index: number,
   d: DataSourceDescriptor | { __shorthand: string },
   sourceKeys: Set<string>,
   registry: Registry,
