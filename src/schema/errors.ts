@@ -27,7 +27,7 @@
 export interface ValidationIssue {
   /** JSON Pointer or `groupId/trackId` path into the offending config location. */
   path: string;
-  /** Human-readable message, matching the strings documented in specs/config-approach.md's Edge Cases table. */
+  /** Human-readable message; wording is stable so consumers can match on it. */
   message: string;
   /** Stable machine-readable identifier (kebab-case). */
   code: ValidationIssueCode;
@@ -83,7 +83,7 @@ export class ConfigValidationError extends Error {
 
   constructor(issues: ValidationIssue[]) {
     if (issues.length === 0) {
-      throw new Error(
+      throw new TypeError(
         'ConfigValidationError requires at least one issue — an empty issues array is a programming error.'
       );
     }
