@@ -226,6 +226,10 @@ export class RegistryCollisionError extends Error {
     this.name = 'RegistryCollisionError';
     this.bucket = bucket;
     this.registeredName = name;
+    // Maintain prototype chain across transpilation targets so that
+    // `error instanceof RegistryCollisionError` works for consumers
+    // that down-level this package to ES5.
+    Object.setPrototypeOf(this, RegistryCollisionError.prototype);
   }
 }
 
