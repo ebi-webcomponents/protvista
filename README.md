@@ -164,7 +164,7 @@ The viewer renders a single collapsible group "Domains" (label title-cased from 
 
 ### Learning more
 
-- **Schema reference.** [`specs/config-approach.md`](./specs/config-approach.md) documents every field (`groups`, `tracks`, `sources`, `defaults`, `extends`, `kind`, `data`, `transform`, `rendering`, `dataTooltip`) with worked examples and edge-case semantics. This is the normative source.
+- **Schema reference.** [`specs/config-approach.md`](./specs/config-approach.md) documents every field (`groups`, `tracks`, `sources`, `defaults`, `extends`, `kind`, `data`, `rendering`, `dataTooltip`) with worked examples and edge-case semantics. This is the normative source.
 - **Canonical default.** [`src/default-config.yaml`](./src/default-config.yaml) is the UniProt viewer itself, authored in the new schema. Useful as a reference.
 - **Authoring `dataTooltip`.** [`docs/data-tooltip.md`](./docs/data-tooltip.md) covers the three authoring forms (bare string, `kind: fields`, `kind: markdown`) with examples.
 
