@@ -266,39 +266,13 @@ describe('Open-ended vocabularies (IntelliSense + custom names)', () => {
   it('ComponentName and AdapterName accept built-ins and custom names', () => {
     const componentBuiltin: ComponentName = 'nightingale-track-canvas';
     const componentCustom: ComponentName = 'my-lab-track';
-    const adapterBuiltin: AdapterName = 'features-csv';
+    const adapterBuiltin: AdapterName = 'uniprot-features-json';
     const adapterCustom: AdapterName = 'my-custom-json';
     expectType<ComponentName>(componentBuiltin);
     expectType<ComponentName>(componentCustom);
     expectType<AdapterName>(adapterBuiltin);
     expectType<AdapterName>(adapterCustom);
-    expect(adapterBuiltin).toBe('features-csv');
-  });
-
-  it('AdapterName recognises features-tsv as a built-in generic adapter', () => {
-    // features-tsv is a first-class sibling to features-csv (spec §Open
-    // Questions Q1 resolution). This test guards against accidental
-    // removal from KnownAdapterName.
-    const tsvBuiltin: AdapterName = 'features-tsv';
-    expectType<AdapterName>(tsvBuiltin);
-    expect(tsvBuiltin).toBe('features-tsv');
-
-    // A track using the `.tsv` file-path shorthand must type-check end
-    // to end; the runtime will infer `from: file, adapter: features-tsv`.
-    const track: TrackConfig = {
-      id: 'hotspots',
-      kind: 'features',
-      data: './hotspots.tsv',
-    };
-    expectType<TrackConfig>(track);
-
-    // And the explicit descriptor form must also accept features-tsv.
-    const explicit: DataSourceDescriptor = {
-      from: 'file',
-      url: './hotspots.tsv',
-      adapter: 'features-tsv',
-    };
-    expectType<DataSourceDescriptor>(explicit);
+    expect(adapterBuiltin).toBe('uniprot-features-json');
   });
 });
 
@@ -319,7 +293,7 @@ describe('Escape-hatch API signatures', () => {
     };
     const kindDef: SemanticKindDefinition = {
       component: 'nightingale-track-canvas',
-      adapter: 'features-json',
+      adapter: 'my-custom-feed',
       rendering: { shape: 'diamond', color: '#8e44ad' },
     };
     // Exercise one registration call to also prove signature compat.

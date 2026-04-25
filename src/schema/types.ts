@@ -264,7 +264,6 @@ export interface TrackConfig {
    * Data source(s) for this track. Accepts four shapes:
    *
    *   data: features                 # string shorthand (sources key)
-   *   data: ./hits.csv               # file-path shorthand
    *   data: { url: "..." }           # single descriptor — the 95% case
    *   data: [ { ... }, { ... } ]     # array — multi-input adapter
    *
@@ -272,14 +271,16 @@ export interface TrackConfig {
    *
    *   - matches a key in root `sources`  → { from: url,  source: <value> }
    *   - starts with http:// or https://  → { from: url,  url: <value> }
-   *   - starts with / or ./              → { from: file, url: <value> }
-   *   - ends with .csv                   → { from: file, adapter: features-csv }
-   *   - ends with .tsv                   → { from: file, adapter: features-tsv }
-   *   - ends with .json                  → { from: file, adapter: features-json }
-   *   - ends with .bed                   → { from: file, adapter: bed }
    *
-   * Adapter inference: when the shorthand doesn't pin an adapter by
-   * extension, the track's semantic `kind` selects the canonical one.
+   * Adapter inference: the track's semantic `kind` selects the
+   * canonical adapter for each `from: url` source.
+   *
+   * Generic-format file adapters (CSV / TSV / JSON / BED via file path
+   * shorthand) are a planned addition; see
+   * `specs/generic-format-adapters.md`. Until they ship, authors with
+   * their own data files register a custom adapter via
+   * `registerAdapter()` and pin it explicitly with `adapter: <name>`
+   * on the descriptor.
    *
    * The array form is normalized internally; runtime code always sees
    * `DataSourceDescriptor[]`.
@@ -552,12 +553,18 @@ export type ComponentName = KnownComponentName | (string & {});
  * Named data adapters.
  *
  * Naming convention: `<source>-<format>`. This makes each adapter's
- * coupling explicit — an author can tell at a glance whether an
- * adapter is tied to a specific API (UniProt, AlphaFold, InterPro)
- * or parses a generic format (JSON array, CSV, BED).
+ * coupling explicit — an author can tell at a glance which API a
+ * built-in adapter is tied to (UniProt, AlphaFold, InterPro).
  *
  * Most authors never name an adapter directly — the semantic `kind`
  * field resolves to one automatically.
+ *
+ * Generic-format adapters for bring-your-own-data files (CSV / TSV /
+ * JSON / BED) are a planned addition — see
+ * `specs/generic-format-adapters.md` for the design. Until they ship,
+ * authors with their own data formats register a custom adapter via
+ * `registerAdapter()` and pin it with `adapter: <name>` on the
+ * descriptor.
  */
 export type KnownAdapterName =
   // ── Source-specific (coupled to a particular API output) ──
@@ -572,16 +579,7 @@ export type KnownAdapterName =
   | 'interpro-entries-json'
   | 'alphafold-prediction-json'
   | 'alphamissense-average-csv'
-  | 'alphamissense-full-csv'
-  // ── Generic format adapters (bring your own data) ─────────
-  /** Array of feature objects already in expected shape. */
-  | 'features-json'
-  /** CSV with columns: `type,start,end,description[,score]`. */
-  | 'features-csv'
-  /** TSV (tab-separated) with the same columns as `features-csv`. */
-  | 'features-tsv'
-  /** Standard BED (tab-separated). */
-  | 'bed';
+  | 'alphamissense-full-csv';
 
 /** Open-ended `AdapterName`. Adapters registered via `registerAdapter()` also type-check. */
 export type AdapterName = KnownAdapterName | (string & {});

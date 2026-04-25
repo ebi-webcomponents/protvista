@@ -440,10 +440,14 @@ function checkDescriptor(
  * `TrackConfig.data`. For this validator we only need to detect two
  * failure cases:
  *
- *   - the value is not a URL, not a file path, and not a known
- *     sources key → "Unknown source key";
- *   - the value is a file path but has no recognised extension →
- *     "Cannot infer adapter".
+ *   - the value is not a URL and not a known sources key →
+ *     "Unknown source key".
+ *
+ * File-path shorthand (`./hits.csv` etc.) is a planned addition; see
+ * `specs/generic-format-adapters.md`. Until those adapters ship,
+ * file-path values fall through to the unknown-sources-key error and
+ * authors have to switch to the object form with an explicit
+ * `from: 'file'` plus a `registerAdapter()`-supplied `adapter:`.
  *
  * The rest of the expansion is normalize.ts's job.
  */
@@ -459,42 +463,13 @@ function checkStringShorthand(
   // Rule 2: http(s) URL is OK without any adapter/kind inference.
   if (/^https?:\/\//i.test(value)) return;
 
-  // Rule 3: a path (absolute / relative). Must have a known extension,
-  // otherwise fail with "Cannot infer adapter".
-  if (value.startsWith('/') || value.startsWith('./')) {
-    if (!hasKnownExtension(value)) {
-      issues.push({
-        path: trackPath,
-        message: `Cannot infer adapter for '${value}' in track ${trackPath}. Use an object form with explicit 'adapter:' or register a handler for '${extensionOf(value) ?? 'this extension'}'.`,
-        code: 'cannot-infer-adapter',
-      });
-    }
-    return;
-  }
-
-  // Rule 4: a bare filename with a known extension is resolved as a
-  // file path (normalize.ts handles this). No additional check here.
-  if (hasKnownExtension(value)) return;
-
-  // Rule 5 fell through: treat as sources-key reference, surface
+  // Rule 3 fell through: treat as sources-key reference, surface
   // "Unknown source key" with the registered keys list.
   issues.push({
     path: trackPath,
     message: `Unknown source key: '${value}' in track ${trackPath}. Known sources: ${listQuoted(sourceKeys)}.`,
     code: 'unknown-source-key',
   });
-}
-
-const KNOWN_EXTENSIONS: readonly string[] = ['.csv', '.tsv', '.json', '.bed'];
-
-function hasKnownExtension(value: string): boolean {
-  const lower = value.toLowerCase();
-  return KNOWN_EXTENSIONS.some((ext) => lower.endsWith(ext));
-}
-
-function extensionOf(value: string): string | undefined {
-  const idx = value.lastIndexOf('.');
-  return idx === -1 ? undefined : value.slice(idx);
 }
 
 // ─────────────────────────────────────────────────────────────

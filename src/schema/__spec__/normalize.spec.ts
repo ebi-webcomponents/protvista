@@ -2,12 +2,12 @@
  * normalize / expand pipeline contract tests.
  *
  * Covers:
- *   - the four `data:` shorthand shapes (string, string w/ extension,
- *     single descriptor, array) resolving to `NormalizedDataSource[]`;
+ *   - the three `data:` shorthand shapes (string, single descriptor,
+ *     array) resolving to `NormalizedDataSource[]`;
  *   - the string-shorthand resolution table on `TrackConfig.data`
- *     (sources key, http(s) URL, ./path, .csv/.tsv/.json/.bed);
- *   - extension-based and kind-based adapter inference, including
- *     explicit-adapter-wins precedence and multi-URL agreement;
+ *     (sources key, http(s) URL);
+ *   - kind-based adapter inference and explicit-adapter-wins
+ *     precedence;
  *   - `from` defaulting (`inline` when `inlineData` is present,
  *     `url` otherwise);
  *   - source → URL resolution through the root `sources` map,
@@ -204,52 +204,6 @@ describe('normalizeConfig — data shorthand expansion', () => {
     expect(d.source).toBeUndefined();
   });
 
-  it('resolves a ./path shorthand with a known extension to {from: file, adapter}', () => {
-    const out = normalizeConfig(
-      cfg({
-        groups: [
-          { id: 'C', tracks: [track({ id: 't', data: './hits.csv' })] },
-        ],
-      })
-    );
-    const d = out.groups[0].tracks[0].data[0];
-    expect(d.from).toBe('file');
-    expect(d.url).toBe('./hits.csv');
-    expect(d.adapter).toBe('features-csv');
-  });
-
-  it('resolves a /abs/path shorthand with an unknown extension to {from: file}, no adapter', () => {
-    const out = normalizeConfig(
-      cfg({
-        groups: [
-          { id: 'C', tracks: [track({ id: 't', data: '/data/x.gff' })] },
-        ],
-      })
-    );
-    const d = out.groups[0].tracks[0].data[0];
-    expect(d.from).toBe('file');
-    expect(d.url).toBe('/data/x.gff');
-    expect(d.adapter).toBeUndefined();
-  });
-
-  it('resolves a bare .tsv / .json / .bed filename to {from: file, adapter}', () => {
-    const cases = [
-      { data: 'hits.tsv', adapter: 'features-tsv' },
-      { data: 'hits.json', adapter: 'features-json' },
-      { data: 'hits.bed', adapter: 'bed' },
-    ];
-    for (const { data, adapter } of cases) {
-      const out = normalizeConfig(
-        cfg({
-          groups: [{ id: 'C', tracks: [track({ id: 't', data })] }],
-        })
-      );
-      const d = out.groups[0].tracks[0].data[0];
-      expect(d.from).toBe('file');
-      expect(d.adapter).toBe(adapter);
-    }
-  });
-
   it('falls back to {from: url, source} for an unresolvable bare string (validator surfaces the error)', () => {
     const out = normalizeConfig(
       cfg({
@@ -423,7 +377,7 @@ describe('normalizeConfig — from defaulting', () => {
 // ─────────────────────────────────────────────────────────────
 
 describe('normalizeConfig — adapter inference precedence', () => {
-  it('explicit adapter wins over extension and kind inference', () => {
+  it('explicit adapter wins over kind inference', () => {
     const registry = createRegistry();
     const out = normalizeConfig(
       cfg({
@@ -434,7 +388,10 @@ describe('normalizeConfig — adapter inference precedence', () => {
               track({
                 id: 't',
                 kind: 'features',
-                data: { url: './hits.csv', adapter: 'features-json' },
+                data: {
+                  url: 'https://x.test/f',
+                  adapter: 'my-custom-adapter',
+                },
               }),
             ],
           },
@@ -442,35 +399,10 @@ describe('normalizeConfig — adapter inference precedence', () => {
       }),
       { registry }
     );
-    expect(out.groups[0].tracks[0].data[0].adapter).toBe('features-json');
+    expect(out.groups[0].tracks[0].data[0].adapter).toBe('my-custom-adapter');
   });
 
-  it('extension-based inference runs before kind inference', () => {
-    const registry = createRegistry();
-    const out = normalizeConfig(
-      cfg({
-        groups: [
-          {
-            id: 'C',
-            tracks: [
-              track({
-                id: 't',
-                kind: 'features',
-                data: { url: './custom.csv' },
-              }),
-            ],
-          },
-        ],
-      }),
-      { registry }
-    );
-    // features-csv from .csv extension beats the kind's canonical
-    // uniprot-features-json, which makes sense: if the file is a CSV
-    // the kind adapter (which parses UniProt JSON) would fail.
-    expect(out.groups[0].tracks[0].data[0].adapter).toBe('features-csv');
-  });
-
-  it('prefers the kind canonical adapter for sources-key shorthand, even when the resolved URL has a known extension', () => {
+  it('prefers the kind canonical adapter for sources-key shorthand', () => {
     const registry = createRegistry();
     const out = normalizeConfig(
       cfg({
@@ -484,19 +416,14 @@ describe('normalizeConfig — adapter inference precedence', () => {
       }),
       { registry }
     );
-    // Important: adapter inference runs BEFORE source→URL resolution,
-    // which means a sources-key shorthand never sees the resolved
-    // URL's extension. The kind's canonical adapter wins instead.
-    // This is the right semantic: the author explicitly said
-    // `kind: features`, so they want the UniProt JSON adapter even if
-    // the URL happens to end in `.json`. Pinned so future refactors
-    // don't accidentally swap the order.
+    // The author explicitly said `kind: features`, so they want the
+    // UniProt JSON adapter that the kind resolves to.
     expect(out.groups[0].tracks[0].data[0].adapter).toBe(
       'uniprot-features-json'
     );
   });
 
-  it('uses the kind canonical adapter when the URL has no recognisable extension', () => {
+  it('uses the kind canonical adapter when no explicit adapter is set', () => {
     const registry = createRegistry();
     const out = normalizeConfig(
       cfg({
@@ -513,44 +440,6 @@ describe('normalizeConfig — adapter inference precedence', () => {
     expect(out.groups[0].tracks[0].data[0].adapter).toBe(
       'uniprot-features-json'
     );
-  });
-
-  it('infers adapter from a multi-URL descriptor only when every URL agrees', () => {
-    const matching = normalizeConfig(
-      cfg({
-        groups: [
-          {
-            id: 'C',
-            tracks: [
-              track({
-                id: 't',
-                data: { from: 'url', url: ['a.csv', 'b.csv'] },
-              }),
-            ],
-          },
-        ],
-      })
-    );
-    expect(matching.groups[0].tracks[0].data[0].adapter).toBe(
-      'features-csv'
-    );
-
-    const mixed = normalizeConfig(
-      cfg({
-        groups: [
-          {
-            id: 'C',
-            tracks: [
-              track({
-                id: 't',
-                data: { from: 'url', url: ['a.csv', 'b.json'] },
-              }),
-            ],
-          },
-        ],
-      })
-    );
-    expect(mixed.groups[0].tracks[0].data[0].adapter).toBeUndefined();
   });
 });
 

@@ -46,7 +46,6 @@ export type ValidationIssueCode =
   | 'unknown-semantic-kind'
   | 'unknown-component'
   | 'unknown-theme'
-  | 'cannot-infer-adapter'
   | 'missing-inline-data'
   | 'missing-track-renderer'
   | 'invalid-color-scale'

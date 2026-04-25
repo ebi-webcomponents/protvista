@@ -22,16 +22,21 @@ The target workflow — an external lab inheriting the full EBI UniProt viewer a
 # still open — see the Open Question on distribution below.
 extends: '<published-uniprot-default-config-url>'
 
+sources:
+  my_hotspots: 'https://my-lab.example.org/protvista/hotspots/{accession}'
+
 groups:
   - id: MY_LAB
     label: My lab
     tracks:
       - id: hotspots
         kind: features
-        data: ./hotspots.csv
+        data: my_hotspots
 ```
 
-A bench scientist writes only domain-level concepts (`kind: features`, `./hotspots.csv`) — never Nightingale component names, adapter names, or JavaScript. See [Example 4](#example-4-extending-the-ebi-default--one-line-one-new-track) for the full behaviour.
+A bench scientist writes only domain-level concepts (`kind: features`, the `my_hotspots` source-key) — never Nightingale component names, adapter names, or JavaScript. See [Example 4](#example-4-extending-the-ebi-default--one-line-one-new-track) for the full behaviour.
+
+> **Note.** Generic-format adapters that would let an author point at a local file with a `data: ./hotspots.csv` shorthand (CSV / TSV / JSON / BED) are a planned addition — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md). Until those land, the BYO-data path goes through a hosted URL (as in the example above) or a `registerAdapter()`-supplied custom adapter pinned with `adapter: <name>` on the descriptor.
 
 ## Non-Goals
 
@@ -99,12 +104,14 @@ interface ProtvistaViewerConfig {
    * Question on distribution below:
    *
    *   extends: "<published-uniprot-default-config-url>"
+   *   sources:
+   *     my_hotspots: "https://my-lab.example.org/hotspots/{accession}"
    *   groups:
    *     - id: MY_TRACKS
    *       tracks:
    *         - id: hotspots
    *           kind: features
-   *           data: ./hotspots.csv
+   *           data: my_hotspots
    */
   extends?: string | string[];
 
@@ -265,26 +272,26 @@ interface TrackConfig {
   /**
    * Data source(s) for this track.
    *
-   * Accepts four shapes, in order of author effort:
+   * Accepts three shapes, in order of author effort:
    *
-   *   data: features                 # string shorthand
-   *   data: ./hits.csv               # file-path shorthand
+   *   data: features                 # string shorthand (sources key)
    *   data: { url: "..." }           # single descriptor — the 95% case
    *   data: [ { ... }, { ... } ]     # array — multi-input adapter (AlphaFold)
    *
    * String-shorthand resolution rules (checked in order):
    *
-   *   - matches a key in root `sources`  → from: url,    source: <value>
-   *   - starts with http:// or https://  → from: url,    url: <value>
-   *   - starts with / or ./              → from: file,   url: <value>
-   *   - ends with .csv                   → from: file,   adapter: features-csv
-   *   - ends with .tsv                   → from: file,   adapter: features-tsv
-   *   - ends with .json                  → from: file,   adapter: features-json
-   *   - ends with .bed                   → from: file,   adapter: bed
+   *   - matches a key in root `sources`  → from: url, source: <value>
+   *   - starts with http:// or https://  → from: url, url: <value>
    *
-   * Adapter inference: for any shorthand that doesn't pin down an
-   * adapter by extension, the track's semantic `kind` selects the
+   * Adapter inference: the track's semantic `kind` selects the
    * canonical adapter.
+   *
+   * File-path shorthand against generic-format adapters (CSV / TSV /
+   * JSON / BED via `data: ./hits.csv`-style values) is a planned
+   * addition — see `specs/generic-format-adapters.md`. Until those
+   * adapters ship, authors with their own data files use the object
+   * form with an explicit `from: 'file'` plus a `registerAdapter()`-
+   * supplied `adapter:` they pin themselves.
    *
    * The array form is normalized internally; runtime code always
    * sees `DataSourceDescriptor[]`.
@@ -401,7 +408,7 @@ interface DataSourceDescriptor {
    * `from` is deliberately spelled this way (rather than `type`)
    * because `type` is commonly used as a per-feature data field
    * (e.g. `type: DOMAIN`). Reserving `type` for the payload keeps
-   * YAML (`from: file, url: ./x.csv`) unambiguous.
+   * the descriptor unambiguous.
    *
    * - "url":    Fetch from one or more HTTP endpoints.
    * - "inline": Data is provided directly via `inlineData`.
@@ -605,14 +612,17 @@ type ComponentName = KnownComponentName | (string & {});
  *
  * Naming convention: `<source>-<format>`.  This makes each
  * adapter's coupling explicit — reading the list, an author can
- * tell whether an adapter is tied to a specific API (UniProt,
- * AlphaFold, InterPro) or parses a generic format (JSON array,
- * CSV, BED).
+ * tell at a glance which API a built-in adapter is tied to (UniProt,
+ * AlphaFold, InterPro).
  *
  * Most authors never name an adapter directly — the semantic
- * `kind` field resolves to one automatically.  Adapters are
+ * `kind` field resolves to one automatically. Adapters are
  * visible only when overriding the default or registering a
  * custom one at runtime.
+ *
+ * Generic-format adapters for bring-your-own-data files (CSV / TSV /
+ * JSON / BED) are a planned addition — see
+ * `specs/generic-format-adapters.md` for the design.
  */
 type KnownAdapterName =
   // ── Source-specific (coupled to a particular API output) ──
@@ -627,12 +637,7 @@ type KnownAdapterName =
   | 'interpro-entries-json'
   | 'alphafold-prediction-json'
   | 'alphamissense-average-csv'
-  | 'alphamissense-full-csv'
-  // ── Generic format adapters (bring your own data) ─────────
-  | 'features-json' // array of feature objects already in expected shape
-  | 'features-csv' // CSV with columns: type,start,end,description[,score]
-  | 'features-tsv' // TSV (tab-separated) with the same columns as features-csv
-  | 'bed'; // standard BED (tab-separated)
+  | 'alphamissense-full-csv';
 
 /** Open string — adapters registered via `registerAdapter()` are also valid. */
 type AdapterName = KnownAdapterName | (string & {});
@@ -924,18 +929,23 @@ The AlphaFold group has no `rendering` block because `kind: "confidence-score"` 
 # default config is an Open Question below.
 extends: '<published-uniprot-default-config-url>'
 
+sources:
+  my_hotspots: 'https://my-lab.example.org/protvista/hotspots/{accession}'
+
 groups:
   - id: MY_LAB
     label: My lab
     tracks:
       - id: hotspots
         kind: features
-        data: ./hotspots.csv
+        data: my_hotspots
 ```
 
 **Expected output (viewer behaviour):**
 
 At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, merges its `sources`, `defaults`, and 15 groups underneath this config, then appends the `MY_LAB` group at the end of the group list. The user sees the full canonical UniProt viewer with their one extra track tacked on — authored in a handful of lines of YAML. Overriding a specific EBI track is equally cheap: declare a group with the same `id` as one in the base and the merge rules fold it in field-wise. The `extends:` value can equally be a relative file path (`./uniprot-default.yaml`) if the adopter hosts their own copy of the base config.
+
+> **Note.** Generic-format adapters that would let the author point at a local file with a `data: ./hotspots.csv` shorthand instead of a hosted URL are a planned addition — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md).
 
 ## Edge Cases & Error Handling
 
@@ -943,7 +953,6 @@ At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, me
 | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | A `url` data source returns HTTP 4xx/5xx                                                                                          | The track is silently hidden (consistent with current behaviour). A `console.warn` is emitted. The rest of the viewer renders normally. The group is hidden if _all_ its tracks have no data.                                                                                                                                                                                                                                                                                           |
 | A `source` (or bare `url`) value is not a URL, not a file path, and does not match any key in `sources`                           | Config validation fails at load time: `"Unknown source key: '<value>' in track <groupId>/<trackId>. Known sources: ..."`. Viewer does not mount.                                                                                                                                                                                                                                                                                                                                        |
-| `data` string shorthand has an extension the resolver does not recognise (e.g. `./x.gff`)                                         | Config validation fails: `"Cannot infer adapter for './x.gff' in track <groupId>/<trackId>. Use an object form with explicit `adapter:`."`.                                                                                                                                                                                                                                                                                                                                             |
 | `adapter` name does not match any built-in or registered adapter                                                                  | Config validation fails: `"Unknown adapter: <name> in track <groupId>/<trackId>. Did you forget to call registerAdapter()?"`.                                                                                                                                                                                                                                                                                                                                                           |
 | `kind` (semantic) value is not in the semantic-kind vocabulary and is not registered                                              | Config validation fails: `"Unknown semantic kind: '<value>' in track <groupId>/<trackId>. Valid values: .... Register custom kinds with registerSemanticKind()."`.                                                                                                                                                                                                                                                                                                                      |
 | A track has no `kind`, no `component`, and the parent group has no `component`                                                    | Config validation fails: `"Track <groupId>/<trackId> has no 'kind' or 'component'. Set a semantic 'kind' (e.g. 'features') or provide 'component' explicitly."`.                                                                                                                                                                                                                                                                                                                        |
@@ -1084,10 +1093,9 @@ describe('ProtVista Viewer Config Schema — JSON Schema layer', () => {
     expect(validate(config)).toBe(true);
   });
 
-  it('accepts all four shapes of the `data` field', () => {
+  it('accepts the supported shapes of the `data` field', () => {
     const shapes = [
       { data: 'features' }, // sources-key shorthand
-      { data: './hits.csv' }, // file-path shorthand
       { data: { from: 'inline', inlineData: [] } }, // single descriptor
       { data: [{ source: 'a' }, { source: 'b' }] }, // array
     ];
@@ -1124,8 +1132,9 @@ describe('ProtVista Viewer Config Schema — JSON Schema layer', () => {
         rendering: { layout: 'non-overlapping' },
         labelUrl: 'https://x/{id}',
       },
+      sources: { my_features: 'https://example.org/my-features/{accession}' },
       groups: [
-        { id: 'MY', tracks: [{ id: 't', kind: 'features', data: './x.csv' }] },
+        { id: 'MY', tracks: [{ id: 't', kind: 'features', data: 'my_features' }] },
       ],
     };
     expect(validate(config)).toBe(true);

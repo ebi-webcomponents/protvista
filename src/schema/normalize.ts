@@ -8,12 +8,13 @@
  *
  * What normalize does:
  *
- *   1. Expands the four `data` shorthand forms into a
- *      `NormalizedDataSource[]`. Runtime code never has to branch on
- *      "is this a string / object / array?" again.
- *   2. Resolves string-shorthand data rules (sources key, file path,
- *      http(s) URL, extension-based adapter inference) per the table
- *      in `TrackConfig.data`.
+ *   1. Expands the `data` shorthand forms (string, single descriptor,
+ *      array) into a `NormalizedDataSource[]`. Runtime code never has
+ *      to branch on "is this a string / object / array?" again.
+ *   2. Resolves string-shorthand data rules (sources key, http(s) URL)
+ *      per the table in `TrackConfig.data`. File-path shorthand and
+ *      extension-based adapter inference are a planned addition; see
+ *      `specs/generic-format-adapters.md`.
  *   3. Fills in defaults for `from` (`"url"` when omitted, `"inline"`
  *      when `inlineData` is present).
  *   4. Resolves semantic kinds via the registry into (component,
@@ -412,37 +413,18 @@ function resolveStringShorthand(
   if (/^https?:\/\//i.test(value)) {
     return { from: 'url', url: value };
   }
-  // 3. Starts with / or ./ → from: file, url: <value>, adapter via
-  //    extension inference (best effort).
-  if (value.startsWith('/') || value.startsWith('./')) {
-    const adapter = inferAdapterFromExtension(value);
-    return adapter
-      ? { from: 'file', url: value, adapter }
-      : { from: 'file', url: value };
-  }
-  // 4. Bare filename with a known extension (no prefix) — treat as a
-  //    relative file path. This mirrors steps 4–7 of the spec table,
-  //    which all resolve to `from: file` with an extension-inferred
-  //    adapter.
-  const ext = inferAdapterFromExtension(value);
-  if (ext) {
-    return { from: 'file', url: value, adapter: ext };
-  }
-  // 5. Fell off the end. Best-effort: assume the author intended a
+  // 3. Fell off the end. Best-effort: assume the author intended a
   //    sources-key reference. The validator surfaces
   //    "Unknown source key: '<value>' in track <groupId>/<trackId>.
   //    Known sources: ..." with the registered keys listed — a far
   //    better error than any the engine could produce here.
+  //
+  //    File-path shorthand (`./hits.csv` etc.) and the file-extension
+  //    adapter inference that backed it are a planned addition — see
+  //    `specs/generic-format-adapters.md`. Until that lands, authors
+  //    with their own data files use the object form with an explicit
+  //    `from: 'file'` and a `registerAdapter()`-supplied `adapter:`.
   return { from: 'url', source: value };
-}
-
-function inferAdapterFromExtension(path: string): AdapterName | undefined {
-  const lower = path.toLowerCase();
-  if (lower.endsWith('.csv')) return 'features-csv';
-  if (lower.endsWith('.tsv')) return 'features-tsv';
-  if (lower.endsWith('.json')) return 'features-json';
-  if (lower.endsWith('.bed')) return 'bed';
-  return undefined;
 }
 
 function expandDescriptor(
@@ -457,24 +439,13 @@ function expandDescriptor(
 
   // Adapter inference order:
   //   1. Explicit `adapter:` wins.
-  //   2. Extension-based (only when `url:` is present).
-  //   3. Kind's canonical adapter (applies regardless of file path —
+  //   2. Kind's canonical adapter (applies regardless of file path —
   //      a `kind: confidence-score` track pointed at a raw API URL
   //      still wants `alphafold-prediction-json`).
+  //
+  // File-extension inference (`./x.csv` → `features-csv` etc.) is
+  // planned; see `specs/generic-format-adapters.md`.
   let adapter = d.adapter;
-  if (!adapter && typeof d.url === 'string') {
-    adapter = inferAdapterFromExtension(d.url);
-  } else if (!adapter && Array.isArray(d.url) && d.url.length > 0) {
-    // Multi-URL: infer only if every URL agrees on the same adapter.
-    // Mixed extensions in one descriptor is a real footgun for
-    // adapter inference, so we decline and let the kind adapter or
-    // the validator take over.
-    const inferred = d.url.map((u) => inferAdapterFromExtension(u));
-    const first = inferred[0];
-    if (first !== undefined && inferred.every((a) => a === first)) {
-      adapter = first;
-    }
-  }
   if (!adapter && kindAdapter) {
     adapter = kindAdapter;
   }

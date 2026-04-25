@@ -6,28 +6,17 @@ common:
     Quarter: 'Q2 (May–Jul 2026)'
 
 issues:
-  - title: 'Register and ship generic-format adapters (`features-json`, `features-csv`, `features-tsv`, `bed`)'
+  - title: 'Implement the generic-format adapters (`features-json`, `features-csv`, `features-tsv`, `bed`)'
     labels: ['next']
     body: |
       **Context**
-      `features-json`, `features-csv`, `features-tsv`, and `bed` are declared as canonical names in the `KnownAdapterName` union in `src/schema/types.ts`, and the file-extension shorthand in `src/schema/normalize.ts` infers them (`.csv → features-csv`, `.tsv → features-tsv`, `.json → features-json`, `.bed → bed`). But no runtime registration of these adapters exists — `registerBuiltinAdapters()` appears only in doc comments in `src/schema/registry.ts`. As a result, a config that relies on the inference (e.g. `data: "./x.csv"`) infers `adapter: features-csv` and then fails at validate/load time with "Unknown adapter" because no such adapter is registered.
-
-      If we want the bring-your-own-CSV authoring workflow to actually work end-to-end, these adapters need a real implementation.
+      The library ships eleven UniProt-API-specific adapters today (`uniprot-features-json`, `uniprot-variation-json`, `interpro-entries-json`, `alphafold-prediction-json`, the AlphaMissense pair, etc.). The bring-your-own-data path the spec promises — a bench scientist or external lab pointing a track at a CSV / TSV / JSON / BED file alongside their HTML page — needs four generic-format adapters: `features-json`, `features-csv`, `features-tsv`, `bed`. Until they ship, BYO-data authors route through a hosted URL plus a custom `registerAdapter()` call rather than a one-line `data: ./hits.csv` shorthand.
 
       **Task**
-      Implement and register the four generic-format adapters so they are available out of the box on the `<protvista-uniprot>` element.
-
-      **Scope:**
-      * Add `src/schema/adapters/features-json.ts` — parses an array of feature-shaped records already in the expected shape. Happy path + malformed input (non-array, wrong field types) unit tests.
-      * Add `src/schema/adapters/features-csv.ts` — parses CSV with header row `type,start,end,description[,score]`. Uses the existing `d3-dsv` dependency (no new dep).
-      * Add `src/schema/adapters/features-tsv.ts` — same column convention, tab-separated. Shares the parser core with `features-csv`.
-      * Add `src/schema/adapters/bed.ts` — standard BED (tab-separated). At minimum BED3 (chrom/start/end); ideally up to BED6 for score + strand.
-      * Implement `registerBuiltinAdapters(registry)` in `src/schema/registry.ts` and call it from the default registry factory so the adapters are pre-registered before any config loads.
-      * Reinstate the deleted spec material in `specs/config-approach.md`: Example 4 (bring-your-own CSV + transform pipeline), the Edge Cases row for malformed generic-format-adapter input, and the corresponding acceptance criteria.
-      * Each adapter has a unit test covering happy path and at least one malformed-input case, producing a descriptive error that identifies the offending row/column.
+      Implement the four adapters as specified in [`specs/generic-format-adapters.md`](./specs/generic-format-adapters.md). The spec captures the parser code (CSV / TSV via `d3-dsv` already in the tree, BED via native string ops, JSON as a passthrough validator), the registration mechanism (`registerBuiltinAdapters(registry)`), the type-union additions, the file-extension shorthand inference, the validator's `cannot-infer-adapter` check, the per-adapter test strategy, and the spec passages to restore in `specs/config-approach.md`.
 
       **Notes:**
-      The payload shape these adapters produce should match what the resolved semantic-kind adapter consumer expects (feature-shaped records with `type`, `start`/`begin`, `end`, `description`, optional `score`). Validate against the existing nightingale-track-canvas component to confirm tracks render without any per-track glue code from the author.
+      No new runtime dependency — `d3-dsv` is already in the tree (used by the AlphaMissense parsers); BED uses native string ops. The acceptance hinges on four measurable things: a `data: ./hits.csv` shorthand loads end to end against the local origin without consumer-side adapter registration; same for `.tsv` / `.json` / `.bed`; an unknown extension (`./x.gff`) fails validation with the spec-worded `cannot-infer-adapter` message; and BED records have correctly-shifted 1-indexed inclusive coordinates after parsing the 0-indexed half-open input.
     fields:
       Group: 'Technical'
 

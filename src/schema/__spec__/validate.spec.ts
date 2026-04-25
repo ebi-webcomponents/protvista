@@ -23,8 +23,6 @@ const freshRegistry = () => {
   // don't all double-fail on "Unknown adapter".
   r.registerAdapter('uniprot-features-json', () => []);
   r.registerAdapter('alphafold-prediction-json', () => []);
-  r.registerAdapter('features-csv', () => []);
-  r.registerAdapter('features-json', () => []);
   return r;
 };
 
@@ -165,41 +163,6 @@ describe('validateConfig — unknown source key', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// Semantic: cannot-infer-adapter
-// ─────────────────────────────────────────────────────────────
-
-describe('validateConfig — cannot infer adapter', () => {
-  it("flags './x.gff' shorthand (unrecognised extension)", () => {
-    const cfg: ProtvistaViewerConfig = {
-      groups: [
-        {
-          id: 'X',
-          tracks: [{ id: 'y', kind: 'features', data: './x.gff' }],
-        },
-      ],
-    };
-    const result = validateConfig(cfg, freshRegistry());
-    const issue = issueByCode(result.issues, 'cannot-infer-adapter');
-    expect(issue).toBeDefined();
-    expect(issue!.message).toContain("Cannot infer adapter for './x.gff'");
-    expect(issue!.message).toContain("'.gff'");
-  });
-
-  it("accepts './x.csv' shorthand (recognised extension)", () => {
-    const cfg: ProtvistaViewerConfig = {
-      groups: [
-        {
-          id: 'X',
-          tracks: [{ id: 'y', kind: 'features', data: './x.csv' }],
-        },
-      ],
-    };
-    const result = validateConfig(cfg, freshRegistry());
-    expect(issueByCode(result.issues, 'cannot-infer-adapter')).toBeUndefined();
-  });
-});
-
-// ─────────────────────────────────────────────────────────────
 // Semantic: unknown adapter / kind / component
 // ─────────────────────────────────────────────────────────────
 
@@ -259,7 +222,7 @@ describe('validateConfig — unknown adapter / kind / component', () => {
             {
               id: 'y',
               component: 'nightingale-fake',
-              data: { url: 'https://example.org/x', adapter: 'features-json' },
+              data: { url: 'https://example.org/x', adapter: 'uniprot-features-json' },
             },
           ],
         },
@@ -281,7 +244,7 @@ describe('validateConfig — missing track renderer', () => {
         {
           id: 'X',
           tracks: [
-            { id: 'y', data: { url: 'https://example.org/x', adapter: 'features-json' } },
+            { id: 'y', data: { url: 'https://example.org/x', adapter: 'uniprot-features-json' } },
           ],
         },
       ],
@@ -300,7 +263,7 @@ describe('validateConfig — missing track renderer', () => {
           id: 'X',
           component: 'nightingale-track-canvas',
           tracks: [
-            { id: 'y', data: { url: 'https://example.org/x', adapter: 'features-json' } },
+            { id: 'y', data: { url: 'https://example.org/x', adapter: 'uniprot-features-json' } },
           ],
         },
       ],

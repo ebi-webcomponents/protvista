@@ -216,12 +216,13 @@ describe('JSON Schema — accepts specs/config-approach.md examples', () => {
     // decided yet, so tests deliberately avoid naming one.
     expectValid({
       extends: './base-config.yaml',
+      sources: { my_features: 'https://example.org/my-features/{accession}' },
       groups: [
         {
           id: 'MY_LAB',
           label: 'My lab',
           tracks: [
-            { id: 'hotspots', kind: 'features', data: './hotspots.csv' },
+            { id: 'hotspots', kind: 'features', data: 'my_features' },
           ],
         },
       ],
@@ -234,11 +235,13 @@ describe('JSON Schema — accepts specs/config-approach.md examples', () => {
 // ─────────────────────────────────────────────────────────────
 
 describe('JSON Schema — fine-grained acceptance', () => {
-  it('accepts all four shapes of the `data` field', () => {
+  it('accepts the supported shapes of the `data` field', () => {
+    // File-path shorthand against generic-format adapters (CSV / TSV /
+    // JSON / BED) is a planned addition — see
+    // specs/generic-format-adapters.md. v1 ships sources-key
+    // shorthand, single descriptor (incl. `from: inline`), and array.
     const shapes = [
       { data: 'features' }, // sources-key shorthand
-      { data: './hits.csv' }, // file-path shorthand
-      { data: './hits.tsv' }, // TSV sibling (Q1 resolution)
       { data: { from: 'inline', inlineData: [] } }, // single descriptor
       { data: [{ source: 'a' }, { source: 'b' }] }, // array
     ];
