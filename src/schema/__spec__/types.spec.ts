@@ -166,7 +166,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
     expect(config.groups).toHaveLength(2);
   });
 
-  it('specs/config-approach.md Example 5: extends — one line, one new track', () => {
+  it('specs/config-approach.md Example 4: extends — one line, one new track', () => {
     // Type-surface test: any string assigns to `extends?: string |
     // string[]`. The fixture uses a relative path because the
     // distribution mechanism for the shipped default config is not
@@ -175,12 +175,15 @@ describe('ProtvistaViewerConfig — type contract', () => {
     // preset here so the test doesn't imply a canonical choice.
     const config: ProtvistaViewerConfig = {
       extends: './base-config.yaml',
+      sources: {
+        my_hotspots: 'https://my-lab.example.org/protvista/hotspots/{accession}',
+      },
       groups: [
         {
           id: 'MY_LAB',
           label: 'My lab',
           tracks: [
-            { id: 'hotspots', kind: 'features', data: './hotspots.csv' },
+            { id: 'hotspots', kind: 'features', data: 'my_hotspots' },
           ],
         },
       ],
@@ -189,16 +192,14 @@ describe('ProtvistaViewerConfig — type contract', () => {
     expect(config.extends).toBe('./base-config.yaml');
   });
 
-  it('supports all four shapes of the `data` field', () => {
+  it('supports the three shapes of the `data` field', () => {
     const stringSourcesKey: TrackConfig['data'] = 'features';
-    const stringFilePath: TrackConfig['data'] = './hits.csv';
     const singleDescriptor: TrackConfig['data'] = { url: 'https://x' };
     const descriptorArray: TrackConfig['data'] = [
       { source: 'a' },
       { source: 'b' },
     ];
     expectType<TrackConfig['data']>(stringSourcesKey);
-    expectType<TrackConfig['data']>(stringFilePath);
     expectType<TrackConfig['data']>(singleDescriptor);
     expectType<TrackConfig['data']>(descriptorArray);
     // Sanity-check the runtime shape matches the types.
