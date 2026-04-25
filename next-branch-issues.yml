@@ -524,3 +524,29 @@ issues:
       * If the error-panel styling needs to match the viewer's own visual identity, reuse the existing design tokens rather than introducing new CSS variables. The spec's section on CSS classes (see the `pv-`-prefixing issue) is the right place to coordinate.
     fields:
       Group: 'Technical'
+
+  - title: 'Dev server: first visit often fails to load data; hard refresh required'
+    labels: ['next', 'bug']
+    body: |
+      **Context**
+      When opening the local dev server (`yarn start`) the viewer frequently mounts without loading any track data — the groups render their labels but the tracks stay empty. A hard refresh (Cmd-Shift-R / disable-cache devtools reload) reliably fixes it. Soft refresh (Cmd-R) does not. The failure is intermittent on first visit but reproducible enough to be the default experience for new contributors.
+
+      **Task**
+      Reproduce the failure on a fresh checkout, isolate the root cause, and fix it so a normal page load against `yarn start` consistently loads track data on first visit.
+
+      **Likely suspects to investigate (in priority order):**
+      * **Race between `accession` reactive property and `configSrc` fetch.** `protvista-uniprot.ts` runs `_init()` on first `updated()`; if `accession` is still undefined when `loadConfig` resolves but the `config-src` YAML lists the accession, normalize/validate runs against an inconsistent state and the loader bails silently. The post-mount accession-change handler we added recently (issue #35) may also interact here — if the attribute lands a tick after the initial render, the handler fires `_init()` a second time and the first `_loadData()`'s in-flight fetches race the second.
+      * **AbortController cancellation reaching too far.** `_loadData()` cancels in-flight fetches on a new `_init()` (issue C4). If the dev-server bundle's first paint triggers a redundant `_init()` (e.g. via Lit's batched reactive-property setters firing before `connectedCallback` settles), the first round of fetches gets aborted before any of them resolve and the viewer ends up with no data. Hard refresh works because cache satisfies the second round before the abort lands. Add diagnostic logging in `_loadData()`'s abort path and confirm.
+      * **Vite dev-server response timing.** First request after `yarn start` cold-boots vite's transform pipeline; the proteins API endpoints proxy through and may return after the component has already given up. Check `vite.config.ts` for `server.proxy` / `optimizeDeps` settings that might gate the first request.
+      * **Service worker / browser cache stickiness.** A stale service worker from an earlier branch could be intercepting the dev-server requests and returning cached 404s. Worth confirming there's no SW registration in the dev HTML before going deeper.
+
+      **Acceptance:**
+      * On a fresh `yarn install && yarn start`, opening `http://localhost:<port>/` in a private/incognito window (no cache) loads the canonical `default-config.yaml` viewer with track data populated on first navigation. No hard refresh required.
+      * If the root cause is a race in the component's init flow, add a unit test in `src/__spec__/` that fakes the timing (delayed accession attribute landing, in-flight fetch overlapping a re-init) and asserts data still loads.
+      * If the root cause is dev-server-only (vite config, SW), document the fix in `CONTRIBUTING.md` so future contributors don't trip on the same symptom.
+
+      **Notes:**
+      * Recreate the failure with browser cache disabled and the network panel recording from before the page request — the timing of the first failed fetch (or the abort signal) is the load-bearing diagnostic.
+      * Coordinate with the user-facing error reporting issue: whatever the root cause, the silent-empty-state outcome is the worst possible UX for an intermittent failure. Once that issue lands, this bug becomes visible-in-page rather than invisible, which makes diagnosis much easier going forward.
+    fields:
+      Group: 'Technical'
