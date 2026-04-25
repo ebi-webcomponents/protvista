@@ -35,10 +35,9 @@
  *     registries. The `<protvista-uniprot>` element will hold one
  *     per instance.
  *
- * A transforms bucket (register/get/has/listTransforms +
- * BUILTIN_TRANSFORM_OPERATORS) will be added here when the planned
- * Vega-Lite-style transform engine is implemented — see
- * `specs/transform-engine.md`.
+ * A Vega-Lite-style transform engine (with a transforms bucket
+ * here for register/get/has/listTransforms +
+ * BUILTIN_TRANSFORM_OPERATORS) is left as future work.
  */
 
 import type {

@@ -236,10 +236,10 @@ describe('JSON Schema — accepts specs/config-approach.md examples', () => {
 
 describe('JSON Schema — fine-grained acceptance', () => {
   it('accepts the supported shapes of the `data` field', () => {
-    // File-path shorthand against generic-format adapters (CSV / TSV /
-    // JSON / BED) is a planned addition — see
-    // specs/generic-format-adapters.md. v1 ships sources-key
-    // shorthand, single descriptor (incl. `from: inline`), and array.
+    // Generic-format adapters for bring-your-own-data files (file-path
+    // shorthand against CSV / TSV / JSON / BED) is left as future
+    // work. Today, the supported shapes are sources-key shorthand,
+    // single descriptor (incl. `from: inline`), and array.
     const shapes = [
       { data: 'features' }, // sources-key shorthand
       { data: { from: 'inline', inlineData: [] } }, // single descriptor

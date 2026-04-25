@@ -18,9 +18,9 @@
  * `schema.json`. Any change here must be mirrored there and both
  * must stay in lockstep with `specs/config-approach.md`.
  *
- * A declarative `transform` pipeline (filter / calculate / rename / pick / limit)
- * is planned as a future feature and is not currently  expressible
- * in config. The full design brief lives in `specs/transform-engine.md`.
+ * A declarative `transform` pipeline (filter / calculate / rename /
+ * pick / limit) is left as future work and is not currently
+ * expressible in config.
  *
  * The `(string & {})` idiom on ComponentName / AdapterName / SemanticKind
  * preserves IntelliSense for the built-in literals while still allowing
@@ -275,12 +275,11 @@ export interface TrackConfig {
    * Adapter inference: the track's semantic `kind` selects the
    * canonical adapter for each `from: url` source.
    *
-   * Generic-format file adapters (CSV / TSV / JSON / BED via file path
-   * shorthand) are a planned addition; see
-   * `specs/generic-format-adapters.md`. Until they ship, authors with
-   * their own data files register a custom adapter via
-   * `registerAdapter()` and pin it explicitly with `adapter: <name>`
-   * on the descriptor.
+   * Generic-format adapters for bring-your-own-data files (CSV / TSV /
+   * JSON / BED via file-path shorthand) is left as future work.
+   * Today, authors with their own data files register a custom
+   * adapter via `registerAdapter()` and pin it explicitly with
+   * `adapter: <name>` on the descriptor.
    *
    * The array form is normalized internally; runtime code always sees
    * `DataSourceDescriptor[]`.
@@ -560,11 +559,9 @@ export type ComponentName = KnownComponentName | (string & {});
  * field resolves to one automatically.
  *
  * Generic-format adapters for bring-your-own-data files (CSV / TSV /
- * JSON / BED) are a planned addition — see
- * `specs/generic-format-adapters.md` for the design. Until they ship,
- * authors with their own data formats register a custom adapter via
- * `registerAdapter()` and pin it with `adapter: <name>` on the
- * descriptor.
+ * JSON / BED) is left as future work. Today, authors with their own
+ * data formats register a custom adapter via `registerAdapter()` and
+ * pin it with `adapter: <name>` on the descriptor.
  */
 export type KnownAdapterName =
   // ── Source-specific (coupled to a particular API output) ──

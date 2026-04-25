@@ -443,11 +443,12 @@ function checkDescriptor(
  *   - the value is not a URL and not a known sources key →
  *     "Unknown source key".
  *
- * File-path shorthand (`./hits.csv` etc.) is a planned addition; see
- * `specs/generic-format-adapters.md`. Until those adapters ship,
- * file-path values fall through to the unknown-sources-key error and
- * authors have to switch to the object form with an explicit
- * `from: 'file'` plus a `registerAdapter()`-supplied `adapter:`.
+ * Generic-format adapters for bring-your-own-data files (CSV / TSV /
+ * JSON / BED via `./hits.csv`-style shorthand) is left as future
+ * work. Today, file-path values fall through to the
+ * unknown-sources-key error; authors with their own data files use
+ * the object form with an explicit `from: 'file'` plus a
+ * `registerAdapter()`-supplied `adapter:` they pin themselves.
  *
  * The rest of the expansion is normalize.ts's job.
  */

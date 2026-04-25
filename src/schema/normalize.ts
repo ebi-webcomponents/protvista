@@ -12,9 +12,9 @@
  *      array) into a `NormalizedDataSource[]`. Runtime code never has
  *      to branch on "is this a string / object / array?" again.
  *   2. Resolves string-shorthand data rules (sources key, http(s) URL)
- *      per the table in `TrackConfig.data`. File-path shorthand and
- *      extension-based adapter inference are a planned addition; see
- *      `specs/generic-format-adapters.md`.
+ *      per the table in `TrackConfig.data`. Generic-format adapters
+ *      for bring-your-own-data files (file-path shorthand and
+ *      extension-based adapter inference) is left as future work.
  *   3. Fills in defaults for `from` (`"url"` when omitted, `"inline"`
  *      when `inlineData` is present).
  *   4. Resolves semantic kinds via the registry into (component,
@@ -419,9 +419,8 @@ function resolveStringShorthand(
   //    Known sources: ..." with the registered keys listed — a far
   //    better error than any the engine could produce here.
   //
-  //    File-path shorthand (`./hits.csv` etc.) and the file-extension
-  //    adapter inference that backed it are a planned addition — see
-  //    `specs/generic-format-adapters.md`. Until that lands, authors
+  //    Generic-format adapters for bring-your-own-data files
+  //    (`./hits.csv` etc.) is left as future work. Today, authors
   //    with their own data files use the object form with an explicit
   //    `from: 'file'` and a `registerAdapter()`-supplied `adapter:`.
   return { from: 'url', source: value };
@@ -444,7 +443,7 @@ function expandDescriptor(
   //      still wants `alphafold-prediction-json`).
   //
   // File-extension inference (`./x.csv` → `features-csv` etc.) is
-  // planned; see `specs/generic-format-adapters.md`.
+  // left as future work.
   let adapter = d.adapter;
   if (!adapter && kindAdapter) {
     adapter = kindAdapter;
