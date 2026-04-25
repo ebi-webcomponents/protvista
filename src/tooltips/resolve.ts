@@ -149,10 +149,14 @@ function renderMarkdownSpec(
   ctx: TooltipContext
 ): string {
   const ast = Markdoc.parse(template);
+  // Markdoc looks up `{% $foo %}` template references against this
+  // map by the unprefixed key (`foo`), so `ctx` is stored under its
+  // bare name. Authored templates reach per-track context via
+  // `{% $ctx.accession %}`, `{% $ctx.trackId %}`, `{% $ctx.kind %}`.
   const variables = {
     ...(item as Record<string, unknown>),
     ...(extraVariables ?? {}),
-    $ctx: ctx,
+    ctx,
   };
   const content = Markdoc.transform(ast, {
     ...markdocConfig,

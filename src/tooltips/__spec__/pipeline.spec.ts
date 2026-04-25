@@ -189,11 +189,10 @@ describe('tooltip pipeline — loader-driven end-to-end', () => {
   });
 
   it('threads (accession, trackId, kind) into the Markdoc `$ctx` scope', async () => {
-    // The `TooltipContext` is exposed to Markdoc templates under the
-    // `$ctx` variable. Authors reach the per-track accession / track
-    // id / kind as `{% $ctx.accession %}` etc. This test pins the
-    // plumbing that gets `ctx` from the loader call site into the
-    // resolver's Markdoc transform scope.
+    // The loader passes per-track `(accession, trackId, kind)` into
+    // the resolver as a `TooltipContext`. The Markdoc branch surfaces
+    // that to authors as `{% $ctx.accession %}` / `{% $ctx.trackId %}` /
+    // `{% $ctx.kind %}`. This test pins the plumbing end to end.
     const adapters: AdapterMap = {
       'uniprot-features-json': async () => [{ type: 'X' }],
     };
