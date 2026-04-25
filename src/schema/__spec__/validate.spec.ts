@@ -121,7 +121,7 @@ describe('validateConfig — structural errors', () => {
 // ─────────────────────────────────────────────────────────────
 
 describe('validateConfig — unknown source key', () => {
-  it('flags a string-shorthand value that is not a sources key / URL / path', () => {
+  it('flags a string-shorthand value that is not a sources key or URL', () => {
     const cfg: ProtvistaViewerConfig = {
       sources: { knownKey: 'https://example.org/k' },
       groups: [
@@ -281,15 +281,12 @@ describe('validateConfig — missing track renderer', () => {
 
 describe('validateConfig — from: inline without inlineData', () => {
   it('flags descriptor with `from: inline` and no inlineData', () => {
-    // Note: schema.json's `if/then` also catches this structurally.
-    // The validator emits BOTH the schema issue AND the semantic one;
-    // we assert the semantic one is absent because short-circuiting
-    // means structural wins. Flip this to the semantic path by
-    // supplying an explicit adapter so schema passes but semantics
-    // still check `from: inline` without `inlineData`... actually the
-    // schema short-circuit applies here too. We use a descriptor that
-    // is structurally valid (has `inlineData: undefined` → field not
-    // present → schema `if/then` fires). So expect a schema issue.
+    // `schema.json`'s `if/then` requires `inlineData` whenever `from:
+    // 'inline'`, so a structurally-missing `inlineData` fails at the
+    // structural pass and short-circuits before the semantic pass
+    // ever gets to its own `missing-inline-data` check. Assertion is
+    // loose (any error message mentioning `inlineData`) so this test
+    // doesn't have to pin which pass produced it.
     const cfg: ProtvistaViewerConfig = {
       groups: [
         {
@@ -377,8 +374,11 @@ describe('validateConfig — version', () => {
   it('rejects an unsupported version', () => {
     const cfg = { ...minimalValid(), version: '2.0' };
     const result = validateConfig(cfg, freshRegistry());
-    // Schema's `const: "1.0"` will catch this structurally.
+    // Schema's `const: "1.0"` catches this structurally; the
+    // `unsupported-version` semantic code path is unreachable today
+    // because the schema gate fires first.
     expect(result.valid).toBe(false);
+    expect(result.issues.some((i) => i.code === 'schema')).toBe(true);
   });
 });
 
