@@ -127,14 +127,14 @@ export interface ProtvistaViewerConfig {
    *
    * Merge rules are documented in `specs/config-approach.md`:
    *
-   *   - `sources`          — merged by key (child wins)
-   *   - `defaults`         — merged field-wise (child wins)
-   *   - `groups`       — merged by `id`; a child group with a
-   *                          known id extends the base; a new id is
-   *                          appended at the end
-   *   - `tracks` within a  — merged by `id`; same rules as groups
+   *   - `sources`              — merged by key (child wins)
+   *   - `defaults`             — merged field-wise (child wins)
+   *   - `groups`               — merged by `id`; a child group with a
+   *                              known id extends the base; a new id
+   *                              is appended at the end
+   *   - `tracks` within a      — merged by `id`; same rules as groups
    *     merged group
-   *   - `rendering` blocks — merged field-wise
+   *   - `rendering` blocks     — merged field-wise
    *
    * Cycles fail validation with `"Circular extends: a → b → a"`.
    */
@@ -261,7 +261,7 @@ export interface TrackConfig {
   component?: ComponentName;
 
   /**
-   * Data source(s) for this track. Accepts four shapes:
+   * Data source(s) for this track. Accepts three shapes:
    *
    *   data: features                 # string shorthand (sources key)
    *   data: { url: "..." }           # single descriptor — the 95% case
@@ -380,8 +380,8 @@ export interface DataSourceDescriptor {
    * Literal URL(s) for `from: url`, or the file path for `from: file`.
    *
    * Back-compat overload: a bare string that is not an http(s) URL
-   * and not an absolute/relative path is still resolved via the
-   * `sources` map. Prefer `source:` for new configs.
+   * is still resolved via the `sources` map. Prefer `source:` for
+   * new configs.
    *
    * Supports the `{accession}` placeholder.
    */
@@ -399,8 +399,8 @@ export interface DataSourceDescriptor {
    * Named adapter that transforms the raw response into the shape
    * the Nightingale track component expects. If omitted, the raw
    * response is passed directly to the track; when `data` is a
-   * string shorthand, the adapter is inferred from file extension
-   * or the parent track's semantic `kind`.
+   * string shorthand, the adapter is inferred from the parent
+   * track's semantic `kind`.
    */
   adapter?: AdapterName;
 }
@@ -564,7 +564,6 @@ export type ComponentName = KnownComponentName | (string & {});
  * pin it with `adapter: <name>` on the descriptor.
  */
 export type KnownAdapterName =
-  // ── Source-specific (coupled to a particular API output) ──
   | 'uniprot-features-json'
   | 'uniprot-variation-json'
   | 'uniprot-variation-counts-json'
@@ -631,8 +630,8 @@ export interface ProtvistaRuntimeAPI {
    * Used with `DataSourceDescriptor.from = "custom"`.
    *
    * @param groupId — the group's `id`.
-   * @param trackId    — the track's `id`.
-   * @param data       — data conforming to the track's expected Representation.
+   * @param trackId — the track's `id`.
+   * @param data    — data conforming to the track's expected Representation.
    */
   setTrackData(groupId: string, trackId: string, data: unknown): void;
 
