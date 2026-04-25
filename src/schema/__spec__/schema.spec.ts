@@ -205,7 +205,7 @@ describe('JSON Schema — accepts specs/config-approach.md examples', () => {
     });
   });
 
-  it('Example 5: extends one base + one new track', () => {
+  it('Example 4: extends one base + one new track', () => {
     // NOTE: this is a schema-shape test — `expectValid` only checks
     // the JSON Schema, it does not resolve `extends:`. The fixture
     // uses a relative file path because that's one of the forms the
