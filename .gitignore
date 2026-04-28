@@ -10,6 +10,8 @@ node_modules/
 yalc.lock
 coverage/
 demo/
+bench/results/
+.lighthouseci/
 
 # Security: prevent accidental commit of secrets and credentials
 .env
