@@ -74,9 +74,14 @@ You can then use it like this:
 
 ## API
 
-- `accession`: `string`
-- `config?`: `Array` (see [Configuration](#configuration))
-- `nostructure?`: `boolean` (default: `false`)
+Reactive properties on the `<protvista-uniprot>` element (HTML attribute name in brackets where it differs from the JS property name):
+
+- `accession` [`accession`]: `string` — UniProt accession to display. Takes precedence over the `accession` field in `config` if both are set.
+- `configSrc` [`config-src`]: `string` — URL or file path to a YAML or JSON config. Fetched and parsed at mount time. See [Configuration](#configuration).
+- `config`: `ProtvistaViewerConfig` — a parsed config object, assigned as a JS property. Alternative to `config-src` when the embedder already has the config in memory.
+- `nostructure` [`nostructure`]: `boolean` (default `false`) — suppresses the PDBe 3D structure group.
+- `notooltip` [`notooltip`]: `boolean` (default `false`) — suppresses the built-in click tooltip. Typically set by embedders rendering their own overlay.
+- `suspend` [`suspend`]: `boolean` (default `false`) — pauses rendering. Useful when the accession is about to change and you want to avoid a flash of intermediate state.
 
 ## Development
 
@@ -92,6 +97,8 @@ to install dependencies and start the local development server.
 ## Testing
 
 Tests run under [Vitest](https://vitest.dev/) with a `jsdom` DOM environment. All APIs (`describe`, `it`, `expect`, `vi`, …) must be imported explicitly from `'vitest'` — `globals` is off.
+
+A small setup file at `src/__spec__/setup.ts` filters out jsdom's benign "Could not parse CSS stylesheet" warnings; jsdom's CSS parser is CSS2-era and chokes on the nested-selector syntax used in `src/protvista-styles.ts`. The stylesheet still attaches correctly — it's log noise only. Every other `console.error` passes through untouched. Remove the filter if we ever migrate to happy-dom (which parses modern CSS natively) or jsdom gains native-nesting support.
 
 ```bash
 # Run the full pipeline (lint + types + unit)
@@ -117,39 +124,49 @@ Every push and pull request runs the same three steps as `yarn test` via [`.gith
 
 Captured 2026-04-20 via `yarn test:coverage` (v8 instrumentation, 29 tests across 3 spec files):
 
-| Metric     | Coverage |
-| ---------- | -------- |
-| Statements | 10.33%   |
-| Branches   | 5.99%    |
-| Functions  | 13.19%   |
-| Lines      | 9.66%    |
+| Metric     | Coverage % |
+| ---------- | ---------- |
+| Statements | 71.41      |
+| Branches   | 70.77      |
+| Functions  | 68.63      |
+| Lines      | 71.78      |
 
 ## Configuration
 
-You can pass your own configuration to the component using the `config` attribute/property.
+The viewer is driven by a declarative configuration — a document that lists the sequence-annotation groups to display, the tracks within each group, and where their data comes from. Authors write against a schema of high-level domain concepts (`kind: features`, `kind: variants`, `kind: confidence-score`, …) and never need to name Nightingale components or adapters directly. Two authoring forms are supported:
 
-```json
-{
-  "categories": [
-    {
-      "name": "string",
-      "label": "string",
-      "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation",
-      "adapter": "feature-adapter|structure-adapter|proteomics-adapter|variation-adapter",
-      "url": "string",
-      "tracks": [
-        {
-          "name": "string",
-          "label": "string",
-          "filter": "string",
-          "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation",
-          "tooltip": "string"
-        }
-      ]
-    }
-  ]
-}
+- **YAML** (recommended) — passed via the `config-src` attribute pointing at a URL or file path.
+- **JSON** — assigned to the `.config` property on the element.
+
+### Minimal config
+
+```yaml
+# my-config.yaml
+accession: P05067
+sources:
+  features: https://www.ebi.ac.uk/proteins/api/features/{accession}
+groups:
+  - id: DOMAINS
+    tracks:
+      - id: domain
+        kind: features
+        filter: DOMAIN
+        data: features
 ```
+
+Mount with:
+
+```html
+<protvista-uniprot config-src="./my-config.yaml"></protvista-uniprot>
+```
+
+The viewer renders a single collapsible group "Domains" (label title-cased from the id), containing one track "Domain", populated by the `features` URL (with `{accession}` substituted at fetch time) and filtered to items with `type === "DOMAIN"`. No `version`, no explicit `component:` / `adapter:`, no `label:` — minimal configs collapse to the minimum.
+
+### Learning more
+
+- **Schema reference.** [`specs/config-approach.md`](./specs/config-approach.md) documents every field (`groups`, `tracks`, `sources`, `defaults`, `extends`, `kind`, `data`, `rendering`, `dataTooltip`) with worked examples and edge-case semantics. This is the normative source.
+- **Canonical default.** [`src/default-config.yaml`](./src/default-config.yaml) is the UniProt viewer itself, authored in the new schema. Useful as a reference.
+- **Authoring `dataTooltip`.** [`docs/data-tooltip.md`](./docs/data-tooltip.md) covers the three authoring forms (bare string, `kind: fields`, `kind: markdown`) with examples.
 
 ## Events
 

@@ -1,7 +1,5 @@
 import ColorHash from 'color-hash';
 
-import formatTooltip from '../tooltips/interpro-tooltip';
-
 import { InterProProteinSearch, TransformedInterPro } from './types/interpro';
 
 // Copied from InterPro to replicate the same colours for the representative domains
@@ -38,7 +36,6 @@ const transformData = (data: InterProProteinSearch): TransformedInterPro => {
         color: colorHash.hex(
           metadata.accession.toLowerCase().split('').reverse().join('')
         ),
-        tooltipContent: formatTooltip(start, end, metadata),
         length: proteins[0].protein_length,
       };
     });

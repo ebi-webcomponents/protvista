@@ -1,0 +1,581 @@
+# ProtVista UniProt — canonical default viewer configuration.
+#
+# Migrated from the hard-coded `src/config.ts` as part of the SSI/RSMF
+# config-as-data redesign. All 15 existing UniProt groups render
+# correctly when driven by the new config format.
+#
+# Authoring conventions followed in this file:
+#
+#   • Every track uses the semantic `kind:` field (`features`,
+#     `variants`, `confidence-score`, …). No `component` + `adapter`
+#     pair at track level — those are resolved by the kind registry.
+#   • `filter:` shortcuts replace the legacy per-track filter string.
+#     (`filter: SIGNAL` narrows the track's data to items where
+#     `type === "SIGNAL"`.)
+#   • AlphaFold / AlphaMissense tracks carry no explicit colour scale;
+#     the `confidence-score` / `pathogenicity-score` / `pathogenicity-heatmap`
+#     kinds apply the canonical `alphafold-ramp` / `alphamissense-ramp`
+#     themes for free.
+#   • URLs live in the `sources:` map. Tracks reference them by key
+#     (`data: features`, `data: { source: [foo, bar] }`) — no URLs
+#     embedded in track definitions.
+#   • Identifiers follow the spec-recommended casing: UPPER_SNAKE for
+#     group ids, lower_snake for track ids. `label:` is kept
+#     explicit whenever the legacy config used a human phrase that
+#     `titleCaseId()` would not reproduce.
+
+version: '1.0'
+# TODO(v5-release): replace with the real hosted schema URL once it's
+# published. The `.invalid` TLD (RFC 2606) is guaranteed never to
+# resolve, so editors surface an obvious fetch failure rather than
+# silently falling back to no validation against a 404'd URL.
+$schema: https://TODO-PUBLISH-BEFORE-V5-RELEASE.invalid/protvista/config.schema.json
+
+# ─────────────────────────────────────────────────────────────
+# Named URL templates. `{accession}` is interpolated at mount
+# time (the literal braces are not YAML flow syntax here — they
+# appear mid-scalar, not at the start, so quoting is unnecessary).
+# ─────────────────────────────────────────────────────────────
+sources:
+  proteins: https://www.ebi.ac.uk/proteins/api/proteins/{accession}
+  features: https://www.ebi.ac.uk/proteins/api/features/{accession}
+  variation: https://www.ebi.ac.uk/proteins/api/variation/{accession}
+  antigens: https://www.ebi.ac.uk/proteins/api/antigen/{accession}
+  epitopes: https://www.ebi.ac.uk/proteins/api/epitope/{accession}
+  mutagenesis: https://www.ebi.ac.uk/proteins/api/mutagenesis/{accession}
+  rnaEditing: https://www.ebi.ac.uk/proteins/api/rna-editing/{accession}
+  proteomicsNonPtm: https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/{accession}
+  proteomicsPtm: https://www.ebi.ac.uk/proteins/api/proteomics/ptm/{accession}
+  proteomicsHpp: https://www.ebi.ac.uk/proteins/api/proteomics/hpp/{accession}
+  interproDomains: https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/{accession}?type=domain&page_size=100
+  alphafoldPrediction: https://alphafold.ebi.ac.uk/api/prediction/{accession}
+
+groups:
+  # ───────────────────────────────────────────────────────────
+  # 1. Molecule processing — UniProt MOLECULE_PROCESSING features
+  # ───────────────────────────────────────────────────────────
+  - id: MOLECULE_PROCESSING
+    label: Molecule processing
+    tracks:
+      - id: signal
+        label: Signal peptide
+        kind: features
+        filter: SIGNAL
+        data: features
+        description: N-terminal signal peptide
+        helpPage: signal
+
+      - id: chain
+        label: Chain
+        kind: features
+        filter: CHAIN
+        data: features
+        description: '(aka mature region). This describes the extent of a polypeptide chain in the mature protein following processing'
+        helpPage: chain
+
+      - id: transit
+        label: Transit peptide
+        kind: features
+        filter: TRANSIT
+        data: features
+        description: This describes the extent of a transit peptide
+        helpPage: transit
+
+      - id: init_met
+        label: Initiator methionine
+        kind: features
+        filter: INIT_MET
+        data: features
+        description: This indicates that the initiator methionine is cleaved from the mature protein
+        helpPage: init_met
+
+      - id: propep
+        label: Propeptide
+        kind: features
+        filter: PROPEP
+        data: features
+        description: Part of a protein that is cleaved during maturation or activation
+        helpPage: propep
+
+      - id: peptide
+        label: Peptide
+        kind: features
+        filter: PEPTIDE
+        data: features
+        description: The position and length of an active peptide in the mature protein
+        helpPage: peptide
+
+  # ───────────────────────────────────────────────────────────
+  # 2. Sequence information
+  # ───────────────────────────────────────────────────────────
+  - id: SEQUENCE_INFORMATION
+    label: Sequence information
+    tracks:
+      - id: compbias
+        label: Compositional bias
+        kind: features
+        filter: COMPBIAS
+        data: features
+        description: Position of regions of compositional bias within the protein and the particular amino acids that are over-represented within those regions
+        helpPage: compbias
+
+      - id: conflict
+        label: Sequence conflict
+        kind: features
+        filter: CONFLICT
+        data: features
+        description: Sequence discrepancies of unknown origin
+        helpPage: conflict
+
+      - id: non_cons
+        label: Non-adjacent residues
+        kind: features
+        filter: NON_CONS
+        data: features
+        description: Indicates that two residues in a sequence are not consecutive and that there is an undetermined number of unsequenced residues between them
+        helpPage: non_cons
+
+      - id: non_ter
+        label: Non-terminal residue
+        kind: features
+        filter: NON_TER
+        data: features
+        description: The sequence is incomplete. The residue is not the terminal residue of the complete protein
+        helpPage: non_ter
+
+      - id: unsure
+        label: Sequence uncertainty
+        kind: features
+        filter: UNSURE
+        data: features
+        description: Regions of a sequence for which the authors are unsure about the sequence assignment
+        helpPage: unsure
+
+      - id: non_std
+        label: Non-standard residue
+        kind: features
+        filter: NON_STD
+        data: features
+        description: 'Non-standard amino acids (selenocysteine and pyrrolysine)'
+        helpPage: non_std
+
+  # ───────────────────────────────────────────────────────────
+  # 3. Topology
+  # ───────────────────────────────────────────────────────────
+  - id: TOPOLOGY
+    label: Topology
+    tracks:
+      - id: topo_dom
+        label: Topological domain
+        kind: features
+        filter: TOPO_DOM
+        data: features
+        description: Location of non-membrane regions of membrane-spanning proteins
+        helpPage: topo_dom
+
+      - id: transmem
+        label: Transmembrane
+        kind: features
+        filter: TRANSMEM
+        data: features
+        description: Extent of a membrane-spanning region
+        helpPage: transmem
+
+      - id: intramem
+        label: Intramembrane
+        kind: features
+        filter: INTRAMEM
+        data: features
+        description: Extent of a region located in a membrane without crossing it
+        helpPage: intramem
+
+  # ───────────────────────────────────────────────────────────
+  # 4. Domains
+  # ───────────────────────────────────────────────────────────
+  - id: DOMAINS
+    label: Domains
+    tracks:
+      - id: domain
+        label: Domain
+        kind: features
+        filter: DOMAIN
+        data: features
+        description: Specific combination of secondary structures organized into a characteristic three-dimensional structure or fold
+        helpPage: domain
+
+      # InterPro representative domains — different endpoint and
+      # adapter from the UniProt /features/ stream, expressed as a
+      # different semantic kind. The InterPro-specific flattening
+      # (`locations[].representative` → synthetic features) happens
+      # in the adapter; the features themselves render through the
+      # standard `nightingale-track-canvas` component.
+      #
+      # Id is a display-style string (with spaces) for parity with the
+      # pre-migration config — `load-data.ts` uses the id as part of
+      # a data-map key, so preserving it byte-for-byte is the safest
+      # migration.
+      - id: 'InterPro representative domain'
+        label: InterPro Representative Domain
+        kind: features-interpro
+        data: interproDomains
+        description: InterPro representative domains
+        helpPage: InterPro_rep_domain
+
+      - id: region
+        label: Region
+        kind: features
+        filter: REGION
+        data: features
+        description: Regions in multifunctional enzymes or fusion proteins, or characteristics of a region, e.g., protein-protein interactions mediation
+        helpPage: region
+
+      - id: repeat
+        label: Repeat
+        kind: features
+        filter: REPEAT
+        data: features
+        description: Repeated sequence motifs or repeated domains within the protein
+        helpPage: repeat
+
+      - id: motif
+        label: Motif
+        kind: features
+        filter: MOTIF
+        data: features
+        description: Short conserved sequence motif of biological significance
+        helpPage: motif
+
+      - id: zn_fing
+        label: Zinc finger
+        kind: features
+        filter: ZN_FING
+        data: features
+        description: Small, functional, independently folded domain that coordinates one or more zinc ions
+        helpPage: zn_fing
+
+  # ───────────────────────────────────────────────────────────
+  # 5. Sites
+  # ───────────────────────────────────────────────────────────
+  - id: SITES
+    label: Sites
+    tracks:
+      - id: metal
+        label: Metal binding
+        kind: features
+        filter: METAL
+        data: features
+        description: Binding site for a metal ion
+        helpPage: binding
+
+      - id: site
+        label: Site
+        kind: features
+        filter: SITE
+        data: features
+        description: Any interesting single amino acid site on the sequence
+        helpPage: site
+
+      - id: ca_bind
+        label: Calcium binding
+        kind: features
+        filter: CA_BIND
+        data: features
+        description: Calcium-binding regions, such as the EF-hand motif
+        helpPage: binding
+
+      - id: dna_bind
+        label: DNA binding
+        kind: features
+        filter: DNA_BIND
+        data: features
+        description: DNA-binding domains such as AP2/ERF domain, the ETS domain, the Fork-Head domain, the HMG box and the Myb domain
+        helpPage: dna_bind
+
+      - id: np_bind
+        label: Nucleotide binding
+        kind: features
+        filter: NP_BIND
+        data: features
+        description: '(aka flavin-binding). Region in the protein which binds nucleotide phosphates'
+        helpPage: binding
+
+      - id: binding
+        label: Binding site
+        kind: features
+        filter: BINDING
+        data: features
+        description: 'Binding site for any chemical group (co-enzyme, prosthetic group, etc.)'
+        helpPage: binding
+
+      - id: act_site
+        label: Active site
+        kind: features
+        filter: ACT_SITE
+        data: features
+        description: Amino acid(s) directly involved in the activity of an enzyme
+        helpPage: act_site
+
+  # ───────────────────────────────────────────────────────────
+  # 6. PTM (post-translational modifications)
+  # ───────────────────────────────────────────────────────────
+  - id: PTM
+    label: PTM
+    tracks:
+      - id: mod_res
+        label: Modified residue
+        kind: features
+        filter: MOD_RES
+        data: features
+        description: Modified residues such as phosphorylation, acetylation, acylation, methylation
+        helpPage: mod_res
+
+      # Large-scale MS PTM data — different endpoint, different kind
+      # (peptides-ptm → proteomics-ptm adapter).
+      - id: mod_res_ls
+        label: Modified residue (large scale data)
+        kind: peptides-ptm
+        filter: MOD_RES_LS
+        data: proteomicsPtm
+        description: Modified residues from Large scale studies
+        helpPage: mod_res_large_scale
+
+      - id: carbohyd
+        label: Glycosylation
+        kind: features
+        filter: CARBOHYD
+        data: features
+        description: 'Covalently attached glycan group(s)'
+        helpPage: carbohyd
+
+      - id: disulfid
+        label: Disulfide bond
+        kind: features
+        filter: DISULFID
+        data: features
+        description: The positions of cysteine residues participating in disulphide bonds
+        helpPage: disulfid
+
+      - id: crosslnk
+        label: Cross-link
+        kind: features
+        filter: CROSSLNK
+        data: features
+        description: Covalent linkages of various types formed between two proteins or between two parts of the same protein
+        helpPage: crosslnk
+
+      - id: lipid
+        label: Lipidation
+        kind: features
+        filter: LIPID
+        data: features
+        description: 'Covalently attached lipid group(s)'
+        helpPage: lipid
+
+  # ───────────────────────────────────────────────────────────
+  # 7. Epitopes
+  # ───────────────────────────────────────────────────────────
+  - id: EPITOPE
+    label: Epitopes
+    tracks:
+      - id: epitope
+        label: Epitope
+        kind: features
+        data: epitopes
+        helpPage: epitopes
+
+  # ───────────────────────────────────────────────────────────
+  # 8. Antigenic sequences
+  # ───────────────────────────────────────────────────────────
+  - id: ANTIGEN
+    label: Antigenic sequences
+    tracks:
+      - id: antigen
+        label: Antibody binding sequences
+        kind: features
+        data: antigens
+        helpPage: Antibody_binding_sequences
+
+  # ───────────────────────────────────────────────────────────
+  # 9. Mutagenesis
+  # ───────────────────────────────────────────────────────────
+  - id: MUTAGENESIS
+    label: Mutagenesis
+    tracks:
+      - id: mutagen
+        label: Mutagenesis
+        kind: features
+        filter: MUTAGEN
+        data: features
+        description: Site which has been experimentally altered by mutagenesis
+        helpPage: mutagen
+
+      - id: othermutagen
+        label: Mutagenesis (large scale data)
+        kind: features
+        data: mutagenesis
+        description: Site which has been experimentally altered by mutagenesis
+        helpPage: mutagen
+
+  # ───────────────────────────────────────────────────────────
+  # 10. Variants (graph + detail track pair)
+  # ───────────────────────────────────────────────────────────
+  - id: VARIATION
+    label: Variants
+    # Explicit because the two child kinds (`variant-counts` +
+    # `variants`) resolve to different components — without this,
+    # the collapsed-group aggregate view would fall back to
+    # `nightingale-track-canvas`, breaking parity with the legacy
+    # viewer's linegraph aggregate.
+    component: nightingale-linegraph-track
+    helpPage: variant_viewer
+    tracks:
+      - id: variation_graph
+        label: Counts
+        kind: variant-counts
+        data: variation
+        description: Natural variant of the protein, including polymorphisms, variations between strains, isolates or cultivars, disease-associated mutations and RNA editing events
+
+      - id: variation
+        kind: variants
+        data: variation
+        filterUI: nightingale-filter
+        description: Natural variant of the protein, including polymorphisms, variations between strains, isolates or cultivars, disease-associated mutations and RNA editing events
+
+  # ───────────────────────────────────────────────────────────
+  # 11. RNA editing (graph + detail track pair)
+  # ───────────────────────────────────────────────────────────
+  - id: RNA_EDITING
+    label: RNA Editing
+    # Explicit: `rna-editing-counts` (linegraph) + `rna-editing`
+    # (track-canvas) are mixed, so the collapsed-group aggregate
+    # needs an explicit component to match the legacy linegraph.
+    component: nightingale-linegraph-track
+    helpPage: rna_editing
+    tracks:
+      - id: rna_editing_graph
+        label: Counts
+        kind: rna-editing-counts
+        data: rnaEditing
+        description: RNA editing events leading to one or more amino acid changes compared to the translation of the non-edited RNA version.
+
+      # Id preserved verbatim (including the space and capitalisation)
+      # for parity with the pre-migration config — the legacy track's
+      # `name` was the display-style `"RNA Editing"`, and the
+      # `${group.name}-${track.name}` key the renderer builds must
+      # keep working for external consumers that may be watching for
+      # specific track keys. Label omitted on purpose; the normalizer
+      # will synthesise one from the id.
+      - id: 'RNA Editing'
+        kind: rna-editing
+        data: rnaEditing
+        description: RNA editing events leading to one or more amino acid changes compared to the translation of the non-edited RNA version.
+
+  # ───────────────────────────────────────────────────────────
+  # 12. Proteomics
+  # ───────────────────────────────────────────────────────────
+  - id: PROTEOMICS
+    label: Proteomics
+    tracks:
+      - id: unique
+        label: Unique peptide
+        kind: peptides
+        filter: unique
+        data: proteomicsNonPtm
+        helpPage: proteomics#1-data-from-public-mass-spectrometry-based-proteomics-resources
+
+      - id: non_unique
+        label: Non-unique peptide
+        kind: peptides
+        filter: non_unique
+        data: proteomicsNonPtm
+        helpPage: proteomics#1-data-from-public-mass-spectrometry-based-proteomics-resources
+
+      - id: hpp
+        label: Human proteome project
+        kind: peptides
+        data: proteomicsHpp
+        helpPage: proteomics#3-human-proteome-project
+
+      # Id preserved as `proteomics-ptm` (hyphen) for parity with the
+      # pre-migration config — the legacy used mixed underscore /
+      # hyphen casing across track ids, and keeping the string stable
+      # avoids breaking external consumers that might be watching for
+      # specific data-map keys.
+      - id: 'proteomics-ptm'
+        label: PTM-containing peptide
+        kind: peptides
+        data: proteomicsPtm
+        helpPage: proteomics#4-post-translational-modification-ptm-data-derived-from-large-scale-mass-spectrometry-ms-datasets
+
+  # ───────────────────────────────────────────────────────────
+  # 13. PDBe structure coverage
+  # ───────────────────────────────────────────────────────────
+  - id: STRUCTURE_COVERAGE
+    label: PDBe 3D structure coverage
+    tracks:
+      - id: pdbe_cover
+        label: PDBe coverage
+        kind: structure-coverage
+        data: proteins
+        description: PDBe 3D structure coverage
+        helpPage: structure_section#structure-coverage
+
+  # ───────────────────────────────────────────────────────────
+  # 14. AlphaFold confidence
+  # The `confidence-score` semantic kind carries the canonical
+  # AlphaFold pLDDT colour ramp (`alphafold-ramp`) — no explicit
+  # `rendering.colorScale` needed.
+  # ───────────────────────────────────────────────────────────
+  - id: ALPHAFOLD_CONFIDENCE
+    label: AlphaFold
+    # Explicit group-level rendering so the collapsed aggregate
+    # view uses the same AlphaFold ramp as the per-track coloured
+    # sequence. The child track's `confidence-score` kind already
+    # carries this preset at track level; repeating it here keeps
+    # parity with the legacy config, whose group block had
+    # `scale:` / `color-range:` attributes inlined.
+    rendering:
+      colorScale:
+        theme: alphafold-ramp
+    helpPage: structure_section#alphafold-structural-models
+    tracks:
+      - id: alphafold_confidence
+        label: AlphaFold Confidence
+        labelUrl: https://alphafold.ebi.ac.uk/entry/{accession}
+        kind: confidence-score
+        data:
+          source: [alphafoldPrediction, proteins]
+        description: AlphaFold prediction confidence
+
+  # ───────────────────────────────────────────────────────────
+  # 15. AlphaMissense pathogenicity
+  # `pathogenicity-score` / `pathogenicity-heatmap` kinds apply the
+  # `alphamissense-ramp` theme automatically.
+  # ───────────────────────────────────────────────────────────
+  - id: ALPHAMISSENSE_PATHOGENICITY
+    label: AlphaMissense
+    # Explicit component + rendering for parity: the two child kinds
+    # (`pathogenicity-score` → coloured-sequence, `pathogenicity-heatmap`
+    # → sequence-heatmap) are mixed, so the collapsed aggregate
+    # would otherwise default to `nightingale-track-canvas` without
+    # a colour ramp.
+    component: nightingale-colored-sequence
+    rendering:
+      colorScale:
+        theme: alphamissense-ramp
+    helpPage: structure_section#alphamissense-prediction-of-genetic-variation-consequence-in-the-feature-viewer
+    tracks:
+      - id: alphamissense_pathogenicity
+        label: Average Pathogenicity Score
+        kind: pathogenicity-score
+        data:
+          source: [alphafoldPrediction, proteins]
+        description: AlphaMissense pathogenicity
+
+      - id: alphamissense_pathogenicity_heatmap
+        label: AlphaMissense Pathogenicity
+        labelUrl: https://alphafold.ebi.ac.uk/entry/{accession}
+        kind: pathogenicity-heatmap
+        data:
+          source: [alphafoldPrediction, proteins]
+        description: AlphaMissense pathogenicity
