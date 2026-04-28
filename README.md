@@ -136,6 +136,12 @@ Captured 2026-04-20 via `yarn test:coverage` (v8 instrumentation, 29 tests acros
 | Functions  | 68.63      |
 | Lines      | 71.78      |
 
+## Performance benchmarks
+
+A `bench/` workflow captures repeatable performance baselines for the demo across three layers: library bundle size, Lighthouse CI against a fixed set of UniProt scenarios, and DOM-observed custom milestones (`fetch-and-parse`, `render`, `total`). Run `yarn bench` to produce `bench/results/summary.md`. Reference snapshots live under `bench/baselines/` and are committed; per-run output is gitignored.
+
+See [`bench/README.md`](./bench/README.md) for scenarios, capture procedure, and methodology notes.
+
 ## Configuration
 
 The viewer is driven by a declarative configuration — a document that lists the sequence-annotation groups to display, the tracks within each group, and where their data comes from. Authors write against a schema of high-level domain concepts (`kind: features`, `kind: variants`, `kind: confidence-score`, …) and never need to name Nightingale components or adapters directly. Two authoring forms are supported:
