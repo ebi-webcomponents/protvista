@@ -1,6 +1,4 @@
-# Performance bench
-
-Repeatable performance measurement for protvista-uniprot.
+# Performance benchmarks
 
 1. **Library bundle size** — raw + gzipped bytes from `yarn build`'s `dist/` output. Catches accidental dependency bloat in shippable code.
 2. **Lighthouse CI** — runs the demo (`yarn build:demo`, served by `vite preview`) against a fixed list of UniProt accessions. Captures LCP, TBT, CLS, Speed Index, and the overall Performance score.
@@ -38,7 +36,7 @@ Lighthouse numbers are sensitive to machine state. To make a snapshot worth comm
 
 - Run on a quiet machine, plugged in, no other heavy apps.
 - Same Chrome version on every run (LHCI uses the system Chrome).
-- 3 runs per URL by default; LHCI picks the representative (median) run.
+- 5 runs per URL by default; LHCI picks the representative (median) run.
 
 To pin a snapshot to a known commit:
 
@@ -48,7 +46,7 @@ SHA=$(git rev-parse --short HEAD)
 cp bench/results/summary.md bench/baselines/summary-${SHA}.md
 cp bench/results/bundle-size.json bench/baselines/bundle-size-${SHA}.json
 git add bench/baselines/summary-${SHA}.md bench/baselines/bundle-size-${SHA}.json
-git commit -m "bench: baseline at ${SHA}"
+git commit -m "Benchmarks: baseline at ${SHA}"
 ```
 
 To capture a baseline against an **older** commit (e.g., `main` immediately before a merge), use a worktree so your working checkout stays untouched:
