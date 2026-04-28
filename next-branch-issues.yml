@@ -550,3 +550,84 @@ issues:
       * Coordinate with the user-facing error reporting issue: whatever the root cause, the silent-empty-state outcome is the worst possible UX for an intermittent failure. Once that issue lands, this bug becomes visible-in-page rather than invisible, which makes diagnosis much easier going forward.
     fields:
       Group: 'Technical'
+
+  - title: 'Allow configs to mix top-level tracks with groups (drop the "every track must live in a group" requirement)'
+    labels: ['next']
+    body: |
+      **Context**
+      Today every track in a config must live inside a `GroupConfig`. The default UniProt viewer has 15 groups, each with one or more tracks, so the rule fits the canonical layout — but it forces awkward modelling for embedders whose data shapes don't naturally cluster. A small lab pointing the viewer at a single CRISPR-guide track has to wrap that one track in a one-track group with a synthetic id and label. Likewise, configs that want a couple of standalone "headline" tracks alongside the canonical UniProt grouping have no way to express it: every track gets a group wrapper or none does.
+
+      The schema's authoring ergonomics don't need a one-or-the-other choice — the renderer treats a one-track group the same as a standalone track for layout purposes. We can let authors mix freely: top-level tracks for the simple cases, groups for clusters, both in the same config when that's the right model.
+
+      **Task**
+      Extend the config schema to accept top-level tracks alongside top-level groups, and thread the change through validate / normalize / render. Authors should be able to write:
+
+      ```yaml
+      groups:
+        - id: signal_peptide        # standalone track, no group wrapper
+          kind: features
+          filter: SIGNAL
+          data: features
+        - id: DOMAINS               # group with child tracks
+          tracks:
+            - id: domain
+              kind: features
+              filter: DOMAIN
+              data: features
+        - id: confidence            # another standalone track
+          kind: confidence-score
+          data: { source: alphafold-prediction }
+      ```
+
+      …and have the viewer render two single rows (`Signal peptide`, `Confidence`) bracketing one collapsible group (`Domains`).
+
+      **Scope:**
+      * **Schema discrimination.** `GroupConfig` is currently distinguished by the presence of `tracks: TrackConfig[]`. Extend the JSON Schema and `types.ts` so each entry under the top-level `groups:` is a discriminated union of `GroupConfig` and `TrackConfig`. Use `tracks:` as the discriminator (presence → group; absence → track). Keep `groups:` as the field name for back-compat — renaming to a more generic `items:` is a separate breaking-change conversation.
+      * **Validator.** Extend the unique-id check to span the entire top-level array (groups and standalone tracks share an id namespace at the top level — collisions across the two shapes are still a config bug). Update the "Track has no rendering path" check so standalone tracks (no parent group component) still validate when they have a `kind` or explicit `component`.
+      * **Normalizer.** Standalone tracks need their own `NormalizedTrack` shape at the top level, OR they can be wrapped in a synthetic single-track `NormalizedGroup` with `label === track.label` and a CSS hint so the renderer omits the collapsible header. Pick one — wrapping is simpler for downstream code; the bare-track shape is more honest. Document the decision in the architecture doc.
+      * **Renderer.** A standalone-track entry should render as a single row with no group-collapse affordance. A one-track group should keep its collapse affordance — the difference is author-controlled, not auto-collapsed.
+      * **Inheritance.** Standalone tracks inherit from `defaults.rendering` directly, with no group-rendering layer. The cascade for a standalone track is `defaults → kind preset → track`. Update normalize.ts's cascade and the JSDoc that documents it.
+      * **Extends merger.** Mixed-shape merging needs care: a child config replacing a base group with a standalone track (or vice versa) should be permitted but explicit. Either it's fine and child-wins, or it's a structural config bug that should fail validation. Pick one and document the choice.
+      * **Tests.** Add coverage for: a config with one standalone track and zero groups; a config with mixed groups + standalone tracks; an extends merge replacing a group with a standalone track; a unique-id collision between a group id and a standalone track id; a standalone track with no `kind` and no `component` (validation should catch it the same way it catches the group-track equivalent).
+      * **Migration.** Scan `src/default-config.yaml` for groups whose only purpose is wrapping a single track. If any are clear candidates for standalone-track expression, update the default and confirm the rendered output is unchanged. (Likely zero candidates given the canonical layout, but worth a pass.)
+      * **Architecture doc.** Update `docs/architecture.md`'s "How a config becomes pixels" section to mention that standalone tracks bypass the group-rendering layer, and add a bullet under "Conventions and gotchas" about the shared id namespace.
+
+      **Notes:**
+      * The cleanest implementation models a standalone track as `GroupConfig | TrackConfig` at the top level rather than introducing a separate `topLevelTracks:` array. Two arrays at the same level encourages authors to think about ordering twice; one array preserves declaration order naturally.
+      * The discriminator-by-presence-of-`tracks` approach has a sharp edge: a track that *happens* to have a property called `tracks` (it shouldn't, but YAML is forgiving) would be misclassified. The structural validator should explicitly forbid `tracks` on a track-shaped entry to keep the discrimination unambiguous.
+      * Don't add a "type": "group" / "type": "track" field — that's a worse authoring surface than presence-based discrimination, and the schema can express the discrimination cleanly via `oneOf`.
+      * Keep `groups:` as the field name even though it now accepts non-groups. Renaming to `items:` would be a breaking change for every existing config in the world, including the default, with marginal authoring benefit.
+    fields:
+      Group: 'Technical'
+
+  - title: 'Drive `customElements.define()` from the registry — replace the hand-rolled `registerWebComponents()` list'
+    labels: ['next']
+    body: |
+      **Context**
+      `src/protvista-uniprot.ts` still defines a hand-rolled `registerWebComponents()` method that calls `loadComponent()` once per built-in nightingale tag (ten entries: `nightingale-navigation`, `nightingale-track-canvas`, `nightingale-colored-sequence`, `nightingale-sequence`, `nightingale-variation`, `nightingale-linegraph-track`, `nightingale-filter`, `nightingale-manager`, `nightingale-sequence-heatmap`, plus `protvista-uniprot-structure`). The list is byte-identical to the pre-refactor element except for one entry (`nightingale-interpro-track`, removed in commit `5f8250b` when `features-interpro` migrated to `track-canvas`).
+
+      The config-as-data refactor moved component *names* into the registry — every semantic kind resolves to a `component:` string — but the actual `customElements.define()` call still happens via the hand-rolled list. Consumer-defined semantic kinds whose components live outside this list cannot register their own tag through the registry; the embedder has to call `loadComponent()` themselves, defeating the point of `registerSemanticKind()`.
+
+      Captured in [`docs/hardcoded-assumptions-audit.md`](./docs/hardcoded-assumptions-audit.md) as item B18.
+
+      **Task**
+      Drive component registration from the registry instead. After `loadConfig()` resolves the config and the registry knows every component name referenced by every active semantic kind, walk the resolved set and call `loadComponent(name, ctor)` for each — looking up the constructor via a `(name → ctor)` map that built-ins seed at boot and consumers extend via a new `element.registerComponent(name, ctor)` API.
+
+      **Scope:**
+      * Add a `components` bucket to the registry (`registerComponent`, `getComponent`, `hasComponent`, `listComponents`), seeded with the ten built-in `(name, ctor)` pairs currently in `registerWebComponents()`. Mirror the collision behaviour of the existing buckets — re-registering a built-in throws `RegistryCollisionError`.
+      * Expose `registerComponent(name, ctor)` on the element's runtime API alongside `registerAdapter` / `registerSemanticKind` / `registerTheme`.
+      * After the loader has produced a `NormalizedConfig`, walk the resolved kinds + explicit `component:` overrides, collect the unique set of component names, look each up in the registry, and call `loadComponent(name, ctor)` for them. Skip any name already defined on `customElements` (the existing `loadComponent` helper already does this guard).
+      * Delete `registerWebComponents()` from `src/protvista-uniprot.ts`. The init flow becomes: `loadConfig` → register the components the config actually uses → mount.
+      * Update `docs/architecture.md`'s "How a config becomes pixels" section: the registry now owns component resolution end to end, not just name-mapping.
+
+      **Acceptance:**
+      * A consumer-defined semantic kind whose `component:` resolves to a name not in the built-in set works end-to-end without the consumer touching `customElements.define` themselves — they just call `element.registerComponent('my-track', MyTrack)` once and reference it via `kind:`.
+      * No regression on the existing default config — the same 10 nightingale tags are still defined after mount, but via the registry walk rather than the hand-rolled list.
+      * `src/protvista-uniprot.ts` no longer imports any `@nightingale-elements/*` constructor directly; those imports move to a small `src/built-in-components.ts` module that the registry seeds from.
+      * Tests cover: (a) the built-in walk registers every component the default config references; (b) a consumer-registered component is picked up when its kind appears in the config; (c) a kind referencing an unknown component fails validation with a useful message before mount, not at `customElements` time.
+
+      **Notes:**
+      * The `loadComponent` helper in `src/utils/` stays as-is — it's the right level of abstraction for the actual `customElements.define` call (with the already-defined guard). What changes is *who calls it*, not how.
+      * Keep the built-in seeding in a dedicated module (`src/built-in-components.ts` alongside `registerBuiltinAdapters`) so consumers wanting a leaner build can tree-shake the constructors they don't use.
+    fields:
+      Group: 'Technical'
