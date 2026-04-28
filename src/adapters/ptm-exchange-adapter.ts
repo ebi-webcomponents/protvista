@@ -1,3 +1,5 @@
+import formatTooltip from '../tooltips/ptm-tooltip';
+
 type ProteomicsPtm = {
   accession: string;
   entryName: string;
@@ -52,7 +54,11 @@ enum ConfidenceScoreColors {
   Bronze = '#a65708',
 }
 
-const convertPtmExchangePtms = (ptms: PTM[], absolutePosition: number) => {
+const convertPtmExchangePtms = (
+  ptms: PTM[],
+  aa: string,
+  absolutePosition: number
+) => {
   const groupPtmsByModification: Record<string, PTM[]> = {};
   for (const ptm of ptms) {
     if (groupPtmsByModification[ptm.name]) {
@@ -87,6 +93,12 @@ const convertPtmExchangePtms = (ptms: PTM[], absolutePosition: number) => {
       start: absolutePosition,
       end: absolutePosition,
       shape: 'triangle',
+      tooltipContent: formatTooltip(
+        `MOD_RES_LS ${absolutePosition}-${absolutePosition}`,
+        groupedPtms,
+        aa,
+        confidenceScore
+      ),
       color:
         (confidenceScore && ConfidenceScoreColors[confidenceScore]) || 'black',
     };
@@ -128,8 +140,8 @@ const transformData = (data: ProteomicsPtm) => {
       }
 
       return Object.entries(absolutePositionToPtms).map(
-        ([absolutePosition, { ptms }]) =>
-          convertPtmExchangePtms(ptms, +absolutePosition)
+        ([absolutePosition, { ptms, aa }]) =>
+          convertPtmExchangePtms(ptms, aa, +absolutePosition)
       ).flat();
     }
   }

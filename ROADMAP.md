@@ -39,7 +39,7 @@ Year 1 is fully funded by the SSI RSMF grant. Every milestone below maps directl
 
 - Conduct a thorough code audit to identify hardcoded assumptions, obsolete code, and legacy browser workarounds that can be removed.
 - Conduct a security audit to determine if any NPM package dependencies have known security vulnerabilities.
-- Begin refactoring ProtVista's data-loading layer to accept user-supplied data via a documented configuration model, decoupling the tool from EBI-specific API endpoints. As part of this work, define the first version of the viewer configuration schema covering groups, tracks, data sources, and rendering options.
+- Begin refactoring ProtVista's data-loading layer to accept user-supplied data via a documented configuration model, decoupling the tool from EBI-specific API endpoints. As part of this work, define the first version of the viewer configuration schema covering categories, tracks, data sources, and rendering options.
 - Explicitly separate the architectural contracts for (a) viewer configuration and (b) track payloads/data.
 - Implement Canvas and/or WebGL-based rendering for improved performance, targeting smooth interaction with dense annotation sets on resource-limited hardware. _Note: rendering is handled by the upstream @nightingale-elements packages and will require coordinated changes in addition to this project._
 - Establish a testing baseline for the main component, which currently has minimal coverage (one adapter test file and a filter-config test file). Record a baseline snapshot: number of unit tests, statement coverage percentage for key modules, and CI pass/fail status. Set up the testing infrastructure so that tests are written alongside each refactoring task from Q1 onwards, rather than retrofitted later. This directly supports our CI/CD goals: external contributors need a passing test suite to verify their changes against.
@@ -54,7 +54,7 @@ Year 1 is fully funded by the SSI RSMF grant. Every milestone below maps directl
 
 **Architecture and usability**
 
-- Complete the configurable data-loading framework: ProtVista should mount tracks dynamically based on a user-provided configuration file rather than hardcoded group lists. Publish a formal viewer configuration schema (JSON Schema) defining the supported structure of groups, tracks, data sources, and rendering options, so that users and integrators can validate configuration files before use. In parallel, document the expected payload shapes for the initial built-in track types and adapters. The objective is to support the track and feature elements currently supported by ProtVista (i.e. not additional elements).
+- Complete the configurable data-loading framework: ProtVista should mount tracks dynamically based on a user-provided configuration file rather than hardcoded category lists. Publish a formal viewer configuration schema (JSON Schema) defining the supported structure of categories, tracks, data sources, and rendering options, so that users and integrators can validate configuration files before use. In parallel, document the expected payload shapes for the initial built-in track types and adapters. The objective is to support the track and feature elements currently supported by ProtVista (i.e. not additional elements).
 - The configuration JSON schema should handle the majority of standard visualisation needs, while exposing a modular API (escape hatches) that allows advanced users to inject custom logic for their specific edge cases.
 - Modernise the styling architecture, using native web standards like CSS ::part and custom properties, to reduce technical debt and allow library users to customise the interface.
 - Implement track-configuration UI features (reordering, selective toggling) so that non-technical users can customise the display without editing code.
@@ -159,7 +159,7 @@ Year 3 is intended to deepen ProtVista’s interoperability with the MSS ecosyst
 
 ## 1\. Architectural Sustainability (Reducing Technical Debt)
 
-The core Year 1 deliverable is transforming ProtVista from a tightly coupled, EBI-specific tool into a data-agnostic, configuration-driven component. By replacing hardcoded API endpoints and group lists with a documented JSON schema, we drastically lower the barrier for labs and industry partners to adapt ProtVista for their own data. Every new adopter becomes a potential contributor and stakeholder, naturally scaling the pool of people invested in the tool's maintenance.
+The core Year 1 deliverable is transforming ProtVista from a tightly coupled, EBI-specific tool into a data-agnostic, configuration-driven component. By replacing hardcoded API endpoints and category lists with a documented JSON schema, we drastically lower the barrier for external labs and industry partners to adapt ProtVista for their own data. Every new adopter becomes a potential contributor and stakeholder, naturally scaling the pool of people invested in the tool's maintenance.
 
 Furthermore, the configuration-first, modular architecture will be highly compatible with emerging AI coding tools. By defining clear boundaries and machine-readable JSON schemas, we ensure that post-grant maintenance, bug fixes, and the development of custom tracks can be achieved with significantly reduced developer overhead.
 

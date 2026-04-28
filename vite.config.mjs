@@ -39,15 +39,6 @@ export default defineConfig({
   test: {
     globals: false,
     environment: 'jsdom',
-    // `setup.ts` filters jsdom's benign CSS-parse warnings (jsdom's
-    // cssom is CSS2-era and chokes on modern syntax).
-    // `nightingale-mocks.ts` stubs every `@nightingale-elements/*`
-    // module to a trivial `HTMLElement` subclass so specs that mount
-    // `<protvista-uniprot>` don't execute d3/Mol*/SVG layout work.
-    setupFiles: [
-      'src/__spec__/setup.ts',
-      'src/__spec__/nightingale-mocks.ts',
-    ],
     include: [
       'src/**/__spec__/*.spec.ts',
       'src/**/__tests__/*.spec.ts',

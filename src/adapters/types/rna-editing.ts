@@ -16,7 +16,7 @@ export type RnaEditing = {
   features: RnaEditingFeature[];
 };
 
-type RnaEditingFeature = {
+export type RnaEditingFeature = {
   type: Type;
   xrefs: Xref[];
   dbReferenceType: DBReferenceType[];
@@ -31,6 +31,7 @@ export type TransformedRnaEditing = RnaEditingFeature & {
   variant: string;
   start: number;
   end: number;
+  tooltipContent: string;
   consequenceType: string;
 };
 

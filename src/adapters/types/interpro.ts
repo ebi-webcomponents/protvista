@@ -10,7 +10,7 @@ type Result = {
   proteins: Protein[];
 };
 
-type Metadata = {
+export type Metadata = {
   accession: string;
   name: string;
   source_database: string;
@@ -65,6 +65,7 @@ export type TransformedInterPro = {
   start: string | number;
   end: string | number;
   color: any;
+  tooltipContent: string;
   length: number;
   accession: string;
   name: string;
