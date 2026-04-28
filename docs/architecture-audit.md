@@ -1,6 +1,6 @@
-# Hardcoded assumptions: audit and removal plan
+# Architecture audit
 
-This document is the planning artefact for the Q1 grant deliverable "Architecture: identify hardcoded assumptions and create a removal plan" (SSI / RSMF, AH/Z000114/1, ROADMAP §Q1 Technical foundations). It enumerates the hardcoded assumptions in the `protvista-uniprot` baseline tree at the start of the grant period, classifies each one as **must-remove**, **nice-to-have**, or **keep-for-compatibility**, and sets out a removal approach for each must-remove item. It accompanies the Q1–Q2 refactoring work as the architectural reference for the hardcoded-assumption decisions.
+This document is the planning artefact for two Q1 grant deliverables (SSI / RSMF, AH/Z000114/1, ROADMAP §Q1 Technical foundations): _"Architecture: identify hardcoded assumptions and create a removal plan"_ (issue #98) and _"Backwards compatibility: define compatibility promise for grant changes"_ (issue #102). It enumerates the hardcoded assumptions in the `protvista-uniprot` baseline tree at the start of the grant period, classifies each as **must-remove**, **nice-to-have**, or **keep-for-compatibility**, sets out a removal approach for each must-remove item, and records the compatibility surface and mitigation policy that fall out of the keep-for-compatibility category. It accompanies the v5 release work as the architectural reference for both the audit and the compatibility contract.
 
 ## Scope and method
 
