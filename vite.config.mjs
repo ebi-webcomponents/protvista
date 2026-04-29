@@ -69,6 +69,18 @@ export default defineConfig({
         // Style template strings.
         'src/styles/**',
       ],
+      // Ratchet pattern: thresholds are seeded at the current baseline so
+      // coverage can only go up. Initial values below are placeholders —
+      // run `yarn test:coverage` once on `next`, read the four numbers off
+      // the summary table, and update these to ~1–2% below the observed
+      // baseline. Until then CI will not fail on coverage drop. See the
+      // "Hooks and feedback loop" section in CONTRIBUTING.md.
+      thresholds: {
+        lines: 11.13,
+        functions: 14.08,
+        branches: 7.54,
+        statements: 12.01,
+      },
     },
   },
 });

@@ -111,18 +111,11 @@ Coverage output is for local use only and is not committed. Open `coverage/index
 
 ### Continuous integration
 
-Every push and pull request runs the same three steps as `yarn test` via [`.github/workflows/test-and-deploy.yml`](./.github/workflows/test-and-deploy.yml): `yarn test:lint`, `yarn test:types`, and `yarn test:unit`, under Node 24 on `ubuntu-latest`. A separate `build` job runs `yarn build` (and, on `main`, `yarn build:demo`) and deploys the demo to GitHub Pages. Coverage is not collected in CI today — run `yarn test:coverage` locally when you need a coverage signal.
+Every push and pull request runs the same checks as `yarn test` via [`.github/workflows/test-and-deploy.yml`](./.github/workflows/test-and-deploy.yml): `yarn test:lint`, `yarn test:types`, `yarn test:unit`, plus `yarn test:coverage` against the thresholds defined in `vite.config.mjs`. All steps run under Node 24 on `ubuntu-latest`. A separate `build` job runs `yarn build` (and, on `main`, `yarn build:demo`) and deploys the demo to GitHub Pages.
 
 ### Coverage
 
-Captured 2026-04-20 via `yarn test:coverage` (v8 instrumentation, 29 tests across 3 spec files):
-
-| Metric     | Coverage |
-| ---------- | -------- |
-| Statements | 10.33%   |
-| Branches   | 5.99%    |
-| Functions  | 13.19%   |
-| Lines      | 9.66%    |
+Coverage thresholds live in [`vite.config.mjs`](./vite.config.mjs) under `test.coverage.thresholds` and follow a ratchet pattern — they only ever go up. CI fails if a change drops coverage below the recorded threshold. Run `yarn test:coverage` locally to see the current numbers, or `yarn test:coverage:ratchet` to lift the thresholds to match the latest run (commit the resulting `vite.config.mjs` change in the same PR as the coverage improvement).
 
 ## Configuration
 
