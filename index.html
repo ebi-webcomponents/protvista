@@ -24,8 +24,15 @@
 
   <body>
     <div>
-      <!-- Good default -->
-      <protvista-uniprot accession="P05067"></protvista-uniprot>
+      <!-- Accession is read from ?accession= (default P05067). Used by the
+           bench/ workflow to swap scenarios without duplicating HTML. -->
+      <protvista-uniprot id="pv"></protvista-uniprot>
+      <script>
+        const params = new URLSearchParams(location.search);
+        document
+          .getElementById('pv')
+          .setAttribute('accession', params.get('accession') || 'P05067');
+      </script>
       <!-- Good multimer -->
       <!-- <protvista-uniprot accession="Q55DI5"></protvista-uniprot> -->
       <!-- No features -->

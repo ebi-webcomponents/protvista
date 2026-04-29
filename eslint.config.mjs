@@ -8,7 +8,10 @@ import globals from 'globals';
 
 export default [
   js.configs.recommended,
-  ...ts.configs.recommended,
+  ...ts.configs.recommended.map((c) => ({
+    ...c,
+    files: ['**/*.ts', '**/*.tsx'],
+  })),
   prettier,
   {
     files: ['**/*.ts', '**/*.tsx'],
@@ -40,6 +43,18 @@ export default [
       /* Security: flag unsafe DOM manipulation */
       'no-unsanitized/method': 'error',
       'no-unsanitized/property': 'error',
+    },
+  },
+
+  /* Bench runners — node scripts, not shipped. */
+  {
+    files: ['bench/**/*.{mjs,cjs}'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        ...globals.node,
+      },
     },
   },
 ];
