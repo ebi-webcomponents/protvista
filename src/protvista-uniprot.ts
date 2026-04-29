@@ -10,7 +10,7 @@ import NightingaleSequence from '@nightingale-elements/nightingale-sequence';
 import NightingaleColoredSequence from '@nightingale-elements/nightingale-colored-sequence';
 import NightingaleTrackCanvas from '@nightingale-elements/nightingale-track-canvas';
 import NightingaleInterproTrack from '@nightingale-elements/nightingale-interpro-track';
-import NightingaleVariation from '@nightingale-elements/nightingale-variation';
+import NightingaleVariationCanvas from '@nightingale-elements/nightingale-variation-canvas';
 import NightingaleLinegraphTrack from '@nightingale-elements/nightingale-linegraph-track';
 import NightingaleSequenceHeatmap from '@nightingale-elements/nightingale-sequence-heatmap';
 import NightingaleFilter, {
@@ -164,7 +164,7 @@ class ProtvistaUniprot extends LitElement {
     loadComponent('nightingale-colored-sequence', NightingaleColoredSequence);
     loadComponent('nightingale-interpro-track', NightingaleInterproTrack);
     loadComponent('nightingale-sequence', NightingaleSequence);
-    loadComponent('nightingale-variation', NightingaleVariation);
+    loadComponent('nightingale-variation-canvas', NightingaleVariationCanvas);
     loadComponent('nightingale-linegraph-track', NightingaleLinegraphTrack);
     loadComponent('nightingale-filter', NightingaleFilter);
     loadComponent('nightingale-manager', NightingaleManager);
@@ -291,6 +291,7 @@ class ProtvistaUniprot extends LitElement {
       const element: NightingaleTrackCanvas | null = document.getElementById(
         `track-${id}`
       ) as NightingaleTrackCanvas;
+
       // set data if it hasn't changed
       if (element && element.data !== data) {
         element.data = data;
@@ -381,8 +382,8 @@ class ProtvistaUniprot extends LitElement {
       filterComponent.filters = filterConfig as Filter[];
     }
 
-    const variationComponent = this.querySelector<NightingaleVariation>(
-      'nightingale-variation'
+    const variationComponent = this.querySelector<NightingaleVariationCanvas>(
+      'nightingale-variation-canvas'
     );
 
     if (variationComponent && variationComponent?.colorConfig !== colorConfig) {
@@ -762,9 +763,9 @@ class ProtvistaUniprot extends LitElement {
           >
           </nightingale-interpro-track>
         `;
-      case 'nightingale-variation':
+      case 'nightingale-variation-canvas':
         return html`
-          <nightingale-variation
+          <nightingale-variation-canvas
             length="${this.sequence?.length}"
             height="500"
             display-start="${this.displayCoordinates?.start}"
@@ -773,7 +774,7 @@ class ProtvistaUniprot extends LitElement {
             highlight-event="onclick"
             use-ctrl-to-zoom
           >
-          </nightingale-variation>
+          </nightingale-variation-canvas
         `;
       case 'nightingale-linegraph-track':
         return html`

@@ -140,7 +140,7 @@ You can pass your own configuration to the component using the `config` attribut
     {
       "name": "string",
       "label": "string",
-      "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation",
+      "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation-canvas,
       "adapter": "feature-adapter|structure-adapter|proteomics-adapter|variation-adapter",
       "url": "string",
       "tracks": [
@@ -148,7 +148,7 @@ You can pass your own configuration to the component using the `config` attribut
           "name": "string",
           "label": "string",
           "filter": "string",
-          "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation",
+          "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation-canvas,
           "tooltip": "string"
         }
       ]

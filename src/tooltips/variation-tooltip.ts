@@ -4,7 +4,7 @@ import {
   PopulationFrequency,
   Variant,
   Prediction,
-} from '@nightingale-elements/nightingale-variation';
+} from '@nightingale-elements/nightingale-variation-canvas';
 import groupBy from 'lodash-es/groupBy';
 
 import { escapeHtml } from '../utils/security';
