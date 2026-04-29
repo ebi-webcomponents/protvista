@@ -17,15 +17,16 @@ module.exports = {
       startServerCommand:
         'npx vite preview --config vite.demo.config.mjs --port 4173 --strictPort',
       startServerReadyPattern: 'Local:',
-      // `&bench=1` opts the page into bench/instrument.js, which emits
-      // `protvista:*` user timings that Lighthouse captures in its trace.
+      // The component emits `protvista:*` performance marks/measures
+      // unconditionally; Lighthouse captures them via its user-timings
+      // audit and `bench/summarize.mjs` surfaces them in summary.md.
       url: [
         // Well-annotated default — features, variants, structure.
-        'http://localhost:4173/?accession=P05067&bench=1',
+        'http://localhost:4173/?accession=P05067',
         // Heavy entry — many variants, 3D Beacons.
-        'http://localhost:4173/?accession=P38398&bench=1',
+        'http://localhost:4173/?accession=P38398',
         // Sparse entry — minimal feature load.
-        'http://localhost:4173/?accession=A0A2K5ULD0&bench=1',
+        'http://localhost:4173/?accession=A0A2K5ULD0',
       ],
       // 5 runs per URL — LHCI takes the median, this smooths out the
       // noise floor more than the default 3 without doubling wall time.
