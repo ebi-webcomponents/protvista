@@ -46,18 +46,7 @@ export default [
     },
   },
 
-  /* Bench scripts — plain JS, not part of the shipped library. Browser
-     globals for the instrumentation, Node globals for the runners. */
-  {
-    files: ['bench/instrument.js'],
-    languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'module',
-      globals: {
-        ...globals.browser,
-      },
-    },
-  },
+  /* Bench runners — node scripts, not shipped. */
   {
     files: ['bench/**/*.{mjs,cjs}'],
     languageOptions: {
