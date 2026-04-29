@@ -40,6 +40,11 @@ module.exports = {
         // Be explicit so two machines on different Chrome versions still
         // produce comparable numbers.
         chromeFlags: '--headless=new --no-sandbox',
+        // Default is 45000 ms; the heavy variation payload on P38398
+        // sometimes runs right at that edge and Lighthouse marks the
+        // whole run as a page-load failure (Perf=0, all audits empty).
+        // 60 s gives those scenarios room to finish.
+        maxWaitForLoad: 60000,
       },
     },
     upload: {
