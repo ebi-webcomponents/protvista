@@ -61,7 +61,7 @@ yarn bench
 
 ## Comparing
 
-Eyeballing two `summary.md` tables is enough most of the time. For a stricter check, LHCI's own diff works against the raw reports — see `lhci compare` docs.
+Eyeballing two `summary.md` tables — current run vs. a committed baseline under `bench/baselines/` — is enough most of the time. For raw numbers, `jq` over `bench/results/lighthouse/manifest.json` pulls per-run metrics out of the latest run; `lhci open` will pop the current run's HTML reports in a browser if you want to see Lighthouse's full breakdown for one scenario.
 
 Treat any single-metric delta under ~5% as noise unless it's consistent across all scenarios.
 
