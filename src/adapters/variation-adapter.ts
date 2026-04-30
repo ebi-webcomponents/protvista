@@ -5,7 +5,7 @@ import {
   Variant,
   Xref,
   VariationDatum,
-} from '@nightingale-elements/nightingale-variation';
+} from '@nightingale-elements/nightingale-variation-canvas';
 
 import formatTooltip from '../tooltips/variation-tooltip';
 

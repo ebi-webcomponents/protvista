@@ -10,7 +10,7 @@ import NightingaleSequence from '@nightingale-elements/nightingale-sequence';
 import NightingaleColoredSequence from '@nightingale-elements/nightingale-colored-sequence';
 import NightingaleTrackCanvas from '@nightingale-elements/nightingale-track-canvas';
 import NightingaleInterproTrack from '@nightingale-elements/nightingale-interpro-track';
-import NightingaleVariation from '@nightingale-elements/nightingale-variation';
+import NightingaleVariationCanvas from '@nightingale-elements/nightingale-variation-canvas';
 import NightingaleLinegraphTrack from '@nightingale-elements/nightingale-linegraph-track';
 import NightingaleSequenceHeatmap from '@nightingale-elements/nightingale-sequence-heatmap';
 import NightingaleFilter, {
@@ -182,7 +182,7 @@ class ProtvistaUniprot extends LitElement {
     loadComponent('nightingale-colored-sequence', NightingaleColoredSequence);
     loadComponent('nightingale-interpro-track', NightingaleInterproTrack);
     loadComponent('nightingale-sequence', NightingaleSequence);
-    loadComponent('nightingale-variation', NightingaleVariation);
+    loadComponent('nightingale-variation-canvas', NightingaleVariationCanvas);
     loadComponent('nightingale-linegraph-track', NightingaleLinegraphTrack);
     loadComponent('nightingale-filter', NightingaleFilter);
     loadComponent('nightingale-manager', NightingaleManager);
@@ -204,6 +204,7 @@ class ProtvistaUniprot extends LitElement {
       );
 
       // Some endpoints return empty arrays, while most fail 🙄
+      const wasHasData = this.hasData;
       this.hasData =
         this.hasData ||
         Object.values(this.rawData).some((d) => {
@@ -213,6 +214,18 @@ class ProtvistaUniprot extends LitElement {
           }
           return false;
         });
+
+      // Fire the public protvista-event the moment data first becomes
+      // available. (Previously this was hung off a `'load'` listener that
+      // never fired — see `connectedCallback` history.)
+      if (this.hasData && !wasHasData) {
+        this.dispatchEvent(
+          new CustomEvent('protvista-event', {
+            detail: { hasData: true },
+            bubbles: true,
+          })
+        );
+      }
 
       // Now iterate over tracks and categories, transforming the data
       // and assigning it as adequate
@@ -287,6 +300,12 @@ class ProtvistaUniprot extends LitElement {
       }
     }
     this.loading = false;
+    markOnce('protvista:data-loaded');
+    measureOnce(
+      'protvista:fetch-and-parse',
+      'protvista:script-start',
+      'protvista:data-loaded'
+    );
     this.requestUpdate(); // Why?
   }
 
@@ -296,6 +315,7 @@ class ProtvistaUniprot extends LitElement {
       const element: NightingaleTrackCanvas | null = document.getElementById(
         `track-${id}`
       ) as NightingaleTrackCanvas;
+
       // set data if it hasn't changed
       if (element && element.data !== data) {
         element.data = data as NightingaleTrackCanvas['data'];
@@ -366,14 +386,29 @@ class ProtvistaUniprot extends LitElement {
   updated(changedProperties: Map<string, string>) {
     super.updated(changedProperties);
 
+    // First render with content — manager is in the DOM, not the loader.
+    if (this.hasData && !this.loading) {
+      markOnce('protvista:first-render');
+      measureOnce(
+        'protvista:render',
+        'protvista:data-loaded',
+        'protvista:first-render'
+      );
+      measureOnce(
+        'protvista:total',
+        'protvista:script-start',
+        'protvista:first-render'
+      );
+    }
+
     const filterComponent =
       this.querySelector<NightingaleFilter>('nightingale-filter');
     if (filterComponent && filterComponent.filters !== filterConfig) {
       filterComponent.filters = filterConfig as Filter[];
     }
 
-    const variationComponent = this.querySelector<NightingaleVariation>(
-      'nightingale-variation'
+    const variationComponent = this.querySelector<NightingaleVariationCanvas>(
+      'nightingale-variation-canvas'
     );
 
     if (variationComponent && variationComponent?.colorConfig !== colorConfig) {
@@ -405,6 +440,7 @@ class ProtvistaUniprot extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    markOnce('protvista:script-start');
     this.registerWebComponents();
 
     if (!this.suspend) this._init();
@@ -415,21 +451,6 @@ class ProtvistaUniprot extends LitElement {
       }
       if (e.detail?.displayend) {
         this.displayCoordinates.end = e.detail.displayend;
-      }
-    });
-
-    // Note: this doesn't seem to work
-    this.addEventListener('load', () => {
-      if (!this.hasData) {
-        this.dispatchEvent(
-          new CustomEvent('protvista-event', {
-            detail: {
-              hasData: true,
-            },
-            bubbles: true,
-          })
-        );
-        this.hasData = true;
       }
     });
   }
@@ -770,9 +791,9 @@ class ProtvistaUniprot extends LitElement {
           >
           </nightingale-interpro-track>
         `;
-      case 'nightingale-variation':
+      case 'nightingale-variation-canvas':
         return html`
-          <nightingale-variation
+          <nightingale-variation-canvas
             length="${this.sequence?.length}"
             height="500"
             display-start="${this.displayCoordinates?.start}"
@@ -781,7 +802,7 @@ class ProtvistaUniprot extends LitElement {
             highlight-event="onclick"
             use-ctrl-to-zoom
           >
-          </nightingale-variation>
+          </nightingale-variation-canvas
         `;
       case 'nightingale-linegraph-track':
         return html`

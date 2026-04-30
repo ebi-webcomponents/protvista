@@ -124,6 +124,12 @@ Captured 2026-04-20 via `yarn test:coverage` (v8 instrumentation, 29 tests acros
 | Functions  | 13.19%   |
 | Lines      | 9.66%    |
 
+## Performance benchmarks
+
+A `bench/` workflow captures repeatable performance baselines for the demo across three layers: library bundle size, Lighthouse CI against a fixed set of UniProt scenarios, and DOM-observed custom milestones (`fetch-and-parse`, `render`, `total`). Run `yarn bench` to produce `bench/results/summary.md`. Reference snapshots live under `bench/baselines/` and are committed; per-run output is gitignored.
+
+See [`bench/README.md`](./bench/README.md) for scenarios, capture procedure, and methodology notes.
+
 ## Configuration
 
 You can pass your own configuration to the component using the `config` attribute/property.
@@ -134,7 +140,7 @@ You can pass your own configuration to the component using the `config` attribut
     {
       "name": "string",
       "label": "string",
-      "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation",
+      "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation-canvas,
       "adapter": "feature-adapter|structure-adapter|proteomics-adapter|variation-adapter",
       "url": "string",
       "tracks": [
@@ -142,7 +148,7 @@ You can pass your own configuration to the component using the `config` attribut
           "name": "string",
           "label": "string",
           "filter": "string",
-          "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation",
+          "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation-canvas,
           "tooltip": "string"
         }
       ]
