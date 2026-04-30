@@ -6,7 +6,7 @@ Project Start Date: 1 February 2026
 Project End Date: 31 January 2027  
 Project Lead: Maria J. Martin  
 Lead Developer: Daniel Rice, supported by Aurélien Luciani  
-Code Repository: [https://github.com/ebi-webcomponents/protvista-uniprot](https://github.com/ebi-webcomponents/protvista-uniprot)  
+Code Repository: [https://github.com/ebi-webcomponents/protvista](https://github.com/ebi-webcomponents/protvista) (renamed from `protvista-uniprot`; old URL auto-redirects)  
 Document version: Draft v1 \- March 2026  
 Licence: CC BY 4.0
 
@@ -123,7 +123,7 @@ Post-grant maintenance is expected to be supported primarily through UniProt Con
 **MolSequenceSpec groundwork**
 
 - Participate in the MSS 1D specification process alongside collaborators (Mol\* developers and PDBe). Contribute ProtVista's requirements for sequence-level annotation representation.
-- Begin refactoring nightingale-structure to consume pre-mapped 1D coordinate selections broadcast by Mol\*, rather than maintaining its own SIFTS API fetching and position-mapping logic. The principle is that coordinate mapping between sequence and structure positions is the 3D viewer's responsibility; ProtVista should receive resolved coordinates rather than duplicating that work internally. _Note: this refactoring will happen within Nightingale (@nightingale-elements/ nightingale-structure), not in protvista-uniprot itself, and will require coordination with the broader Nightingale maintainers._
+- Begin refactoring nightingale-structure to consume pre-mapped 1D coordinate selections broadcast by Mol\*, rather than maintaining its own SIFTS API fetching and position-mapping logic. The principle is that coordinate mapping between sequence and structure positions is the 3D viewer's responsibility; ProtVista should receive resolved coordinates rather than duplicating that work internally. _Note: this refactoring will happen within Nightingale (@nightingale-elements/ nightingale-structure), not in ProtVista itself, and will require coordination with the broader Nightingale maintainers._
 - Evaluate and prototype handling of non-canonical addressing, alignment gaps, and complex PTM substructures to ensure parity with 3D structural mapping.
 
 **Community and ecosystem**
