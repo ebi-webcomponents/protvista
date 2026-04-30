@@ -64,25 +64,58 @@ import loaderIcon from './icons/spinner.svg';
 import protvistaStyles from './styles/protvista-styles';
 import loaderStyles from './styles/loader-styles';
 
-// Heterogeneous adapter map — each adapter has its own signature and return
-// shape. A cast is required here because TypeScript's function parameter
-// contravariance prevents assigning (data: SpecificType) => Result to
-// (...args: unknown[]) => unknown. This is an intentional escape hatch;
-// the per-adapter types are enforced at the adapter level.
-const adapters = {
-  'feature-adapter': featureAdapter,
-  'interpro-adapter': interproAdapter,
-  'proteomics-adapter': proteomicsAdapter,
-  'structure-adapter': structureAdapter,
-  'variation-adapter': variationAdapter,
-  'variation-graph-adapter': variationGraphAdapter,
-  'rna-editing-adapter': rnaEditingAdapter,
-  'rna-editing-graph-adapter': rnaEditingGraphAdapter,
-  'proteomics-ptm-adapter': proteomicsPTMApdapter,
-  'alphafold-confidence-adapter': alphaFoldConfidenceAdapter,
-  'alphamissense-pathogenicity-adapter': alphaMissensePathogenicityAdapter,
-  'alphamissense-heatmap-adapter': alphaMissenseHeatmapAdapter,
-};
+/**
+ * Typed adapter dispatch. Each case calls the real adapter with its real
+ * signature so genuine mismatches become compile-time errors.
+ *
+ * Re-validation of the two bugs flagged in issue #133:
+ *   - variation-adapter: returns `{ sequence, variants } | null` — the null
+ *     case is handled downstream by the `if (!filteredData) return` guard.
+ *   - proteomics-ptm-adapter (ProteomicsPtm): the adapter accepts a single
+ *     ProteomicsPtm argument; trackData[0] is cast via Parameters<> which
+ *     preserves the real type at the call site. No signature mismatch found.
+ *
+ * The `raw as Parameters<typeof adapter>` cast on each case is intentional:
+ * trackData arrives as TrackPayload[] from the URL fetch and we cannot
+ * statically prove its shape matches the adapter's expectation. The cast is
+ * narrowed per-case (not a blanket unknown[]) so any future adapter signature
+ * change will surface here.
+ */
+async function callAdapter(
+  name: NonNullable<ProtvistaTrackConfig['data'][number]['adapter']>,
+  raw: TrackPayload[]
+): Promise<unknown> {
+  switch (name) {
+    case 'feature-adapter':
+      return featureAdapter(...(raw as Parameters<typeof featureAdapter>));
+    case 'interpro-adapter':
+      return interproAdapter(...(raw as Parameters<typeof interproAdapter>));
+    case 'proteomics-adapter':
+      return proteomicsAdapter(...(raw as Parameters<typeof proteomicsAdapter>));
+    case 'structure-adapter':
+      return structureAdapter(...(raw as Parameters<typeof structureAdapter>));
+    case 'variation-adapter':
+      return variationAdapter(...(raw as Parameters<typeof variationAdapter>));
+    case 'variation-graph-adapter':
+      return variationGraphAdapter(...(raw as Parameters<typeof variationGraphAdapter>));
+    case 'rna-editing-adapter':
+      return rnaEditingAdapter(...(raw as Parameters<typeof rnaEditingAdapter>));
+    case 'rna-editing-graph-adapter':
+      return rnaEditingGraphAdapter(...(raw as Parameters<typeof rnaEditingGraphAdapter>));
+    case 'proteomics-ptm-adapter':
+      return proteomicsPTMApdapter(...(raw as Parameters<typeof proteomicsPTMApdapter>));
+    case 'alphafold-confidence-adapter':
+      return alphaFoldConfidenceAdapter(...(raw as Parameters<typeof alphaFoldConfidenceAdapter>));
+    case 'alphamissense-pathogenicity-adapter':
+      return alphaMissensePathogenicityAdapter(...(raw as Parameters<typeof alphaMissensePathogenicityAdapter>));
+    case 'alphamissense-heatmap-adapter':
+      return alphaMissenseHeatmapAdapter(...(raw as Parameters<typeof alphaMissenseHeatmapAdapter>));
+    default: {
+      const _exhaustive: never = name;
+      throw new Error(`Unknown adapter: ${_exhaustive as string}`);
+    }
+  }
+}
 
 type NightingaleEvent = Event & {
   detail?: {
@@ -201,7 +234,7 @@ class ProtvistaUniprot extends LitElement {
 
             // 1. Convert data
             let transformedData = adapter
-              ? await (adapters as Record<string, (...args: unknown[]) => unknown>)[adapter].apply(null, trackData)
+              ? await callAdapter(adapter, trackData)
               : trackData;
 
             if (adapter === 'interpro-adapter') {
