@@ -77,7 +77,7 @@ function buildInstance(overrides: Partial<Record<string, unknown>> = {}) {
 
 const COMPONENT_NAMES: KnownComponentName[] = [
   'nightingale-track-canvas',
-  'nightingale-variation',
+  'nightingale-variation-canvas',
   'nightingale-linegraph-track',
   'nightingale-colored-sequence',
   'nightingale-sequence-heatmap',
@@ -241,7 +241,7 @@ const testConfig: NormalizedConfig = {
         {
           id: 'variation',
           label: 'variation',
-          component: 'nightingale-variation',
+          component: 'nightingale-variation-canvas',
           description: 'Variation tooltip',
           filterUI: 'nightingale-filter',
           rendering: {},

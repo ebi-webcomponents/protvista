@@ -158,7 +158,7 @@ describe('tooltip pipeline — loader-driven end-to-end', () => {
     const config = makeConfig({
       id: 'variation',
       label: 'variation',
-      component: 'nightingale-variation',
+      component: 'nightingale-variation-canvas',
       rendering: {},
       dataTooltip: spec,
       data: [

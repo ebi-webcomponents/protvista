@@ -1,5 +1,5 @@
-import { VariationDatum } from '@nightingale-elements/nightingale-variation';
-import { ClinicalSignificance } from '@nightingale-elements/nightingale-variation';
+import { type VariationDatum } from '@nightingale-elements/nightingale-variation-canvas';
+import { ClinicalSignificance } from '@nightingale-elements/nightingale-variation-canvas';
 
 const scaleColors = {
   UPDiseaseColor: '#990000',

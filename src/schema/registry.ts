@@ -109,7 +109,7 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
   [
     'variants',
     {
-      component: 'nightingale-variation',
+      component: 'nightingale-variation-canvas',
       adapter: 'uniprot-variation-json',
     },
   ],
@@ -123,7 +123,7 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
   [
     'rna-editing',
     {
-      component: 'nightingale-variation',
+      component: 'nightingale-variation-canvas',
       adapter: 'uniprot-rna-editing-json',
     },
   ],

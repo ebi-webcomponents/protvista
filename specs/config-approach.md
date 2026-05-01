@@ -601,7 +601,7 @@ type SemanticKind =
 type KnownComponentName =
   | 'nightingale-track-canvas'
   | 'nightingale-colored-sequence'
-  | 'nightingale-variation'
+  | 'nightingale-variation-canvas'
   | 'nightingale-linegraph-track'
   | 'nightingale-sequence-heatmap';
 
