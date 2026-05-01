@@ -47,17 +47,8 @@ in a reduced form, or skip. **Never accept main's version of these paths via
 
 ## Decisions still open
 
-Commits that touch heavily-diverged files (`src/protvista-uniprot.ts`,
-`index.html`, `package.json`/`yarn.lock` in non-trivial ways). These need
-manual review on each sync. As of the first sync (May 2026):
-
-| Commit    | Subject                                                  | Status |
-| --------- | -------------------------------------------------------- | ------ |
-| `61113dd` | Performance: define baseline metrics and profiling workflow | **Open** — adds `bench/` infrastructure. Conflicts with `next`'s `index.html` (parameterized `?accession=` URL vs. config-driven). Bench tooling is wanted; resolution requires aligning `index.html` with `next`'s loading model. |
-| `0523050` | Emit performance marks at lifecycle transitions          | **Open** — touches `src/protvista-uniprot.ts` which has heavy divergence. The performance marks are wanted but need to be re-applied to `next`'s version of the file. |
-| `49adc6f` | Package updates                                          | **Open** — yarn.lock conflicts. Re-resolve by taking package.json changes, then `yarn install`. |
-| `b748c9a` | Update packages                                          | **Open** — same as above. |
-| All other bench/* tweaks (`89ddf8c`, `58d44a0`, `4c80b07`, `6f5c099`, `b94a940`, `f9aa513`, `14632a3`, `7ffe6e2`, `a160691`) | Various                                                  | **Blocked** on `61113dd` landing first. |
+None at present — every main commit through the first sync is either
+picked or in `SKIP_SHAS`.
 
 ## How to run a sync
 
@@ -81,6 +72,16 @@ Picked successfully (pure additions, trivial doc merges):
 - `dce06fa` Doc rename: protvista-uniprot → protvista
 - `a3fc28c` Update completed office hours
 
+Picked (bench infrastructure, mostly clean adds):
+
+- `61113dd` Performance: define baseline metrics and profiling workflow
+  - Resolved `index.html`: kept next's structure (config-src loading
+    + commented scenarios) and swapped the active element to
+    `id="pv"` with the URL-param-driven accession script.
+  - Took main's `yarn.lock`; needs `yarn install` to re-add next's deps.
+- `89ddf8c`, `58d44a0`, `4c80b07`, `6f5c099`, `b94a940`, `f9aa513`,
+  `14632a3`, `7ffe6e2`, `a160691` — bench README/baseline tweaks; all auto-merged.
+
 Picked with manual conflict resolution:
 
 - `1e316fb` Swap nightingale-variation for nightingale-variation-canvas.
@@ -89,6 +90,15 @@ Picked with manual conflict resolution:
   - Fixed a typo in the original commit (missing `>` on `</nightingale-variation-canvas>` close tag).
   - Kept next's README (main's edits were to legacy JSON-config docs that next no longer has).
   - Follow-up: updated next-only references the cherry-pick couldn't see — `src/schema/{registry,types,validate}.ts`, `src/__spec__/nightingale-mocks.ts`, two test fixtures, plus snapshot regen via `yarn test -u`. Spec doc `specs/config-approach.md` updated to mirror the type change. `yarn.lock` updated by `yarn install`.
+
+- `0523050` Emit performance marks at lifecycle transitions.
+  - Kept next's `loadProtvistaData()` flow and `findById` helper; layered the new public observable surface (`markOnce`/`measureOnce` helpers and the three lifecycle marks) on top.
+  - The `protvista-event` dispatch (on the `hasData: false → true` transition) is wired into next's `_loadData` after the result of `loadProtvistaData()` is consumed.
+  - Kept next's `installClickTooltip` block in `connectedCallback`; the cherry-pick's deletion of the legacy `'load'` listener doesn't apply on next (next doesn't have it).
+  - `bench/instrument.js` deletion + `bench/lighthouserc.cjs` URL cleanup + `eslint.config.mjs` reduction all auto-merged cleanly.
+
+- `49adc6f` and `b748c9a` Package updates.
+  - Applied the package.json deltas only (dev-tooling patch bumps + variation-canvas 5.10.0 → 5.10.1); regenerated `yarn.lock` via `yarn install` instead of cherry-picking main's lock.
 
 ## Lesson: name-swap commits need a follow-up grep on next-only paths
 

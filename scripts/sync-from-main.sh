@@ -9,7 +9,12 @@ set -e
 # determined to be incompatible with next's architecture.
 SKIP_SHAS=(
   4bab442  # Revert of config-approach. Would destroy next.
-  1e316fb  # Picked manually as 6915a53/378269a; patch-id differs so git cherry won't detect it.
+  1e316fb  # Picked manually (variation-canvas swap); patch-id differs.
+  61113dd  # Picked manually (bench introduction); index.html resolved.
+  89ddf8c  # Picked (benchmark note to top README); patch-id changed in 3-way merge with the rename commit.
+  0523050  # Picked manually (perf marks); layered on next's loadProtvistaData flow.
+  49adc6f  # Picked (dev-tooling patch bumps); applied as package.json deltas + yarn install.
+  b748c9a  # Picked (variation-canvas 5.10.0 → 5.10.1 patch bump); applied as above.
 )
 
 is_skipped() {
