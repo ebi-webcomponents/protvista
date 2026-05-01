@@ -11,7 +11,7 @@
     "build": "vite build",
     "build:demo": "vite build --config vite.demo.config.mjs",
     "start": "vite",
-    "test:lint": "eslint 'src/**/*.ts' 'bench/**/*.{js,mjs,cjs}'",
+    "test:lint": "eslint 'src/**/*.ts' 'bench/**/*.{mjs,cjs}'",
     "test:types": "tsc",
     "test:unit": "vitest run",
     "test:watch": "vitest",

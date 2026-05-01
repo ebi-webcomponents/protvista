@@ -2,11 +2,15 @@
 
 1. **Library bundle size** — raw + gzipped bytes from `yarn build`'s `dist/` output. Catches accidental dependency bloat in shippable code.
 2. **Lighthouse CI** — runs the demo (`yarn build:demo`, served by `vite preview`) against a fixed list of UniProt accessions. Captures LCP, TBT, CLS, Speed Index, and the overall Performance score.
-3. **Custom milestones** — `bench/instrument.js` observes the host's DOM to mark `script-start`, `data-loaded` (loader removed), `first-render` (manager inserted), and `tracks-settled` (no subtree mutations for 250 ms — same quiescence pattern Playwright's `networkidle` uses). Lighthouse's user-timings audit captures these automatically, so they appear next to the headline metrics in `summary.md`.
+3. **Custom milestones** — `<protvista-uniprot>` emits three `performance.mark()` calls at lifecycle transitions (`script-start` in `connectedCallback`, `data-loaded` after fetch resolves, `first-render` after Lit commits the manager to the DOM) plus three `performance.measure()` calls between them. Lighthouse's user-timings audit captures these automatically, so they appear next to the headline metrics in `summary.md`.
 
-`fetch-and-parse` (script-start → data-loaded) and `render` (data-loaded → tracks-settled) are the per-stage breakdowns; `total` is the end-to-end. The `render` measure includes a constant ~250 ms quiescence gap, which cancels out in before/after comparisons.
+`fetch-and-parse` (script-start → data-loaded), `render` (data-loaded → first-render), and `total` (script-start → first-render) are the durations surfaced in the report.
 
-The custom layer is purely external: it only loads when the URL has `?bench=1`, observes the rendered DOM, and adds **zero changes to `src/`**. If you need finer-grained timings (e.g., per-track or per-adapter cost) later, add `performance.mark()` calls inside `src/` — but the milestones above usually suffice for spotting regressions in a refactor.
+## Stability contract
+
+The four mark/measure names — `protvista:script-start`, `protvista:data-loaded`, `protvista:first-render`, plus the three measures derived from them — are part of the component's public observable surface. **Renaming them, moving them to a different lifecycle point, or removing them is a breaking change for performance comparison.** A refactor that changes the conceptual meaning of any mark must update the corresponding baseline.
+
+The marks fire unconditionally (every demo run, every consumer page) — they're cheap (~150 bytes shipped, no work when nobody is observing) and useful for any consumer that wants to profile.
 
 ## Run
 
@@ -75,8 +79,9 @@ Scenarios are defined in `bench/lighthouserc.cjs` under `ci.collect.url`. Each q
 | ------------------ | ----------------------------------------------------- |
 | `lighthouserc.cjs` | LHCI config: scenarios, run count, throttling preset  |
 | `bundle-size.mjs`  | Walks `dist/`, writes raw + gzip sizes per file       |
-| `instrument.js`    | Browser-side marks; loaded only on `?bench=1`         |
 | `summarize.mjs`    | Reads results, writes `summary.md`                    |
 | `run.mjs`          | One-shot driver (`yarn bench`)                        |
 | `baselines/`       | Committed snapshots — reference points for comparison |
 | `results/`         | Gitignored — output of the latest run                 |
+
+The custom marks themselves live in `src/protvista-uniprot.ts`, not in this directory.

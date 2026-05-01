@@ -57,6 +57,34 @@ import loaderIcon from './icons/spinner.svg';
 import protvistaStyles from './styles/protvista-styles';
 import loaderStyles from './styles/loader-styles';
 
+// Performance marks emitted at three lifecycle transitions:
+//   protvista:script-start    component connectedCallback runs
+//   protvista:data-loaded     fetch + parse complete
+//   protvista:first-render    nightingale-manager rendered with content
+// These are part of the component's public observable surface — the
+// `bench/` workflow relies on them to compare baselines across refactors.
+// Renaming or moving them is a breaking change for perf measurement.
+//
+// Each mark fires at most once per page (subsequent component instances
+// or re-loads no-op), and corresponding measures are emitted so they
+// show up as named segments in Chrome DevTools and Lighthouse's
+// user-timings audit.
+const markOnce = (name: string) => {
+  if (performance.getEntriesByName(name, 'mark').length === 0) {
+    performance.mark(name);
+  }
+};
+const measureOnce = (name: string, start: string, end: string) => {
+  if (performance.getEntriesByName(name, 'measure').length === 0) {
+    try {
+      performance.measure(name, start, end);
+    } catch {
+      // Either start/end mark missing — surface marks but skip the measure
+      // rather than throwing; comparing the marks directly still works.
+    }
+  }
+};
+
 // Exported so tests and the schema-driven loader can construct the
 // exact same adapter map without risking drift. Keys are the canonical
 // schema-level `<source>-<format>` adapter names — the same vocabulary
@@ -270,7 +298,19 @@ class ProtvistaUniprot extends LitElement {
     if (signal.aborted) return;
 
     this.rawData = rawData;
+    const wasHasData = this.hasData;
     this.hasData = this.hasData || hasData;
+    // Fire the public protvista-event the moment data first becomes
+    // available. (Previously this was hung off a `'load'` listener
+    // that never fired.)
+    if (this.hasData && !wasHasData) {
+      this.dispatchEvent(
+        new CustomEvent('protvista-event', {
+          detail: { hasData: true },
+          bubbles: true,
+        })
+      );
+    }
     // Reference-swap so Lit's reactive system sees the change and
     // re-renders without needing a manual `requestUpdate()` at the
     // bottom of this method (the other two lines above still aren't
@@ -305,6 +345,12 @@ class ProtvistaUniprot extends LitElement {
     }
 
     this.loading = false;
+    markOnce('protvista:data-loaded');
+    measureOnce(
+      'protvista:fetch-and-parse',
+      'protvista:script-start',
+      'protvista:data-loaded'
+    );
     // `loading` and `hasData` are plain private fields (not in
     // `properties`), so Lit's reactive system doesn't pick them up.
     // `this.data` reassignment above *is* tracked, but we issue the
@@ -409,6 +455,21 @@ class ProtvistaUniprot extends LitElement {
 
   updated(changedProperties: Map<string, string>) {
     super.updated(changedProperties);
+
+    // First render with content — manager is in the DOM, not the loader.
+    if (this.hasData && !this.loading) {
+      markOnce('protvista:first-render');
+      measureOnce(
+        'protvista:render',
+        'protvista:data-loaded',
+        'protvista:first-render'
+      );
+      measureOnce(
+        'protvista:total',
+        'protvista:script-start',
+        'protvista:first-render'
+      );
+    }
 
     const filterComponent =
       this.querySelector<NightingaleFilter>('nightingale-filter');
@@ -677,6 +738,7 @@ class ProtvistaUniprot extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    markOnce('protvista:script-start');
     this.registerWebComponents();
 
     if (!this.suspend) this._init();
