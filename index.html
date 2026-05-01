@@ -23,10 +23,21 @@
   </head>
 
   <body>
+    <!-- Bench instrumentation — no-op unless URL has ?bench=1 (guard is in
+         the script itself; we use a real src= so the build pipeline picks
+         it up — inline `<script type="module">` blocks get stripped). -->
+    <script type="module" src="./bench/instrument.js"></script>
     <div>
       <!-- NOTE: for all of the following with no config-src → falls back to bundled src/default-config.yaml -->
-      <!-- Good default -->
-      <protvista-uniprot accession="P05067"></protvista-uniprot>
+      <!-- Accession is read from ?accession= (default P05067). Used by the
+           bench/ workflow to swap scenarios without duplicating HTML. -->
+      <protvista-uniprot id="pv"></protvista-uniprot>
+      <script>
+        const params = new URLSearchParams(location.search);
+        document
+          .getElementById('pv')
+          .setAttribute('accession', params.get('accession') || 'P05067');
+      </script>
       <!-- Good multimer -->
       <!-- <protvista-uniprot accession="Q55DI5"></protvista-uniprot> -->
       <!-- No features -->

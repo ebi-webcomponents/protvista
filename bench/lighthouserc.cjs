@@ -1,0 +1,50 @@
+/**
+ * Lighthouse CI config.
+ *
+ * `lhci autorun` will boot `vite preview` against the demo build, run
+ * Lighthouse N times against each URL, then write reports under
+ * bench/results/lighthouse/.
+ *
+ * Edit `collect.url` to change scenarios. Each query string is a UniProt
+ * accession; index.html reads `?accession=` and renders that protein.
+ */
+module.exports = {
+  ci: {
+    collect: {
+      // Built artefact lives in `demo/` (see vite.demo.config.mjs).
+      // --strictPort makes startup fail loudly if 4173 is busy instead of
+      // silently moving to another port that the URLs below won't match.
+      startServerCommand:
+        'npx vite preview --config vite.demo.config.mjs --port 4173 --strictPort',
+      startServerReadyPattern: 'Local:',
+      // `&bench=1` opts the page into bench/instrument.js, which emits
+      // `protvista:*` user timings that Lighthouse captures in its trace.
+      url: [
+        // Well-annotated default — features, variants, structure.
+        'http://localhost:4173/?accession=P05067&bench=1',
+        // Heavy entry — many variants, 3D Beacons.
+        'http://localhost:4173/?accession=P38398&bench=1',
+        // Sparse entry — minimal feature load.
+        'http://localhost:4173/?accession=A0A2K5ULD0&bench=1',
+      ],
+      // 5 runs per URL — LHCI takes the median, this smooths out the
+      // noise floor more than the default 3 without doubling wall time.
+      numberOfRuns: 5,
+      settings: {
+        // Library demo, not a PWA — only the perf category is meaningful.
+        onlyCategories: ['performance'],
+        // Researchers use this on desktop; mobile throttling distorts the
+        // signal we care about.
+        preset: 'desktop',
+        // Be explicit so two machines on different Chrome versions still
+        // produce comparable numbers.
+        chromeFlags: '--headless=new --no-sandbox',
+      },
+    },
+    upload: {
+      target: 'filesystem',
+      outputDir: './bench/results/lighthouse',
+      reportFilenamePattern: '%%PATHNAME%%-%%DATETIME%%-%%EXTENSION%%',
+    },
+  },
+};
