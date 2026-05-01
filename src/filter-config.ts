@@ -1,5 +1,4 @@
-import { VariationDatum } from '@nightingale-elements/nightingale-variation';
-import { ClinicalSignificance, Variant } from '@nightingale-elements/nightingale-variation';
+import { ClinicalSignificance } from '@nightingale-elements/nightingale-variation';
 import { TransformedVariant } from './adapters/variation-adapter';
 
 const scaleColors = {

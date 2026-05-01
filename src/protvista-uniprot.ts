@@ -64,6 +64,30 @@ import loaderIcon from './icons/spinner.svg';
 import protvistaStyles from './styles/protvista-styles';
 import loaderStyles from './styles/loader-styles';
 
+// Performance marks deliberately use stable, namespaced names so they
+// survive component re-mount and tooling can pin to them by name.
+// Renaming or moving them is a breaking change for perf measurement.
+//
+// Each mark fires at most once per page (subsequent component instances
+// or re-loads no-op), and corresponding measures are emitted so they
+// show up as named segments in Chrome DevTools and Lighthouse's
+// user-timings audit.
+const markOnce = (name: string) => {
+  if (performance.getEntriesByName(name, 'mark').length === 0) {
+    performance.mark(name);
+  }
+};
+const measureOnce = (name: string, start: string, end: string) => {
+  if (performance.getEntriesByName(name, 'measure').length === 0) {
+    try {
+      performance.measure(name, start, end);
+    } catch {
+      // Either start/end mark missing — surface marks but skip the measure
+      // rather than throwing; comparing the marks directly still works.
+    }
+  }
+};
+
 /**
  * Typed adapter dispatch. Each case calls the real adapter with its real
  * signature so genuine mismatches become compile-time errors.
