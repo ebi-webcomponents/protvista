@@ -1,6 +1,8 @@
-const transformData = (data) => {
+import { ProteinsAPIVariation, Variant } from '@nightingale-elements/nightingale-variation';
+
+const transformData = (data: ProteinsAPIVariation) => {
   if (data.sequence && data.features.length) {
-    const variants = data.features.map((variant) => ({
+    const variants = (data.features as Variant[]).map((variant) => ({
       ...variant,
       accession: variant.genomicLocation?.join(', '),
       start: variant.begin,
@@ -17,8 +19,8 @@ const transformData = (data) => {
       total[index] += 1;
 
       if (!association) continue;
-      const hasDisease = association.find(
-        (association) => association.disease === true
+      const hasDisease = (association as { disease?: boolean }[]).find(
+        (assoc) => assoc.disease === true
       );
       if (hasDisease) diseaseTotal[index] += 1;
     }

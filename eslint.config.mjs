@@ -38,7 +38,7 @@ export default [
 
       /* ...then apply your custom tweaks */
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-explicit-any': 'error',
 
       /* Security: flag unsafe DOM manipulation */
       'no-unsanitized/method': 'error',

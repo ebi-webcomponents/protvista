@@ -126,7 +126,7 @@ const formatTooltip = (
 
   return `
   ${title ? `<h4>${escapeHtml(title)}</h4><hr />` : ''}
-  <h5>Description</h5><p>${escapeHtml(getDescription(modification, aa))}</p>
+  ${modification ? `<h5>Description</h5><p>${escapeHtml(getDescription(modification, aa))}</p>` : ''}
   ${
     confidenceScore
       ? `<h5 data-article-id="mod_res_large_scale#confidence-score">Confidence Score</h5><p>${escapeHtml(confidenceScore)}</p>`

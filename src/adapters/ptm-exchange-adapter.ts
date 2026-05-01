@@ -97,10 +97,13 @@ const convertPtmExchangePtms = (
         `MOD_RES_LS ${absolutePosition}-${absolutePosition}`,
         groupedPtms,
         aa,
-        confidenceScore
+        confidenceScore ?? ''
       ),
       color:
-        (confidenceScore && ConfidenceScoreColors[confidenceScore]) || 'black',
+        (confidenceScore !== null &&
+          confidenceScore in ConfidenceScoreColors &&
+          ConfidenceScoreColors[confidenceScore as keyof typeof ConfidenceScoreColors]) ||
+        'black',
     };
   });
 };

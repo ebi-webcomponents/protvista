@@ -1,6 +1,13 @@
 import { escapeHtml, sanitizeUrl } from '../utils/security';
+import type { StructureFeature } from '../adapters/structure-adapter';
 
-const getStructuresHTML = (structureList) => {
+type StructureItem = {
+  source: { url: string; id: string };
+  start: number;
+  end: number;
+};
+
+const getStructuresHTML = (structureList: StructureItem[]) => {
   return `<ul>
               ${structureList
                 .map(
@@ -14,7 +21,7 @@ const getStructuresHTML = (structureList) => {
           </ul>`;
 };
 
-const formatTooltip = (feature) => {
+const formatTooltip = (feature: StructureFeature) => {
   const structuresHTML = getStructuresHTML(feature.structures);
   return !structuresHTML
     ? ''

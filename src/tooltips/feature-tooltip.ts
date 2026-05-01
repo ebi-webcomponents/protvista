@@ -45,7 +45,53 @@ const unimodIdMapping = {
   'label: 13c(6)15n(4)': 267,
 };
 
-const formatSource = (source) => {
+type EvidenceSource = {
+  name?: string;
+  id?: string;
+  url?: string;
+  alternativeUrl?: string;
+};
+
+type Evidence = {
+  code: string;
+  source?: EvidenceSource;
+};
+
+type Xref = {
+  name: string;
+  id: string;
+  url?: string;
+};
+
+type PTMDbReference = {
+  id: string;
+  properties: Record<string, string>;
+};
+
+type PTMHighlight = {
+  name: string;
+  position: number;
+  dbReferences: PTMDbReference[];
+};
+
+export type TooltipFeature = {
+  type?: string;
+  begin?: string | number;
+  end?: string | number;
+  description?: string;
+  ftId?: string;
+  alternativeSequence?: string;
+  peptide?: string;
+  unique?: boolean;
+  xrefs?: Xref[];
+  evidences?: Evidence[];
+  residuesToHighlight?: PTMHighlight[];
+  ligandPart?: { name: string };
+  ligand?: { name: string };
+  [key: string]: unknown;
+};
+
+const formatSource = (source: EvidenceSource) => {
   if (source.name?.toLowerCase() === 'PubMed'.toLowerCase()) {
     return `${escapeHtml(source.id)}&nbsp;(<a href='${sanitizeUrl(source.url)}' target='_blank'>${escapeHtml(source.name)}</a>&nbsp;<a href='${sanitizeUrl(source.alternativeUrl)}' target='_blank'>EuropePMC</a>)`;
   }
@@ -60,7 +106,7 @@ const formatSource = (source) => {
   return sourceLink;
 };
 
-export const getEvidenceFromCodes = (evidenceList) => {
+export const getEvidenceFromCodes = (evidenceList: Evidence[] | undefined) => {
   if (!evidenceList) return ``;
   return `
         <ul class="no-bullet">${evidenceList
@@ -75,7 +121,7 @@ export const getEvidenceFromCodes = (evidenceList) => {
       `;
 };
 
-export const formatXrefs = (xrefs) => {
+export const formatXrefs = (xrefs: Xref[]) => {
   return `<ul class="no-bullet">${xrefs
     .map(
       (xref) =>
@@ -88,7 +134,7 @@ export const formatXrefs = (xrefs) => {
     .join('')}</ul>`;
 };
 
-const getPTMEvidence = (ptms, taxId) => {
+const getPTMEvidence = (ptms: PTMHighlight[] | undefined, taxId: string | undefined) => {
   if (!ptms) return ``;
   const ids = ptms.flatMap(({ dbReferences }) =>
     dbReferences.map((ref) => ref.id)
@@ -106,8 +152,8 @@ const getPTMEvidence = (ptms, taxId) => {
             ? `&nbsp;<a href="https://www.ebi.ac.uk/pride/archive/projects/${encodeURIComponent(id)}" target="_blank">PRIDE</a>)</li><li title="publication">Publication:&nbsp;31819260&nbsp;(<a href="https://pubmed.ncbi.nlm.nih.gov/31819260" target="_blank">PubMed</a>)</li>`
             : ``
         }${
-          taxId && taxIdToPeptideAtlasBuildData[taxId]
-            ? `&nbsp;<a href="https://db.systemsbiology.net/sbeams/cgi/PeptideAtlas/buildDetails?atlas_build_id=${encodeURIComponent(taxIdToPeptideAtlasBuildData[taxId].build)}" target="_blank">PeptideAtlas</a>`
+          taxId && taxIdToPeptideAtlasBuildData[taxId as keyof typeof taxIdToPeptideAtlasBuildData]
+            ? `&nbsp;<a href="https://db.systemsbiology.net/sbeams/cgi/PeptideAtlas/buildDetails?atlas_build_id=${encodeURIComponent(taxIdToPeptideAtlasBuildData[taxId as keyof typeof taxIdToPeptideAtlasBuildData].build)}" target="_blank">PeptideAtlas</a>`
             : ``
         })</li>`;
       })
@@ -115,7 +161,7 @@ const getPTMEvidence = (ptms, taxId) => {
   `;
 };
 
-const formatPTMPeptidoform = (peptide, ptms) => {
+const formatPTMPeptidoform = (peptide: string, ptms: PTMHighlight[]) => {
   if (!ptms) return ``;
   const modificationValues = ptms.map((ptm) => ({
     name: ptm.name,
@@ -137,7 +183,7 @@ const formatPTMPeptidoform = (peptide, ptms) => {
 
 const formatProformaWithLink = (proforma = '') => {
   return proforma.replace(/\[([^\]]+)\]/g, (_, modification) => {
-    const id = unimodIdMapping[modification.toLowerCase()];
+    const id = unimodIdMapping[modification.toLowerCase() as keyof typeof unimodIdMapping];
     if (!id) {
       console.error('Unimod ID not found for modification:', modification);
       return `[${modification}]`;
@@ -146,10 +192,10 @@ const formatProformaWithLink = (proforma = '') => {
   });
 };
 
-const findModifiedResidueName = (feature, ptm) => {
+const findModifiedResidueName = (feature: TooltipFeature, ptm: PTMHighlight) => {
   const { peptide, begin: peptideStart } = feature;
   const proteinLocation = Number(peptideStart) + ptm.position - 1;
-  const modifiedResidue = peptide.charAt(ptm.position - 1); // CharAt index starts from 0
+  const modifiedResidue = (peptide ?? '').charAt(ptm.position - 1); // CharAt index starts from 0
   switch (ptm.name) {
     case 'Phosphorylation':
       return `${proteinLocation} ${phosphorylate(modifiedResidue)}`;
@@ -164,20 +210,20 @@ const findModifiedResidueName = (feature, ptm) => {
   }
 };
 
-const formatTooltip = (feature, taxId?: string) => {
+const formatTooltip = (feature: TooltipFeature, taxId?: string) => {
   const evidenceHTML =
     feature.type === 'PROTEOMICS_PTM'
       ? getPTMEvidence(feature.residuesToHighlight, taxId)
       : getEvidenceFromCodes(feature.evidences);
   const ptms =
     feature.type === 'PROTEOMICS_PTM' &&
-    feature.residuesToHighlight.map((ptm) =>
+    feature.residuesToHighlight?.map((ptm) =>
       findModifiedResidueName(feature, ptm)
     );
 
   const dataset =
     feature.type === 'PROTEOMICS_PTM' &&
-    feature.residuesToHighlight.flatMap(({ dbReferences }) =>
+    feature.residuesToHighlight?.flatMap(({ dbReferences }) =>
       dbReferences.map((ref) => ref.id)
     );
 
@@ -223,7 +269,7 @@ const formatTooltip = (feature, taxId?: string) => {
           feature.peptide && feature.type === 'PROTEOMICS_PTM'
             ? `<h5 data-article-id="mod_res_large_scale#what-is-the-goldsilverbronze-criterion">Peptidoform</h5><p>${escapeHtml(formatPTMPeptidoform(
                 feature.peptide,
-                feature.residuesToHighlight
+                feature.residuesToHighlight ?? []
               ))}</p>`
             : ``
         }
@@ -247,7 +293,7 @@ const formatTooltip = (feature, taxId?: string) => {
           feature.residuesToHighlight &&
           dataset &&
           !dataset.includes('PXD012174') // Exclude 'Glue project' dataset as it is from PRIDE and it doesn't have PTM statistical attributes
-            ? `<hr /><h5 class="margin-bottom" data-article-id="mod_res_large_scale#what-is-the-goldsilverbronze-criterion">PTM statistical attributes</h5><ul class="no-bullet">${feature.residuesToHighlight
+            ? `<hr /><h5 class="margin-bottom" data-article-id="mod_res_large_scale#what-is-the-goldsilverbronze-criterion">PTM statistical attributes</h5><ul class="no-bullet">${(feature.residuesToHighlight ?? [])
                 .map((ptm) =>
                   ptm.dbReferences
                     .map(
