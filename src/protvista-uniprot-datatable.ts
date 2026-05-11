@@ -487,3 +487,5 @@ declare global {
     >;
   }
 }
+
+export default ProtvistaUniprotDatatable;

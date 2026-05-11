@@ -1,11 +1,20 @@
-import { LitElement, html, svg, type TemplateResult, css, nothing } from 'lit';
+import {
+  LitElement,
+  html,
+  svg,
+  type TemplateResult,
+  type PropertyValues,
+  css,
+  nothing,
+} from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import NightingaleStructure, {
   type AlphaFoldPayload,
 } from '@nightingale-elements/nightingale-structure';
-import type { ColumnConfig } from './protvista-uniprot-datatable';
-import './protvista-uniprot-datatable';
+import ProtvistaUniprotDatatable, {
+  type ColumnConfig,
+} from './protvista-uniprot-datatable';
 import { fetchAll, loadComponent } from './utils';
 import downloadIcon from './icons/download.svg';
 import externalLinkIcon from './icons/external-link.svg';
@@ -117,7 +126,7 @@ type BeaconsData = {
   }[];
 };
 
-type ProcessedStructureData = {
+export type ProcessedStructureData = {
   id: string;
   source: string;
   method?: string;
@@ -128,7 +137,8 @@ type ProcessedStructureData = {
   sourceDBLink?: string;
   protvistaFeatureId: string;
   amAnnotationsUrl?: string;
-  isoform?: TemplateResult;
+  isoformId?: string;
+  isoformIsCanonical?: boolean;
   afPrediction?: boolean; // Flag to differentiate the structure source as AlphaFold prediction API vs 3DBeacons AlphaFold
 };
 
@@ -193,7 +203,6 @@ const processPDBData = (data: UniProtKBData): ProcessedStructureData[] =>
 
 const processAFData = (
   data: AlphaFoldPayload,
-  accession?: string,
   isoforms?: IsoformIdSequence,
   canonicalSequence?: string
 ): ProcessedStructureData[] =>
@@ -203,15 +212,6 @@ const processAFData = (
         ({ sequence }) => d.sequence === sequence
       );
 
-      const isoformElement = isoformMatch
-        ? html`<a
-            href="${uniprotKBUrl}${accession}/entry#${isoformMatch.isoformId}"
-          >
-            ${isoformMatch.isoformId}
-            ${isoformMatch.sequence === canonicalSequence ? '(Canonical)' : ''}
-          </a>`
-        : undefined;
-
       return {
         id: d.modelEntityId,
         source: 'AlphaFold DB',
@@ -220,7 +220,10 @@ const processAFData = (
         protvistaFeatureId: d.modelEntityId,
         downloadUrl: d.pdbUrl,
         amAnnotationsUrl: d.amAnnotationsUrl,
-        isoform: isoformElement,
+        isoformId: isoformMatch?.isoformId,
+        isoformIsCanonical: isoformMatch
+          ? isoformMatch.sequence === canonicalSequence
+          : undefined,
         afPrediction: true,
       };
     })
@@ -384,11 +387,13 @@ class ProtvistaUniprotStructure extends LitElement {
   private modelUrl = '';
 
   private columns: ColumnConfig<ProcessedStructureData>[] = [];
-  private selectedRowId?: string;
+  selectedId?: string;
+  noTable?: boolean;
 
   constructor() {
     super();
     loadComponent('nightingale-structure', NightingaleStructure);
+    loadComponent('protvista-uniprot-datatable', ProtvistaUniprotDatatable);
 
     this.loading = true;
     this.addStyles();
@@ -409,6 +414,8 @@ class ProtvistaUniprotStructure extends LitElement {
       colorTheme: { type: String },
       alphamissenseAvailable: { type: Boolean },
       isoforms: { type: Object, attribute: false },
+      selectedId: { type: String, attribute: 'selected-id' },
+      noTable: { type: Boolean, attribute: 'no-table' },
     };
   }
 
@@ -426,8 +433,17 @@ class ProtvistaUniprotStructure extends LitElement {
     if (this.isoforms) {
       cols.push({
         label: 'Isoform',
-        key: 'isoform',
-        render: (row) => row.isoform ?? nothing,
+        key: 'isoformId',
+        render: (row) =>
+          row.isoformId
+            ? html`<a
+                href="${uniprotKBUrl}${this.accession}/entry#${row.isoformId}"
+              >
+                ${row.isoformId}${row.isoformIsCanonical
+                  ? ' (Canonical)'
+                  : ''}
+              </a>`
+            : nothing,
       });
     }
 
@@ -524,7 +540,6 @@ class ProtvistaUniprotStructure extends LitElement {
 
       afData = processAFData(
         alphaFoldSequenceMatches,
-        this.accession,
         this.isoforms,
         rawData[pdbUrl]?.sequence?.value
       );
@@ -575,9 +590,21 @@ class ProtvistaUniprotStructure extends LitElement {
     this.data = data;
     this.columns = this.getColumns();
 
-    // Select first row by default
-    this.selectedRowId = data[0].id;
-    this.onRowSelected(data[0]);
+    // Default to the first row only if the consumer hasn't pre-set a selection.
+    if (!this.selectedId) {
+      this.selectedId = data[0].id;
+    }
+
+    this.dispatchEvent(
+      new CustomEvent<ReadonlyArray<ProcessedStructureData>>(
+        'structures-loaded',
+        {
+          detail: data,
+          bubbles: true,
+          composed: true,
+        }
+      )
+    );
   }
 
   disconnectedCallback() {
@@ -601,9 +628,21 @@ class ProtvistaUniprotStructure extends LitElement {
     document.getElementById(styleId)?.remove();
   }
 
-  private onRowSelected(row: ProcessedStructureData) {
+  protected override willUpdate(changed: PropertyValues) {
+    // Apply when either selection or data changes — covers consumer
+    // pre-setting selected-id before the async fetch resolves.
+    if (
+      (changed.has('selectedId') || changed.has('data')) &&
+      this.data &&
+      this.selectedId
+    ) {
+      const row = this.data.find((r) => r.id === this.selectedId);
+      if (row) this.applySelection(row);
+    }
+  }
+
+  private applySelection(row: ProcessedStructureData) {
     const { id, source, downloadUrl, amAnnotationsUrl, afPrediction } = row;
-    this.selectedRowId = id;
 
     if (
       this.checksum ||
@@ -630,7 +669,7 @@ class ProtvistaUniprotStructure extends LitElement {
   }
 
   private onDatatableRowClick = (e: CustomEvent<ProcessedStructureData>) => {
-    this.onRowSelected(e.detail);
+    this.selectedId = e.detail.id;
   };
 
   get cssStyle() {
@@ -761,30 +800,32 @@ class ProtvistaUniprotStructure extends LitElement {
             : nothing}
         </div>
 
-        <div class="protvista-uniprot-structure__table">
-          ${this.data && this.data.length
-            ? html`
-                <protvista-uniprot-datatable
-                  .data=${this.data}
-                  .columns=${this.columns}
-                  .selectedId=${this.selectedRowId}
-                  row-id-key="id"
-                  @row-click=${this.onDatatableRowClick}
-                ></protvista-uniprot-datatable>
-              `
-            : nothing}
-          ${this.loading
-            ? html`<div class="protvista-loader">
-                ${svg`${unsafeHTML(loaderIcon)}`}
-              </div>`
-            : nothing}
-          ${!this.data && !this.loading
-            ? html`<div class="protvista-no-results">
-                No structure information available
-                ${this.accession ? `for ${this.accession}` : ''}
-              </div>`
-            : nothing}
-        </div>
+        ${!this.noTable
+          ? html`<div class="protvista-uniprot-structure__table">
+              ${this.data && this.data.length
+                ? html`
+                    <protvista-uniprot-datatable
+                      .data=${this.data}
+                      .columns=${this.columns}
+                      .selectedId=${this.selectedId}
+                      row-id-key="id"
+                      @row-click=${this.onDatatableRowClick}
+                    ></protvista-uniprot-datatable>
+                  `
+                : nothing}
+              ${this.loading
+                ? html`<div class="protvista-loader">
+                    ${svg`${unsafeHTML(loaderIcon)}`}
+                  </div>`
+                : nothing}
+              ${!this.data && !this.loading
+                ? html`<div class="protvista-no-results">
+                    No structure information available
+                    ${this.accession ? `for ${this.accession}` : ''}
+                  </div>`
+                : nothing}
+            </div>`
+          : nothing}
       </div>
     `;
   }
