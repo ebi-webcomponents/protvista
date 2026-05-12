@@ -585,13 +585,11 @@ class ProtvistaUniprotStructure extends LitElement {
 
     const data = [...pdbData, ...uniqueAFData, ...beaconsNonAFData];
 
-    if (!data || !data.length) return;
-
     this.data = data;
     this.columns = this.getColumns();
 
     // Default to the first row only if the consumer hasn't pre-set a selection.
-    if (!this.selectedId) {
+    if (data.length > 0 && !this.selectedId) {
       this.selectedId = data[0].id;
     }
 
@@ -818,7 +816,7 @@ class ProtvistaUniprotStructure extends LitElement {
                     ${svg`${unsafeHTML(loaderIcon)}`}
                   </div>`
                 : nothing}
-              ${!this.data && !this.loading
+              ${(!this.data || this.data.length === 0) && !this.loading
                 ? html`<div class="protvista-no-results">
                     No structure information available
                     ${this.accession ? `for ${this.accession}` : ''}
