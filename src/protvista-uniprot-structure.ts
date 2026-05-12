@@ -142,12 +142,10 @@ export type ProcessedStructureData = {
   afPrediction?: boolean; // Flag to differentiate the structure source as AlphaFold prediction API vs 3DBeacons AlphaFold
 };
 
-type IsoformIdSequence = [
-  {
-    isoformId: string;
-    sequence: string;
-  },
-];
+type IsoformIdSequence = Array<{
+  isoformId: string;
+  sequence: string;
+}>;
 
 const getIsoformNum = (s: string) => {
   const match = s.match(/-(\d+)-F1$/);
