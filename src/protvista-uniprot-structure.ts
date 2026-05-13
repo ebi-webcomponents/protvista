@@ -438,9 +438,7 @@ class ProtvistaUniprotStructure extends LitElement {
             ? html`<a
                 href="${uniprotKBUrl}${this.accession}/entry#${row.isoformId}"
               >
-                ${row.isoformId}${row.isoformIsCanonical
-                  ? ' (Canonical)'
-                  : ''}
+                ${row.isoformId}${row.isoformIsCanonical ? ' (Canonical)' : ''}
               </a>`
             : nothing,
       });
@@ -813,8 +811,9 @@ class ProtvistaUniprotStructure extends LitElement {
             : nothing}
         </div>
 
-        ${!this.noTable
-          ? html`<div class="protvista-uniprot-structure__table">
+        ${this.noTable
+          ? nothing
+          : html`<div class="protvista-uniprot-structure__table">
               ${this.data && this.data.length
                 ? html`
                     <protvista-uniprot-datatable
@@ -837,8 +836,7 @@ class ProtvistaUniprotStructure extends LitElement {
                     ${this.accession ? `for ${this.accession}` : ''}
                   </div>`
                 : nothing}
-            </div>`
-          : nothing}
+            </div>`}
       </div>
     `;
   }
