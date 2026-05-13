@@ -76,7 +76,7 @@ type PTMHighlight = {
 
 export type TooltipFeature = {
   type?: string;
-  begin?: string | number;
+  start?: string | number;
   end?: string | number;
   description?: string;
   ftId?: string;
@@ -193,7 +193,7 @@ const formatProformaWithLink = (proforma = '') => {
 };
 
 const findModifiedResidueName = (feature: TooltipFeature, ptm: PTMHighlight) => {
-  const { peptide, begin: peptideStart } = feature;
+  const { peptide, start: peptideStart } = feature;
   const proteinLocation = Number(peptideStart) + ptm.position - 1;
   const modifiedResidue = (peptide ?? '').charAt(ptm.position - 1); // CharAt index starts from 0
   switch (ptm.name) {
@@ -246,8 +246,8 @@ const formatTooltip = (feature: TooltipFeature, taxId?: string) => {
   try {
     return `
         ${
-          feature.type && feature.begin && feature.end
-            ? `<h4>${escapeHtml(feature.type)} ${escapeHtml(feature.begin)}-${escapeHtml(feature.end)}</h4><hr />`
+          feature.type && feature.start && feature.end
+            ? `<h4>${escapeHtml(feature.type)} ${escapeHtml(feature.start)}-${escapeHtml(feature.end)}</h4><hr />`
             : ''
         }
         ${description ? `<h5>Description</h5><p>${escapeHtml(description)}</p>` : ``}

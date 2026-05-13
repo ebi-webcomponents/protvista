@@ -20,10 +20,13 @@ const proteomicsTrackProperties = (feature: ProteomicsFeature, taxId: number) =>
 };
 
 const transformData = (data: ProteomicsData) => {
-  let adaptedData: (ProteomicsFeature & { start?: number })[] = [];
+  let adaptedData: ProteomicsFeature[] = [];
 
   if (data && data.features && data.features.length !== 0) {
-    adaptedData = data.features.map((feature) => {
+    // Rename `begin` to `start` first so formatTooltip (called inside
+    // proteomicsTrackProperties) can read the unified field name.
+    const renamed = renameProperties(data.features) as ProteomicsFeature[];
+    adaptedData = renamed.map((feature) => {
       feature.residuesToHighlight = feature.ptms?.map((ptm) => ({
         name: ptm.name,
         position: ptm.position,
@@ -35,8 +38,6 @@ const transformData = (data: ProteomicsData) => {
         proteomicsTrackProperties(feature, data.taxid)
       );
     });
-
-    adaptedData = renameProperties(adaptedData) as typeof adaptedData;
   }
   return adaptedData;
 };

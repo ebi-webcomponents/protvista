@@ -86,11 +86,13 @@ const getPredictions = (predictions: Prediction[]): string => {
     .join('');
 };
 
-const formatTooltip = (variant: Variant): string =>
+type VariantWithStart = Variant & { start?: number | string };
+
+const formatTooltip = (variant: VariantWithStart): string =>
   `
   ${
-    variant.type && variant.begin && variant.end
-      ? `<h4>${escapeHtml(variant.type)} ${escapeHtml(variant.begin)}-${escapeHtml(variant.end)}</h4><hr />`
+    variant.type && variant.start && variant.end
+      ? `<h4>${escapeHtml(variant.type)} ${escapeHtml(variant.start)}-${escapeHtml(variant.end)}</h4><hr />`
       : ''
   }
   <h5>Variant</h5><p>${escapeHtml(variant.wildType)} > ${
