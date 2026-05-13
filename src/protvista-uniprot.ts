@@ -180,8 +180,8 @@ class ProtvistaUniprot extends LitElement {
   private rawData: Record<string, TrackPayload> = {};
   private displayCoordinates: { start?: number; end?: number } = {};
   private suspend?: boolean;
-  accession?: string;
-  sequence?: string;
+  private accession?: string;
+  private sequence?: string;
   private notooltip?: boolean;
   private transformedVariants?: {
     sequence: string;

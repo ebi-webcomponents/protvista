@@ -391,14 +391,15 @@ class ProtvistaUniprotStructure extends LitElement {
   constructor() {
     super();
     loadComponent('nightingale-structure', NightingaleStructure);
+    // Registered unconditionally (even when no-table is set) so the import is
+    // preserved through tree-shaking; the element only renders when noTable is
+    // false, so an unused registration is cheap.
     loadComponent('protvista-uniprot-datatable', ProtvistaUniprotDatatable);
 
     this.loading = true;
     this.addStyles();
     this.colorTheme = 'alphafold';
     this.alphamissenseAvailable = false;
-
-    this.columns = this.getColumns();
   }
 
   static get properties() {
@@ -627,14 +628,30 @@ class ProtvistaUniprotStructure extends LitElement {
   protected override willUpdate(changed: PropertyValues) {
     // Apply when either selection or data changes — covers consumer
     // pre-setting selected-id before the async fetch resolves.
-    if (
-      (changed.has('selectedId') || changed.has('data')) &&
-      this.data &&
-      this.selectedId
-    ) {
-      const row = this.data.find((r) => r.id === this.selectedId);
-      if (row) this.applySelection(row);
+    if (!changed.has('selectedId') && !changed.has('data')) return;
+    // Wait for the first data assignment before deciding what to show; a
+    // consumer-set selectedId arriving before fetch should not clear anything.
+    if (!this.data) return;
+
+    const row = this.selectedId
+      ? this.data.find((r) => r.id === this.selectedId)
+      : undefined;
+    if (row) {
+      this.applySelection(row);
+    } else {
+      // No match (empty data, stale selectedId, or selection cleared) — drop
+      // the viewer state so a previous structure does not linger on screen.
+      this.clearViewer();
     }
+  }
+
+  private clearViewer() {
+    // No-op when nothing was ever applied — avoids handing Mol* an undefined
+    // ref on the initial-load empty-data path.
+    if (!this.structureId && !this.modelUrl) return;
+    this.structureId = undefined;
+    this.modelUrl = '';
+    this.metaInfo = undefined;
   }
 
   private applySelection(row: ProcessedStructureData) {
