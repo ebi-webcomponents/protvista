@@ -52,7 +52,10 @@ import { StructureFeature } from './adapters/structure-adapter';
 type TrackPayload =
   | Record<string, unknown>[]
   | { sequence: string; variants: TransformedVariant[] }
-  | { sequence: string; variants: TransformedVariant[] } & Record<string, unknown>
+  | ({ sequence: string; variants: TransformedVariant[] } & Record<
+      string,
+      unknown
+    >)
   | TransformedInterPro
   | StructureFeature[]
   | { variants?: TransformedVariant[] }
@@ -115,25 +118,41 @@ async function callAdapter(
     case 'interpro-adapter':
       return interproAdapter(...(raw as Parameters<typeof interproAdapter>));
     case 'proteomics-adapter':
-      return proteomicsAdapter(...(raw as Parameters<typeof proteomicsAdapter>));
+      return proteomicsAdapter(
+        ...(raw as Parameters<typeof proteomicsAdapter>)
+      );
     case 'structure-adapter':
       return structureAdapter(...(raw as Parameters<typeof structureAdapter>));
     case 'variation-adapter':
       return variationAdapter(...(raw as Parameters<typeof variationAdapter>));
     case 'variation-graph-adapter':
-      return variationGraphAdapter(...(raw as Parameters<typeof variationGraphAdapter>));
+      return variationGraphAdapter(
+        ...(raw as Parameters<typeof variationGraphAdapter>)
+      );
     case 'rna-editing-adapter':
-      return rnaEditingAdapter(...(raw as Parameters<typeof rnaEditingAdapter>));
+      return rnaEditingAdapter(
+        ...(raw as Parameters<typeof rnaEditingAdapter>)
+      );
     case 'rna-editing-graph-adapter':
-      return rnaEditingGraphAdapter(...(raw as Parameters<typeof rnaEditingGraphAdapter>));
+      return rnaEditingGraphAdapter(
+        ...(raw as Parameters<typeof rnaEditingGraphAdapter>)
+      );
     case 'proteomics-ptm-adapter':
-      return proteomicsPTMApdapter(...(raw as Parameters<typeof proteomicsPTMApdapter>));
+      return proteomicsPTMApdapter(
+        ...(raw as Parameters<typeof proteomicsPTMApdapter>)
+      );
     case 'alphafold-confidence-adapter':
-      return alphaFoldConfidenceAdapter(...(raw as Parameters<typeof alphaFoldConfidenceAdapter>));
+      return alphaFoldConfidenceAdapter(
+        ...(raw as Parameters<typeof alphaFoldConfidenceAdapter>)
+      );
     case 'alphamissense-pathogenicity-adapter':
-      return alphaMissensePathogenicityAdapter(...(raw as Parameters<typeof alphaMissensePathogenicityAdapter>));
+      return alphaMissensePathogenicityAdapter(
+        ...(raw as Parameters<typeof alphaMissensePathogenicityAdapter>)
+      );
     case 'alphamissense-heatmap-adapter':
-      return alphaMissenseHeatmapAdapter(...(raw as Parameters<typeof alphaMissenseHeatmapAdapter>));
+      return alphaMissenseHeatmapAdapter(
+        ...(raw as Parameters<typeof alphaMissenseHeatmapAdapter>)
+      );
     default: {
       const _exhaustive: never = name;
       throw new Error(`Unknown adapter: ${_exhaustive as string}`);
@@ -163,6 +182,7 @@ class ProtvistaUniprot extends LitElement {
   private suspend?: boolean;
   private accession?: string;
   private sequence?: string;
+  private notooltip?: boolean;
   private transformedVariants?: {
     sequence: string;
     variants: TransformedVariant[];
@@ -264,7 +284,9 @@ class ProtvistaUniprot extends LitElement {
 
             if (
               !trackData ||
-              (adapter === 'variation-adapter' && Array.isArray(trackData[0]) && trackData[0].length === 0)
+              (adapter === 'variation-adapter' &&
+                Array.isArray(trackData[0]) &&
+                trackData[0].length === 0)
             ) {
               return;
             }
@@ -310,7 +332,10 @@ class ProtvistaUniprot extends LitElement {
             this.data[`${categoryName}-${trackName}`] = filteredData;
 
             if (trackName === 'variation') {
-              this.transformedVariants = filteredData as { sequence: string; variants: TransformedVariant[] };
+              this.transformedVariants = filteredData as {
+                sequence: string;
+                variants: TransformedVariant[];
+              };
             }
             return filteredData;
           })
@@ -347,7 +372,10 @@ class ProtvistaUniprot extends LitElement {
       const currentCategory = this.config?.categories.find(
         ({ name }) => name === id
       );
-      const dataAsArray = data as { length?: number; variants?: TransformedVariant[] } | null;
+      const dataAsArray = data as {
+        length?: number;
+        variants?: TransformedVariant[];
+      } | null;
       if (
         currentCategory &&
         currentCategory.tracks &&
@@ -356,7 +384,8 @@ class ProtvistaUniprot extends LitElement {
         // NOTE: should refactor variation-adapter
         // to return a list of variants and set the sequence
         // on protvista-variation separately
-        ((dataAsArray.length ?? 0) > 0 || (dataAsArray.variants?.length ?? 0) > 0)
+        ((dataAsArray.length ?? 0) > 0 ||
+          (dataAsArray.variants?.length ?? 0) > 0)
       ) {
         // Make category element visible
         const categoryElt = document.getElementById(
@@ -370,7 +399,9 @@ class ProtvistaUniprot extends LitElement {
             `track-${id}-${track.name}`
           ) as NightingaleTrackCanvas | null;
           if (elementTrack) {
-            elementTrack.data = this.data[`${id}-${track.name}`] as NightingaleTrackCanvas['data'];
+            elementTrack.data = this.data[
+              `${id}-${track.name}`
+            ] as NightingaleTrackCanvas['data'];
           }
         }
       }
@@ -386,7 +417,11 @@ class ProtvistaUniprot extends LitElement {
                 'nightingale-sequence-heatmap'
               );
             if (heatmapComponent && this.sequence) {
-              const heatmapData = this.data[`${id}-${track.name}`] as { xValue: number; yValue: string; score: number }[];
+              const heatmapData = this.data[`${id}-${track.name}`] as {
+                xValue: number;
+                yValue: string;
+                score: number;
+              }[];
               const xDomain = Array.from(
                 { length: this.sequence.length },
                 (_, i) => i + 1
@@ -394,7 +429,13 @@ class ProtvistaUniprot extends LitElement {
               const yDomain = [
                 ...new Set(heatmapData.map((hotMapItem) => hotMapItem.yValue)),
               ] as string[];
-              heatmapComponent.setHeatmapData(xDomain, yDomain, heatmapData as Parameters<typeof heatmapComponent.setHeatmapData>[2]);
+              heatmapComponent.setHeatmapData(
+                xDomain,
+                yDomain,
+                heatmapData as Parameters<
+                  typeof heatmapComponent.setHeatmapData
+                >[2]
+              );
               heatmapComponent.updateComplete.then(() => {
                 heatmapComponent.heatmapInstance?.setColor((d) =>
                   amColorScale(d.score)
@@ -436,7 +477,9 @@ class ProtvistaUniprot extends LitElement {
     );
 
     if (variationComponent && variationComponent?.colorConfig !== colorConfig) {
-      variationComponent.colorConfig = colorConfig as (v: import('@nightingale-elements/nightingale-variation').VariationDatum) => string;
+      variationComponent.colorConfig = colorConfig as (
+        v: import('@nightingale-elements/nightingale-variation').VariationDatum
+      ) => string;
     }
 
     if (changedProperties.has('suspend')) {
@@ -479,11 +522,13 @@ class ProtvistaUniprot extends LitElement {
     });
   }
 
-  async loadEntry(accession: string): Promise<{ sequence: { sequence: string } } | undefined> {
+  async loadEntry(
+    accession: string
+  ): Promise<{ sequence: { sequence: string } } | undefined> {
     try {
-      return await (
+      return (await (
         await fetch(`https://www.ebi.ac.uk/proteins/api/proteins/${accession}`)
-      ).json() as { sequence: { sequence: string } };
+      ).json()) as { sequence: { sequence: string } };
     } catch (e) {
       console.error(`Couldn't load UniProt entry`, e);
       return undefined;
@@ -731,10 +776,14 @@ class ProtvistaUniprot extends LitElement {
     if (selectedFilters) {
       const selectedConsequenceFilters = selectedFilters
         .map((f: string) => this.getFilter(consequenceFilters, f))
-        .filter(Boolean) as (Filter & { filterPredicate: (v: TransformedVariant) => unknown })[];
+        .filter(Boolean) as (Filter & {
+        filterPredicate: (v: TransformedVariant) => unknown;
+      })[];
       const selectedProvenanceFilters = selectedFilters
         .map((f: string) => this.getFilter(provenanceFilters, f))
-        .filter(Boolean) as (Filter & { filterPredicate: (v: TransformedVariant) => unknown })[];
+        .filter(Boolean) as (Filter & {
+        filterPredicate: (v: TransformedVariant) => unknown;
+      })[];
 
       const filteredVariants = this.transformedVariants?.variants
         ?.filter((variant) =>
@@ -750,7 +799,9 @@ class ProtvistaUniprot extends LitElement {
 
       const existing = this.data['VARIATION-variation'];
       this.data['VARIATION-variation'] = {
-        ...(existing && typeof existing === 'object' && !Array.isArray(existing) ? existing : {}),
+        ...(existing && typeof existing === 'object' && !Array.isArray(existing)
+          ? existing
+          : {}),
         variants: filteredVariants,
       } as TrackPayload;
 

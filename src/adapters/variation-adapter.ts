@@ -26,15 +26,22 @@ const transformData = (
   variants: TransformedVariant[];
 } | null => {
   const { sequence, features } = data;
-  const variants = features.map((variant) => ({
-    ...variant,
-    accession: variant.genomicLocation?.join(', ') ?? '',
-    variant: variant.alternativeSequence || AminoAcid.Empty,
-    start: +variant.begin,
-    xrefNames: getSourceType(variant.xrefs, variant.sourceType),
-    hasPredictions: !!(variant.predictions && variant.predictions.length > 0),
-    tooltipContent: formatTooltip(variant),
-  }));
+  const variants = features.map((variant) => {
+    // Build the transformed shape first (with `start`) so formatTooltip can
+    // read the unified field name rather than the wire-format `begin`.
+    const transformed = {
+      ...variant,
+      accession: variant.genomicLocation?.join(', ') ?? '',
+      variant: variant.alternativeSequence || AminoAcid.Empty,
+      start: +variant.begin,
+      xrefNames: getSourceType(variant.xrefs, variant.sourceType),
+      hasPredictions: !!(variant.predictions && variant.predictions.length > 0),
+    };
+    return {
+      ...transformed,
+      tooltipContent: formatTooltip(transformed),
+    };
+  });
   if (!variants) return null;
   return { sequence, variants };
 };
