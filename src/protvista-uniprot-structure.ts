@@ -28,6 +28,7 @@ const PDBLinks = [
   { name: 'PDBj', link: 'https://pdbj.org/mine/summary/' },
   { name: 'PDBsum', link: 'https://www.ebi.ac.uk/pdbsum/' },
 ];
+const alphaFoldLinkUrl = 'https://alphafold.ebi.ac.uk/search/text/';
 const alphaFoldUrl = 'https://alphafold.ebi.ac.uk/entry/';
 const foldseekUrl = `https://search.foldseek.com/search`;
 const uniprotKBUrl = 'https://www.uniprot.org/uniprotkb/';
@@ -482,7 +483,7 @@ class ProtvistaUniprotStructure extends LitElement {
           `
         : nothing}
       ${source === 'AlphaFold DB' && this.accession
-        ? html`<a href="${alphaFoldUrl}${this.accession}">AlphaFold</a>`
+        ? html`<a href="${alphaFoldLinkUrl}${this.accession}">AlphaFold</a>`
         : nothing}
       ${sourceDBLink ? html`<a href="${sourceDBLink}">${source}</a>` : nothing}
     `;
