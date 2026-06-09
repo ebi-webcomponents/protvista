@@ -2,6 +2,7 @@ import ecoMap from '../adapters/config/evidence';
 import { escapeHtml, sanitizeUrl } from '../utils/security';
 import {
   acetylate,
+  methylate,
   phosphorylate,
   sumoylate,
   ubiquitinate,
@@ -139,6 +140,13 @@ const getPTMEvidence = (ptms: PTMHighlight[] | undefined, taxId: string | undefi
   const ids = ptms.flatMap(({ dbReferences }) =>
     dbReferences.map((ref) => ref.id)
   );
+  const idToPeptideAtlasUrl = new Map(
+    ptms.flatMap(({ dbReferences }) =>
+      dbReferences.map(
+        (ref) => [ref.id, ref.properties['PeptideAtlas URL']] as const
+      )
+    )
+  );
   const uniqueIds = [...new Set(ids.flat())];
   // For 'Glue project' dataset (PXD012174), publication reference is hardcoded.
   const proteomexchange =
@@ -151,11 +159,19 @@ const getPTMEvidence = (ptms: PTMHighlight[] | undefined, taxId: string | undefi
           id === 'PXD012174'
             ? `&nbsp;<a href="https://www.ebi.ac.uk/pride/archive/projects/${encodeURIComponent(id)}" target="_blank">PRIDE</a>)</li><li title="publication">Publication:&nbsp;31819260&nbsp;(<a href="https://pubmed.ncbi.nlm.nih.gov/31819260" target="_blank">PubMed</a>)</li>`
             : ``
-        }${
-          taxId && taxIdToPeptideAtlasBuildData[taxId as keyof typeof taxIdToPeptideAtlasBuildData]
-            ? `&nbsp;<a href="https://db.systemsbiology.net/sbeams/cgi/PeptideAtlas/buildDetails?atlas_build_id=${encodeURIComponent(taxIdToPeptideAtlasBuildData[taxId as keyof typeof taxIdToPeptideAtlasBuildData].build)}" target="_blank">PeptideAtlas</a>`
-            : ``
-        })</li>`;
+        }${(() => {
+          const peptideAtlasUrl = idToPeptideAtlasUrl.get(id);
+          if (peptideAtlasUrl) {
+            return `&nbsp;<a href="${sanitizeUrl(peptideAtlasUrl)}" target="_blank">PeptideAtlas</a>`;
+          }
+          if (
+            taxId &&
+            taxIdToPeptideAtlasBuildData[taxId as keyof typeof taxIdToPeptideAtlasBuildData]
+          ) {
+            return `&nbsp;<a href="https://db.systemsbiology.net/sbeams/cgi/PeptideAtlas/buildDetails?atlas_build_id=${encodeURIComponent(taxIdToPeptideAtlasBuildData[taxId as keyof typeof taxIdToPeptideAtlasBuildData].build)}" target="_blank">PeptideAtlas</a>`;
+          }
+          return ``;
+        })()})</li>`;
       })
       .join('')}</ul>
   `;
@@ -205,6 +221,8 @@ const findModifiedResidueName = (feature: TooltipFeature, ptm: PTMHighlight) => 
       return `${proteinLocation} ${ubiquitinate(modifiedResidue)}`;
     case 'Acetylation':
       return `${proteinLocation} ${acetylate(modifiedResidue)}`;
+    case 'Methylation':
+      return `${proteinLocation} ${methylate(modifiedResidue)}`;
     default:
       return '';
   }
