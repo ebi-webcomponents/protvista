@@ -46,6 +46,7 @@ const aaToAcetylated = {
   K: 'Acetyllysine',
 };
 
+// Source: https://www.unimod.org/modifications_view.php?editid1=34
 const aaToMethylated = {
   C: 'Methylcysteine',
   H: 'Methylhistidine',
