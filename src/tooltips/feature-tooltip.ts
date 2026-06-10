@@ -2,6 +2,7 @@ import ecoMap from '../adapters/config/evidence';
 import { escapeHtml, sanitizeUrl } from '../utils/security';
 import {
   acetylate,
+  methylate,
   phosphorylate,
   sumoylate,
   ubiquitinate,
@@ -10,14 +11,18 @@ import {
 // Original mapping in src/main/java/uk/ac/ebi/uniprot/tools/proteomics/reader/ptm/PtmXchangeTsvReader.java.
 // from the GitLab repository https://gitlab.ebi.ac.uk/uniprot/framework/unp.fw.tools/
 const taxIdToPeptideAtlasBuildData = {
-  '36329': { build: '542', organism: 'Plasmodium' },
-  '39947': { build: '539', organism: 'Rice' },
-  '10090': { build: '577', organism: 'Mouse' },
-  '9606': { build: '537', organism: 'Human' },
-  '559292': { build: '586', organism: 'Yeast' },
-  '4577': { build: '591', organism: 'Maize' },
-  '185431': { build: '590', organism: 'T Brucei' },
-  '508771': { build: '601', organism : 'T Gondii'},
+  '36329_phosphorylation': { build: '542', organism: 'Plasmodium' },
+  '39947_phosphorylation': { build: '539', organism: 'Rice' },
+  '10090_phosphorylation': { build: '577', organism: 'Mouse' },
+  '9606_phosphorylation': { build: '606', organism: 'Human' },
+  '559292_phosphorylation': { build: '586', organism: 'Yeast' },
+  '4577_phosphorylation': { build: '591', organism: 'Maize' },
+  '185431_phosphorylation': { build: '590', organism: 'T Brucei' },
+  '508771_phosphorylation': { build: '601', organism : 'T Gondii'},
+  '9606_sumoylation': { build: '596', organism: 'Human' },
+  '9606_ubiquitinylation': { build: '604', organism: 'Human' },
+  '9606_acetylation': { build: '0', organism: 'Human' }, // Needs update when the build with acetylation data is ready in PeptideAtlas
+  '9606_methylation': { build: '612', organism: 'Human' },
 };
 
 // https://docs.google.com/spreadsheets/d/1V51z3G3MhC8S-pCNlivAUG4WoFKwR1EhAEYYsgUyw2U/edit?gid=0#gid=0
@@ -139,6 +144,18 @@ const getPTMEvidence = (ptms: PTMHighlight[] | undefined, taxId: string | undefi
   const ids = ptms.flatMap(({ dbReferences }) =>
     dbReferences.map((ref) => ref.id)
   );
+  const idToPeptideAtlasUrl = new Map(
+    ptms.flatMap(({ dbReferences }) =>
+      dbReferences.map(
+        (ref) => [ref.id, ref.properties['PeptideAtlas URL']] as const
+      )
+    )
+  );
+  const idToModificationName = new Map(
+    ptms.flatMap(({ name, dbReferences }) =>
+      dbReferences.map((ref) => [ref.id, name] as const)
+    )
+  );
   const uniqueIds = [...new Set(ids.flat())];
   // For 'Glue project' dataset (PXD012174), publication reference is hardcoded.
   const proteomexchange =
@@ -151,11 +168,22 @@ const getPTMEvidence = (ptms: PTMHighlight[] | undefined, taxId: string | undefi
           id === 'PXD012174'
             ? `&nbsp;<a href="https://www.ebi.ac.uk/pride/archive/projects/${encodeURIComponent(id)}" target="_blank">PRIDE</a>)</li><li title="publication">Publication:&nbsp;31819260&nbsp;(<a href="https://pubmed.ncbi.nlm.nih.gov/31819260" target="_blank">PubMed</a>)</li>`
             : ``
-        }${
-          taxId && taxIdToPeptideAtlasBuildData[taxId as keyof typeof taxIdToPeptideAtlasBuildData]
-            ? `&nbsp;<a href="https://db.systemsbiology.net/sbeams/cgi/PeptideAtlas/buildDetails?atlas_build_id=${encodeURIComponent(taxIdToPeptideAtlasBuildData[taxId as keyof typeof taxIdToPeptideAtlasBuildData].build)}" target="_blank">PeptideAtlas</a>`
-            : ``
-        })</li>`;
+        }${(() => {
+          const peptideAtlasUrl = idToPeptideAtlasUrl.get(id);
+          if (peptideAtlasUrl) {
+            return `&nbsp;<a href="${sanitizeUrl(peptideAtlasUrl)}" target="_blank">PeptideAtlas</a>`;
+          }
+          const modificationName = idToModificationName.get(id);
+          const buildKey = `${taxId}_${modificationName?.toLowerCase()}`;
+          if (
+            taxId &&
+            modificationName &&
+            taxIdToPeptideAtlasBuildData[buildKey as keyof typeof taxIdToPeptideAtlasBuildData]
+          ) {
+            return `&nbsp;<a href="https://db.systemsbiology.net/sbeams/cgi/PeptideAtlas/buildDetails?atlas_build_id=${encodeURIComponent(taxIdToPeptideAtlasBuildData[buildKey as keyof typeof taxIdToPeptideAtlasBuildData].build)}" target="_blank">PeptideAtlas</a>`;
+          }
+          return ``;
+        })()})</li>`;
       })
       .join('')}</ul>
   `;
@@ -205,6 +233,8 @@ const findModifiedResidueName = (feature: TooltipFeature, ptm: PTMHighlight) => 
       return `${proteinLocation} ${ubiquitinate(modifiedResidue)}`;
     case 'Acetylation':
       return `${proteinLocation} ${acetylate(modifiedResidue)}`;
+    case 'Methylation':
+      return `${proteinLocation} ${methylate(modifiedResidue)}`;
     default:
       return '';
   }
