@@ -33,10 +33,17 @@
  *      `nightingale-track-canvas`).
  *   7. Applies the title-cased `id` → `label` fallback for both
  *      groups and tracks.
- *   8. Detects duplicate group / track ids and throws.
+ *   8. Detects duplicate ids and throws — top-level ids share one
+ *      namespace across groups and standalone tracks; track ids are
+ *      unique within their group.
  *   9. Resolves `source:` references to concrete `url:` strings via
  *      the root `sources` map, leaving the `source:` field in place
  *      for downstream introspection (validator error messages).
+ *  10. Wraps each standalone top-level track (a `groups:` entry with no
+ *      `tracks:`) in a synthetic single-track `NormalizedGroup` flagged
+ *      `standalone`, so downstream code stays on one uniform
+ *      `NormalizedGroup[]` path. Standalone tracks skip the
+ *      group-rendering cascade layer (`defaults → kind preset → track`).
  *
  * What normalize does NOT do (delegated to the validator):
  *
@@ -64,6 +71,7 @@ import type {
   AdapterName,
   AuthoredTooltipSpec,
 } from './types';
+import { isGroupConfig } from './discriminate';
 import type { Registry } from './registry';
 
 // ─────────────────────────────────────────────────────────────
@@ -103,6 +111,16 @@ export interface NormalizedGroup {
   rendering: RenderingOptions;
   helpPage?: string;
   tracks: NormalizedTrack[];
+  /**
+   * Set only on the synthetic single-track group that wraps an authored
+   * standalone track (a top-level `groups:` entry with no `tracks:`).
+   * The renderer reads this to render one row with no group-collapse
+   * affordance; a genuine one-track group (authored with `tracks:`)
+   * leaves it unset and keeps its collapse header. The wrapper's
+   * `label` always equals the wrapped track's label, and the cascade
+   * skips the group-rendering layer (`defaults → kind preset → track`).
+   */
+  standalone?: boolean;
 }
 
 export interface NormalizedTrack {
@@ -185,15 +203,24 @@ export function normalizeConfig(
       : {}),
   };
 
-  // Duplicate group-id detection BEFORE we recurse so errors refer
-  // to the offending id and not a downstream symptom.
+  // Duplicate top-level-id detection BEFORE we recurse so errors refer
+  // to the offending id and not a downstream symptom. Groups and
+  // standalone tracks share one top-level id namespace, so this check
+  // spans both shapes (a group id colliding with a standalone-track id
+  // is caught here).
   assertUniqueIds(
     config.groups.map((c) => c.id),
-    (id) => `Duplicate group id '${id}'.`
+    (id) => `Duplicate top-level id '${id}'.`
   );
 
+  // Each entry is either a group of tracks or a standalone track. A
+  // standalone track is wrapped in a synthetic single-track group so
+  // the loader and renderer see one uniform `NormalizedGroup[]`; the
+  // `standalone` flag tells the renderer to drop the collapse header.
   const groups = config.groups.map((c) =>
-    normalizeGroup(c, defaults, sources, registry)
+    isGroupConfig(c)
+      ? normalizeGroup(c, defaults, sources, registry)
+      : normalizeStandalone(c, defaults, sources, registry)
   );
 
   return {
@@ -266,13 +293,62 @@ function normalizeGroup(
   };
 }
 
+/**
+ * Normalize a standalone top-level track (an authored `groups:` entry
+ * with no `tracks:`) by wrapping it in a synthetic single-track
+ * `NormalizedGroup` flagged `standalone`.
+ *
+ * Wrapping keeps the loader and renderer on one uniform
+ * `NormalizedGroup[]` path — the alternative (a bare `NormalizedTrack`
+ * union at the top level) would force every downstream consumer
+ * (data loader, render loop, per-group side-effects) to branch on the
+ * entry shape. The trade-off is documented in `docs/architecture.md`.
+ *
+ * The cascade for a standalone track skips the group-rendering layer:
+ * `defaults → kind preset → track` (vs `defaults → group → kind →
+ * track` for grouped tracks). We pass `undefined` for the parent group
+ * and `defaults.rendering` as the parent rendering so `normalizeTrack`
+ * layers the kind preset and track overrides directly on defaults.
+ *
+ * The wrapper mirrors the resolved track: same `id`, `label`
+ * (`label === track.label`), and `component`. The renderer reads the
+ * `standalone` flag to render a single row with no collapse header;
+ * the track's own `label` / `labelUrl` / `description` / `helpPage`
+ * drive that row's label affordances.
+ */
+function normalizeStandalone(
+  t: TrackConfig,
+  defaults: NormalizedDefaults,
+  sources: Record<string, string>,
+  registry: Registry | undefined
+): NormalizedGroup {
+  const track = normalizeTrack(
+    t,
+    undefined,
+    defaults.rendering,
+    defaults,
+    sources,
+    registry
+  );
+
+  return {
+    id: track.id,
+    label: track.label,
+    component: track.component,
+    rendering: { ...defaults.rendering },
+    ...(track.helpPage !== undefined ? { helpPage: track.helpPage } : {}),
+    tracks: [track],
+    standalone: true,
+  };
+}
+
 // ─────────────────────────────────────────────────────────────
 // Track
 // ─────────────────────────────────────────────────────────────
 
 function normalizeTrack(
   t: TrackConfig,
-  parent: GroupConfig,
+  parent: GroupConfig | undefined,
   parentRendering: RenderingOptions,
   defaults: NormalizedDefaults,
   sources: Record<string, string>,
@@ -301,19 +377,20 @@ function normalizeTrack(
   //   1. Explicit on the track (escape hatch)
   //   2. Kind's canonical component (author used `kind:`)
   //   3. Parent group's explicit `component` (legacy authoring
-  //      style — one canvas row per group with sub-tracks)
+  //      style — one canvas row per group with sub-tracks). Absent for
+  //      a standalone track, which has no parent group.
   //   4. `nightingale-track-canvas` — works for the vast majority of
   //      feature-style tracks.
   const component: ComponentName =
     t.component ??
     kindDef?.component ??
-    parent.component ??
+    parent?.component ??
     'nightingale-track-canvas';
 
   const data = expandData(t, kindDef?.adapter, sources);
 
   const labelUrl = t.labelUrl ?? defaults.labelUrl;
-  const helpPage = t.helpPage ?? parent.helpPage ?? defaults.helpPage;
+  const helpPage = t.helpPage ?? parent?.helpPage ?? defaults.helpPage;
 
   return {
     id: t.id,
