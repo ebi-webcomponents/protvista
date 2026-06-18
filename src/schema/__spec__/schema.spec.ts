@@ -535,3 +535,51 @@ describe('JSON Schema — rejection cases', () => {
     });
   });
 });
+
+// ─────────────────────────────────────────────────────────────
+// Top-level standalone tracks (discriminated GroupConfig | TrackConfig)
+// ─────────────────────────────────────────────────────────────
+
+describe('JSON Schema — top-level standalone tracks', () => {
+  it('accepts a single standalone track and zero groups', () => {
+    expectValid({
+      groups: [{ id: 'signal_peptide', kind: 'features', data: 'features' }],
+      sources: { features: 'https://example.org/features' },
+    });
+  });
+
+  it('accepts a config mixing standalone tracks and groups', () => {
+    expectValid({
+      groups: [
+        { id: 'signal_peptide', kind: 'features', filter: 'SIGNAL', data: 'features' },
+        {
+          id: 'DOMAINS',
+          tracks: [{ id: 'domain', kind: 'features', filter: 'DOMAIN', data: 'features' }],
+        },
+        { id: 'confidence', kind: 'confidence-score', data: 'features' },
+      ],
+      sources: { features: 'https://example.org/features' },
+    });
+  });
+
+  it('rejects an entry that is neither a group nor a track (no `tracks`, no `data`)', () => {
+    // Matches neither oneOf branch: GroupConfig requires `tracks`,
+    // TrackConfig requires `data`.
+    expectInvalid({
+      groups: [{ id: 'orphan', kind: 'features' }],
+      sources: { features: 'https://x' },
+    });
+  });
+
+  it('rejects a track-shaped entry that also carries `tracks` (ambiguous)', () => {
+    // `tracks` is forbidden on a track entry (TrackConfig has
+    // additionalProperties:false), so an entry with both `data` and
+    // `tracks` matches neither oneOf branch.
+    expectInvalid({
+      groups: [
+        { id: 'mixed', kind: 'features', data: 'features', tracks: [] },
+      ],
+      sources: { features: 'https://x' },
+    });
+  });
+});

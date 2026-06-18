@@ -548,3 +548,65 @@ sources:
     ).rejects.toThrow(ConfigValidationError);
   });
 });
+
+// ─────────────────────────────────────────────────────────────
+// Mixed-shape top-level entries (groups ↔ standalone tracks)
+// ─────────────────────────────────────────────────────────────
+
+describe('mergeExtends — mixed group / standalone-track entries', () => {
+  it('a child standalone track replaces a base group of the same id wholesale', async () => {
+    // base() ships DOMAINS as a group with two tracks. The child reuses
+    // the id `DOMAINS` as a standalone track — a shape flip, so child
+    // wins wholesale (no field merge that would smuggle the base
+    // `tracks` array onto a track-shaped entry).
+    const child: ProtvistaViewerConfig = {
+      extends: '@base',
+      groups: [{ id: 'DOMAINS', kind: 'features', data: 'features' }],
+    };
+    const out = await mergeExtends(child, { resolver: { '@base': base() } });
+    const domains = out.groups.find((c) => c.id === 'DOMAINS');
+    expect(domains).toBeDefined();
+    expect(isGroupConfig(domains!)).toBe(false);
+    // The base group's `tracks` array is gone — it was replaced, not merged.
+    expect('tracks' in domains!).toBe(false);
+    expect((domains as { kind?: string }).kind).toBe('features');
+    // Order preserved: DOMAINS still first, VARIATION still second.
+    expect(out.groups.map((c) => c.id)).toEqual(['DOMAINS', 'VARIATION']);
+  });
+
+  it('two standalone tracks of the same id are field-merged (child wins)', async () => {
+    const baseWithStandalone = (): ProtvistaViewerConfig => ({
+      sources: { features: 'https://example.org/features' },
+      groups: [
+        { id: 'signal', kind: 'features', label: 'Base', data: 'features' },
+      ],
+    });
+    const child: ProtvistaViewerConfig = {
+      extends: '@base',
+      groups: [{ id: 'signal', label: 'Child', data: 'features' }],
+    };
+    const out = await mergeExtends(child, {
+      resolver: { '@base': baseWithStandalone() },
+    });
+    const signal = out.groups.find((c) => c.id === 'signal')!;
+    expect(isGroupConfig(signal)).toBe(false);
+    expect(signal.label).toBe('Child');
+    // `kind` from the base survives because the two track entries are
+    // field-merged.
+    expect((signal as { kind?: string }).kind).toBe('features');
+  });
+
+  it('a new standalone track is appended at the end', async () => {
+    const child: ProtvistaViewerConfig = {
+      extends: '@base',
+      groups: [{ id: 'confidence', kind: 'features', data: 'features' }],
+    };
+    const out = await mergeExtends(child, { resolver: { '@base': base() } });
+    expect(out.groups.map((c) => c.id)).toEqual([
+      'DOMAINS',
+      'VARIATION',
+      'confidence',
+    ]);
+    expect(isGroupConfig(out.groups[2])).toBe(false);
+  });
+});

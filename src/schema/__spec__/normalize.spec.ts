@@ -36,7 +36,7 @@ import {
 import { createRegistry } from '../registry';
 import type {
   ProtvistaViewerConfig,
-  GroupConfig,
+  TopLevelEntry,
   TrackConfig,
 } from '../types';
 
@@ -50,7 +50,7 @@ import type {
  * `groups: [...]` with a throw-away track.
  */
 function cfg(
-  partial: Partial<ProtvistaViewerConfig> & { groups: GroupConfig[] }
+  partial: Partial<ProtvistaViewerConfig> & { groups: TopLevelEntry[] }
 ): ProtvistaViewerConfig {
   return partial;
 }
@@ -1033,5 +1033,105 @@ describe('normalizeConfig — output shape guarantees', () => {
     expect(t.data[0].source).toBe('features');
     expect(t.data[0].url).toBe('https://x/{accession}');
     expect(t.data[0].adapter).toBe('uniprot-features-json');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Standalone top-level tracks (wrapped in a synthetic group)
+// ─────────────────────────────────────────────────────────────
+
+describe('normalizeConfig — standalone top-level tracks', () => {
+  it('wraps a standalone track in a synthetic single-track group flagged standalone', () => {
+    const registry = createRegistry();
+    const out = normalizeConfig(
+      cfg({
+        sources: { features: 'https://x' },
+        groups: [
+          {
+            id: 'signal_peptide',
+            label: 'Signal peptide',
+            kind: 'features',
+            filter: 'SIGNAL',
+            data: 'features',
+          },
+        ],
+      }),
+      { registry }
+    );
+    expect(out.groups).toHaveLength(1);
+    const g = out.groups[0];
+    expect(g.standalone).toBe(true);
+    // Wrapper mirrors the wrapped track: same id, label === track.label,
+    // same resolved component.
+    expect(g.id).toBe('signal_peptide');
+    expect(g.label).toBe('Signal peptide');
+    expect(g.tracks).toHaveLength(1);
+    expect(g.label).toBe(g.tracks[0].label);
+    expect(g.component).toBe(g.tracks[0].component);
+    expect(g.tracks[0].filter).toBe('SIGNAL');
+  });
+
+  it('genuine one-track groups are NOT flagged standalone (collapse preserved)', () => {
+    const out = normalizeConfig(
+      cfg({
+        sources: { features: 'https://x' },
+        groups: [
+          {
+            id: 'DOMAINS',
+            tracks: [track({ id: 'domain', kind: 'features', data: 'features' })],
+          },
+        ],
+      })
+    );
+    expect(out.groups[0].standalone).toBeUndefined();
+  });
+
+  it('preserves declaration order across mixed standalone tracks and groups', () => {
+    const out = normalizeConfig(
+      cfg({
+        sources: { features: 'https://x' },
+        groups: [
+          { id: 'signal_peptide', kind: 'features', filter: 'SIGNAL', data: 'features' },
+          {
+            id: 'DOMAINS',
+            tracks: [track({ id: 'domain', kind: 'features', data: 'features' })],
+          },
+          { id: 'confidence', kind: 'features', data: 'features' },
+        ],
+      })
+    );
+    expect(out.groups.map((g) => g.id)).toEqual([
+      'signal_peptide',
+      'DOMAINS',
+      'confidence',
+    ]);
+    expect(out.groups.map((g) => g.standalone)).toEqual([
+      true,
+      undefined,
+      true,
+    ]);
+  });
+
+  it('standalone cascade skips the group-rendering layer (defaults → kind → track)', () => {
+    const registry = createRegistry();
+    const out = normalizeConfig(
+      cfg({
+        sources: { features: 'https://x' },
+        defaults: { rendering: { layout: 'non-overlapping', color: 'red' } },
+        groups: [
+          { id: 'confidence', kind: 'confidence-score', data: 'features' },
+        ],
+      }),
+      { registry }
+    );
+    const r = out.groups[0].tracks[0].rendering;
+    // Inherited straight from defaults (no group layer to intercept),
+    // with the confidence-score kind preset layered on top.
+    expect(r.layout).toBe('non-overlapping');
+    expect(r.color).toBe('red');
+    expect(r.colorScale?.theme).toBe('alphafold-ramp');
+    // The synthetic wrapper's own rendering is the defaults layer only.
+    expect(out.groups[0].rendering.color).toBe('red');
+    expect(out.groups[0].rendering.colorScale).toBeUndefined();
   });
 });
