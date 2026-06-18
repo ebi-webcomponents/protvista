@@ -128,9 +128,14 @@ export interface ProtvistaViewerConfig {
    *
    *   - `sources`              — merged by key (child wins)
    *   - `defaults`             — merged field-wise (child wins)
-   *   - `groups`               — merged by `id`; a child group with a
-   *                              known id extends the base; a new id
-   *                              is appended at the end
+   *   - `groups`               — merged by `id` (one shared namespace
+   *                              across groups and standalone tracks);
+   *                              a child entry with a known id extends
+   *                              the base; a new id is appended at the
+   *                              end. A child that flips an id's shape
+   *                              (group↔standalone track) replaces the
+   *                              base entry wholesale — child wins, no
+   *                              field merge.
    *   - `tracks` within a      — merged by `id`; same rules as groups
    *     merged group
    *   - `rendering` blocks     — merged field-wise
@@ -168,9 +173,30 @@ export interface ProtvistaViewerConfig {
    */
   defaults?: ConfigDefaults;
 
-  /** Ordered list of groups displayed in the viewer. */
-  groups: GroupConfig[];
+  /**
+   * Ordered list of top-level entries displayed in the viewer.
+   *
+   * Each entry is either a `GroupConfig` (a cluster of tracks under a
+   * collapsible header) or a standalone `TrackConfig` (a single row,
+   * no group wrapper). The two shapes are discriminated by the
+   * presence of `tracks:` — present → group, absent → standalone
+   * track — and may be mixed freely in the same config; declaration
+   * order is preserved across both.
+   *
+   * Standalone tracks and groups share one top-level `id` namespace:
+   * a standalone track's `id` may not collide with a group `id` (or
+   * another standalone track's). The field keeps its `groups:` name
+   * for back-compat even though it now also accepts non-groups.
+   */
+  groups: TopLevelEntry[];
 }
+
+/**
+ * One entry under the config's top-level `groups:` array — either a
+ * group of tracks or a standalone track. Discriminated by the
+ * presence of `tracks:` (see `isGroupConfig` in `discriminate.ts`).
+ */
+export type TopLevelEntry = GroupConfig | TrackConfig;
 
 /**
  * Viewer-wide defaults. Every field is optional; anything unset falls
