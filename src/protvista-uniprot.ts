@@ -807,6 +807,68 @@ class ProtvistaUniprot extends LitElement {
     return this;
   }
 
+  /**
+   * Render a standalone top-level track (a synthetic single-track group
+   * flagged `standalone` by the normalizer) as one row: a plain
+   * (non-clickable) track label plus the track content, with no
+   * group-collapse affordance. The label affordances and the inner
+   * element id (`track-${group.id}-${track.id}`) match the expanded
+   * grouped-track row, so the shared `_loadDataInComponents` data-binding
+   * and the `group_${group.id}` visibility toggle work unchanged.
+   */
+  renderStandaloneTrack(group: NormalizedConfig['groups'][number]) {
+    const track = group.tracks[0];
+    const trackData = track && this.data[`${group.id}-${track.id}`];
+    if (
+      !track ||
+      !trackData ||
+      !(
+        (Array.isArray(trackData) && trackData.length) ||
+        Object.keys(trackData).length
+      )
+    ) {
+      return '';
+    }
+    const attrs = renderingToAttrs(track.rendering);
+    return html`
+      <div class="group group--standalone" id="group_${group.id}">
+        <div class="track-label" title="${track.description ?? ''}">
+          ${(track.filterUI === 'nightingale-filter' &&
+            this.getFilterComponent(`${group.id}-${track.id}`)) ||
+          (track.labelUrl &&
+            this.accession &&
+            html`<a
+              target="_blank"
+              href="${track.labelUrl.replace('{accession}', this.accession)}"
+              >${track.label}</a
+            >`) ||
+          (track.helpPage
+            ? html`<span data-article-id="${track.helpPage}"
+                >${track.label}</span
+              >`
+            : track.label)}
+        </div>
+        <div
+          class="track-content ${track.component ===
+          'nightingale-colored-sequence'
+            ? 'track-content__coloured-sequence'
+            : ''}"
+          data-id="track_${track.id}"
+        >
+          ${this.getTrack(
+            track.component,
+            'non-overlapping',
+            attrs.color,
+            attrs.shape,
+            `${group.id}-${track.id}`,
+            attrs.scale,
+            attrs.colorRange
+          )}
+        </div>
+      </div>
+    `;
+  }
+
   render() {
     // Component isn't ready
     if (!this.sequence || !this.config || this.suspend) {
@@ -846,6 +908,15 @@ class ProtvistaUniprot extends LitElement {
         </div>
         ${this.config.groups.map((group) => {
           if (!this.data[group.id]) return '';
+          // A standalone track (authored as a top-level entry with no
+          // `tracks:`) is wrapped by the normalizer in a synthetic
+          // single-track group flagged `standalone`. Render it as one
+          // row with a plain (non-clickable) track label and no
+          // collapse affordance. A genuine one-track group keeps its
+          // collapse header — the difference is author-controlled.
+          if (group.standalone) {
+            return this.renderStandaloneTrack(group);
+          }
           // Flatten the structured rendering block onto the plain-string
           // attribute shape Nightingale consumes. Track rendering is
           // already cascaded (defaults → group → kind preset →
