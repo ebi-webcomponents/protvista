@@ -79,7 +79,7 @@ The element wraps these stages in `loadConfig()` (`src/schema/load.ts`) and `_in
 - Hands off name resolution to a caller-supplied `resolver` first; falls back to URL / file-path fetching for anything resolver-declined that looks like a URL or path; everything else is `cannot-resolve-extends`.
 - Strips `extends:` from the output so downstream stages don't have to think about it.
 
-Merge rules: `sources` and `defaults.rendering` merge by key (child wins); `groups` and their `tracks` merge by `id` (child extends in place, new ids append); scalar fields are child-wins.
+Merge rules: `sources` and `defaults.rendering` merge by key (child wins); top-level `groups` entries — groups and standalone tracks alike, one shared id namespace — and a group's `tracks` merge by `id` (child extends in place, new ids append); scalar fields are child-wins. A child that flips an id's shape (group↔standalone track) replaces the base entry wholesale — child wins, no field merge — so a stale `tracks:` array or group `component` can't bleed onto the wrong shape.
 
 ### 3. Validate
 
@@ -100,7 +100,8 @@ The validator is non-throwing — it returns a `ValidationResult` with an `issue
 - Rendering cascades: `defaults.rendering → group.rendering → kind preset → track.rendering`. The kind preset sits between group and track so canonical ramps (e.g. AlphaFold confidence) win over group colour but lose to explicit author overrides.
 - Group `component` is inferred from child tracks if omitted (all-same → that component; mixed → `nightingale-track-canvas`).
 - `label` falls back to a title-cased `id` when omitted.
-- Duplicate group / track ids throw at this stage (with the offending id named).
+- Duplicate ids throw at this stage (with the offending id named). Top-level ids share one namespace across groups and standalone tracks; track ids are unique within their group.
+- A **standalone top-level track** (a `groups:` entry with no `tracks:`) is wrapped in a synthetic single-track `NormalizedGroup` flagged `standalone`, so downstream code stays on one uniform `NormalizedGroup[]` path. A standalone track **bypasses the group-rendering layer**: its cascade is `defaults.rendering → kind preset → track.rendering` (no group block in between). Wrapping was chosen over a bare-`NormalizedTrack` union because it keeps the data loader and renderer from having to branch on entry shape; the cost is a synthetic group object whose `label` mirrors the track's.
 - `source:` references are resolved against the root `sources` map, with the original `source:` field preserved so the validator can produce author-friendly error messages.
 
 Normalize is deliberately non-throwing for unknown names — `validateConfig` is the canonical place for those errors, and running normalize on something already known to fail validation should produce a best-effort output rather than a stack of derived errors.
@@ -108,6 +109,8 @@ Normalize is deliberately non-throwing for unknown names — `validateConfig` is
 ### 5. Load + render
 
 `loadProtvistaData()` walks the `NormalizedConfig`, fetches each track's URL(s) (or reads `inlineData`), runs the named adapter, applies the per-item tooltip resolver, and writes the result into a `Record<groupId-trackId, data>` map. The element then sets that map as the `data` property on each Nightingale component in the DOM.
+
+The renderer draws each `NormalizedGroup` as a collapsible header plus its child-track rows. A group flagged `standalone` (the synthetic wrapper around an authored standalone track) is drawn instead as a single row with a plain, non-clickable track label and no collapse affordance — it reuses the same `group_<id>` container and `track-<id>-<id>` element id as a grouped track, so the shared visibility / data-binding code needs no special case. A genuine one-track group keeps its collapse header; the difference is author-controlled (presence of `tracks:`), never auto-collapsed.
 
 Concurrency: `_loadData()` uses an `AbortController` so a re-init (e.g. accession change) cancels in-flight fetches before the new round starts. DOM queries are scoped per-instance via `CSS.escape(this._instanceId)` so two viewers on the same page don't cross-talk.
 
@@ -121,6 +124,7 @@ The config-as-data engine. Module-by-module:
 | -------------- | ------------------------------------------------------------------------------------------------------ |
 | `types.ts`     | TypeScript surface for `ProtvistaViewerConfig` and friends. Type-only, runtime-free.                   |
 | `schema.json`  | JSON Schema (draft 2020-12). Source of truth for structural validation.                                |
+| `discriminate.ts` | `isGroupConfig` — the one predicate distinguishing a group from a standalone track in a `groups:` entry. |
 | `errors.ts`    | `ValidationIssue`, `ValidationResult`, `ConfigValidationError`, the issue-code union.                  |
 | `parse.ts`     | YAML / JSON string → plain object.                                                                     |
 | `extends.ts`   | `extends:` chain resolver + merger.                                                                    |
@@ -205,6 +209,10 @@ For built-in colour ramps: add to `BUILTIN_THEMES` in `src/schema/registry.ts`. 
 Add to `RenderingOptions` in `src/schema/types.ts` and to `RenderingOptions` in `src/schema/schema.json`. Then thread it through the renderer (`src/renderer/render-helpers.ts`) so it actually maps to a Nightingale component attribute.
 
 ## Conventions and gotchas
+
+### One id namespace for top-level entries
+
+The config's `groups:` array holds a discriminated union of `GroupConfig` (has `tracks:`) and standalone `TrackConfig` (has `data:`, no `tracks:`) — `isGroupConfig` in `src/schema/discriminate.ts` is the single source of truth for the discrimination, mirrored structurally by the `oneOf` in `schema.json`. The two shapes share **one id namespace**: a standalone track's `id` may not collide with a group's `id` (normalize throws `Duplicate top-level id '…'`). Track ids only need to be unique within their own group. When you add a code path that walks `config.groups`, route the shape check through `isGroupConfig` rather than hand-rolling a `'tracks' in entry` test, so all three stages (validate / normalize / extends) stay in lockstep. The field is still named `groups:` for back-compat even though it now also accepts non-groups.
 
 ### Specs are ephemeral
 
