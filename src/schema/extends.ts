@@ -6,10 +6,13 @@
  *   - `sources`    — merged by key (child wins)
  *   - `defaults`   — merged field-wise (child wins); `rendering`
  *                    nested sub-object also merged field-wise
- *   - `groups` — matched by `id`; known ids are extended in
- *                    place, new ids appended at the end (base order
- *                    preserved, child-only groups appended in
- *                    declaration order)
+ *   - `groups` — top-level entries (groups AND standalone tracks,
+ *                    one shared id namespace) matched by `id`; known
+ *                    ids extended in place, new ids appended at the end
+ *                    (base order preserved, child-only entries appended
+ *                    in declaration order). A child that flips an id's
+ *                    shape (group↔standalone track) replaces the base
+ *                    entry wholesale — child wins, no field merge.
  *   - `tracks`     — within a merged group, matched by `id`;
  *                    same rules as groups
  *   - `rendering`  — field-wise (at every level); `colorScale`
@@ -94,10 +97,12 @@ import type {
   ProtvistaViewerConfig,
   GroupConfig,
   TrackConfig,
+  TopLevelEntry,
   RenderingOptions,
   ColorScaleConfig,
   ConfigDefaults,
 } from './types';
+import { isGroupConfig } from './discriminate';
 import { ConfigValidationError } from './errors';
 import { parseConfigText } from './parse';
 
@@ -382,10 +387,10 @@ function merge(
     out.defaults = mergeDefaults(base.defaults, child.defaults);
   }
 
-  // `groups` is an ordered list keyed by `id`. `{ ...base, ...child }`
-  // above clobbers base.groups with child.groups, so we always
-  // recompute here.
-  out.groups = mergeGroupsById(
+  // `groups` is an ordered list keyed by `id` (one namespace across
+  // groups and standalone tracks). `{ ...base, ...child }` above
+  // clobbers base.groups with child.groups, so we always recompute here.
+  out.groups = mergeEntriesById(
     base.groups ?? [],
     child.groups ?? []
   );
@@ -423,21 +428,40 @@ function mergeColorScale(
 }
 
 /**
- * Merge group lists by `id`. Base order is preserved; groups
- * whose `id` also appears in `child` are extended in place; groups
- * in `child` with a new `id` are appended at the end in child's order.
+ * Merge top-level entry lists by `id` (groups and standalone tracks
+ * share one namespace). Base order is preserved; entries whose `id`
+ * also appears in `child` are merged in place; entries in `child` with
+ * a new `id` are appended at the end in child's order.
+ *
+ * Shape-aware merge by matched pair:
+ *
+ *   - both groups            → field-merge via `mergeGroup`
+ *   - both standalone tracks → field-merge via `mergeTrack`
+ *   - shape flip (group↔track) → child replaces the base entry
+ *     wholesale (child wins, no field merge). Field-merging across a
+ *     shape boundary would smuggle stale base keys (a `tracks:` array,
+ *     a group `component`) onto the wrong shape; a clean replace keeps
+ *     the result unambiguous. The flip is permitted but explicit.
  */
-function mergeGroupsById(
-  base: GroupConfig[],
-  child: GroupConfig[]
-): GroupConfig[] {
-  const result = base.map((g) => g);
-  for (const childGroup of child) {
-    const idx = result.findIndex((baseGroup) => baseGroup.id === childGroup.id);
+function mergeEntriesById(
+  base: TopLevelEntry[],
+  child: TopLevelEntry[]
+): TopLevelEntry[] {
+  const result = base.map((e) => e);
+  for (const childEntry of child) {
+    const idx = result.findIndex((baseEntry) => baseEntry.id === childEntry.id);
     if (idx === -1) {
-      result.push(childGroup);
+      result.push(childEntry);
+      continue;
+    }
+    const baseEntry = result[idx];
+    if (isGroupConfig(baseEntry) && isGroupConfig(childEntry)) {
+      result[idx] = mergeGroup(baseEntry, childEntry);
+    } else if (!isGroupConfig(baseEntry) && !isGroupConfig(childEntry)) {
+      result[idx] = mergeTrack(baseEntry, childEntry);
     } else {
-      result[idx] = mergeGroup(result[idx], childGroup);
+      // Group↔track shape flip on the same id: child wins wholesale.
+      result[idx] = childEntry;
     }
   }
   return result;
