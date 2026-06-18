@@ -21,7 +21,21 @@ import { describe, it, expect } from 'vitest';
 import { mergeExtends } from '../extends';
 import { loadConfig } from '../load';
 import { ConfigValidationError } from '../errors';
-import type { ProtvistaViewerConfig } from '../types';
+import type {
+  GroupConfig,
+  ProtvistaViewerConfig,
+  TopLevelEntry,
+} from '../types';
+import { isGroupConfig } from '../discriminate';
+
+// Narrow a merged top-level entry to a group for `.tracks` assertions,
+// failing loudly if a test accidentally produced a standalone track.
+const asGroup = (entry: TopLevelEntry | undefined): GroupConfig => {
+  if (!entry || !isGroupConfig(entry)) {
+    throw new Error(`expected a group entry, got ${entry?.id ?? 'undefined'}`);
+  }
+  return entry;
+};
 
 // ─────────────────────────────────────────────────────────────
 // Fixtures
@@ -120,7 +134,7 @@ describe('mergeExtends — basic merge', () => {
     expect(out.groups[0].id).toBe('DOMAINS');
     expect(out.groups[0].label).toBe('Overridden label');
     // Base tracks survive when child provides empty tracks
-    expect(out.groups[0].tracks.map((t) => t.id)).toEqual([
+    expect(asGroup(out.groups[0]).tracks.map((t) => t.id)).toEqual([
       'domain',
       'region',
     ]);
@@ -170,7 +184,7 @@ describe('mergeExtends — basic merge', () => {
       ],
     };
     const out = await mergeExtends(child, { resolver: { '@base': base() } });
-    const dom = out.groups.find((c) => c.id === 'DOMAINS')!;
+    const dom = asGroup(out.groups.find((c) => c.id === 'DOMAINS'));
     expect(dom.tracks.map((t) => t.id)).toEqual(['domain', 'region', 'motif']);
     expect(dom.tracks.find((t) => t.id === 'region')?.label).toBe(
       'Renamed region'

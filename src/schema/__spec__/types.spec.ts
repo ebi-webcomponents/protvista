@@ -103,7 +103,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
       ],
     };
     expectType<ProtvistaViewerConfig>(config);
-    expect(config.groups[0].tracks[0].data).toMatchObject({
+    expect((config.groups[0] as GroupConfig).tracks[0].data).toMatchObject({
       from: 'inline',
     });
   });

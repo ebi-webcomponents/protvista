@@ -858,7 +858,7 @@ describe('normalizeConfig — group component inference', () => {
 // ─────────────────────────────────────────────────────────────
 
 describe('normalizeConfig — duplicate id detection', () => {
-  it('rejects duplicate group ids (spec test)', () => {
+  it('rejects duplicate top-level ids (spec test)', () => {
     expect(() =>
       normalizeConfig({
         groups: [
@@ -866,7 +866,19 @@ describe('normalizeConfig — duplicate id detection', () => {
           { id: 'DUPED', tracks: [] },
         ],
       })
-    ).toThrow(/Duplicate group id 'DUPED'/);
+    ).toThrow(/Duplicate top-level id 'DUPED'/);
+  });
+
+  it('rejects a standalone-track id colliding with a group id', () => {
+    expect(() =>
+      normalizeConfig({
+        sources: { features: 'https://x' },
+        groups: [
+          { id: 'shared', tracks: [] },
+          { id: 'shared', kind: 'features', data: 'features' },
+        ],
+      })
+    ).toThrow(/Duplicate top-level id 'shared'/);
   });
 
   it('rejects duplicate track ids within a group', () => {
