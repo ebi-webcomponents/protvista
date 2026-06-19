@@ -272,7 +272,7 @@ const process3DBeaconsData = (
           ? 'https://www.isoform.io/home'
           : summary.model_page_url,
       chain:
-        summary.entities?.flatMap((entity) => entity.chain_ids).join(', ') ||
+        summary.entities?.flatMap((entity) => entity.identifier_category === 'UNIPROT' ? entity.chain_ids : []).join(', ') ||
         undefined,
       oligomericState: summary.oligomeric_state || undefined,
     })) || []
