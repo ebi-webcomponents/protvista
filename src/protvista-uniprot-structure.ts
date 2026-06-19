@@ -26,7 +26,6 @@ const PDBLinks = [
   { name: 'PDBe', link: 'https://www.ebi.ac.uk/pdbe-srv/view/entry/' },
   { name: 'RCSB-PDB', link: 'https://www.rcsb.org/structure/' },
   { name: 'PDBj', link: 'https://pdbj.org/mine/summary/' },
-  { name: 'PDBsum', link: 'https://www.ebi.ac.uk/pdbsum/' },
 ];
 const alphaFoldLinkUrl = 'https://alphafold.ebi.ac.uk/search/text/';
 const foldseekUrl = `https://search.foldseek.com/search`;
@@ -44,18 +43,6 @@ const providersFrom3DBeacons = [
   'HEGELAB',
   'levylab',
 ];
-
-const sourceMethods = new Map([
-  ['AlphaFold DB', 'Predicted'],
-  ['SWISS-MODEL', 'Modeling'],
-  ['ModelArchive', 'Modeling'],
-  ['PED', 'Modeling'],
-  ['SASBDB', 'SAS'],
-  ['isoform.io', 'Predicted'],
-  ['AlphaFill', 'Predicted'],
-  ['HEGELAB', 'Modeling'],
-  ['levylab', 'Modeling'],
-]);
 
 type UniProtKBData = {
   uniProtKBCrossReferences: UniProtKBCrossReference[];
@@ -140,6 +127,7 @@ export type ProcessedStructureData = {
   isoformId?: string;
   isoformIsCanonical?: boolean;
   afPrediction?: boolean; // Flag to differentiate the structure source as AlphaFold prediction API vs 3DBeacons AlphaFold
+  oligomericState?: string;
 };
 
 type IsoformIdSequence = Array<{
@@ -189,7 +177,7 @@ const processPDBData = (data: UniProtKBData): ProcessedStructureData[] =>
             method,
             resolution:
               !resolution || resolution === '-' ? undefined : resolution,
-            downloadUrl: `https://www.ebi.ac.uk/pdbe/entry-files/download/pdb${id.toLowerCase()}.ent`,
+            downloadUrl: `https://www.ebi.ac.uk/pdbe/entry-files/download/${id.toLowerCase()}_updated.cif`,
             chain,
             positions,
             protvistaFeatureId: id,
@@ -223,6 +211,7 @@ const processAFData = (
           ? isoformMatch.sequence === canonicalSequence
           : undefined,
         afPrediction: true,
+        oligomericState: 'MONOMER',
       };
     })
     .sort((a, b) => getIsoformNum(a.id) - getIsoformNum(b.id));
@@ -263,7 +252,6 @@ const process3DBeaconsData = (
     structures?.map(({ summary }) => ({
       id: summary.model_identifier,
       source: summary.provider,
-      method: sourceMethods.get(summary.provider),
       positions:
         summary.uniprot_start && summary.uniprot_end
           ? `${summary.uniprot_start}-${summary.uniprot_end}`
@@ -277,6 +265,7 @@ const process3DBeaconsData = (
       chain:
         summary.entities?.flatMap((entity) => entity.chain_ids).join(', ') ||
         undefined,
+      oligomericState: summary.oligomeric_state || undefined,
     })) || []
   );
 };
