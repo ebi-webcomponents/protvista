@@ -33,7 +33,6 @@ const uniprotKBUrl = 'https://www.uniprot.org/uniprotkb/';
 
 // Excluded source from 3d-beacons is PDBe as we fetch them separately from UniProt
 const providersFrom3DBeacons = [
-  'AlphaFold DB',
   'SWISS-MODEL',
   'ModelArchive',
   'PED',
@@ -191,30 +190,40 @@ const processAFData = (
   data: AlphaFoldPayload,
   isoforms?: IsoformIdSequence,
   canonicalSequence?: string
-): ProcessedStructureData[] =>
-  data
+): ProcessedStructureData[] => {
+  const uniqueData = [
+    ...new Map(data.map((d) => [d.modelEntityId, d])).values(),
+  ];
+
+  return uniqueData
     .map((d) => {
       const isoformMatch = isoforms?.find(
         ({ sequence }) => d.sequence === sequence
       );
-
       return {
         id: d.modelEntityId,
         source: 'AlphaFold DB',
-        method: 'Predicted',
         positions: `${d.sequenceStart}-${d.sequenceEnd}`,
         protvistaFeatureId: d.modelEntityId,
         downloadUrl: d.pdbUrl,
         amAnnotationsUrl: d.amAnnotationsUrl,
-        isoformId: isoformMatch?.isoformId,
-        isoformIsCanonical: isoformMatch
+        isoformId: !d.isComplex ? isoformMatch?.isoformId : undefined,
+        isoformIsCanonical: !d.isComplex && isoformMatch
           ? isoformMatch.sequence === canonicalSequence
           : undefined,
         afPrediction: true,
-        oligomericState: 'MONOMER',
+        oligomericState: d.isComplex
+          ? `${d.assemblyType}${d.oligomericState}`
+          : 'Monomer',
       };
     })
-    .sort((a, b) => getIsoformNum(a.id) - getIsoformNum(b.id));
+    .sort((a, b) => getIsoformNum(a.id) - getIsoformNum(b.id))
+    .sort((a, b) => {
+      const aMonomer = a.oligomericState === 'Monomer' ? 0 : 1;
+      const bMonomer = b.oligomericState === 'Monomer' ? 0 : 1;
+      return aMonomer - bMonomer;
+    });
+};
 
 const process3DBeaconsData = (
   data: BeaconsData,
@@ -503,7 +512,7 @@ class ProtvistaUniprotStructure extends LitElement {
     // AlphaMissense predictions are only available in AF predictions endpoint
     const alphaFoldUrl =
       this.accession && !this.checksum
-        ? `https://alphafold.ebi.ac.uk/api/prediction/${this.accession}`
+        ? `https://alphafold.ebi.ac.uk/api/prediction/${this.accession}?include_complexes=true`
         : '';
     // exclude_provider accepts only value hence 'pdbe' as majority of the models are from there if querying by accession
     const beaconsUrl =
@@ -555,21 +564,22 @@ class ProtvistaUniprotStructure extends LitElement {
     // TODO: return if no data at all
     // if (!payload) return;
 
-    const beaconsAFData = beaconsData.filter(
-      ({ source }) => source === 'AlphaFold DB'
-    );
-    const beaconsNonAFData = beaconsData.filter(
-      ({ source }) => source !== 'AlphaFold DB'
-    );
+    // const beaconsAFData = beaconsData.filter(
+    //   ({ source }) => source === 'AlphaFold DB'
+    // );
+    // const beaconsNonAFData = beaconsData.filter(
+    //   ({ source }) => source !== 'AlphaFold DB'
+    // );
 
-    const uniqueAFData = [
-      ...new Map(
-        // The order of the spread is important as we want to prioritise AF data from AF predictions API over 3DBeacons
-        [...beaconsAFData, ...afData].map((obj) => [obj.id, obj])
-      ).values(),
-    ];
+    // const uniqueAFData = [
+    //   ...new Map(
+    //     // The order of the spread is important as we want to prioritise AF data from AF predictions API over 3DBeacons
+    //     [...beaconsAFData, ...afData].map((obj) => [obj.id, obj])
+    //   ).values(),
+    // ];
 
-    const data = [...pdbData, ...uniqueAFData, ...beaconsNonAFData];
+    // const data = [...pdbData, ...uniqueAFData, ...beaconsNonAFData];
+    const data = [...pdbData, ...afData, ...beaconsData];
 
     this.data = data;
     this.columns = this.getColumns();
