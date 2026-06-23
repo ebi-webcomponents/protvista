@@ -200,6 +200,15 @@ const processAFData = (
       const isoformMatch = isoforms?.find(
         ({ sequence }) => d.sequence === sequence
       );
+
+      let chain = d.chainId;
+      const oligomericState = d.isComplex
+          ? `${d.assemblyType}${d.oligomericState}`
+          : 'Monomer';
+
+      if (d.isComplex && oligomericState === 'Homodimer') {
+        chain = data.filter(({ modelEntityId }) => modelEntityId === d.modelEntityId).flatMap(({ chainId }) => chainId).sort().join(', ');
+      }
       return {
         id: d.modelEntityId,
         source: 'AlphaFold DB',
@@ -212,9 +221,8 @@ const processAFData = (
           ? isoformMatch.sequence === canonicalSequence
           : undefined,
         afPrediction: true,
-        oligomericState: d.isComplex
-          ? `${d.assemblyType}${d.oligomericState}`
-          : 'Monomer',
+        oligomericState,
+        chain
       };
     })
     .sort((a, b) => getIsoformNum(a.id) - getIsoformNum(b.id))
