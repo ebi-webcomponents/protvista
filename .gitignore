@@ -12,6 +12,7 @@ coverage/
 demo/
 bench/results/
 .lighthouseci/
+__pycache__/
 
 # Security: prevent accidental commit of secrets and credentials
 .env
