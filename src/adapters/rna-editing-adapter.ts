@@ -1,4 +1,4 @@
-import { AminoAcid } from '@nightingale-elements/nightingale-variation';
+import { AminoAcid } from '@nightingale-elements/nightingale-variation-canvas';
 
 import { RnaEditing, TransformedRnaEditing } from './types/rna-editing';
 import formatTooltip from '../tooltips/rna-editing-tooltip';

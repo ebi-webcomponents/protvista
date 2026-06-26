@@ -4,7 +4,7 @@ import {
   PopulationFrequency,
   Variant,
   Prediction,
-} from '@nightingale-elements/nightingale-variation';
+} from '@nightingale-elements/nightingale-variation-canvas';
 import groupBy from 'lodash-es/groupBy';
 
 import { escapeHtml } from '../utils/security';
@@ -54,7 +54,7 @@ const getEnsemblCovidLinks = (variant: Variant): string => {
   );
   if (shouldGenerateLink) {
     const xref = variant.xrefs.find((xref) => xref.name === 'ENA');
-    return xref.id
+    return xref?.id
       ? `<h5>Ensembl COVID-19</h5>
           <p>
           <a href="https://covid-19.ensembl.org/Sars_cov_2/Variation/Explore?v=${encodeURIComponent(xref.id)}" target="_blank" rel="noopener noreferrer">${escapeHtml(xref.id)}</a>
@@ -86,11 +86,13 @@ const getPredictions = (predictions: Prediction[]): string => {
     .join('');
 };
 
-const formatTooltip = (variant: Variant): string =>
+type VariantWithStart = Variant & { start?: number | string };
+
+const formatTooltip = (variant: VariantWithStart): string =>
   `
   ${
-    variant.type && variant.begin && variant.end
-      ? `<h4>${escapeHtml(variant.type)} ${escapeHtml(variant.begin)}-${escapeHtml(variant.end)}</h4><hr />`
+    variant.type && variant.start && variant.end
+      ? `<h4>${escapeHtml(variant.type)} ${escapeHtml(variant.start)}-${escapeHtml(variant.end)}</h4><hr />`
       : ''
   }
   <h5>Variant</h5><p>${escapeHtml(variant.wildType)} > ${

@@ -2,7 +2,12 @@
 
 A Web Component which uses [Nightingale](https://github.com/ebi-webcomponents/nightingale) components to display protein sequence information.
 
-![Image of protvista-uniprot](protvista.png)
+**Branching model and v5**
+
+> - **`main` (this branch)** is the current-major **4.x** production line. Published on npm as `protvista-uniprot`; custom element `<protvista-uniprot>`. Receives non-breaking changes (security, performance, dependencies, CI). Use this for production.
+> - **[`next`](../../tree/next)** is the **v5** development line. It carries any breaking changes that come out of the [SSI RSMF](ROADMAP.md) work: a configuration-driven loader, a published JSON-Schema for viewer configurations, a declarative tooltip resolver.`v5` will rename the package and element to `protvista`. GitHub has already been renamed and the old URL auto-redirects, and `protvista-uniprot` will remain on npm as a deprecated alias once v5 ships. **Schemas and APIs on `next` are still evolving — do not depend on them in production yet.** Targeted production release: early 2027.
+
+![Image of ProtVista](protvista.png)
 
 ## Roadmap & Future Plans
 
@@ -117,6 +122,12 @@ Every push and pull request runs the same checks as `yarn test` via [`.github/wo
 
 Coverage thresholds live in [`vite.config.mjs`](./vite.config.mjs) under `test.coverage.thresholds` and follow a ratchet pattern — they only ever go up. CI fails if a change drops coverage below the recorded threshold. Run `yarn test:coverage` locally to see the current numbers, or `yarn test:coverage:ratchet` to lift the thresholds to match the latest run (commit the resulting `vite.config.mjs` change in the same PR as the coverage improvement).
 
+## Performance benchmarks
+
+A `bench/` workflow captures repeatable performance baselines for the demo across three layers: library bundle size, Lighthouse CI against a fixed set of UniProt scenarios, and DOM-observed custom milestones (`fetch-and-parse`, `render`, `total`). Run `yarn bench` to produce `bench/results/summary.md`. Reference snapshots live under `bench/baselines/` and are committed; per-run output is gitignored.
+
+See [`bench/README.md`](./bench/README.md) for scenarios, capture procedure, and methodology notes.
+
 ## Configuration
 
 You can pass your own configuration to the component using the `config` attribute/property.
@@ -127,7 +138,7 @@ You can pass your own configuration to the component using the `config` attribut
     {
       "name": "string",
       "label": "string",
-      "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation",
+      "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation-canvas,
       "adapter": "feature-adapter|structure-adapter|proteomics-adapter|variation-adapter",
       "url": "string",
       "tracks": [
@@ -135,7 +146,7 @@ You can pass your own configuration to the component using the `config` attribut
           "name": "string",
           "label": "string",
           "filter": "string",
-          "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation",
+          "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation-canvas,
           "tooltip": "string"
         }
       ]

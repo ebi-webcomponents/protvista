@@ -19,7 +19,7 @@ export type TrackType =
   | 'nightingale-track-canvas'
   | 'nightingale-interpro-track'
   | 'nightingale-colored-sequence'
-  | 'nightingale-variation'
+  | 'nightingale-variation-canvas'
   | 'nightingale-linegraph-track'
   | 'nightingale-sequence-heatmap';
 
@@ -707,7 +707,7 @@ const config: ProtvistaConfig = {
         {
           name: 'variation',
           filterComponent: 'nightingale-filter',
-          trackType: 'nightingale-variation',
+          trackType: 'nightingale-variation-canvas',
           data: [
             {
               adapter: 'variation-adapter',
@@ -740,7 +740,7 @@ const config: ProtvistaConfig = {
         },
         {
           name: 'RNA Editing',
-          trackType: 'nightingale-variation',
+          trackType: 'nightingale-variation-canvas',
           data: [
             {
               adapter: 'rna-editing-adapter',

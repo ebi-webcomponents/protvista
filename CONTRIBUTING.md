@@ -1,6 +1,6 @@
-# Contributing to ProtVista-UniProt
+# Contributing to ProtVista
 
-Thank you for your interest in contributing to ProtVista-UniProt! This document provides guidelines for contributing to the project.
+Thank you for your interest in contributing to ProtVista! This document provides guidelines for contributing to the project.
 
 ProtVista is maintained as open-source research software and is part of an ongoing sustainability effort supported through the Research Software Maintenance Fund (RSMF).
 
@@ -22,8 +22,8 @@ All repository interactions and project events are expected to follow our [Code 
 1. Create a fork and clone it to your local machine:
 
    ```bash
-   git clone https://github.com/YOUR-USERNAME/protvista-uniprot.git
-   cd protvista-uniprot
+   git clone https://github.com/YOUR-USERNAME/protvista.git
+   cd protvista
    ```
 
 2. Install dependencies:
@@ -177,7 +177,7 @@ Note that office hours are not recorded.
 | 2026-02-27 | 15.30 - 16.30 | ✅ Complete |
 | 2026-03-27 | 10.30 - 11.30 | ✅ Complete |
 | 2026-04-24 | 15.30 - 16.30 | ✅ Complete |
-| 2026-05-29 | 10.30 - 11.30 | Planned     |
+| 2026-05-29 | 10.30 - 11.30 | ✅ Complete |
 | 2026-06-26 | 15.30 - 16.30 | Planned     |
 | 2026-07-31 | 10.30 - 11.30 | Planned     |
 | 2026-08-28 | 15.30 - 16.30 | Planned     |
@@ -208,4 +208,4 @@ By contributing, you agree that your contributions will be licensed under the sa
 
 If you use ProtVista in research outputs, please cite the project using the latest release DOI (see the repository README for citation instructions).
 
-Thank you for contributing to ProtVista-UniProt! 🎉
+Thank you for contributing to ProtVista! 🎉

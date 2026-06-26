@@ -11,12 +11,13 @@ const getConfidenceURLFromPayload = (af: AlphaFoldPayload[number]) =>
 
 const loadConfidence = async (
   url: string
-): Promise<AlphafoldConfidencePayload> => {
+): Promise<AlphafoldConfidencePayload | undefined> => {
   try {
     const payload = await fetch(url);
     return payload.json();
   } catch (e) {
     console.error('Could not load AlphaFold confidence', e);
+    return undefined;
   }
 };
 

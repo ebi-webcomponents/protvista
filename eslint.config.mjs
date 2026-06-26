@@ -8,7 +8,10 @@ import globals from 'globals';
 
 export default [
   js.configs.recommended,
-  ...ts.configs.recommended,
+  ...ts.configs.recommended.map((c) => ({
+    ...c,
+    files: ['**/*.ts', '**/*.tsx'],
+  })),
   prettier,
   {
     files: ['**/*.ts', '**/*.tsx'],
@@ -35,11 +38,23 @@ export default [
 
       /* ...then apply your custom tweaks */
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-explicit-any': 'error',
 
       /* Security: flag unsafe DOM manipulation */
       'no-unsanitized/method': 'error',
       'no-unsanitized/property': 'error',
+    },
+  },
+
+  /* Bench runners — node scripts, not shipped. */
+  {
+    files: ['bench/**/*.{mjs,cjs}'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        ...globals.node,
+      },
     },
   },
 ];

@@ -5,7 +5,8 @@ type Modification =
   | 'Phosphorylation'
   | 'SUMOylation'
   | 'Ubiquitinylation'
-  | 'Acetylation';
+  | 'Acetylation'
+  | 'Methylation';
 
 const aaToPhosphorylated = {
   R: 'Phosphoarginine',
@@ -45,6 +46,22 @@ const aaToAcetylated = {
   K: 'Acetyllysine',
 };
 
+// Source: https://www.unimod.org/modifications_view.php?editid1=34
+const aaToMethylated = {
+  C: 'Methylcysteine',
+  H: 'Methylhistidine',
+  K: 'Methyllysine',
+  N: 'Methyl-asparagine',
+  Q: 'Methylglutamine',
+  R: 'Methylarginine',
+  I: 'Methyl-isoleucine',
+  L: 'Methylleucine',
+  D: 'Methyl-aspartic acid',
+  E: 'Methyl-glutamic acid',
+  S: 'Methylserine',
+  T: 'Methyl-threonine',
+};
+
 export const phosphorylate = (aa: string) => {
   const AA = aa.toUpperCase();
   if (AA in aaToPhosphorylated) {
@@ -81,6 +98,15 @@ export const acetylate = (aa: string) => {
   return '';
 };
 
+export const methylate = (aa: string) => {
+  const AA = aa.toUpperCase();
+  if (AA in aaToMethylated) {
+    return aaToMethylated[AA as keyof typeof aaToMethylated];
+  }
+  console.error(`${AA} not a valid amino acid for Methylation`);
+  return '';
+};
+
 const getDescription = (modification: Modification, aa: string) => {
   switch (modification) {
     case 'Phosphorylation':
@@ -91,6 +117,8 @@ const getDescription = (modification: Modification, aa: string) => {
       return ubiquitinate(aa);
     case 'Acetylation':
       return acetylate(aa);
+    case 'Methylation':
+      return methylate(aa);
     default:
       return '';
   }
@@ -126,7 +154,7 @@ const formatTooltip = (
 
   return `
   ${title ? `<h4>${escapeHtml(title)}</h4><hr />` : ''}
-  <h5>Description</h5><p>${escapeHtml(getDescription(modification, aa))}</p>
+  ${modification ? `<h5>Description</h5><p>${escapeHtml(getDescription(modification, aa))}</p>` : ''}
   ${
     confidenceScore
       ? `<h5 data-article-id="mod_res_large_scale#confidence-score">Confidence Score</h5><p>${escapeHtml(confidenceScore)}</p>`
