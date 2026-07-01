@@ -337,12 +337,11 @@ interface TrackConfig {
    *       {% if $score %}**Score:** {% $score %}{% /if %}
    *
    * When omitted, the track falls back to the built-in default for
-   * the semantic `kind` (if any), then to an auto-fallback synthesized
-   * from common feature-shaped fields (`type`, `description`,
-   * `start | begin`, `end`). Resolution precedence is
-   * `track.dataTooltip > tooltipDefaults[kind] > auto-fallback`.
-   * Adapters produce data only; `tooltipContent` on items is always
-   * written by the resolver, never by the adapter.
+   * the semantic `kind` (if any), then to a compact auto-fallback
+   * synthesized from common adapted payload fields. Resolution
+   * precedence is non-empty item `tooltipContent`, then
+   * `track.dataTooltip`, then `tooltipDefaults[kind]`, then
+   * auto-fallback.
    *
    * Interpolated field values are HTML-escaped before they enter the
    * Markdoc render, so a malicious adapter payload cannot smuggle
@@ -769,8 +768,8 @@ Accessibility is a grant-level commitment (see the OMP) and is baked into the sc
 - **Colour-blind-safe defaults.** The built-in colour themes referenced from `colorScale.theme` — `alphafold-ramp` (pLDDT confidence) and `alphamissense-ramp` (pathogenicity) — are published as accessibility-reviewed palettes. Authors who rely on semantic kinds (`confidence-score`, `pathogenicity-score`) or name a built-in theme get WCAG-compliant colouring for free. Explicit `stops:` escape-hatch gradients remain authorable, but shift the accessibility responsibility to the author and should be used only when no built-in theme fits.
 - **Keyboard-accessible legends.** Colour-scale legends rendered from `ColorScaleConfig` are keyboard-focusable and announce their `label` via `aria-label`. The `label` field on `ColorStop` is the accessible name — authors who register custom themes via `registerTheme()` should supply labels for every stop, not only for legend clarity but for screen-reader output.
 - **Tooltip semantics.** Track- and group-level `description` fields render as plain-text native HTML `title` attributes — no Markdown, no HTML — so screen readers pick them up via the browser's default a11y path. Per-datapoint `dataTooltip` content flows through `@markdoc/markdoc` to produce HTML preserving the Markdown's semantic structure (headings, emphasis, lists) rather than flattening to a styled `<div>`. Field interpolations are HTML-escaped at the boundary so those semantic tags stay intact for screen readers. Per-datapoint tooltips are displayed as click-triggered popovers (not hover-triggered) with `role="tooltip"` and `tabindex="-1"`. Focus moves into the popover on open and is restored to the previously-focused element on close (Escape key, outside click, or scroll). The popover is dismissed by Escape, outside-click, or any document scroll.
-- **Library defaults are minimal.** The built-in `tooltipDefaults` registry ships a small `{ kind: "fields", fields: [...] }` spec per `SemanticKind` that emits a plain `<h5>Label</h5><p>value</p>` stream. Product-specific rich rendering (evidence icons, xref badges, taxonomy lookups, React overlays, …) lives in consumer code via the Nightingale `change`-event pattern paired with `notooltip` on the element, not in the library.
-- **Sensible out-of-the-box fallback.** When a track has no `kind` and no `dataTooltip`, the resolver synthesizes a `fields` spec from the common feature-shaped record (`type`, `description`, `start | begin`, `end`). Missing fields drop out; an item carrying none of them stays empty. Adapters only produce data — `tooltipContent` is always written by the resolver.
+- **Library defaults are compact.** The built-in `tooltipDefaults` registry ships small declarative specs per `SemanticKind`, while the no-spec fallback now surfaces a little more of the adapted payload. Product-specific rich rendering (evidence icons, taxonomy lookups, React overlays, …) still lives in consumer code via the Nightingale `change`-event pattern paired with `notooltip` on the element.
+- **Sensible out-of-the-box fallback.** Tooltip precedence is: non-empty `item.tooltipContent` supplied by an adapter, then `track.dataTooltip`, then `tooltipDefaults[kind]`, then auto-fallback. When the auto-fallback runs, it renders through Markdoc and emits at most six rows in this order: `type`, `description`, position (`start | begin` plus `end`, collapsed to `Position` when equal), variant sequence (`wildType` plus `alternativeSequence | variant`), `consequenceType`, `clinicalSignificances`, `score`, `xrefs`, `evidences`, then remaining top-level scalar fields such as values added by `calculate` transforms. Missing fields drop out; an item carrying none of them stays empty. Xrefs become links only when the entry carries a URL that passes the tooltip URL allowlist (`http:`, `https:`, `mailto:`, or relative URL forms).
 - **No colour-only encoding.** `RenderingOptions.shape` exists partly so tracks can encode distinctions redundantly (e.g. shape _and_ colour) rather than colour alone. Config authors building custom tracks are encouraged to use shape or label text as a secondary channel alongside colour.
 
 ## Security and trust model

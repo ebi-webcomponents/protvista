@@ -214,9 +214,10 @@ interface FeatureRecord {
 ```
 
 The `nightingale-track-canvas` component reads exactly these fields
-(plus `tooltipContent`, which the resolver writes). Adapters that
-produce additional fields are fine — they pass through to the tooltip
-resolver and are addressable from `dataTooltip` `path` values.
+(plus `tooltipContent`, which the resolver usually writes unless an
+adapter supplied a non-empty value). Adapters that produce additional
+fields are fine — they pass through to the tooltip resolver and are
+addressable from `dataTooltip` `path` values.
 
 ### 4.3 `features-json` (`src/schema/adapters/features-json.ts`)
 

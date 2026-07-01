@@ -27,7 +27,7 @@
  */
 import Markdoc, { Tag, type RenderableTreeNode } from '@markdoc/markdoc';
 import type { TooltipContext, TooltipSpec, FieldSpec } from './types';
-import { escapeHtml } from '../utils/security';
+import { escapeHtml, sanitizeUrl } from '../utils/security';
 
 // -----------------------------------------------------------------------------
 // Dot-path resolver
@@ -70,8 +70,14 @@ function renderNode(node: RenderableTreeNode): string {
   const { name, attributes, children = [] } = node;
   if (!name) return children.map(renderNode).join('');
   let output = `<${name}`;
-  for (const [k, v] of Object.entries(attributes ?? {}))
-    output += ` ${k.toLowerCase()}="${escapeHtml(String(v))}"`;
+  for (const [k, v] of Object.entries(attributes ?? {})) {
+    const attr = k.toLowerCase();
+    const value =
+      name === 'a' && attr === 'href'
+        ? sanitizeUrl(v)
+        : escapeHtml(String(v));
+    output += ` ${attr}="${value}"`;
+  }
   output += '>';
   // Mirrors Markdoc's own void-element handling: we don't emit a
   // closing tag for elements that don't take content. For tooltip
@@ -169,34 +175,292 @@ function renderMarkdownSpec(
 // Auto-fallback for "no spec configured"
 // -----------------------------------------------------------------------------
 
+const AUTO_FALLBACK_MAX_ROWS = 6;
+
+const AUTO_FALLBACK_RESERVED_KEYS = new Set([
+  'alternativeSequence',
+  'begin',
+  'clinicalSignificances',
+  'color',
+  'consequenceType',
+  'description',
+  'end',
+  'evidences',
+  'hasPredictions',
+  'locations',
+  'protvistaFeatureId',
+  'residuesToHighlight',
+  'score',
+  'shape',
+  'start',
+  'tooltipContent',
+  'type',
+  'variant',
+  'variants',
+  'wildType',
+  'xrefNames',
+  'xrefs',
+]);
+
+type AutoFallbackRow = {
+  label: string;
+  value?: unknown;
+  markdown?: string;
+  variables?: Record<string, unknown>;
+};
+
+const isPresent = (value: unknown): boolean => {
+  if (value == null || value === '') return false;
+  if (Array.isArray(value)) return value.length > 0;
+  return true;
+};
+
+const isScalar = (value: unknown): value is string | number | boolean =>
+  ['string', 'number', 'boolean'].includes(typeof value);
+
+function formatNumber(value: number): string {
+  if (!Number.isFinite(value)) return String(value);
+  return Number(value.toPrecision(3)).toString();
+}
+
+function formatScore(value: unknown, kind: string): string {
+  if (typeof value !== 'number') return String(value);
+  if (!Number.isFinite(value)) return String(value);
+  if (kind === 'confidence-score') {
+    return Number.isInteger(value)
+      ? String(value)
+      : Number(value.toFixed(1)).toString();
+  }
+  return formatNumber(value);
+}
+
+function scoreLabel(kind: string): string {
+  if (kind === 'confidence-score') return 'pLDDT';
+  if (kind.startsWith('pathogenicity')) return 'Pathogenicity score';
+  return 'Score';
+}
+
+function labelFromKey(key: string): string {
+  const words = key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .split(/\s+/);
+  return words
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+function scalarValue(value: unknown): string {
+  if (typeof value === 'number') return formatNumber(value);
+  return String(value);
+}
+
+function clinicalSignificanceLabel(value: unknown): string {
+  if (isScalar(value)) return String(value);
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const label = obj.type ?? obj.label ?? obj.name;
+    if (isScalar(label)) return String(label);
+  }
+  return '';
+}
+
+function formatClinicalSignificances(value: unknown): string {
+  const values = Array.isArray(value) ? value : [value];
+  return values.map(clinicalSignificanceLabel).filter(Boolean).join(', ');
+}
+
+function firstScalar(...values: unknown[]): string {
+  for (const value of values) {
+    if (isScalar(value) && String(value) !== '') return String(value);
+  }
+  return '';
+}
+
+function xrefLabel(value: unknown): string {
+  if (isScalar(value)) return String(value);
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    return firstScalar(
+      obj.name,
+      obj.id,
+      obj.accession,
+      obj.database,
+      obj.source
+    );
+  }
+  return '';
+}
+
+function xrefUrl(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return undefined;
+  const obj = value as Record<string, unknown>;
+  return obj.url ?? obj.href;
+}
+
+function markdownLinkDestination(value: unknown): string {
+  return String(value)
+    .trim()
+    .replace(/[\s()<>]/g, (char) => encodeURIComponent(char));
+}
+
+function formatXrefs(value: unknown): Pick<
+  AutoFallbackRow,
+  'markdown' | 'variables'
+> | null {
+  const xrefs = Array.isArray(value) ? value : [value];
+  const variables: Record<string, unknown> = {};
+  const parts = xrefs
+    .map((xref, index) => {
+      const label = xrefLabel(xref);
+      if (!label) return '';
+      const textKey = `autoFallbackXref${index}Text`;
+      variables[textKey] = label;
+      const url = xrefUrl(xref);
+      if (sanitizeUrl(url)) {
+        return `[{% $${textKey} %}](${markdownLinkDestination(url)})`;
+      }
+      return `{% $${textKey} %}`;
+    })
+    .filter(Boolean);
+  if (parts.length === 0) return null;
+  return { markdown: parts.join(', '), variables };
+}
+
+function evidenceSource(value: unknown): string {
+  if (isScalar(value)) return String(value);
+  if (!value || typeof value !== 'object') return '';
+  const obj = value as Record<string, unknown>;
+  const source = obj.source;
+  if (isScalar(source)) return String(source);
+  if (source && typeof source === 'object') {
+    const sourceObj = source as Record<string, unknown>;
+    return firstScalar(sourceObj.id, sourceObj.name, sourceObj.url);
+  }
+  return firstScalar(obj.sourceId, obj.sourceName, obj.url, obj.code);
+}
+
+function formatEvidences(value: unknown): string {
+  const evidences = Array.isArray(value) ? value : [value];
+  const count = evidences.length;
+  const firstSource = evidenceSource(evidences[0]);
+  const summary = `${count} ${count === 1 ? 'evidence' : 'evidences'}`;
+  return firstSource ? `${summary}; first source: ${firstSource}` : summary;
+}
+
+function variantValue(obj: Record<string, unknown>): string {
+  const alternate = isPresent(obj.alternativeSequence)
+    ? obj.alternativeSequence
+    : obj.variant;
+  if (isPresent(obj.wildType) && isPresent(alternate)) {
+    return `${String(obj.wildType)} -> ${String(alternate)}`;
+  }
+  if (isPresent(alternate)) return String(alternate);
+  return '';
+}
+
+function buildAutoFallbackRows(
+  obj: Record<string, unknown>,
+  ctx: TooltipContext
+): AutoFallbackRow[] {
+  const rows: AutoFallbackRow[] = [];
+  const add = (label: string, value: unknown) => {
+    if (isPresent(value)) rows.push({ label, value });
+  };
+
+  add('Type', obj.type);
+  add('Description', obj.description);
+
+  const start = isPresent(obj.start) ? obj.start : obj.begin;
+  if (isPresent(start) && isPresent(obj.end)) {
+    if (String(start) === String(obj.end)) add('Position', start);
+    else {
+      add('Start', start);
+      add('End', obj.end);
+    }
+  } else {
+    add('Start', start);
+    add('End', obj.end);
+  }
+
+  add('Variant', variantValue(obj));
+  add('Consequence', obj.consequenceType);
+
+  const clinicalSignificances = formatClinicalSignificances(
+    obj.clinicalSignificances
+  );
+  add('Clinical significance', clinicalSignificances);
+
+  if (isPresent(obj.score)) {
+    rows.push({
+      label: scoreLabel(ctx.kind),
+      value: formatScore(obj.score, ctx.kind),
+    });
+  }
+
+  const xrefs = formatXrefs(obj.xrefs);
+  if (xrefs) {
+    rows.push({
+      label: 'Cross-references',
+      ...xrefs,
+    });
+  }
+
+  if (isPresent(obj.evidences)) {
+    add('Evidence', formatEvidences(obj.evidences));
+  }
+
+  for (const [key, value] of Object.entries(obj)) {
+    if (rows.length >= AUTO_FALLBACK_MAX_ROWS) break;
+    if (key.startsWith('_')) continue;
+    if (AUTO_FALLBACK_RESERVED_KEYS.has(key)) continue;
+    if (!isPresent(value) || !isScalar(value)) continue;
+    rows.push({ label: labelFromKey(key), value: scalarValue(value) });
+  }
+
+  return rows.slice(0, AUTO_FALLBACK_MAX_ROWS);
+}
+
+function renderAutoFallbackRows(
+  rows: AutoFallbackRow[],
+  ctx: TooltipContext
+): string {
+  const variables: Record<string, unknown> = {};
+  const template = rows
+    .map((row, index) => {
+      const heading = `##### ${row.label}`;
+      if (row.markdown) {
+        Object.assign(variables, row.variables);
+        return `${heading}\n\n${row.markdown}`;
+      }
+      const key = `autoFallbackValue${index}`;
+      variables[key] = row.value;
+      return `${heading}\n\n{% $${key} %}`;
+    })
+    .join('\n\n');
+  return renderMarkdownSpec({}, template, variables, ctx);
+}
+
 /**
  * When a track has no configured `dataTooltip` and no default for its
  * `kind` (or no `kind` at all), try to salvage a sensible tooltip from
- * the item's shape. Most adapters emit a feature-shaped record with
- * some subset of `{ type, description, start | begin, end }`, so we
- * synthesize a `fields` spec covering those and render via the shared
- * field path.
+ * the item's shape. The fallback stays compact, but it now includes
+ * common rich fields emitted by adapters and post-adapter transforms:
+ * variant details, significance, scores, xrefs, evidences, and any
+ * remaining top-level scalar slots.
  *
  * `start` takes precedence over `begin` (the raw UniProt API form) so
- * the "Start" label doesn't appear twice on items that have both.
- * Returns `''` when the item carries none of the recognised fields;
- * the caller skips the assignment rather than stamping an empty
- * `tooltipContent`.
+ * the "Start" label doesn't appear twice on items that have both. The
+ * synthesized content is rendered through Markdoc so fallback links and
+ * escaping follow the same path as authored markdown tooltips.
  */
-function renderAutoFallback(item: unknown): string {
+function renderAutoFallback(item: unknown, ctx: TooltipContext): string {
   if (item == null || typeof item !== 'object') return '';
   const obj = item as Record<string, unknown>;
-  const isPresent = (v: unknown): boolean => v != null && v !== '';
-  const fields: FieldSpec[] = [];
-  if (isPresent(obj.type)) fields.push({ path: 'type', label: 'Type' });
-  if (isPresent(obj.description))
-    fields.push({ path: 'description', label: 'Description' });
-  if (isPresent(obj.start)) fields.push({ path: 'start', label: 'Start' });
-  else if (isPresent(obj.begin))
-    fields.push({ path: 'begin', label: 'Start' });
-  if (isPresent(obj.end)) fields.push({ path: 'end', label: 'End' });
-  if (fields.length === 0) return '';
-  return renderFieldsSpec(item, fields);
+  const rows = buildAutoFallbackRows(obj, ctx);
+  if (rows.length === 0) return '';
+  return renderAutoFallbackRows(rows, ctx);
 }
 
 // -----------------------------------------------------------------------------
@@ -208,7 +472,7 @@ function renderAutoFallback(item: unknown): string {
  *
  * When `spec` is `undefined` (e.g. a track with no configured
  * `dataTooltip` and no per-kind default) the resolver falls back to
- * an auto-synthesized spec drawn from common feature-shaped fields —
+ * compact Markdoc content drawn from common adapted payload fields —
  * see `renderAutoFallback`. If the item has none of those fields the
  * result is still `''`. Callers attach the returned string to
  * `feature.tooltipContent`; Nightingale reads it on hover.
@@ -218,7 +482,7 @@ export function resolveTooltip(
   spec: TooltipSpec | undefined,
   ctx: TooltipContext
 ): string {
-  if (!spec) return renderAutoFallback(item);
+  if (!spec) return renderAutoFallback(item, ctx);
   switch (spec.kind) {
     case 'fields':
       return renderFieldsSpec(item, spec.fields);
