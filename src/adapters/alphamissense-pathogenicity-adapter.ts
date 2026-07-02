@@ -93,7 +93,9 @@ const parseCSV = (rawText: string): string => {
 };
 
 // Load and parse
-const loadAndParseAnnotations = async (url: string): Promise<string | undefined> => {
+const loadAndParseAnnotations = async (
+  url: string
+): Promise<string | undefined> => {
   try {
     const payload = await fetch(url);
     const rawCSV = await payload.text();

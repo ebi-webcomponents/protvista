@@ -7,7 +7,9 @@ const capitalizeFirstLetter = (word: string): string => {
   return word.charAt(0).toUpperCase() + word.slice(1);
 };
 
-const getDescription = (properties: Record<string, string | undefined>): string => {
+const getDescription = (
+  properties: Record<string, string | undefined>
+): string => {
   return Object.keys(properties).reduce(
     (accumulator, propertyKey) =>
       `${accumulator}${capitalizeFirstLetter(propertyKey)}: ${
@@ -54,7 +56,9 @@ export type StructureFeature = {
 };
 
 // Iterate over references and extract chain start and end
-export const getAllFeatureStructures = (data: UniProtEntry): StructureFeature[] => {
+export const getAllFeatureStructures = (
+  data: UniProtEntry
+): StructureFeature[] => {
   return data.dbReferences
     .filter((reference) => {
       return reference.type === 'PDB';
@@ -85,7 +89,9 @@ export const getAllFeatureStructures = (data: UniProtEntry): StructureFeature[] 
     });
 };
 
-export const mergeOverlappingIntervals = (structures: StructureFeature[]): StructureFeature[] => {
+export const mergeOverlappingIntervals = (
+  structures: StructureFeature[]
+): StructureFeature[] => {
   if (!structures || structures.length <= 0) {
     return [];
   }

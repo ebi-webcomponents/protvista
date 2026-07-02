@@ -104,6 +104,24 @@ yarn test:coverage # Generate coverage report
 - Test edge cases and error conditions.
 - Aim to maintain or improve code coverage.
 
+## Hooks and feedback loop
+
+The repository ships local git hooks that mirror the checks CI runs, so failures show up before you push rather than after. The hooks install automatically when you run `yarn install` (via the `prepare` script in `package.json`); no separate setup step is required.
+
+There are three tiers, ordered from fast to thorough:
+
+| Tier       | When it runs       | What it does                                                                                           |
+| ---------- | ------------------ | ------------------------------------------------------------------------------------------------------ |
+| Pre-commit | Every `git commit` | `lint-staged` — ESLint `--fix` and Prettier `--write` on staged files only. Sub-second on small diffs. |
+| Pre-push   | Every `git push`   | `yarn test` — lint, type check, and unit tests across the whole tree. The same checks CI runs.         |
+| CI         | Every push and PR  | The pre-push checks plus a coverage threshold check (`yarn test:coverage`).                            |
+
+The hooks are not gatekeepers — CI is. If a hook is incorrectly blocking a legitimate push (mid-rebase, work-in-progress on a side branch, etc.), use `git push --no-verify` to bypass. CI will still run the full set when the change reaches a PR.
+
+If a hook is gating a legitimate change for an unclear reason, run the underlying command directly to see the full output: `yarn lint-staged` for pre-commit, `yarn test` for pre-push. The hooks themselves are short shell scripts in `.husky/` — open them if you need to inspect what's running.
+
+Coverage thresholds live in `vite.config.mjs` under `test.coverage.thresholds`. They follow a ratchet pattern: thresholds are seeded at the current baseline so coverage can only go up. If a refactor genuinely needs to drop coverage (e.g., removing tested code), update the thresholds in the same change.
+
 ## Code Style
 
 - ESLint and Prettier are used for formatting (automated in CI).

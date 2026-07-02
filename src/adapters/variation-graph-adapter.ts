@@ -1,4 +1,7 @@
-import { ProteinsAPIVariation, Variant } from '@nightingale-elements/nightingale-variation';
+import {
+  ProteinsAPIVariation,
+  Variant,
+} from '@nightingale-elements/nightingale-variation';
 
 const transformData = (data: ProteinsAPIVariation) => {
   if (data.sequence && data.features.length) {

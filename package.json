@@ -16,12 +16,23 @@
     "test:unit": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:coverage:ratchet": "vitest run --coverage --coverage.thresholds.autoUpdate",
     "test": "npm-run-all --continue-on-error test:lint test:types test:unit",
     "bench": "node bench/run.mjs",
     "bench:bundle": "yarn build && node bench/bundle-size.mjs",
     "bench:lighthouse": "yarn build:demo && lhci autorun --config=bench/lighthouserc.cjs",
     "bench:summary": "node bench/summarize.mjs",
-    "clear-cdn-cache": "./scripts/clearCDNcaches.sh"
+    "clear-cdn-cache": "./scripts/clearCDNcaches.sh",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{md,json,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "main": "dist/protvista-uniprot.js",
   "module": "dist/protvista-uniprot.mjs",
@@ -66,8 +77,11 @@
     "eslint-plugin-no-unsanitized": "4.1.5",
     "eslint-plugin-prettier": "5.5.5",
     "globals": "17.5.0",
+    "husky": "9.1.7",
+    "lint-staged": "15.5.2",
     "jsdom": "29.1.0",
     "npm-run-all": "4.1.5",
+    "prettier": "3.8.3",
     "rollup-plugin-visualizer": "7.0.1",
     "svg-inline-loader": "0.8.2",
     "typescript": "6.0.3",

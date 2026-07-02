@@ -7,7 +7,9 @@ import {
 } from '../filter-config';
 import { TransformedVariant } from '../adapters/variation-adapter';
 
-const makeVariant = (overrides: Partial<TransformedVariant>): TransformedVariant =>
+const makeVariant = (
+  overrides: Partial<TransformedVariant>
+): TransformedVariant =>
   ({
     accession: 'A',
     variant: 'A',
@@ -25,7 +27,7 @@ const makeVariant = (overrides: Partial<TransformedVariant>): TransformedVariant
     sourceType: 'uniprot',
     wildType: 'A',
     ...overrides,
-  } as TransformedVariant);
+  }) as TransformedVariant;
 
 const transformedVariantPositions: VariantsForFilter = [
   {

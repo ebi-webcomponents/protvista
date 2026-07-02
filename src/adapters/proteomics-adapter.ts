@@ -3,7 +3,12 @@ import formatTooltip, { TooltipFeature } from '../tooltips/feature-tooltip';
 
 type ProteomicsFeature = TooltipFeature & {
   unique: boolean;
-  ptms?: { name: string; position: number; sources: string[]; dbReferences: { id: string; properties: Record<string, string> }[] }[];
+  ptms?: {
+    name: string;
+    position: number;
+    sources: string[];
+    dbReferences: { id: string; properties: Record<string, string> }[];
+  }[];
 };
 
 type ProteomicsData = {
@@ -11,7 +16,10 @@ type ProteomicsData = {
   taxid: number;
 };
 
-const proteomicsTrackProperties = (feature: ProteomicsFeature, taxId: number) => {
+const proteomicsTrackProperties = (
+  feature: ProteomicsFeature,
+  taxId: number
+) => {
   return {
     category: 'PROTEOMICS',
     type: feature.unique ? 'unique' : 'non_unique',

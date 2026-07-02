@@ -59,7 +59,7 @@ const aaToMethylated = {
   D: 'Methyl-aspartic acid',
   E: 'Methyl-glutamic acid',
   S: 'Methylserine',
-  T: 'Methyl-threonine'
+  T: 'Methyl-threonine',
 };
 
 export const phosphorylate = (aa: string) => {

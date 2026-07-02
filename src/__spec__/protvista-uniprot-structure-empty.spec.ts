@@ -6,8 +6,7 @@ vi.mock('@nightingale-elements/nightingale-structure', () => {
 });
 
 vi.mock('../utils', async () => {
-  const actual =
-    await vi.importActual<typeof import('../utils')>('../utils');
+  const actual = await vi.importActual<typeof import('../utils')>('../utils');
   return {
     ...actual,
     fetchAll: vi.fn(),
@@ -74,15 +73,14 @@ describe('<protvista-uniprot-structure> structures-loaded event', () => {
     await waitForEventOrFlush(el, listener);
 
     expect(listener).toHaveBeenCalledTimes(1);
-    const event = listener.mock
-      .calls[0][0] as CustomEvent<ReadonlyArray<ProcessedStructureData>>;
+    const event = listener.mock.calls[0][0] as CustomEvent<
+      ReadonlyArray<ProcessedStructureData>
+    >;
     expect(Array.isArray(event.detail)).toBe(true);
     expect(event.detail).toHaveLength(0);
     expect(el.data).toEqual([]);
     expect(el.selectedId).toBeUndefined();
-    expect(
-      (el as unknown as { loading?: boolean }).loading
-    ).toBe(false);
+    expect((el as unknown as { loading?: boolean }).loading).toBe(false);
   });
 
   it('dispatches structures-loaded exactly once for a non-empty payload', async () => {
@@ -115,8 +113,9 @@ describe('<protvista-uniprot-structure> structures-loaded event', () => {
     await waitForEventOrFlush(el, listener);
 
     expect(listener).toHaveBeenCalledTimes(1);
-    const event = listener.mock
-      .calls[0][0] as CustomEvent<ReadonlyArray<ProcessedStructureData>>;
+    const event = listener.mock.calls[0][0] as CustomEvent<
+      ReadonlyArray<ProcessedStructureData>
+    >;
     expect(event.detail).toHaveLength(1);
     expect(event.detail[0]).toMatchObject({ id: '1ABC', source: 'PDB' });
     expect(el.selectedId).toBe('1ABC');

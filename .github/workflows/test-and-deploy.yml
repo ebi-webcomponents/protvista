@@ -18,8 +18,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "24"
-          cache: "yarn"
+          node-version: '24'
+          cache: 'yarn'
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -33,6 +33,9 @@ jobs:
       - name: Unit tests
         run: yarn test:unit
 
+      - name: Coverage threshold
+        run: yarn test:coverage
+
   build:
     name: Build
     needs: test
@@ -42,8 +45,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "24"
-          cache: "yarn"
+          node-version: '24'
+          cache: 'yarn'
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile

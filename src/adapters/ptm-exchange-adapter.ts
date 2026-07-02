@@ -102,7 +102,9 @@ const convertPtmExchangePtms = (
       color:
         (confidenceScore !== null &&
           confidenceScore in ConfidenceScoreColors &&
-          ConfidenceScoreColors[confidenceScore as keyof typeof ConfidenceScoreColors]) ||
+          ConfidenceScoreColors[
+            confidenceScore as keyof typeof ConfidenceScoreColors
+          ]) ||
         'black',
     };
   });
@@ -142,10 +144,11 @@ const transformData = (data: ProteomicsPtm) => {
         }
       }
 
-      return Object.entries(absolutePositionToPtms).map(
-        ([absolutePosition, { ptms, aa }]) =>
+      return Object.entries(absolutePositionToPtms)
+        .map(([absolutePosition, { ptms, aa }]) =>
           convertPtmExchangePtms(ptms, aa, +absolutePosition)
-      ).flat();
+        )
+        .flat();
     }
   }
   return [];

@@ -18,7 +18,7 @@ const taxIdToPeptideAtlasBuildData = {
   '559292_phosphorylation': { build: '586', organism: 'Yeast' },
   '4577_phosphorylation': { build: '591', organism: 'Maize' },
   '185431_phosphorylation': { build: '590', organism: 'T Brucei' },
-  '508771_phosphorylation': { build: '601', organism : 'T Gondii'},
+  '508771_phosphorylation': { build: '601', organism: 'T Gondii' },
   '9606_sumoylation': { build: '596', organism: 'Human' },
   '9606_ubiquitinylation': { build: '604', organism: 'Human' },
   '9606_acetylation': { build: '0', organism: 'Human' }, // Needs update when the build with acetylation data is ready in PeptideAtlas
@@ -118,9 +118,9 @@ export const getEvidenceFromCodes = (evidenceList: Evidence[] | undefined) => {
           .map((ev) => {
             const ecoMatch = ecoMap.find((eco) => eco.name === ev.code);
             if (!ecoMatch) return ``;
-            return `<li title='${escapeHtml(ecoMatch.description)}'>${
-              escapeHtml(ecoMatch.shortDescription)
-            }:&nbsp;${ev.source ? formatSource(ev.source) : ''}</li>`;
+            return `<li title='${escapeHtml(ecoMatch.description)}'>${escapeHtml(
+              ecoMatch.shortDescription
+            )}:&nbsp;${ev.source ? formatSource(ev.source) : ''}</li>`;
           })
           .join('')}</ul>
       `;
@@ -139,7 +139,10 @@ export const formatXrefs = (xrefs: Xref[]) => {
     .join('')}</ul>`;
 };
 
-const getPTMEvidence = (ptms: PTMHighlight[] | undefined, taxId: string | undefined) => {
+const getPTMEvidence = (
+  ptms: PTMHighlight[] | undefined,
+  taxId: string | undefined
+) => {
   if (!ptms) return ``;
   const ids = ptms.flatMap(({ dbReferences }) =>
     dbReferences.map((ref) => ref.id)
@@ -178,7 +181,9 @@ const getPTMEvidence = (ptms: PTMHighlight[] | undefined, taxId: string | undefi
           if (
             taxId &&
             modificationName &&
-            taxIdToPeptideAtlasBuildData[buildKey as keyof typeof taxIdToPeptideAtlasBuildData]
+            taxIdToPeptideAtlasBuildData[
+              buildKey as keyof typeof taxIdToPeptideAtlasBuildData
+            ]
           ) {
             return `&nbsp;<a href="https://db.systemsbiology.net/sbeams/cgi/PeptideAtlas/buildDetails?atlas_build_id=${encodeURIComponent(taxIdToPeptideAtlasBuildData[buildKey as keyof typeof taxIdToPeptideAtlasBuildData].build)}" target="_blank">PeptideAtlas</a>`;
           }
@@ -211,7 +216,10 @@ const formatPTMPeptidoform = (peptide: string, ptms: PTMHighlight[]) => {
 
 const formatProformaWithLink = (proforma = '') => {
   return proforma.replace(/\[([^\]]+)\]/g, (_, modification) => {
-    const id = unimodIdMapping[modification.toLowerCase() as keyof typeof unimodIdMapping];
+    const id =
+      unimodIdMapping[
+        modification.toLowerCase() as keyof typeof unimodIdMapping
+      ];
     if (!id) {
       console.error('Unimod ID not found for modification:', modification);
       return `[${modification}]`;
@@ -220,7 +228,10 @@ const formatProformaWithLink = (proforma = '') => {
   });
 };
 
-const findModifiedResidueName = (feature: TooltipFeature, ptm: PTMHighlight) => {
+const findModifiedResidueName = (
+  feature: TooltipFeature,
+  ptm: PTMHighlight
+) => {
   const { peptide, start: peptideStart } = feature;
   const proteinLocation = Number(peptideStart) + ptm.position - 1;
   const modifiedResidue = (peptide ?? '').charAt(ptm.position - 1); // CharAt index starts from 0
@@ -297,10 +308,12 @@ const formatTooltip = (feature: TooltipFeature, taxId?: string) => {
         }
         ${
           feature.peptide && feature.type === 'PROTEOMICS_PTM'
-            ? `<h5 data-article-id="mod_res_large_scale#what-is-the-goldsilverbronze-criterion">Peptidoform</h5><p>${escapeHtml(formatPTMPeptidoform(
-                feature.peptide,
-                feature.residuesToHighlight ?? []
-              ))}</p>`
+            ? `<h5 data-article-id="mod_res_large_scale#what-is-the-goldsilverbronze-criterion">Peptidoform</h5><p>${escapeHtml(
+                formatPTMPeptidoform(
+                  feature.peptide,
+                  feature.residuesToHighlight ?? []
+                )
+              )}</p>`
             : ``
         }
         ${
@@ -323,16 +336,17 @@ const formatTooltip = (feature: TooltipFeature, taxId?: string) => {
           feature.residuesToHighlight &&
           dataset &&
           !dataset.includes('PXD012174') // Exclude 'Glue project' dataset as it is from PRIDE and it doesn't have PTM statistical attributes
-            ? `<hr /><h5 class="margin-bottom" data-article-id="mod_res_large_scale#what-is-the-goldsilverbronze-criterion">PTM statistical attributes</h5><ul class="no-bullet">${(feature.residuesToHighlight ?? [])
+            ? `<hr /><h5 class="margin-bottom" data-article-id="mod_res_large_scale#what-is-the-goldsilverbronze-criterion">PTM statistical attributes</h5><ul class="no-bullet">${(
+                feature.residuesToHighlight ?? []
+              )
                 .map((ptm) =>
                   ptm.dbReferences
                     .map(
                       (ref) =>
                         `<li><b>${escapeHtml(ref.id)}</b></li>
-                        <li class="text-indent-1"><b>${escapeHtml(findModifiedResidueName(
-                          feature,
-                          ptm
-                        ))}</b></li>
+                        <li class="text-indent-1"><b>${escapeHtml(
+                          findModifiedResidueName(feature, ptm)
+                        )}</b></li>
                         ${
                           ref.properties['Pubmed ID']
                             ? `<li class="text-indent-2">PubMed ID: <a href="https://europepmc.org/article/MED/${encodeURIComponent(ref.properties['Pubmed ID'])}" target="_blank">${escapeHtml(ref.properties['Pubmed ID'])}</a></li>`
