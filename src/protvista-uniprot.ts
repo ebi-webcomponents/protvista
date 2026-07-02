@@ -56,6 +56,7 @@ import { renderingToAttrs } from './renderer/render-helpers';
 import loaderIcon from './icons/spinner.svg';
 import protvistaStyles from './styles/protvista-styles';
 import loaderStyles from './styles/loader-styles';
+import { CSS_PREFIX } from './styles/css-prefix';
 
 // Performance marks emitted at three lifecycle transitions:
 //   protvista:script-start    component connectedCallback runs
@@ -376,7 +377,9 @@ class ProtvistaUniprot extends LitElement {
   async _loadDataInComponents() {
     await frame();
     Object.entries(this.data).forEach(([id, data]) => {
-      const element = this.findById<NightingaleTrackCanvas>(`track-${id}`);
+      const element = this.findById<NightingaleTrackCanvas>(
+        `${CSS_PREFIX}-track-${id}`
+      );
       // set data if it hasn't changed
       if (element && element.data !== data) {
         element.data = data;
@@ -397,13 +400,15 @@ class ProtvistaUniprot extends LitElement {
         (data.length > 0 || data.variants?.length)
       ) {
         // Make group element visible
-        const groupElt = this.findById<HTMLElement>(`group_${currentGroup.id}`);
+        const groupElt = this.findById<HTMLElement>(
+          `${CSS_PREFIX}-group_${currentGroup.id}`
+        );
         if (groupElt) {
           groupElt.style.display = 'flex';
         }
         for (const track of currentGroup.tracks) {
           const elementTrack = this.findById<NightingaleTrackCanvas>(
-            `track-${id}-${track.id}`
+            `${CSS_PREFIX}-track-${id}-${track.id}`
           );
           if (elementTrack) {
             elementTrack.data = this.data[`${id}-${track.id}`];
@@ -826,9 +831,9 @@ class ProtvistaUniprot extends LitElement {
       <nightingale-manager
         reflected-attributes="length display-start display-end highlight activefilters filters"
       >
-        <div class="nav-container">
-          <div class="nav-track-label"></div>
-          <div class="track-content">
+        <div class="${CSS_PREFIX}-nav-container">
+          <div class="${CSS_PREFIX}-nav-track-label"></div>
+          <div class="${CSS_PREFIX}-track-content">
             <nightingale-navigation
               length="${this.sequence.length}"
               height="40"
@@ -853,9 +858,9 @@ class ProtvistaUniprot extends LitElement {
           // group.color` fallback chain any more.
           const groupAttrs = renderingToAttrs(group.rendering);
           return html`
-            <div class="group" id="group_${group.id}">
+            <div class="${CSS_PREFIX}-group" id="${CSS_PREFIX}-group_${group.id}">
               <div
-                class="group-label"
+                class="${CSS_PREFIX}-group-label"
                 data-group-toggle="${group.id}"
                 title="${group.description ?? ''}"
                 @click="${this.handleGroupClick}"
@@ -867,10 +872,10 @@ class ProtvistaUniprot extends LitElement {
                   : group.label}
               </div>
               <div
-                data-id="group_${group.id}"
-                class="aggregate-track-content track-content ${group.component ===
+                data-id="${CSS_PREFIX}-group_${group.id}"
+                class="${CSS_PREFIX}-aggregate-track-content ${CSS_PREFIX}-track-content ${group.component ===
                 'nightingale-colored-sequence'
-                  ? 'track-content__coloured-sequence'
+                  ? `${CSS_PREFIX}-track-content__coloured-sequence`
                   : ''}"
                 .style="${this.openGroups.includes(group.id)
                   ? 'opacity:0'
@@ -905,8 +910,14 @@ class ProtvistaUniprot extends LitElement {
                 }
                 const attrs = renderingToAttrs(track.rendering);
                 return html`
-                  <div class="group__track" id="track_${track.id}">
-                    <div class="track-label" title="${track.description ?? ''}">
+                  <div
+                    class="${CSS_PREFIX}-group__track"
+                    id="${CSS_PREFIX}-track_${track.id}"
+                  >
+                    <div
+                      class="${CSS_PREFIX}-track-label"
+                      title="${track.description ?? ''}"
+                    >
                       ${(track.filterUI === 'nightingale-filter' &&
                         this.getFilterComponent(`${group.id}-${track.id}`)) ||
                       (track.labelUrl &&
@@ -926,12 +937,11 @@ class ProtvistaUniprot extends LitElement {
                         : track.label)}
                     </div>
                     <div
-                      class="track-content"
-                      class="track-content ${group.component ===
+                      class="${CSS_PREFIX}-track-content ${group.component ===
                       'nightingale-colored-sequence'
-                        ? 'track-content__coloured-sequence'
+                        ? `${CSS_PREFIX}-track-content__coloured-sequence`
                         : ''}"
-                      data-id="track_${track.id}"
+                      data-id="${CSS_PREFIX}-track_${track.id}"
                     >
                       ${this.getTrack(
                         track.component,
@@ -949,9 +959,9 @@ class ProtvistaUniprot extends LitElement {
             })}
           `;
         })}
-        <div class="nav-container">
-          <div class="credits"></div>
-          <div class="track-content">
+        <div class="${CSS_PREFIX}-nav-container">
+          <div class="${CSS_PREFIX}-credits"></div>
+          <div class="${CSS_PREFIX}-track-content">
             <nightingale-sequence
               length="${this.sequence.length}"
               height="40"
@@ -1051,7 +1061,7 @@ class ProtvistaUniprot extends LitElement {
     return html`
       <nightingale-filter
         style="minWidth: 20%"
-        for="track-${forId}"
+        for="${CSS_PREFIX}-track-${forId}"
         @change="${this.handleFilterClick}"
       ></nightingale-filter>
     `;
@@ -1079,7 +1089,7 @@ class ProtvistaUniprot extends LitElement {
             shape="${shape}"
             display-start="${this.displayCoordinates?.start}"
             display-end="${this.displayCoordinates?.end}"
-            id="track-${id}"
+            id="${CSS_PREFIX}-track-${id}"
             highlight-event="onclick"
             use-ctrl-to-zoom
           >
@@ -1092,7 +1102,7 @@ class ProtvistaUniprot extends LitElement {
             height="500"
             display-start="${this.displayCoordinates?.start}"
             display-end="${this.displayCoordinates?.end}"
-            id="track-${id}"
+            id="${CSS_PREFIX}-track-${id}"
             highlight-event="onclick"
             use-ctrl-to-zoom
           >
@@ -1105,7 +1115,7 @@ class ProtvistaUniprot extends LitElement {
             height="50"
             display-start="${this.displayCoordinates?.start}"
             display-end="${this.displayCoordinates?.end}"
-            id="track-${id}"
+            id="${CSS_PREFIX}-track-${id}"
             show-label-name
             highlight-on-click
             use-ctrl-to-zoom
@@ -1118,7 +1128,7 @@ class ProtvistaUniprot extends LitElement {
             length="${this.sequence?.length}"
             display-start="${this.displayCoordinates?.start}"
             display-end="${this.displayCoordinates?.end}"
-            id="track-${id}"
+            id="${CSS_PREFIX}-track-${id}"
             scale="${scale}"
             color-range="${colorRange}"
             height="13"
@@ -1131,7 +1141,7 @@ class ProtvistaUniprot extends LitElement {
       case 'nightingale-sequence-heatmap':
         return html`
           <nightingale-sequence-heatmap
-            id="track-${id}"
+            id="${CSS_PREFIX}-track-${id}"
             heatmap-id="seq-heatmap"
             length="${this.sequence?.length}"
             display-start="${this.displayCoordinates?.start}"
