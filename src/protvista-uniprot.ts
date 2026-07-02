@@ -932,4 +932,3 @@ class ProtvistaUniprot extends LitElement {
 }
 
 export default ProtvistaUniprot;
-// touched
