@@ -86,7 +86,7 @@
     "svg-inline-loader": "0.8.2",
     "typescript": "6.0.3",
     "typescript-eslint": "8.59.1",
-    "vite": "8.0.10",
+    "vite": "8.0.16",
     "vite-plugin-dts": "4.5.4",
     "vite-plugin-env-compatible": "2.0.1",
     "vite-plugin-html": "3.2.2",
