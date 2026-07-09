@@ -302,7 +302,7 @@ function xrefUrl(value: unknown): unknown {
 function markdownLinkDestination(value: unknown): string {
   return String(value)
     .trim()
-    .replace(/[\s()<>]/g, (char) => encodeURIComponent(char));
+    .replace(/[\s(){}<>]/g, (char) => encodeURIComponent(char));
 }
 
 function formatXrefs(value: unknown): Pick<

@@ -171,6 +171,27 @@ describe('resolveTooltip — no spec (auto-fallback)', () => {
     expect(html.textContent).toContain('Plain');
   });
 
+  it('escapes Markdoc template delimiters in generated xref link destinations', () => {
+    const out = resolveTooltip(
+      {
+        type: 'BINDING',
+        xrefs: [
+          {
+            name: 'Curly',
+            url: 'https://example.org/{%20safe%20}',
+          },
+        ],
+      },
+      undefined,
+      ctx
+    );
+
+    expect(out).toBe(
+      '<h5>Type</h5><p>BINDING</p>' +
+        '<h5>Cross-references</h5><p><a href="https://example.org/%7B%20safe%20%7D">Curly</a></p>'
+    );
+  });
+
   it('uses remaining slots for top-level scalar fields such as calculated values', () => {
     const out = resolveTooltip(
       {
