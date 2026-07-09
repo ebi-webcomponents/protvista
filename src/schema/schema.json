@@ -36,9 +36,14 @@
     },
     "defaults": { "$ref": "#/$defs/ConfigDefaults" },
     "groups": {
-      "description": "Ordered list of groups displayed in the viewer.",
+      "description": "Ordered list of top-level entries: each is either a group of tracks (has `tracks`) or a standalone track (has `data`, no `tracks`). Mixed freely; declaration order preserved.",
       "type": "array",
-      "items": { "$ref": "#/$defs/GroupConfig" }
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/GroupConfig" },
+          { "$ref": "#/$defs/TrackConfig" }
+        ]
+      }
     }
   },
 

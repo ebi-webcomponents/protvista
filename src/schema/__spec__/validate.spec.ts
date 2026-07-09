@@ -275,6 +275,54 @@ describe('validateConfig — missing track renderer', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// Top-level standalone tracks
+// ─────────────────────────────────────────────────────────────
+
+describe('validateConfig — standalone top-level tracks', () => {
+  it('accepts a single standalone track with zero groups', () => {
+    const cfg: ProtvistaViewerConfig = {
+      sources: { features: 'https://example.org/features' },
+      groups: [{ id: 'signal_peptide', kind: 'features', data: 'features' }],
+    };
+    const result = validateConfig(cfg, freshRegistry());
+    expect(result.valid).toBe(true);
+    expect(result.issues).toEqual([]);
+  });
+
+  it('accepts a config mixing standalone tracks and groups', () => {
+    const cfg: ProtvistaViewerConfig = {
+      sources: { features: 'https://example.org/features' },
+      groups: [
+        { id: 'signal_peptide', kind: 'features', filter: 'SIGNAL', data: 'features' },
+        {
+          id: 'DOMAINS',
+          tracks: [{ id: 'domain', kind: 'features', filter: 'DOMAIN', data: 'features' }],
+        },
+        { id: 'confidence', kind: 'features', data: 'features' },
+      ],
+    };
+    const result = validateConfig(cfg, freshRegistry());
+    expect(result.valid).toBe(true);
+    expect(result.issues).toEqual([]);
+  });
+
+  it('flags a standalone track with no kind and no component, same as a grouped track', () => {
+    const cfg: ProtvistaViewerConfig = {
+      groups: [
+        { id: 'orphan', data: { url: 'https://example.org/x', adapter: 'uniprot-features-json' } },
+      ],
+    };
+    const result = validateConfig(cfg, freshRegistry());
+    const issue = issueByCode(result.issues, 'missing-track-renderer');
+    expect(issue).toBeDefined();
+    // Standalone track has no parent group, so the path is the bare id
+    // (no `group/track` prefix).
+    expect(issue!.path).toBe('orphan');
+    expect(issue!.message).toContain("'features'");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
 // Semantic: from: inline without inlineData
 // ─────────────────────────────────────────────────────────────
 

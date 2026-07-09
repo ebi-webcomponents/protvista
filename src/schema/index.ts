@@ -15,6 +15,7 @@ export type {
   ConfigDefaults,
   GroupConfig,
   TrackConfig,
+  TopLevelEntry,
   DataSourceDescriptor,
   RenderingOptions,
   ColorScaleConfig,
@@ -29,6 +30,9 @@ export type {
   SemanticKindDefinition,
   AdapterFunction,
 } from './types';
+
+// ── Top-level-entry discriminator ────────────────────────────
+export { isGroupConfig } from './discriminate';
 
 // ── Registry ─────────────────────────────────────────────────
 export { createRegistry } from './registry';

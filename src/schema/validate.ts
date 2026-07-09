@@ -46,6 +46,7 @@ import type {
   DataSourceDescriptor,
   ColorScaleConfig,
 } from './types';
+import { isGroupConfig } from './discriminate';
 import type { Registry } from './registry';
 import type {
   ValidationIssue,
@@ -229,9 +230,12 @@ function containsAccessionPlaceholder(c: ProtvistaViewerConfig): boolean {
   }
   // Check `defaults.labelUrl`.
   if (c.defaults?.labelUrl?.includes(ACCESSION_PLACEHOLDER)) return true;
-  // Walk groups → tracks → data descriptors.
-  for (const group of c.groups) {
-    for (const track of group.tracks) {
+  // Walk every top-level entry → its track(s) → data descriptors. A
+  // standalone-track entry is a single track; a group expands to its
+  // child tracks.
+  for (const entry of c.groups) {
+    const tracks = isGroupConfig(entry) ? entry.tracks : [entry];
+    for (const track of tracks) {
       if (track.labelUrl?.includes(ACCESSION_PLACEHOLDER)) return true;
       if (stringFieldIncludes(track.data, ACCESSION_PLACEHOLDER)) return true;
     }
@@ -296,7 +300,15 @@ function checkGroups(
   issues: ValidationIssue[]
 ): void {
   const sourceKeys = new Set(Object.keys(c.sources ?? {}));
-  for (const group of c.groups) {
+  // Each top-level entry is either a group (its child tracks are
+  // checked under the group's component) or a standalone track (checked
+  // with no parent group — it must carry its own rendering path).
+  for (const entry of c.groups) {
+    if (!isGroupConfig(entry)) {
+      checkTrack(undefined, entry, sourceKeys, registry, issues);
+      continue;
+    }
+    const group = entry;
     if (group.component && !KNOWN_COMPONENTS.has(group.component)) {
       issues.push({
         path: `${group.id}`,
@@ -311,13 +323,15 @@ function checkGroups(
 }
 
 function checkTrack(
-  group: GroupConfig,
+  group: GroupConfig | undefined,
   track: TrackConfig,
   sourceKeys: Set<string>,
   registry: Registry,
   issues: ValidationIssue[]
 ): void {
-  const trackPath = `${group.id}/${track.id}`;
+  // Standalone tracks have no parent group, so their path is just the
+  // track id; grouped tracks keep the `group/track` form.
+  const trackPath = group ? `${group.id}/${track.id}` : track.id;
 
   // Unknown component on track.
   if (track.component && !KNOWN_COMPONENTS.has(track.component)) {
@@ -338,8 +352,11 @@ function checkTrack(
   }
 
   // Track has no rendering path: no `kind`, no track-level
-  // `component`, and no parent-group `component` to inherit.
-  if (!track.kind && !track.component && !group.component) {
+  // `component`, and no parent-group `component` to inherit. A
+  // standalone track (no parent group) has no group component to fall
+  // back on, so this check fires for it the same way it does for a
+  // grouped track whose group also lacks a component.
+  if (!track.kind && !track.component && !group?.component) {
     issues.push({
       path: trackPath,
       message: `Track ${trackPath} has no 'kind' or 'component'. Set a semantic 'kind' (e.g. 'features') or provide 'component' explicitly.`,
@@ -351,7 +368,7 @@ function checkTrack(
   // covers the inheritance case (group's colorScale flows through
   // when the track doesn't override), so a separate group-only branch
   // would be redundant.
-  const effectiveRendering = track.rendering ?? group.rendering;
+  const effectiveRendering = track.rendering ?? group?.rendering;
   if (effectiveRendering?.colorScale) {
     checkColorScale(trackPath, effectiveRendering.colorScale, registry, issues);
   }

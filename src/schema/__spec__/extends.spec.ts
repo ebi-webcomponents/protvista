@@ -21,7 +21,21 @@ import { describe, it, expect } from 'vitest';
 import { mergeExtends } from '../extends';
 import { loadConfig } from '../load';
 import { ConfigValidationError } from '../errors';
-import type { ProtvistaViewerConfig } from '../types';
+import type {
+  GroupConfig,
+  ProtvistaViewerConfig,
+  TopLevelEntry,
+} from '../types';
+import { isGroupConfig } from '../discriminate';
+
+// Narrow a merged top-level entry to a group for `.tracks` assertions,
+// failing loudly if a test accidentally produced a standalone track.
+const asGroup = (entry: TopLevelEntry | undefined): GroupConfig => {
+  if (!entry || !isGroupConfig(entry)) {
+    throw new Error(`expected a group entry, got ${entry?.id ?? 'undefined'}`);
+  }
+  return entry;
+};
 
 // ─────────────────────────────────────────────────────────────
 // Fixtures
@@ -120,7 +134,7 @@ describe('mergeExtends — basic merge', () => {
     expect(out.groups[0].id).toBe('DOMAINS');
     expect(out.groups[0].label).toBe('Overridden label');
     // Base tracks survive when child provides empty tracks
-    expect(out.groups[0].tracks.map((t) => t.id)).toEqual([
+    expect(asGroup(out.groups[0]).tracks.map((t) => t.id)).toEqual([
       'domain',
       'region',
     ]);
@@ -170,7 +184,7 @@ describe('mergeExtends — basic merge', () => {
       ],
     };
     const out = await mergeExtends(child, { resolver: { '@base': base() } });
-    const dom = out.groups.find((c) => c.id === 'DOMAINS')!;
+    const dom = asGroup(out.groups.find((c) => c.id === 'DOMAINS'));
     expect(dom.tracks.map((t) => t.id)).toEqual(['domain', 'region', 'motif']);
     expect(dom.tracks.find((t) => t.id === 'region')?.label).toBe(
       'Renamed region'
@@ -532,5 +546,115 @@ sources:
         }
       )
     ).rejects.toThrow(ConfigValidationError);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Mixed-shape top-level entries (groups ↔ standalone tracks)
+// ─────────────────────────────────────────────────────────────
+
+describe('mergeExtends — mixed group / standalone-track entries', () => {
+  it('a child standalone track replaces a base group of the same id wholesale', async () => {
+    // base() ships DOMAINS as a group with two tracks. The child reuses
+    // the id `DOMAINS` as a standalone track — a shape flip, so child
+    // wins wholesale (no field merge that would smuggle the base
+    // `tracks` array onto a track-shaped entry).
+    const child: ProtvistaViewerConfig = {
+      extends: '@base',
+      groups: [{ id: 'DOMAINS', kind: 'features', data: 'features' }],
+    };
+    const out = await mergeExtends(child, { resolver: { '@base': base() } });
+    const domains = out.groups.find((c) => c.id === 'DOMAINS');
+    expect(domains).toBeDefined();
+    expect(isGroupConfig(domains!)).toBe(false);
+    // The base group's `tracks` array is gone — it was replaced, not merged.
+    expect('tracks' in domains!).toBe(false);
+    expect((domains as { kind?: string }).kind).toBe('features');
+    // Order preserved: DOMAINS still first, VARIATION still second.
+    expect(out.groups.map((c) => c.id)).toEqual(['DOMAINS', 'VARIATION']);
+  });
+
+  it('two standalone tracks of the same id are field-merged (child wins)', async () => {
+    const baseWithStandalone = (): ProtvistaViewerConfig => ({
+      sources: { features: 'https://example.org/features' },
+      groups: [
+        { id: 'signal', kind: 'features', label: 'Base', data: 'features' },
+      ],
+    });
+    const child: ProtvistaViewerConfig = {
+      extends: '@base',
+      groups: [{ id: 'signal', label: 'Child', data: 'features' }],
+    };
+    const out = await mergeExtends(child, {
+      resolver: { '@base': baseWithStandalone() },
+    });
+    const signal = out.groups.find((c) => c.id === 'signal')!;
+    expect(isGroupConfig(signal)).toBe(false);
+    expect(signal.label).toBe('Child');
+    // `kind` from the base survives because the two track entries are
+    // field-merged.
+    expect((signal as { kind?: string }).kind).toBe('features');
+  });
+
+  it('a new standalone track is appended at the end', async () => {
+    const child: ProtvistaViewerConfig = {
+      extends: '@base',
+      groups: [{ id: 'confidence', kind: 'features', data: 'features' }],
+    };
+    const out = await mergeExtends(child, { resolver: { '@base': base() } });
+    expect(out.groups.map((c) => c.id)).toEqual([
+      'DOMAINS',
+      'VARIATION',
+      'confidence',
+    ]);
+    expect(isGroupConfig(out.groups[2])).toBe(false);
+  });
+
+  it('a child overriding a group scalar without restating `tracks:` keeps the base tracks', async () => {
+    // Regression: a `tracks:`-less child entry is a shape-SILENT partial
+    // override, not a standalone track. It must field-merge onto the
+    // base group (label overridden, base tracks preserved) — NOT flip the
+    // group to a track and drop `[domain, region]`.
+    const child: ProtvistaViewerConfig = {
+      extends: '@base',
+      groups: [{ id: 'DOMAINS', label: 'Renamed domains' } as TopLevelEntry],
+    };
+    const out = await mergeExtends(child, { resolver: { '@base': base() } });
+    const domains = out.groups.find((c) => c.id === 'DOMAINS');
+    expect(domains).toBeDefined();
+    // Still a group — the shape was inherited from the base, not flipped.
+    expect(isGroupConfig(domains!)).toBe(true);
+    expect(domains!.label).toBe('Renamed domains');
+    // The base group's tracks survive the scalar-only override.
+    expect(asGroup(domains).tracks.map((t) => t.id)).toEqual([
+      'domain',
+      'region',
+    ]);
+    // Order preserved.
+    expect(out.groups.map((c) => c.id)).toEqual(['DOMAINS', 'VARIATION']);
+  });
+
+  it('a child overriding a standalone-track scalar without `data:` keeps the base data', async () => {
+    // Symmetric to the group case: a shape-silent child field-merges onto
+    // a base standalone track, preserving its `data` / `kind`.
+    const baseWithStandalone = (): ProtvistaViewerConfig => ({
+      sources: { features: 'https://example.org/features' },
+      groups: [
+        { id: 'signal', kind: 'features', label: 'Base', data: 'features' },
+      ],
+    });
+    const child: ProtvistaViewerConfig = {
+      extends: '@base',
+      groups: [{ id: 'signal', label: 'Renamed signal' } as TopLevelEntry],
+    };
+    const out = await mergeExtends(child, {
+      resolver: { '@base': baseWithStandalone() },
+    });
+    const signal = out.groups.find((c) => c.id === 'signal')!;
+    expect(isGroupConfig(signal)).toBe(false);
+    expect(signal.label).toBe('Renamed signal');
+    // Base `data` and `kind` survive the scalar-only override.
+    expect((signal as { kind?: string }).kind).toBe('features');
+    expect((signal as { data?: unknown }).data).toBe('features');
   });
 });

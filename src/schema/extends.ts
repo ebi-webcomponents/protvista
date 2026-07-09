@@ -6,10 +6,18 @@
  *   - `sources`    — merged by key (child wins)
  *   - `defaults`   — merged field-wise (child wins); `rendering`
  *                    nested sub-object also merged field-wise
- *   - `groups` — matched by `id`; known ids are extended in
- *                    place, new ids appended at the end (base order
- *                    preserved, child-only groups appended in
- *                    declaration order)
+ *   - `groups` — top-level entries (groups AND standalone tracks,
+ *                    one shared id namespace) matched by `id`; known
+ *                    ids extended in place, new ids appended at the end
+ *                    (base order preserved, child-only entries appended
+ *                    in declaration order). Shape is read from a child's
+ *                    own keys: a child that *positively asserts* the
+ *                    other shape (a `tracks:` block over a base track, or
+ *                    a `data:` track over a base group) replaces the base
+ *                    entry wholesale — child wins, no field merge. A
+ *                    child that asserts neither (a scalar-only override)
+ *                    inherits the base's shape and field-merges, so the
+ *                    base `tracks:` / `data:` it omits survive.
  *   - `tracks`     — within a merged group, matched by `id`;
  *                    same rules as groups
  *   - `rendering`  — field-wise (at every level); `colorScale`
@@ -94,10 +102,12 @@ import type {
   ProtvistaViewerConfig,
   GroupConfig,
   TrackConfig,
+  TopLevelEntry,
   RenderingOptions,
   ColorScaleConfig,
   ConfigDefaults,
 } from './types';
+import { isGroupConfig } from './discriminate';
 import { ConfigValidationError } from './errors';
 import { parseConfigText } from './parse';
 
@@ -382,10 +392,10 @@ function merge(
     out.defaults = mergeDefaults(base.defaults, child.defaults);
   }
 
-  // `groups` is an ordered list keyed by `id`. `{ ...base, ...child }`
-  // above clobbers base.groups with child.groups, so we always
-  // recompute here.
-  out.groups = mergeGroupsById(
+  // `groups` is an ordered list keyed by `id` (one namespace across
+  // groups and standalone tracks). `{ ...base, ...child }` above
+  // clobbers base.groups with child.groups, so we always recompute here.
+  out.groups = mergeEntriesById(
     base.groups ?? [],
     child.groups ?? []
   );
@@ -423,24 +433,63 @@ function mergeColorScale(
 }
 
 /**
- * Merge group lists by `id`. Base order is preserved; groups
- * whose `id` also appears in `child` are extended in place; groups
+ * Merge top-level entry lists by `id` (groups and standalone tracks
+ * share one namespace). Base order is preserved; entries whose `id`
+ * also appears in `child` are merged in place via `mergeEntry`; entries
  * in `child` with a new `id` are appended at the end in child's order.
  */
-function mergeGroupsById(
-  base: GroupConfig[],
-  child: GroupConfig[]
-): GroupConfig[] {
-  const result = base.map((g) => g);
-  for (const childGroup of child) {
-    const idx = result.findIndex((baseGroup) => baseGroup.id === childGroup.id);
+function mergeEntriesById(
+  base: TopLevelEntry[],
+  child: TopLevelEntry[]
+): TopLevelEntry[] {
+  const result = base.map((e) => e);
+  for (const childEntry of child) {
+    const idx = result.findIndex((baseEntry) => baseEntry.id === childEntry.id);
     if (idx === -1) {
-      result.push(childGroup);
-    } else {
-      result[idx] = mergeGroup(result[idx], childGroup);
+      result.push(childEntry);
+      continue;
     }
+    result[idx] = mergeEntry(result[idx], childEntry);
   }
   return result;
+}
+
+/**
+ * Merge one child entry onto the same-id base entry.
+ *
+ * Shape is read from POSITIVE evidence, never from absence:
+ *
+ *   - child has `tracks:`              → asserts a group
+ *   - child has `data:` (no `tracks:`) → asserts a standalone track
+ *   - child has neither                → shape-silent partial override:
+ *       inherit the base's shape and field-merge. This is how a child
+ *       overrides a group's scalar field (`label`, `component`, …)
+ *       without restating its `tracks:` — the base tracks must survive.
+ *
+ * A child that positively asserts the OTHER shape than the base is a
+ * deliberate flip: child wins wholesale, so no field merge smuggles a
+ * stale `tracks:` array or group `component` onto the wrong shape.
+ * Same-shape and shape-silent both field-merge via `mergeGroup` /
+ * `mergeTrack`, which preserve the base `tracks` / `data` the child
+ * omits.
+ *
+ * Discriminating shape from the mere *absence* of `tracks:` — the
+ * earlier behaviour — wrongly classified a `tracks:`-less group override
+ * as a standalone track and dropped the base group's tracks.
+ */
+function mergeEntry(base: TopLevelEntry, child: TopLevelEntry): TopLevelEntry {
+  const childAssertsGroup = 'tracks' in child;
+  const childAssertsTrack = 'data' in child && !('tracks' in child);
+
+  // Deliberate shape flip: child positively declares the other shape.
+  if (childAssertsGroup && !isGroupConfig(base)) return child;
+  if (childAssertsTrack && isGroupConfig(base)) return child;
+
+  // Same shape, or a shape-silent partial override → field-merge onto
+  // the base's existing shape.
+  return isGroupConfig(base)
+    ? mergeGroup(base, child as GroupConfig)
+    : mergeTrack(base, child as TrackConfig);
 }
 
 function mergeGroup(

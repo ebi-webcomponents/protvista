@@ -439,6 +439,105 @@ describe('full render — shell + per-group DOM with frozen fixtures', () => {
   });
 });
 
+// -------------------- Standalone top-level tracks --------------------
+
+/**
+ * A standalone track is a top-level entry the normalizer wrapped in a
+ * synthetic single-track group flagged `standalone`. The renderer must
+ * draw it as one row with a plain (non-clickable) track label and no
+ * group-collapse toggle, regardless of `openGroups`.
+ */
+const standaloneConfig: NormalizedConfig = {
+  version: '1.0',
+  sources: {},
+  defaults: { rendering: {} },
+  groups: [
+    {
+      id: 'signal_peptide',
+      label: 'Signal peptide',
+      component: 'nightingale-track-canvas',
+      rendering: {},
+      tracks: [
+        {
+          id: 'signal_peptide',
+          label: 'Signal peptide',
+          component: 'nightingale-track-canvas',
+          description: 'N-terminal signal peptide',
+          filter: 'SIGNAL',
+          rendering: {},
+          data: [
+            { from: 'url', url: 'stub://sig', adapter: 'uniprot-features-json' },
+          ],
+        },
+      ],
+      standalone: true,
+    },
+    {
+      id: 'DOMAINS',
+      label: 'Domains',
+      component: 'nightingale-track-canvas',
+      rendering: {},
+      tracks: [
+        {
+          id: 'domain',
+          label: 'Domain',
+          component: 'nightingale-track-canvas',
+          rendering: {},
+          data: [
+            { from: 'url', url: 'stub://dom', adapter: 'uniprot-features-json' },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+const standaloneData: Record<string, unknown> = {
+  signal_peptide: [{ type: 'SIGNAL', start: 1, end: 20 }],
+  'signal_peptide-signal_peptide': [{ type: 'SIGNAL', start: 1, end: 20 }],
+  DOMAINS: [{ type: 'DOMAIN', start: 30, end: 90 }],
+  'DOMAINS-domain': [{ type: 'DOMAIN', start: 30, end: 90 }],
+};
+
+describe('full render — standalone top-level tracks', () => {
+  let target: HTMLDivElement;
+
+  beforeEach(() => {
+    // Crucially: openGroups is empty. The standalone row must still
+    // render; the genuine group's child tracks must not.
+    const el = buildInstance({
+      config: standaloneConfig,
+      data: standaloneData,
+      openGroups: [],
+    });
+    target = document.createElement('div');
+    render(el.render(), target);
+  });
+
+  it('renders the standalone entry as a single row with no collapse toggle', () => {
+    const standalone = target.querySelector('#group_signal_peptide');
+    expect(standalone).not.toBeNull();
+    expect(standalone!.classList.contains('group--standalone')).toBe(true);
+    // No clickable group-label (collapse affordance) inside it.
+    expect(standalone!.querySelector('.group-label')).toBeNull();
+    // It carries a plain track label and the track element.
+    expect(standalone!.querySelector('.track-label')).not.toBeNull();
+    expect(
+      standalone!.querySelector('#track-signal_peptide-signal_peptide')
+    ).not.toBeNull();
+  });
+
+  it('a genuine group still renders its collapse header and stays collapsed', () => {
+    const group = target.querySelector('#group_DOMAINS');
+    expect(group).not.toBeNull();
+    expect(group!.classList.contains('group--standalone')).toBe(false);
+    // Collapse toggle present.
+    expect(group!.querySelector('.group-label')).not.toBeNull();
+    // openGroups is empty, so no expanded child track rows for the group.
+    expect(target.querySelector('#track_domain')).toBeNull();
+  });
+});
+
 /**
  * Lit's html renderer inserts comment markers (`<!---->`, `<!--?lit$…-->`)
  * into the output. Those markers contain random numeric IDs that change
