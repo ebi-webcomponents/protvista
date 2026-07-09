@@ -429,7 +429,9 @@ function renderAutoFallbackRows(
   const variables: Record<string, unknown> = {};
   const template = rows
     .map((row, index) => {
-      const heading = `##### ${row.label}`;
+      const labelKey = `autoFallbackLabel${index}`;
+      variables[labelKey] = row.label;
+      const heading = `##### {% $${labelKey} %}`;
       if (row.markdown) {
         Object.assign(variables, row.variables);
         return `${heading}\n\n${row.markdown}`;

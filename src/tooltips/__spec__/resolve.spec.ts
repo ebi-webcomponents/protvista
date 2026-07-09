@@ -217,7 +217,7 @@ describe('resolveTooltip — no spec (auto-fallback)', () => {
     );
   });
 
-  it('keeps the auto-fallback compact by rendering at most six rows', () => {
+  it('keeps the auto-fallback compact by rendering at most ten rows', () => {
     const out = resolveTooltip(
       {
         type: 'VARIANT',
@@ -231,6 +231,8 @@ describe('resolveTooltip — no spec (auto-fallback)', () => {
         score: 0.98765,
         xrefs: [{ name: 'ClinVar', url: 'https://example.org/clinvar/123' }],
         derivedScore: 42,
+        secondDerivedScore: 43,
+        thirdDerivedScore: 44,
       },
       undefined,
       { ...ctx, kind: 'variants' }
@@ -246,6 +248,10 @@ describe('resolveTooltip — no spec (auto-fallback)', () => {
       'Variant',
       'Consequence',
       'Clinical significance',
+      'Score',
+      'Cross-references',
+      'Derived Score',
+      'Second Derived Score',
     ]);
   });
 
