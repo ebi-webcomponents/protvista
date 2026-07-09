@@ -10,9 +10,14 @@
  *                    one shared id namespace) matched by `id`; known
  *                    ids extended in place, new ids appended at the end
  *                    (base order preserved, child-only entries appended
- *                    in declaration order). A child that flips an id's
- *                    shape (group↔standalone track) replaces the base
- *                    entry wholesale — child wins, no field merge.
+ *                    in declaration order). Shape is read from a child's
+ *                    own keys: a child that *positively asserts* the
+ *                    other shape (a `tracks:` block over a base track, or
+ *                    a `data:` track over a base group) replaces the base
+ *                    entry wholesale — child wins, no field merge. A
+ *                    child that asserts neither (a scalar-only override)
+ *                    inherits the base's shape and field-merges, so the
+ *                    base `tracks:` / `data:` it omits survive.
  *   - `tracks`     — within a merged group, matched by `id`;
  *                    same rules as groups
  *   - `rendering`  — field-wise (at every level); `colorScale`
@@ -430,18 +435,8 @@ function mergeColorScale(
 /**
  * Merge top-level entry lists by `id` (groups and standalone tracks
  * share one namespace). Base order is preserved; entries whose `id`
- * also appears in `child` are merged in place; entries in `child` with
- * a new `id` are appended at the end in child's order.
- *
- * Shape-aware merge by matched pair:
- *
- *   - both groups            → field-merge via `mergeGroup`
- *   - both standalone tracks → field-merge via `mergeTrack`
- *   - shape flip (group↔track) → child replaces the base entry
- *     wholesale (child wins, no field merge). Field-merging across a
- *     shape boundary would smuggle stale base keys (a `tracks:` array,
- *     a group `component`) onto the wrong shape; a clean replace keeps
- *     the result unambiguous. The flip is permitted but explicit.
+ * also appears in `child` are merged in place via `mergeEntry`; entries
+ * in `child` with a new `id` are appended at the end in child's order.
  */
 function mergeEntriesById(
   base: TopLevelEntry[],
@@ -454,17 +449,47 @@ function mergeEntriesById(
       result.push(childEntry);
       continue;
     }
-    const baseEntry = result[idx];
-    if (isGroupConfig(baseEntry) && isGroupConfig(childEntry)) {
-      result[idx] = mergeGroup(baseEntry, childEntry);
-    } else if (!isGroupConfig(baseEntry) && !isGroupConfig(childEntry)) {
-      result[idx] = mergeTrack(baseEntry, childEntry);
-    } else {
-      // Group↔track shape flip on the same id: child wins wholesale.
-      result[idx] = childEntry;
-    }
+    result[idx] = mergeEntry(result[idx], childEntry);
   }
   return result;
+}
+
+/**
+ * Merge one child entry onto the same-id base entry.
+ *
+ * Shape is read from POSITIVE evidence, never from absence:
+ *
+ *   - child has `tracks:`              → asserts a group
+ *   - child has `data:` (no `tracks:`) → asserts a standalone track
+ *   - child has neither                → shape-silent partial override:
+ *       inherit the base's shape and field-merge. This is how a child
+ *       overrides a group's scalar field (`label`, `component`, …)
+ *       without restating its `tracks:` — the base tracks must survive.
+ *
+ * A child that positively asserts the OTHER shape than the base is a
+ * deliberate flip: child wins wholesale, so no field merge smuggles a
+ * stale `tracks:` array or group `component` onto the wrong shape.
+ * Same-shape and shape-silent both field-merge via `mergeGroup` /
+ * `mergeTrack`, which preserve the base `tracks` / `data` the child
+ * omits.
+ *
+ * Discriminating shape from the mere *absence* of `tracks:` — the
+ * earlier behaviour — wrongly classified a `tracks:`-less group override
+ * as a standalone track and dropped the base group's tracks.
+ */
+function mergeEntry(base: TopLevelEntry, child: TopLevelEntry): TopLevelEntry {
+  const childAssertsGroup = 'tracks' in child;
+  const childAssertsTrack = 'data' in child && !('tracks' in child);
+
+  // Deliberate shape flip: child positively declares the other shape.
+  if (childAssertsGroup && !isGroupConfig(base)) return child;
+  if (childAssertsTrack && isGroupConfig(base)) return child;
+
+  // Same shape, or a shape-silent partial override → field-merge onto
+  // the base's existing shape.
+  return isGroupConfig(base)
+    ? mergeGroup(base, child as GroupConfig)
+    : mergeTrack(base, child as TrackConfig);
 }
 
 function mergeGroup(

@@ -609,4 +609,52 @@ describe('mergeExtends — mixed group / standalone-track entries', () => {
     ]);
     expect(isGroupConfig(out.groups[2])).toBe(false);
   });
+
+  it('a child overriding a group scalar without restating `tracks:` keeps the base tracks', async () => {
+    // Regression: a `tracks:`-less child entry is a shape-SILENT partial
+    // override, not a standalone track. It must field-merge onto the
+    // base group (label overridden, base tracks preserved) — NOT flip the
+    // group to a track and drop `[domain, region]`.
+    const child: ProtvistaViewerConfig = {
+      extends: '@base',
+      groups: [{ id: 'DOMAINS', label: 'Renamed domains' } as TopLevelEntry],
+    };
+    const out = await mergeExtends(child, { resolver: { '@base': base() } });
+    const domains = out.groups.find((c) => c.id === 'DOMAINS');
+    expect(domains).toBeDefined();
+    // Still a group — the shape was inherited from the base, not flipped.
+    expect(isGroupConfig(domains!)).toBe(true);
+    expect(domains!.label).toBe('Renamed domains');
+    // The base group's tracks survive the scalar-only override.
+    expect(asGroup(domains).tracks.map((t) => t.id)).toEqual([
+      'domain',
+      'region',
+    ]);
+    // Order preserved.
+    expect(out.groups.map((c) => c.id)).toEqual(['DOMAINS', 'VARIATION']);
+  });
+
+  it('a child overriding a standalone-track scalar without `data:` keeps the base data', async () => {
+    // Symmetric to the group case: a shape-silent child field-merges onto
+    // a base standalone track, preserving its `data` / `kind`.
+    const baseWithStandalone = (): ProtvistaViewerConfig => ({
+      sources: { features: 'https://example.org/features' },
+      groups: [
+        { id: 'signal', kind: 'features', label: 'Base', data: 'features' },
+      ],
+    });
+    const child: ProtvistaViewerConfig = {
+      extends: '@base',
+      groups: [{ id: 'signal', label: 'Renamed signal' } as TopLevelEntry],
+    };
+    const out = await mergeExtends(child, {
+      resolver: { '@base': baseWithStandalone() },
+    });
+    const signal = out.groups.find((c) => c.id === 'signal')!;
+    expect(isGroupConfig(signal)).toBe(false);
+    expect(signal.label).toBe('Renamed signal');
+    // Base `data` and `kind` survive the scalar-only override.
+    expect((signal as { kind?: string }).kind).toBe('features');
+    expect((signal as { data?: unknown }).data).toBe('features');
+  });
 });
