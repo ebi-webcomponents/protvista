@@ -175,7 +175,7 @@ function renderMarkdownSpec(
 // Auto-fallback for "no spec configured"
 // -----------------------------------------------------------------------------
 
-const AUTO_FALLBACK_MAX_ROWS = 6;
+const AUTO_FALLBACK_MAX_ROWS = 10;
 
 const AUTO_FALLBACK_RESERVED_KEYS = new Set([
   'alternativeSequence',
