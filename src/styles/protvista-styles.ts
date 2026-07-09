@@ -1,69 +1,70 @@
-import { css } from 'lit';
+import { css, unsafeCSS } from 'lit';
+import { CSS_PREFIX } from './css-prefix';
 
 /**
- * Every selector in this file is scoped under the `protvista-uniprot`
- * element tag. Two reasons:
+ * Our internal class names carry a collision-proof hash prefix
+ * (`CSS_PREFIX`, e.g. `.pv-cecb45-group`) AND every rule is scoped under
+ * the `protvista-uniprot` element tag. Two overlapping defences:
  *
- *   1. Ingress defence. We render in light DOM (see `createRenderRoot()`
- *      in protvista-uniprot.ts) because Mol*. Child components like
+ *   1. Hash prefix. We render in light DOM (see `createRenderRoot()`
+ *      in protvista-uniprot.ts) because Mol*, so this stylesheet lives
+ *      in the document's global selector scope. Child components like
  *      `<nightingale-filter>` also render in light DOM and ship their
- *      own unscoped `<style>` blocks into the document at render time
- *      (e.g. nightingale-filter emits `.group { margin-bottom: 2.5rem }`
- *      for its own internal checkbox groupings). Without our tag
- *      scoping, their `.group` rule ties our `.group` on specificity
- *      and wins by source order. Prefixing `protvista-uniprot ` bumps
- *      our specificity from 0,1,0 to 0,1,1 — ours beats any unscoped
- *      third-party `.group` / `.feature` / `.track-label` rule.
+ *      own `<style>` blocks into the document at render time (e.g.
+ *      nightingale-filter emits `.group { margin-bottom: 2.5rem }` for
+ *      its own internal checkbox groupings). The hash prefix means no
+ *      third-party class name — scoped or unscoped — can match ours, so
+ *      the cascade never has to arbitrate the collision in the first
+ *      place. This is the primary defence.
  *
- *   2. Egress hygiene. Our rules stop matching any element in the
- *      document that isn't a descendant of `<protvista-uniprot>`.
- *      Consumers embedding us alongside their own components whose
- *      CSS happens to use the same class names (`.group`, `.feature`,
- *      `.track-label`, …) are protected from our styles.
+ *   2. Tag scoping (`protvista-uniprot `). Kept as defence-in-depth and
+ *      for egress hygiene: our rules stop matching any element that
+ *      isn't a descendant of `<protvista-uniprot>`, so we can't bleed
+ *      onto a consumer's own elements anywhere else on the page.
  *
- * If a third-party child component ever ships a *tag-scoped* rule
- * (e.g. `nightingale-filter .group { … }` at 0,1,1), we'll tie on
- * specificity and source order wins again. In that case we'd need to
- * rename our classes with a `pv-` prefix; tracked as a follow-on
- * issue in `next-branch-issues.yml`.
+ * The single exception is `.feature` (below): it is deliberately left
+ * unprefixed because the component never *applies* that class itself —
+ * the rule styles feature glyphs rendered by Nightingale child
+ * components. Prefixing it would simply stop it matching anything.
  */
+const p = unsafeCSS(CSS_PREFIX);
 export default css`
-  protvista-uniprot .track-content {
+  protvista-uniprot .${p}-track-content {
     width: 80vw;
   }
 
-  protvista-uniprot .track-content__coloured-sequence {
+  protvista-uniprot .${p}-track-content__coloured-sequence {
     display: flex;
     align-items: center;
   }
 
-  protvista-uniprot .nav-container,
-  protvista-uniprot .group__track {
+  protvista-uniprot .${p}-nav-container,
+  protvista-uniprot .${p}-group__track {
     display: flex;
     margin-bottom: 0.1rem;
   }
 
-  protvista-uniprot .group {
+  protvista-uniprot .${p}-group {
     display: none;
     margin-bottom: 0.1rem;
   }
 
-  protvista-uniprot .group-label,
-  protvista-uniprot .track-label,
-  protvista-uniprot .nav-track-label,
-  protvista-uniprot .credits {
+  protvista-uniprot .${p}-group-label,
+  protvista-uniprot .${p}-track-label,
+  protvista-uniprot .${p}-nav-track-label,
+  protvista-uniprot .${p}-credits {
     min-width: 20vw;
     max-width: 20vw;
     padding: 0.5em;
     line-height: normal;
   }
 
-  protvista-uniprot .group-label {
+  protvista-uniprot .${p}-group-label {
     background-color: #b2f5ff;
     cursor: pointer;
   }
 
-  protvista-uniprot .group-label::before {
+  protvista-uniprot .${p}-group-label::before {
     content: ' ';
     display: inline-block;
     width: 0;
@@ -78,7 +79,7 @@ export default css`
     transition: all 0.1s;
   }
 
-  protvista-uniprot .group-label.open::before {
+  protvista-uniprot .${p}-group-label.open::before {
     content: ' ';
     display: inline-block;
     width: 0;
@@ -89,7 +90,7 @@ export default css`
     margin-right: 5px;
   }
 
-  protvista-uniprot .track-label {
+  protvista-uniprot .${p}-track-label {
     background-color: #d9faff;
   }
 
@@ -108,19 +109,11 @@ export default css`
     font-size: 0.8rem;
   }
 
+  /* Intentionally unprefixed: styles feature glyphs rendered by
+     Nightingale child components, which the host does not apply the
+     class to itself. See the header comment. */
   protvista-uniprot .feature {
     cursor: pointer;
-  }
-
-  protvista-uniprot .proforma {
-    padding-left: 4em;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-  }
-
-  protvista-uniprot .mod-link {
-    white-space: nowrap;
   }
 
   /* -------------------------------------------------------------------------

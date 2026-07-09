@@ -39,6 +39,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render } from 'lit';
 import type { KnownComponentName, RenderingOptions } from '../schema/types';
 import type { NormalizedConfig } from '../schema/normalize';
+import { CSS_PREFIX } from '../styles/css-prefix';
 // Side-effect import: loading `protvista-uniprot` runs the
 // `@customElement('protvista-uniprot')` decorator, registering the
 // element so `document.createElement('protvista-uniprot')` returns a
@@ -352,15 +353,15 @@ describe('full render — shell + per-group DOM with frozen fixtures', () => {
   });
 
   it('renders one group block per group in config order', () => {
-    const groupDivs = target.querySelectorAll('div.group');
+    const groupDivs = target.querySelectorAll(`div.${CSS_PREFIX}-group`);
     expect(
       Array.from(groupDivs).map((d) => d.getAttribute('id'))
-    ).toEqual(testConfig.groups.map((c) => `group_${c.id}`));
+    ).toEqual(testConfig.groups.map((c) => `${CSS_PREFIX}-group_${c.id}`));
   });
 
   for (const group of testConfig.groups) {
     it(`group ${group.id} — stable DOM snapshot`, () => {
-      const div = target.querySelector(`#group_${group.id}`);
+      const div = target.querySelector(`#${CSS_PREFIX}-group_${group.id}`);
       expect(div).not.toBeNull();
       // Collect the group div plus its expanded-track siblings. Lit
       // emits each expanded track as a top-level sibling of the
@@ -375,7 +376,9 @@ describe('full render — shell + per-group DOM with frozen fixtures', () => {
         collected.push(cursor.outerHTML);
         const next = cursor.nextElementSibling;
         if (!next) break;
-        const isOwnExpandedTrack = next.classList.contains('group__track');
+        const isOwnExpandedTrack = next.classList.contains(
+          `${CSS_PREFIX}-group__track`
+        );
         if (!isOwnExpandedTrack) break;
         cursor = next;
       }
@@ -384,8 +387,8 @@ describe('full render — shell + per-group DOM with frozen fixtures', () => {
   }
 
   it('does not render expanded tracks for closed groups', () => {
-    // Rebuild with no open groups; the expanded `.group__track`
-    // divs must disappear while `.group` blocks remain.
+    // Rebuild with no open groups; the expanded `${CSS_PREFIX}-group__track`
+    // divs must disappear while `${CSS_PREFIX}-group` blocks remain.
     const closed = buildInstance({
       config: testConfig,
       data: testData,
@@ -393,10 +396,12 @@ describe('full render — shell + per-group DOM with frozen fixtures', () => {
     });
     const closedTarget = document.createElement('div');
     render(closed.render(), closedTarget);
-    expect(closedTarget.querySelectorAll('.group').length).toBe(
+    expect(closedTarget.querySelectorAll(`.${CSS_PREFIX}-group`).length).toBe(
       testConfig.groups.length
     );
-    expect(closedTarget.querySelectorAll('.group__track').length).toBe(0);
+    expect(
+      closedTarget.querySelectorAll(`.${CSS_PREFIX}-group__track`).length
+    ).toBe(0);
   });
 
   it('renders the no-results placeholder when hasData=false', () => {
@@ -434,7 +439,7 @@ describe('full render — shell + per-group DOM with frozen fixtures', () => {
     // Lit's html`` still produces one comment marker; what matters is
     // that no nightingale / group DOM is emitted.
     expect(suspendedTarget.querySelector('nightingale-manager')).toBeNull();
-    expect(suspendedTarget.querySelector('.group')).toBeNull();
+    expect(suspendedTarget.querySelector(`.${CSS_PREFIX}-group`)).toBeNull();
     expect(suspendedTarget.querySelector('.protvista-no-results')).toBeNull();
   });
 });

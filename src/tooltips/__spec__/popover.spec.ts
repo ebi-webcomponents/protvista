@@ -25,6 +25,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { installClickTooltip, type TooltipController } from '../popover';
+import { CSS_PREFIX } from '../../styles/css-prefix';
 
 /**
  * Helper to fire the Nightingale-shaped `change` CustomEvent. Matches
@@ -238,7 +239,7 @@ describe('installClickTooltip', () => {
     // `data-group-toggle="<id>"` on the element.
     const toggle = document.createElement('div');
     toggle.setAttribute('data-group-toggle', 'DOMAINS');
-    toggle.className = 'group-label';
+    toggle.className = `${CSS_PREFIX}-group-label`;
     host.append(toggle);
 
     fireChange(host, {
