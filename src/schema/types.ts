@@ -347,10 +347,11 @@ export interface TrackConfig {
    *          variables: { siteName: "my-viewer" }
    *
    * When set, overrides the per-kind default in `tooltipDefaults[kind]`.
-   * When omitted, the built-in default is used. Rich / interactive
-   * tooltips aren't a config concern — listen for the Nightingale
-   * `change` event and mount your own UI (with `notooltip` on the
-   * element to suppress the built-in popover).
+   * When omitted, the built-in default is used if available; otherwise
+   * the resolver emits a compact Markdoc fallback from adapted payload
+   * fields. Rich / interactive tooltips aren't a config concern —
+   * listen for the Nightingale `change` event and mount your own UI
+   * (with `notooltip` on the element to suppress the built-in popover).
    */
   dataTooltip?: string | AuthoredTooltipSpec;
 

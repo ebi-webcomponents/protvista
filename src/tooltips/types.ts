@@ -3,7 +3,7 @@
  *
  * Contract at a glance:
  *
- *   +--------+  adapter output (data only — tooltips come from config)
+ *   +--------+  adapter output
  *   | item   | ---> resolveTooltip(item, spec, ctx) ---> HTML string
  *   +--------+                                              |
  *                                                           v
@@ -11,10 +11,11 @@
  *                                          by load-data.ts before the data
  *                                          is handed to Nightingale
  *
- * `spec` is sourced in this order of precedence inside the resolver:
+ * Existing non-empty `item.tooltipContent` wins before the resolver is
+ * called. Otherwise `spec` is sourced in this order of precedence:
  *   1. track.dataTooltip       (YAML author override)
  *   2. tooltipDefaults[kind]   (per-kind built-in default)
- *   3. auto-fallback           (common feature-shaped fields)
+ *   3. auto-fallback           (compact Markdoc from adapted fields)
  *
  * There is no programmatic per-kind override surface on the element.
  * Consumers who need rich / interactive / stateful tooltips listen for

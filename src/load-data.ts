@@ -76,16 +76,16 @@ type LoadResult = {
  * copy. Pure — the input `transformedData` is never mutated; callers
  * must use the return value to see the attached tooltips.
  *
- * Consulted after the adapter has produced its output. Picks a spec in
- * this precedence order (highest wins):
+ * Consulted after the adapter has produced its output. Existing
+ * `item.tooltipContent` wins first; otherwise picks a spec in this
+ * precedence order:
  *
  *   1. `track.dataTooltip`            — YAML / config author override
  *   2. `tooltipDefaults[track.kind]`  — built-in per-kind default
- *   3. Auto-fallback: `renderAutoFallback` synthesizes a fields spec
- *                     from common feature-shaped fields
- *                     ({ type, description, start | begin, end }) so
- *                     that tracks with no configured spec still get a
- *                     sensible tooltip out of the box.
+ *   3. Auto-fallback: `renderAutoFallback` synthesizes compact Markdoc
+ *                     content from common feature-shaped fields plus
+ *                     richer adapter payload fields such as variants,
+ *                     scores, xrefs, evidences, and extra scalars.
  *
  * Consumers who need rich / interactive / stateful tooltips bypass
  * this pipeline entirely: listen for the Nightingale `change` event
@@ -93,8 +93,8 @@ type LoadResult = {
  * as input, and set the `notooltip` attribute on the element to
  * suppress the library's built-in popover.
  *
- * The resolver's output is the canonical source of `tooltipContent` —
- * adapters produce data, tooltips come from config and defaults.
+ * The resolver's output is the canonical source of `tooltipContent`
+ * unless the adapter has already supplied a non-empty tooltip.
  *
  * Handles the two shapes adapters emit:
  *   - an array of feature-like objects (most adapters) — returns a new
@@ -113,6 +113,9 @@ function applyTooltipResolver(
 ): unknown {
   const annotate = (item: unknown): unknown => {
     if (!item || typeof item !== 'object') return item;
+    const existingTooltip = (item as { tooltipContent?: unknown })
+      .tooltipContent;
+    if (existingTooltip != null && existingTooltip !== '') return item;
     const html = resolveTooltip(item, spec, ctx);
     return html ? { ...item, tooltipContent: html } : item;
   };
@@ -300,12 +303,12 @@ export async function loadProtvistaData(
           return;
         }
 
-        // 3. Resolve per-item tooltips. Track-level `dataTooltip`
-        //    wins, then the per-kind built-in default, then an
-        //    auto-fallback synthesized from common feature-shaped
-        //    fields. Graph tracks (linegraph, colored-sequence,
-        //    heatmap) have no per-item hover, so the resolver returns
-        //    `''` and no field is written.
+        // 3. Resolve per-item tooltips. Existing `tooltipContent`
+        //    wins, then track-level `dataTooltip`, then the per-kind
+        //    built-in default, then the compact auto-fallback. Graph
+        //    tracks (linegraph, colored-sequence, heatmap) have no
+        //    per-item hover, so the resolver returns `''` and no field
+        //    is written.
         const spec: TooltipSpec | undefined =
           dataTooltip ?? (kind ? tooltipDefaults[kind] : undefined);
         const annotated = applyTooltipResolver(filteredData, spec, {

@@ -147,7 +147,7 @@ There is no `kind: 'custom'` and no programmatic per-kind override surface. Rich
 
 The popover itself (`popover.ts`) is built on `@floating-ui/dom`: click-triggered, with arrow / flip / shift middleware, keyboard Escape, scroll-dismiss, and focus capture / restore.
 
-When a track has no `dataTooltip` and no per-kind default, `resolve.ts` synthesizes a minimal `fields` spec from common feature-shaped fields (`type`, `description`, `start`/`begin`, `end`). Configs that don't author a tooltip therefore still get a sensible one out of the box.
+When a track has no `dataTooltip` and no per-kind default, `resolve.ts` synthesizes a compact Markdoc tooltip from common adapted payload fields (`type`, `description`, position, variant details, significance, score, xrefs, evidences, and remaining scalar fields). Configs that don't author a tooltip therefore still get a useful safety-net tooltip out of the box.
 
 ### `src/adapters/`
 

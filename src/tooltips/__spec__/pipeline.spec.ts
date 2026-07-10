@@ -12,14 +12,15 @@
  *
  *   1. `track.dataTooltip` present → its spec wins over any per-kind
  *      default.
- *   2. Neither `dataTooltip` nor a per-kind default present → the
- *      auto-fallback synthesizes a fields spec from common
- *      feature-shaped fields. (The intermediate `tooltipDefaults[kind]`
+ *   2. Existing adapter-provided `tooltipContent` survives unchanged.
+ *   3. Neither `dataTooltip` nor a per-kind default present → the
+ *      auto-fallback synthesizes compact Markdoc from common adapted
+ *      payload fields. (The intermediate `tooltipDefaults[kind]`
  *      step has its own unit coverage in `defaults.spec.ts`.)
- *   3. Variation-shaped adapter output (`{ sequence, variants }`) has
+ *   4. Variation-shaped adapter output (`{ sequence, variants }`) has
  *      the resolver applied to each item in `variants`, not to the
  *      wrapper.
- *   4. The `TooltipContext` passed to the resolver carries the
+ *   5. The `TooltipContext` passed to the resolver carries the
  *      accession, track id, and kind verbatim, and is reachable from
  *      a Markdoc template via `$ctx.accession` / `$ctx.trackId` /
  *      `$ctx.kind`.
@@ -105,6 +106,40 @@ describe('tooltip pipeline — loader-driven end-to-end', () => {
     const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, adapters);
     const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
     expect(item.tooltipContent).toBe('<h5>Override</h5><p>x</p>');
+  });
+
+  it('preserves `tooltipContent` already stashed on an adapter item', async () => {
+    const adapters: AdapterMap = {
+      'uniprot-features-json': async () => [
+        {
+          type: 'DOMAIN',
+          description: 'resolver would replace this',
+          tooltipContent: '<strong>adapter tooltip</strong>',
+        },
+      ],
+    };
+    const config = makeConfig({
+      id: 't',
+      label: 't',
+      component: 'nightingale-track-canvas',
+      rendering: {},
+      kind: 'features',
+      dataTooltip: {
+        kind: 'fields',
+        fields: [{ path: 'description', label: 'Override' }],
+      },
+      data: [
+        {
+          from: 'url',
+          url: 'u',
+          adapter: 'uniprot-features-json',
+        },
+      ],
+    });
+
+    const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, adapters);
+    const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
+    expect(item.tooltipContent).toBe('<strong>adapter tooltip</strong>');
   });
 
   it('auto-synthesizes a fields tooltip when no spec is configured and the adapter sets nothing', async () => {

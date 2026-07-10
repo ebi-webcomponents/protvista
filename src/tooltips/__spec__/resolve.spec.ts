@@ -12,6 +12,13 @@ const ctx: TooltipContext = {
   kind: 'features',
 };
 
+function htmlFragment(html: string): HTMLDivElement {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const div = document.createElement('div');
+  div.append(...Array.from(doc.body.childNodes));
+  return div;
+}
+
 describe('resolveTooltip — fields branch', () => {
   it('emits <h5>label</h5><p>value</p> per populated field', () => {
     const out = resolveTooltip(
@@ -100,6 +107,173 @@ describe('resolveTooltip — no spec (auto-fallback)', () => {
         '<h5>Start</h5><p>10</p>' +
         '<h5>End</h5><p>50</p>'
     );
+  });
+
+  it('surfaces compact variant details, significance, and xrefs', () => {
+    const out = resolveTooltip(
+      {
+        type: 'VARIANT',
+        begin: 12,
+        end: 12,
+        wildType: 'G',
+        alternativeSequence: 'V',
+        consequenceType: 'missense',
+        clinicalSignificances: [
+          { type: 'Pathogenic' },
+          { type: 'Likely pathogenic' },
+        ],
+        xrefs: [
+          {
+            name: 'ClinVar',
+            url: 'https://www.ncbi.nlm.nih.gov/clinvar/variation/123',
+          },
+        ],
+      },
+      undefined,
+      { ...ctx, kind: 'variants' }
+    );
+
+    expect(out).toMatchInlineSnapshot(
+      `"<h5>Type</h5><p>VARIANT</p><h5>Position</h5><p>12</p><h5>Variant</h5><p>G -&gt; V</p><h5>Consequence</h5><p>missense</p><h5>Clinical significance</h5><p>Pathogenic, Likely pathogenic</p><h5>Cross-references</h5><p><a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/123">ClinVar</a></p>"`
+    );
+  });
+
+  it('linkifies only xrefs whose URL passes the tooltip URL allowlist', () => {
+    const out = resolveTooltip(
+      {
+        type: 'BINDING',
+        start: 45,
+        end: 52,
+        xrefs: [
+          {
+            name: 'InterPro',
+            url: 'https://www.ebi.ac.uk/interpro/entry/InterPro/IPR000001',
+          },
+          { name: 'Bad', url: 'javascript:alert(1)' },
+          { name: 'Plain' },
+        ],
+      },
+      undefined,
+      ctx
+    );
+    const html = htmlFragment(out);
+    const links = html.querySelectorAll('a');
+
+    expect(out).toMatchInlineSnapshot(
+      `"<h5>Type</h5><p>BINDING</p><h5>Start</h5><p>45</p><h5>End</h5><p>52</p><h5>Cross-references</h5><p><a href="https://www.ebi.ac.uk/interpro/entry/InterPro/IPR000001">InterPro</a>, Bad, Plain</p>"`
+    );
+    expect(links).toHaveLength(1);
+    expect(links[0].textContent).toBe('InterPro');
+    expect(links[0].getAttribute('href')).toBe(
+      'https://www.ebi.ac.uk/interpro/entry/InterPro/IPR000001'
+    );
+    expect(html.textContent).toContain('Bad');
+    expect(html.textContent).toContain('Plain');
+  });
+
+  it('escapes Markdoc template delimiters in generated xref link destinations', () => {
+    const out = resolveTooltip(
+      {
+        type: 'BINDING',
+        xrefs: [
+          {
+            name: 'Curly',
+            url: 'https://example.org/{%20safe%20}',
+          },
+        ],
+      },
+      undefined,
+      ctx
+    );
+
+    expect(out).toBe(
+      '<h5>Type</h5><p>BINDING</p>' +
+        '<h5>Cross-references</h5><p><a href="https://example.org/%7B%20safe%20%7D">Curly</a></p>'
+    );
+  });
+
+  it('uses remaining slots for top-level scalar fields such as calculated values', () => {
+    const out = resolveTooltip(
+      {
+        type: 'REGION',
+        start: 10,
+        end: 15,
+        lengthInclusive: 6,
+        confidenceBand: 'high',
+      },
+      undefined,
+      ctx
+    );
+
+    expect(out).toBe(
+      '<h5>Type</h5><p>REGION</p>' +
+        '<h5>Start</h5><p>10</p>' +
+        '<h5>End</h5><p>15</p>' +
+        '<h5>Length Inclusive</h5><p>6</p>' +
+        '<h5>Confidence Band</h5><p>high</p>'
+    );
+  });
+
+  it('formats score and evidence summaries from adapted payload fields', () => {
+    const out = resolveTooltip(
+      {
+        type: 'MOD_RES',
+        start: 42,
+        end: 42,
+        score: 0.98765,
+        evidences: [
+          { code: 'ECO:0000269', source: { id: 'PubMed:1' } },
+          { code: 'ECO:0000305', source: { id: 'UniProt' } },
+        ],
+      },
+      undefined,
+      { ...ctx, kind: 'pathogenicity-score' }
+    );
+
+    expect(out).toBe(
+      '<h5>Type</h5><p>MOD_RES</p>' +
+        '<h5>Position</h5><p>42</p>' +
+        '<h5>Pathogenicity score</h5><p>0.988</p>' +
+        '<h5>Evidence</h5><p>2 evidences; first source: PubMed:1</p>'
+    );
+  });
+
+  it('keeps the auto-fallback compact by rendering at most ten rows', () => {
+    const out = resolveTooltip(
+      {
+        type: 'VARIANT',
+        description: 'many fields',
+        start: 12,
+        end: 12,
+        wildType: 'G',
+        alternativeSequence: 'V',
+        consequenceType: 'missense',
+        clinicalSignificances: [{ type: 'Pathogenic' }],
+        score: 0.98765,
+        xrefs: [{ name: 'ClinVar', url: 'https://example.org/clinvar/123' }],
+        derivedScore: 42,
+        secondDerivedScore: 43,
+        thirdDerivedScore: 44,
+      },
+      undefined,
+      { ...ctx, kind: 'variants' }
+    );
+    const labels = Array.from(htmlFragment(out).querySelectorAll('h5')).map(
+      (heading) => heading.textContent
+    );
+
+    expect(labels).toEqual([
+      'Type',
+      'Description',
+      'Position',
+      'Variant',
+      'Consequence',
+      'Clinical significance',
+      'Score',
+      'Cross-references',
+      'Derived Score',
+      'Second Derived Score',
+    ]);
   });
 
   it('accepts `begin` as a stand-in for `start` (raw UniProt API form)', () => {
@@ -219,4 +393,3 @@ describe('resolveTooltip — markdown renderer quirks', () => {
     expect(out).toContain('1-2');
   });
 });
-
