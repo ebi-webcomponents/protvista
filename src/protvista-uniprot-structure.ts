@@ -26,7 +26,6 @@ const PDBLinks = [
   { name: 'PDBe', link: 'https://www.ebi.ac.uk/pdbe-srv/view/entry/' },
   { name: 'RCSB-PDB', link: 'https://www.rcsb.org/structure/' },
   { name: 'PDBj', link: 'https://pdbj.org/mine/summary/' },
-  { name: 'PDBsum', link: 'https://www.ebi.ac.uk/pdbsum/' },
 ];
 const alphaFoldLinkUrl = 'https://alphafold.ebi.ac.uk/search/text/';
 const foldseekUrl = `https://search.foldseek.com/search`;
@@ -34,7 +33,6 @@ const uniprotKBUrl = 'https://www.uniprot.org/uniprotkb/';
 
 // Excluded source from 3d-beacons is PDBe as we fetch them separately from UniProt
 const providersFrom3DBeacons = [
-  'AlphaFold DB',
   'SWISS-MODEL',
   'ModelArchive',
   'PED',
@@ -44,18 +42,6 @@ const providersFrom3DBeacons = [
   'HEGELAB',
   'levylab',
 ];
-
-const sourceMethods = new Map([
-  ['AlphaFold DB', 'Predicted'],
-  ['SWISS-MODEL', 'Modeling'],
-  ['ModelArchive', 'Modeling'],
-  ['PED', 'Modeling'],
-  ['SASBDB', 'SAS'],
-  ['isoform.io', 'Predicted'],
-  ['AlphaFill', 'Predicted'],
-  ['HEGELAB', 'Modeling'],
-  ['levylab', 'Modeling'],
-]);
 
 type UniProtKBData = {
   uniProtKBCrossReferences: UniProtKBCrossReference[];
@@ -140,6 +126,7 @@ export type ProcessedStructureData = {
   isoformId?: string;
   isoformIsCanonical?: boolean;
   afPrediction?: boolean; // Flag to differentiate the structure source as AlphaFold prediction API vs 3DBeacons AlphaFold
+  oligomericState?: string;
 };
 
 type IsoformIdSequence = Array<{
@@ -189,7 +176,7 @@ const processPDBData = (data: UniProtKBData): ProcessedStructureData[] =>
             method,
             resolution:
               !resolution || resolution === '-' ? undefined : resolution,
-            downloadUrl: `https://www.ebi.ac.uk/pdbe/entry-files/download/pdb${id.toLowerCase()}.ent`,
+            downloadUrl: `https://www.ebi.ac.uk/pdbe/entry-files/download/${id.toLowerCase()}_updated.cif`,
             chain,
             positions,
             protvistaFeatureId: id,
@@ -203,29 +190,48 @@ const processAFData = (
   data: AlphaFoldPayload,
   isoforms?: IsoformIdSequence,
   canonicalSequence?: string
-): ProcessedStructureData[] =>
-  data
+): ProcessedStructureData[] => {
+  const uniqueData = [
+    ...new Map(data.map((d) => [d.modelEntityId, d])).values(),
+  ];
+
+  return uniqueData
     .map((d) => {
       const isoformMatch = isoforms?.find(
         ({ sequence }) => d.sequence === sequence
       );
 
+      let chain = d.chainId;
+      const oligomericState = d.isComplex
+          ? `${d.assemblyType}${d.oligomericState}`
+          : 'Monomer';
+
+      if (d.isComplex && oligomericState === 'Homodimer') {
+        chain = data.filter(({ modelEntityId }) => modelEntityId === d.modelEntityId).flatMap(({ chainId }) => chainId).sort().join(', ');
+      }
       return {
         id: d.modelEntityId,
         source: 'AlphaFold DB',
-        method: 'Predicted',
         positions: `${d.sequenceStart}-${d.sequenceEnd}`,
         protvistaFeatureId: d.modelEntityId,
         downloadUrl: d.pdbUrl,
         amAnnotationsUrl: d.amAnnotationsUrl,
-        isoformId: isoformMatch?.isoformId,
-        isoformIsCanonical: isoformMatch
+        isoformId: !d.isComplex ? isoformMatch?.isoformId : undefined,
+        isoformIsCanonical: !d.isComplex && isoformMatch
           ? isoformMatch.sequence === canonicalSequence
           : undefined,
         afPrediction: true,
+        oligomericState,
+        chain
       };
     })
-    .sort((a, b) => getIsoformNum(a.id) - getIsoformNum(b.id));
+    .sort((a, b) => getIsoformNum(a.id) - getIsoformNum(b.id))
+    .sort((a, b) => {
+      const aMonomer = a.oligomericState === 'Monomer' ? 0 : 1;
+      const bMonomer = b.oligomericState === 'Monomer' ? 0 : 1;
+      return aMonomer - bMonomer;
+    });
+};
 
 const process3DBeaconsData = (
   data: BeaconsData,
@@ -263,7 +269,6 @@ const process3DBeaconsData = (
     structures?.map(({ summary }) => ({
       id: summary.model_identifier,
       source: summary.provider,
-      method: sourceMethods.get(summary.provider),
       positions:
         summary.uniprot_start && summary.uniprot_end
           ? `${summary.uniprot_start}-${summary.uniprot_end}`
@@ -275,8 +280,9 @@ const process3DBeaconsData = (
           ? 'https://www.isoform.io/home'
           : summary.model_page_url,
       chain:
-        summary.entities?.flatMap((entity) => entity.chain_ids).join(', ') ||
+        summary.entities?.flatMap((entity) => entity.identifier_category === 'UNIPROT' ? entity.chain_ids : []).join(', ') ||
         undefined,
+      oligomericState: summary.oligomeric_state || undefined,
     })) || []
   );
 };
@@ -514,7 +520,7 @@ class ProtvistaUniprotStructure extends LitElement {
     // AlphaMissense predictions are only available in AF predictions endpoint
     const alphaFoldUrl =
       this.accession && !this.checksum
-        ? `https://alphafold.ebi.ac.uk/api/prediction/${this.accession}`
+        ? `https://alphafold.ebi.ac.uk/api/prediction/${this.accession}?include_complexes=true`
         : '';
     // exclude_provider accepts only value hence 'pdbe' as majority of the models are from there if querying by accession
     const beaconsUrl =
@@ -566,21 +572,7 @@ class ProtvistaUniprotStructure extends LitElement {
     // TODO: return if no data at all
     // if (!payload) return;
 
-    const beaconsAFData = beaconsData.filter(
-      ({ source }) => source === 'AlphaFold DB'
-    );
-    const beaconsNonAFData = beaconsData.filter(
-      ({ source }) => source !== 'AlphaFold DB'
-    );
-
-    const uniqueAFData = [
-      ...new Map(
-        // The order of the spread is important as we want to prioritise AF data from AF predictions API over 3DBeacons
-        [...beaconsAFData, ...afData].map((obj) => [obj.id, obj])
-      ).values(),
-    ];
-
-    const data = [...pdbData, ...uniqueAFData, ...beaconsNonAFData];
+    const data = [...pdbData, ...afData, ...beaconsData];
 
     this.data = data;
     this.columns = this.getColumns();
