@@ -572,21 +572,6 @@ class ProtvistaUniprotStructure extends LitElement {
     // TODO: return if no data at all
     // if (!payload) return;
 
-    // const beaconsAFData = beaconsData.filter(
-    //   ({ source }) => source === 'AlphaFold DB'
-    // );
-    // const beaconsNonAFData = beaconsData.filter(
-    //   ({ source }) => source !== 'AlphaFold DB'
-    // );
-
-    // const uniqueAFData = [
-    //   ...new Map(
-    //     // The order of the spread is important as we want to prioritise AF data from AF predictions API over 3DBeacons
-    //     [...beaconsAFData, ...afData].map((obj) => [obj.id, obj])
-    //   ).values(),
-    // ];
-
-    // const data = [...pdbData, ...uniqueAFData, ...beaconsNonAFData];
     const data = [...pdbData, ...afData, ...beaconsData];
 
     this.data = data;
