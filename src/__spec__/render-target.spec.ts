@@ -520,26 +520,36 @@ describe('full render — standalone top-level tracks', () => {
   });
 
   it('renders the standalone entry as a single row with no collapse toggle', () => {
-    const standalone = target.querySelector('#group_signal_peptide');
+    const standalone = target.querySelector(
+      `#${CSS_PREFIX}-group_signal_peptide`
+    );
     expect(standalone).not.toBeNull();
-    expect(standalone!.classList.contains('group--standalone')).toBe(true);
-    // No clickable group-label (collapse affordance) inside it.
-    expect(standalone!.querySelector('.group-label')).toBeNull();
-    // It carries a plain track label and the track element.
-    expect(standalone!.querySelector('.track-label')).not.toBeNull();
     expect(
-      standalone!.querySelector('#track-signal_peptide-signal_peptide')
+      standalone!.classList.contains(`${CSS_PREFIX}-group--standalone`)
+    ).toBe(true);
+    // No clickable group-label (collapse affordance) inside it.
+    expect(standalone!.querySelector(`.${CSS_PREFIX}-group-label`)).toBeNull();
+    // It carries a plain track label and the track element.
+    expect(
+      standalone!.querySelector(`.${CSS_PREFIX}-track-label`)
+    ).not.toBeNull();
+    expect(
+      standalone!.querySelector(
+        `#${CSS_PREFIX}-track-signal_peptide-signal_peptide`
+      )
     ).not.toBeNull();
   });
 
   it('a genuine group still renders its collapse header and stays collapsed', () => {
-    const group = target.querySelector('#group_DOMAINS');
+    const group = target.querySelector(`#${CSS_PREFIX}-group_DOMAINS`);
     expect(group).not.toBeNull();
-    expect(group!.classList.contains('group--standalone')).toBe(false);
+    expect(group!.classList.contains(`${CSS_PREFIX}-group--standalone`)).toBe(
+      false
+    );
     // Collapse toggle present.
-    expect(group!.querySelector('.group-label')).not.toBeNull();
+    expect(group!.querySelector(`.${CSS_PREFIX}-group-label`)).not.toBeNull();
     // openGroups is empty, so no expanded child track rows for the group.
-    expect(target.querySelector('#track_domain')).toBeNull();
+    expect(target.querySelector(`#${CSS_PREFIX}-track_domain`)).toBeNull();
   });
 });
 

@@ -806,9 +806,10 @@ class ProtvistaUniprot extends LitElement {
    * flagged `standalone` by the normalizer) as one row: a plain
    * (non-clickable) track label plus the track content, with no
    * group-collapse affordance. The label affordances and the inner
-   * element id (`track-${group.id}-${track.id}`) match the expanded
-   * grouped-track row, so the shared `_loadDataInComponents` data-binding
-   * and the `group_${group.id}` visibility toggle work unchanged.
+   * element id (`${CSS_PREFIX}-track-${group.id}-${track.id}`) matches the
+   * expanded grouped-track row, so the shared `_loadDataInComponents`
+   * data-binding and the `${CSS_PREFIX}-group_${group.id}` visibility
+   * toggle work the same way they do for a collapsible group.
    */
   renderStandaloneTrack(group: NormalizedConfig['groups'][number]) {
     const track = group.tracks[0];
@@ -825,8 +826,14 @@ class ProtvistaUniprot extends LitElement {
     }
     const attrs = renderingToAttrs(track.rendering);
     return html`
-      <div class="group group--standalone" id="group_${group.id}">
-        <div class="track-label" title="${track.description ?? ''}">
+      <div
+        class="${CSS_PREFIX}-group ${CSS_PREFIX}-group--standalone"
+        id="${CSS_PREFIX}-group_${group.id}"
+      >
+        <div
+          class="${CSS_PREFIX}-track-label"
+          title="${track.description ?? ''}"
+        >
           ${(track.filterUI === 'nightingale-filter' &&
             this.getFilterComponent(`${group.id}-${track.id}`)) ||
           (track.labelUrl &&
@@ -843,11 +850,11 @@ class ProtvistaUniprot extends LitElement {
             : track.label)}
         </div>
         <div
-          class="track-content ${track.component ===
+          class="${CSS_PREFIX}-track-content ${track.component ===
           'nightingale-colored-sequence'
-            ? 'track-content__coloured-sequence'
+            ? `${CSS_PREFIX}-track-content__coloured-sequence`
             : ''}"
-          data-id="track_${track.id}"
+          data-id="${CSS_PREFIX}-track_${track.id}"
         >
           ${this.getTrack(
             track.component,
