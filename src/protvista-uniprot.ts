@@ -1037,11 +1037,17 @@ class ProtvistaUniprot extends LitElement {
   }
 
   handleGroupClick(e: MouseEvent) {
+    const target = e.target as Element;
+    // A Markdoc-rendered label can contain an inline link. A click on that
+    // link should navigate only — not also collapse/expand the group — so
+    // bail before the toggle logic when the click landed on (or inside) an
+    // <a>.
+    if (target.closest('a')) return;
     // Climb to the group-label host regardless of what inner inline
-    // element (a `{% help %}` span, a link, emphasis) the click landed
-    // on — a Markdoc-rendered label can nest arbitrary inline markup, so
-    // a single-level `parentElement` hop is no longer sufficient.
-    const host = (e.target as Element).closest('[data-group-toggle]');
+    // element (a `{% help %}` span, emphasis) the click landed on — a
+    // Markdoc-rendered label can nest arbitrary inline markup, so a
+    // single-level `parentElement` hop is no longer sufficient.
+    const host = target.closest('[data-group-toggle]');
     if (!host) return;
 
     const toggle = host.getAttribute('data-group-toggle');

@@ -591,6 +591,20 @@ describe('handleGroupClick — group collapse / expand toggle', () => {
     // No toggle host in the ancestry → early return, openGroups untouched.
     expect(el.openGroups).toEqual(['GROUP_CANVAS']);
   });
+
+  it('does not toggle the group when a link inside the label is clicked', () => {
+    // A Markdoc label can contain an inline link; clicking it should
+    // navigate only, not also collapse/expand the group.
+    const el = buildInstance();
+    const host = toggleHost('GROUP_CANVAS').host;
+    const link = document.createElement('a');
+    link.setAttribute('href', 'https://example.org');
+    link.textContent = 'Docs';
+    host.append(link);
+    el.handleGroupClick({ target: link } as unknown as MouseEvent);
+    expect(el.openGroups).not.toContain('GROUP_CANVAS');
+    expect(host.classList.contains('open')).toBe(false);
+  });
 });
 
 /**

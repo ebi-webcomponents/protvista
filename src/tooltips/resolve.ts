@@ -77,8 +77,12 @@ function renderNode(node: RenderableTreeNode): string {
   let output = `<${name}`;
   for (const [k, v] of Object.entries(attributes ?? {})) {
     const attr = k.toLowerCase();
+    // Scheme-sanitize URL-bearing attributes (`href`/`src`) on any element,
+    // not just anchors. Labels never emit `src` (the image node is
+    // neutralized in labelMarkdocConfig), but this keeps the shared walker
+    // safe for tooltip content and any future URL-carrying attribute.
     const value =
-      name === 'a' && attr === 'href'
+      attr === 'href' || attr === 'src'
         ? sanitizeUrl(v)
         : escapeHtml(String(v));
     output += ` ${attr}="${value}"`;
@@ -158,6 +162,16 @@ const helpTag: Schema = {
     const { slug } = node.transformAttributes(config);
     const children = node.transformChildren(config);
     if (typeof slug !== 'string' || !HELP_SLUG_PATTERN.test(slug)) {
+      // Degrade to a plain span, but warn: a slug outside the allowlist
+      // silently loses `data-article-id`, so uniprot.org's help popover
+      // would never fire for it with no other signal.
+      if (typeof slug === 'string') {
+        console.warn(
+          `[protvista-uniprot] Help slug ${JSON.stringify(slug)} contains ` +
+            `characters outside ${HELP_SLUG_PATTERN}; rendering without ` +
+            `data-article-id (the help popover will not fire).`
+        );
+      }
       return new Tag('span', {}, children);
     }
     return new Tag('span', { 'data-article-id': slug }, children);
@@ -165,10 +179,15 @@ const helpTag: Schema = {
 };
 
 /**
- * Link override for labels: external `http(s)` links open in a new tab
+ * Link override for labels: external links open in a new tab
  * (`target="_blank" rel="noopener noreferrer"`), preserving the behaviour
- * the removed `labelUrl` field had. Relative / in-page links (`#anchor`)
- * stay same-tab. `href` is still sanitised at render time by `renderNode`.
+ * the removed `labelUrl` field had. "External" covers both `http(s)://` and
+ * protocol-relative (`//host`) destinations — the latter are off-site
+ * navigation too, so they must get the tabnabbing guard. Relative / in-page
+ * links (`#anchor`) stay same-tab. `href` is still sanitised at render time
+ * by `renderNode`; a destination `sanitizeUrl` would drop to an empty href
+ * (a bare relative path, an unsupported scheme) is warned about here rather
+ * than rendered as a silent dead link.
  */
 const labelLinkNode: Schema = {
   ...Markdoc.nodes.link,
@@ -176,7 +195,16 @@ const labelLinkNode: Schema = {
     const attributes = node.transformAttributes(config);
     const children = node.transformChildren(config);
     const href = attributes.href;
-    const external = typeof href === 'string' && /^https?:\/\//i.test(href);
+    const external =
+      typeof href === 'string' &&
+      (/^https?:\/\//i.test(href) || href.startsWith('//'));
+    if (typeof href === 'string' && href !== '' && sanitizeUrl(href) === '') {
+      console.warn(
+        `[protvista-uniprot] Label link ${JSON.stringify(href)} was dropped ` +
+          `to an empty href (unsupported scheme or non-absolute path). Use ` +
+          `an absolute https://… or a root-relative (/…, #…) URL.`
+      );
+    }
     return new Tag(
       'a',
       external
@@ -214,23 +242,30 @@ const inlineOnly = (node?: Schema): Schema => ({
   transform: (n, config) => n.transformChildren(config),
 });
 
+/**
+ * The block-level node types a single-line label must never render. Single
+ * source of truth: drives both the `inlineOnly` neutralisation in
+ * `labelMarkdocConfig` and the `warnOnBlockNodes` set below, so the two can
+ * never drift out of sync.
+ */
+const LABEL_BLOCK_NODES = [
+  'heading', 'fence', 'blockquote', 'list', 'item', 'hr',
+  'table', 'thead', 'tbody', 'tr', 'td', 'th',
+] as const;
+
 const labelMarkdocConfig = {
   nodes: {
     document: inlineOnly(Markdoc.nodes.document),
     paragraph: inlineOnly(Markdoc.nodes.paragraph),
-    heading: inlineOnly(Markdoc.nodes.heading),
-    fence: inlineOnly(Markdoc.nodes.fence),
-    blockquote: inlineOnly(Markdoc.nodes.blockquote),
-    list: inlineOnly(Markdoc.nodes.list),
-    item: inlineOnly(Markdoc.nodes.item),
-    hr: inlineOnly(Markdoc.nodes.hr),
-    table: inlineOnly(Markdoc.nodes.table),
-    thead: inlineOnly(Markdoc.nodes.thead),
-    tbody: inlineOnly(Markdoc.nodes.tbody),
-    tr: inlineOnly(Markdoc.nodes.tr),
-    td: inlineOnly(Markdoc.nodes.td),
-    th: inlineOnly(Markdoc.nodes.th),
+    // Images are outside the inline surface (text / em / strong / code /
+    // links / help), so degrade `![alt](src)` to its alt text — Markdoc's
+    // default image node would otherwise emit an unsanitised `<img src>`
+    // that fires an uncontrolled external request on every render.
+    image: inlineOnly(Markdoc.nodes.image),
     link: labelLinkNode,
+    ...Object.fromEntries(
+      LABEL_BLOCK_NODES.map((type) => [type, inlineOnly(Markdoc.nodes[type])])
+    ),
   },
   tags: { help: helpTag },
 };
@@ -238,15 +273,12 @@ const labelMarkdocConfig = {
 /**
  * Block-level constructs are not supported inside a single-line label —
  * `description` (plain-text `title=`) and `dataTooltip` (per-datapoint
- * Markdoc popover) already serve "a paragraph of content". Warn once
- * (never throw) when a label's source carries block markup;
- * `labelMarkdocConfig` has already neutralised it to inline text by the
- * time this fires.
+ * Markdoc popover) already serve "a paragraph of content". Warn (never
+ * throw) when a label's source carries block markup; `labelMarkdocConfig`
+ * has already neutralised it to inline text by the time this fires, and
+ * `renderLabel`'s memo cache keeps the warning to once per unique label.
  */
-const LABEL_BLOCK_NODE_TYPES = new Set([
-  'heading', 'list', 'item', 'fence', 'blockquote',
-  'hr', 'table', 'thead', 'tbody', 'tr', 'td', 'th',
-]);
+const LABEL_BLOCK_NODE_TYPES = new Set<string>(LABEL_BLOCK_NODES);
 
 function warnOnBlockNodes(ast: Node, source: string): void {
   for (const node of ast.walk()) {
@@ -259,6 +291,27 @@ function warnOnBlockNodes(ast: Node, source: string): void {
       return;
     }
   }
+}
+
+/**
+ * Memo cache for `renderLabel`. Labels are static per config but re-render
+ * on every reactive update (group expand/collapse, zoom, pan), so parsing
+ * each one through Markdoc every time is wasted work. Keying on
+ * `accession` + `source` also collapses the block-markup / bad-slug /
+ * dead-link warnings to once per unique label instead of once per frame.
+ * The key space is bounded by the config's distinct labels, so the map
+ * needs no eviction. The NUL separator can't occur in an accession or
+ * a label, so keys never collide across the two fields.
+ */
+const labelRenderCache = new Map<string, string>();
+
+/**
+ * @internal Test hook — clears the `renderLabel` memo cache so warn-count
+ * and parse-once assertions stay order-independent. Not part of the public
+ * API.
+ */
+export function __resetLabelCache(): void {
+  labelRenderCache.clear();
 }
 
 /**
@@ -276,11 +329,16 @@ function warnOnBlockNodes(ast: Node, source: string): void {
  */
 export function renderLabel(source: string, accession?: string): string {
   if (!source) return '';
+  const cacheKey = `${accession ?? ''}\u0000${source}`;
+  const cached = labelRenderCache.get(cacheKey);
+  if (cached !== undefined) return cached;
   const substituted =
     accession != null ? source.split('{accession}').join(accession) : source;
   const ast = Markdoc.parse(substituted);
   warnOnBlockNodes(ast, substituted);
-  return renderNode(Markdoc.transform(ast, labelMarkdocConfig));
+  const html = renderNode(Markdoc.transform(ast, labelMarkdocConfig));
+  labelRenderCache.set(cacheKey, html);
+  return html;
 }
 
 // -----------------------------------------------------------------------------

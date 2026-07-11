@@ -8,14 +8,16 @@
  *   - plain text renders as bare text (no `<p>` / `<article>` wrapper);
  *   - inline formatting (`strong` / `em` / `code`);
  *   - the `{% help %}` tag → `<span data-article-id="…">` (uniprot.org's
- *     in-page help-popover DOM), including its slug allowlist;
+ *     in-page help-popover DOM), including its slug allowlist + warning;
  *   - label links get the same `sanitizeUrl` / external-link treatment as
- *     tooltip links (mirrors the URL-allowlist cases in `resolve.spec.ts`);
+ *     tooltip links, including protocol-relative and dead-relative handling;
+ *   - images are dropped from the inline surface (no `<img src>`);
  *   - `{accession}` pre-parse substitution;
- *   - block-level markup degrades to inline text and warns.
+ *   - block-level markup degrades to inline text and warns;
+ *   - repeated renders of the same label are memoized (parse/warn once).
  */
-import { describe, it, expect, vi } from 'vitest';
-import { renderLabel } from '../resolve';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderLabel, __resetLabelCache } from '../resolve';
 
 function htmlFragment(html: string): HTMLDivElement {
   const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -23,6 +25,12 @@ function htmlFragment(html: string): HTMLDivElement {
   div.append(...Array.from(doc.body.childNodes));
   return div;
 }
+
+beforeEach(() => {
+  // renderLabel memoizes by source, so clear the cache between cases to keep
+  // warn-count / parse-once assertions order-independent.
+  __resetLabelCache();
+});
 
 describe('renderLabel — plain + inline formatting', () => {
   it('renders plain text as bare text (no <p> / <article> wrapper)', () => {
@@ -64,14 +72,18 @@ describe('renderLabel — {% help %} tag', () => {
     expect(span?.textContent).toBe('Proteomics');
   });
 
-  it('degrades a slug with an out-of-charset character to a plain <span>', () => {
+  it('degrades an out-of-charset slug to a plain <span> and warns', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     // A space is outside `^[a-zA-Z0-9_#-]+$` — the transform drops the
-    // attribute rather than emit a bogus data-article-id.
+    // attribute rather than emit a bogus data-article-id, and warns so a
+    // broken migration is visible instead of a silently missing popover.
     const out = renderLabel('{% help slug="bad slug" %}Text{% /help %}');
     const span = htmlFragment(out).querySelector('span');
     expect(span).not.toBeNull();
     expect(span?.hasAttribute('data-article-id')).toBe(false);
     expect(span?.textContent).toBe('Text');
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
   });
 });
 
@@ -90,21 +102,51 @@ describe('renderLabel — links', () => {
     expect(link?.textContent).toBe('AlphaFold');
   });
 
+  it('treats protocol-relative (//host) links as external (new tab + rel)', () => {
+    const link = htmlFragment(renderLabel('[x](//example.com/help)')).querySelector('a');
+    expect(link?.getAttribute('href')).toBe('//example.com/help');
+    expect(link?.getAttribute('target')).toBe('_blank');
+    expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+  });
+
   it('keeps relative / in-page links in the same tab (no target)', () => {
     const link = htmlFragment(renderLabel('[Help](#anchor)')).querySelector('a');
     expect(link?.getAttribute('href')).toBe('#anchor');
     expect(link?.hasAttribute('target')).toBe(false);
   });
 
-  it('strips a link whose scheme is outside the http/https/mailto allowlist', () => {
+  it('warns and drops a bare relative path to an empty href', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const link = htmlFragment(renderLabel('[Docs](docs/help.html)')).querySelector('a');
+    expect(link?.getAttribute('href')).toBe('');
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('strips a link whose scheme is outside the allowlist and warns', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     // Markdoc linkifies `scheme://…` destinations; `sanitizeUrl` then blocks
-    // any scheme it doesn't allow (here `ftp:`), leaving an empty href —
-    // the same URL boundary tooltip links go through.
+    // any scheme it doesn't allow (here `ftp:`), leaving an empty href and a
+    // warning rather than a silent dead link.
     const out = renderLabel('[x](ftp://ok.example/file)');
     const link = htmlFragment(out).querySelector('a');
     expect(link).not.toBeNull();
     expect(link?.getAttribute('href')).toBe('');
     expect(out).not.toContain('ftp://');
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
+
+describe('renderLabel — images are dropped from the inline surface', () => {
+  it('drops a Markdown image entirely (no <img>, no src request)', () => {
+    // Markdoc's image node is neutralized, so `![alt](src)` renders nothing
+    // rather than an `<img src>` that would fire an external request. (The
+    // alt lives in an attribute, not as children, so it degrades to empty.)
+    const out = renderLabel('![pixel](https://third-party.example/p.png)');
+    expect(out).not.toContain('<img');
+    expect(out).not.toContain('third-party.example');
+    expect(out).toBe('');
   });
 });
 
@@ -119,7 +161,7 @@ describe('renderLabel — {accession} substitution', () => {
 });
 
 describe('renderLabel — block markup is not supported', () => {
-  it('degrades a heading to inline text and warns once', () => {
+  it('degrades a heading to inline text and warns', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const out = renderLabel('# Heading text');
     expect(out).not.toContain('<h1>');
@@ -134,6 +176,21 @@ describe('renderLabel — block markup is not supported', () => {
     expect(out).not.toContain('<ul>');
     expect(out).not.toContain('<li>');
     expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
+
+describe('renderLabel — memoization', () => {
+  it('parses (and warns) once per unique source across repeated renders', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const src = '## memoized heading warns once';
+    const first = renderLabel(src);
+    const second = renderLabel(src);
+    renderLabel(src);
+    // Same output every time, but the block-markup warning (a proxy for a
+    // Markdoc parse) fires only on the first, uncached render.
+    expect(second).toBe(first);
+    expect(warn).toHaveBeenCalledTimes(1);
     warn.mockRestore();
   });
 });
