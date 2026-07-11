@@ -541,9 +541,9 @@ describe('full render — standalone top-level tracks', () => {
   it('a genuine group still renders its collapse header and stays collapsed', () => {
     const group = target.querySelector(`#${CSS_PREFIX}-group_DOMAINS`);
     expect(group).not.toBeNull();
-    expect(
-      group!.classList.contains(`${CSS_PREFIX}-group--standalone`)
-    ).toBe(false);
+    expect(group!.classList.contains(`${CSS_PREFIX}-group--standalone`)).toBe(
+      false
+    );
     // Collapse toggle present.
     expect(group!.querySelector(`.${CSS_PREFIX}-group-label`)).not.toBeNull();
     // openGroups is empty, so no expanded child track rows for the group.
