@@ -23,13 +23,16 @@
  *      `.flat()` for most components, or `groupData[0]` for
  *      linegraph / colored-sequence groups.
  *
- * Intentionally kept side-effect-free: no `this`, no DOM, no
- * `transformedVariants`. That legacy side-effect is preserved in the
- * component's wrapper by reading `data['VARIATION-variation']` after the
- * call.
+ * Intentionally kept side-effect-free: no `this`, no DOM. Tracks that
+ * opt into a filter UI (`filterUI: 'nightingale-filter'`) get their
+ * adapted payload mirrored under a second key,
+ * `${groupId}-${trackId}${UNFILTERED_SUFFIX}`, so the component's filter
+ * handler has a pristine baseline to re-filter against without a
+ * separate class field. Consumers reading `data` directly must treat
+ * `__unfiltered` keys as inert baselines, not live renderer payload.
  */
 
-import type { NormalizedConfig } from './schema/normalize';
+import type { NormalizedConfig, NormalizedTrack } from './schema/normalize';
 import type { TransformedInterPro } from './adapters/types/interpro';
 import { resolveTooltip } from './tooltips/resolve';
 import { tooltipDefaults } from './tooltips/defaults';
@@ -60,11 +63,28 @@ type FetchOne = (url: string) => Promise<unknown>;
  */
 export type CustomTrackData = Record<string, unknown>;
 
+/**
+ * Sentinel suffix for the pristine, unfiltered baseline copy of a
+ * filterable track's payload. For a track keyed `${groupId}-${trackId}`
+ * whose config sets `filterUI: 'nightingale-filter'`, the loader mirrors
+ * the adapted payload at `${groupId}-${trackId}${UNFILTERED_SUFFIX}`. The
+ * component's filter handler reads the baseline from this key and writes
+ * the filtered result back to the primary key, so successive filter
+ * interactions never compound. Keys carrying this suffix are inert
+ * baselines — not live renderer payload.
+ */
+export const UNFILTERED_SUFFIX = '__unfiltered';
+
 type LoadResult = {
   /** Keyed by the *template* URL (pre-substitution), matching the legacy
    *  `this.rawData` shape the renderer reads. */
   rawData: Record<string, unknown>;
-  /** Keyed by `${groupId}-${trackId}` and `${groupId}`. */
+  /**
+   * Keyed by `${groupId}-${trackId}` and `${groupId}`. Tracks with
+   * `filterUI: 'nightingale-filter'` additionally get a pristine baseline
+   * copy at `${groupId}-${trackId}${UNFILTERED_SUFFIX}` for the filter
+   * handler to read from.
+   */
   data: Record<string, unknown>;
   /** True iff any raw response has `features.length > 0`. Mirrors the
    *  legacy `this.hasData` gate for rendering empty-state markup. */
@@ -204,6 +224,21 @@ export async function loadProtvistaData(
 
   const data: Record<string, unknown> = {};
 
+  // Write a track's adapted payload to its primary key, plus a pristine
+  // `__unfiltered` baseline when the track opts into a filter UI. Both
+  // assignment sites (`from: custom` and url/inline) route through here
+  // so the baseline opt-in rule lives in exactly one place.
+  const assignTrackData = (
+    key: string,
+    payload: unknown,
+    track: NormalizedTrack
+  ) => {
+    data[key] = payload;
+    if (track.filterUI === 'nightingale-filter') {
+      data[`${key}${UNFILTERED_SUFFIX}`] = payload;
+    }
+  };
+
   for (const group of config.groups) {
     const groupId = group.id;
     const groupData = await Promise.all(
@@ -249,7 +284,7 @@ export async function loadProtvistaData(
             trackId,
             kind: kind ?? '',
           });
-          data[trackKey] = annotated;
+          assignTrackData(trackKey, annotated, track);
           return annotated;
         }
 
@@ -317,8 +352,8 @@ export async function loadProtvistaData(
           kind: kind ?? '',
         });
 
-        // 4. Assign track data
-        data[`${groupId}-${trackId}`] = annotated;
+        // 4. Assign track data (+ a pristine baseline for filter tracks)
+        assignTrackData(trackKey, annotated, track);
         return annotated;
       })
     );
