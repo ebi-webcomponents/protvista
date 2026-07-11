@@ -119,7 +119,7 @@ interface ProtvistaViewerConfig {
    * The primary accession or identifier for this viewer instance.
    *
    * Used to interpolate `{accession}` placeholders in `sources`
-   * URLs, `labelUrl`, and any other template string in the config.
+   * URLs, group/track `label`, and any other template string in the config.
    * Only characters matching `[A-Za-z0-9_-]{1,32}` are substituted;
    * all other values substitute to an empty string. This prevents
    * path traversal and URL-smuggling payloads from user input.
@@ -171,8 +171,6 @@ interface ProtvistaViewerConfig {
    *
    * Precedence (highest first):
    *   track.rendering > group.rendering > defaults.rendering
-   *   track.labelUrl  > defaults.labelUrl
-   *   track.helpPage  > group.helpPage > defaults.helpPage
    */
   defaults?: ConfigDefaults;
 
@@ -187,15 +185,6 @@ interface ProtvistaViewerConfig {
 interface ConfigDefaults {
   /** Default rendering options inherited by every track. */
   rendering?: RenderingOptions;
-
-  /**
-   * Default `labelUrl` template for every track that does not set
-   * its own. Supports `{accession}` and `{id}` placeholders.
-   */
-  labelUrl?: string;
-
-  /** Default help-page slug. */
-  helpPage?: string;
 }
 
 interface GroupConfig {
@@ -203,9 +192,12 @@ interface GroupConfig {
   id: string;
 
   /**
-   * Human-readable label shown in the UI. Optional — if omitted,
-   * falls back to a title-cased form of `id`
-   * (e.g. "MOLECULE_PROCESSING" → "Molecule processing").
+   * Human-readable label shown in the UI. A Markdoc inline source
+   * string — Markdown (emphasis, code, links) plus the
+   * `{% help slug="…" %}…{% /help %}` tag; `{accession}` is
+   * interpolated before rendering. Block-level markup is not
+   * supported. Optional — if omitted, falls back to a title-cased form
+   * of `id` (e.g. "MOLECULE_PROCESSING" → "Molecule processing").
    */
   label?: string;
 
@@ -231,20 +223,20 @@ interface GroupConfig {
 
   /** Group-level rendering defaults; individual tracks inherit these. */
   rendering?: RenderingOptions;
-
-  /** Optional URL slug for the help-page link on the group label. */
-  helpPage?: string;
 }
 
 interface TrackConfig {
   /** Unique identifier within its parent group (e.g. "signal"). */
   id: string;
 
-  /** Human-readable label. Falls back to a title-cased form of `id` if omitted. */
+  /**
+   * Human-readable label. A Markdoc inline source string — Markdown
+   * (emphasis, code, links) plus the `{% help slug="…" %}…{% /help %}`
+   * tag; `{accession}` is interpolated before rendering. Block-level
+   * markup is not supported. Falls back to a title-cased form of `id`
+   * if omitted.
+   */
   label?: string;
-
-  /** URL for the label to link to. Supports `{accession}` and `{id}` interpolation. */
-  labelUrl?: string;
 
   /**
    * Semantic track kind — describes WHAT the track displays.
@@ -365,9 +357,6 @@ interface TrackConfig {
 
   /** Track-level rendering overrides; merged on top of group defaults. */
   rendering?: RenderingOptions;
-
-  /** Optional URL slug for the help-page link on the track label. */
-  helpPage?: string;
 }
 
 /**
@@ -767,7 +756,7 @@ Accessibility is a grant-level commitment (see the OMP) and is baked into the sc
 
 - **Colour-blind-safe defaults.** The built-in colour themes referenced from `colorScale.theme` — `alphafold-ramp` (pLDDT confidence) and `alphamissense-ramp` (pathogenicity) — are published as accessibility-reviewed palettes. Authors who rely on semantic kinds (`confidence-score`, `pathogenicity-score`) or name a built-in theme get WCAG-compliant colouring for free. Explicit `stops:` escape-hatch gradients remain authorable, but shift the accessibility responsibility to the author and should be used only when no built-in theme fits.
 - **Keyboard-accessible legends.** Colour-scale legends rendered from `ColorScaleConfig` are keyboard-focusable and announce their `label` via `aria-label`. The `label` field on `ColorStop` is the accessible name — authors who register custom themes via `registerTheme()` should supply labels for every stop, not only for legend clarity but for screen-reader output.
-- **Tooltip semantics.** Track- and group-level `description` fields render as plain-text native HTML `title` attributes — no Markdown, no HTML — so screen readers pick them up via the browser's default a11y path. Per-datapoint `dataTooltip` content flows through `@markdoc/markdoc` to produce HTML preserving the Markdown's semantic structure (headings, emphasis, lists) rather than flattening to a styled `<div>`. Field interpolations are HTML-escaped at the boundary so those semantic tags stay intact for screen readers. Per-datapoint tooltips are displayed as click-triggered popovers (not hover-triggered) with `role="tooltip"` and `tabindex="-1"`. Focus moves into the popover on open and is restored to the previously-focused element on close (Escape key, outside click, or scroll). The popover is dismissed by Escape, outside-click, or any document scroll.
+- **Tooltip semantics.** Track- and group-level `description` fields render as plain-text native HTML `title` attributes — no Markdown, no HTML — so screen readers pick them up via the browser's default a11y path. Track- and group-level `label` fields render through `@markdoc/markdoc` restricted to an inline surface (emphasis, code, links, and the `{% help %}` help-popover tag); block-level markup is rejected so a label stays a single semantic line, and link `href`s pass the same URL allowlist as tooltip content. Per-datapoint `dataTooltip` content flows through `@markdoc/markdoc` to produce HTML preserving the Markdown's semantic structure (headings, emphasis, lists) rather than flattening to a styled `<div>`. Field interpolations are HTML-escaped at the boundary so those semantic tags stay intact for screen readers. Per-datapoint tooltips are displayed as click-triggered popovers (not hover-triggered) with `role="tooltip"` and `tabindex="-1"`. Focus moves into the popover on open and is restored to the previously-focused element on close (Escape key, outside click, or scroll). The popover is dismissed by Escape, outside-click, or any document scroll.
 - **Library defaults are compact.** The built-in `tooltipDefaults` registry ships small declarative specs per `SemanticKind`, while the no-spec fallback now surfaces a little more of the adapted payload. Product-specific rich rendering (evidence icons, taxonomy lookups, React overlays, …) still lives in consumer code via the Nightingale `change`-event pattern paired with `notooltip` on the element.
 - **Sensible out-of-the-box fallback.** Tooltip precedence is: non-empty `item.tooltipContent` supplied by an adapter, then `track.dataTooltip`, then `tooltipDefaults[kind]`, then auto-fallback. When the auto-fallback runs, it renders through Markdoc and emits at most ten rows in this order: `type`, `description`, position (`start | begin` plus `end`, collapsed to `Position` when equal), variant sequence (`wildType` plus `alternativeSequence | variant`), `consequenceType`, `clinicalSignificances`, `score`, `xrefs`, `evidences`, then remaining top-level scalar fields such as values added by `calculate` transforms. Missing fields drop out; an item carrying none of them stays empty. Xrefs become links only when the entry carries a URL that passes the tooltip URL allowlist (`http:`, `https:`, `mailto:`, or relative URL forms).
 - **No colour-only encoding.** `RenderingOptions.shape` exists partly so tracks can encode distinctions redundantly (e.g. shape _and_ colour) rather than colour alone. Config authors building custom tracks are encouraged to use shape or label text as a secondary channel alongside colour.
@@ -861,14 +850,11 @@ groups:
 
 The viewer renders a "My custom annotations" group with a "Predicted binding sites" track. No HTTP requests are made; the two features from `inlineData` are rendered directly as red diamonds on the canvas track. `data` is accepted as a single object (no `[ ... ]` wrapper needed) and `from: inline` explicitly signals that no network fetch should happen.
 
-### Example 3: Full UniProt-equivalent config (excerpt showing inheritance, multi-URL adapter, filter UI)
+### Example 3: Full UniProt-equivalent config (excerpt showing rich labels, multi-URL adapter, filter UI)
 
 **Input:**
 
 ```yaml
-defaults:
-  labelUrl: 'https://www.uniprot.org/uniprot/{accession}' # every track inherits this
-
 sources:
   features: https://www.ebi.ac.uk/proteins/api/features/{accession}
   variation: https://www.ebi.ac.uk/proteins/api/variation/{accession}
@@ -877,12 +863,12 @@ sources:
 
 groups:
   - id: ALPHAFOLD_CONFIDENCE
-    label: AlphaFold
-    helpPage: structure_section#alphafold-structural-models
+    # `{% help %}` renders <span data-article-id="…"> for the in-page help popover
+    label: '{% help slug="structure_section#alphafold-structural-models" %}AlphaFold{% /help %}'
     tracks:
       - id: alphafold_confidence
-        label: AlphaFold Confidence
-        labelUrl: https://alphafold.ebi.ac.uk/entry/{accession} # overrides defaults.labelUrl
+        # Markdown link in the label — external links open in a new tab
+        label: '[AlphaFold Confidence](https://alphafold.ebi.ac.uk/entry/{accession})'
         kind: confidence-score
         data:
           source: [alphafoldPrediction, proteins] # two-URL adapter
@@ -895,8 +881,7 @@ groups:
           Scores above `90` indicate high expected accuracy.
 
   - id: VARIATION
-    label: Variants
-    helpPage: variant_viewer
+    label: '{% help slug="variant_viewer" %}Variants{% /help %}'
     tracks:
       - id: variation_graph
         label: Counts
@@ -913,7 +898,7 @@ groups:
 
 **Expected output (viewer behaviour):**
 
-The AlphaFold group has no `rendering` block because `kind: "confidence-score"` carries the AlphaFold colour ramp as a default preset — authors get the canonical appearance for free. The adapter (resolved from the semantic kind) receives two raw responses (from `alphafoldPrediction` and `proteins`) and produces a coloured-sequence string. The Variation group is similarly terse: `data: variation` is string shorthand that resolves via `sources`; `filterUI: nightingale-filter` attaches the variant filter widget. Every track inherits `defaults.labelUrl` unless it overrides (the AlphaFold track points at alphafold.ebi.ac.uk). Authors only write domain language (`"variants"`, `"confidence-score"`) — never Nightingale component names or adapter names.
+The AlphaFold group has no `rendering` block because `kind: "confidence-score"` carries the AlphaFold colour ramp as a default preset — authors get the canonical appearance for free. The adapter (resolved from the semantic kind) receives two raw responses (from `alphafoldPrediction` and `proteins`) and produces a coloured-sequence string. The Variation group is similarly terse: `data: variation` is string shorthand that resolves via `sources`; `filterUI: nightingale-filter` attaches the variant filter widget. Labels carry their own rich rendering: the AlphaFold track label is a Markdown link (`{accession}` interpolated, opens alphafold.ebi.ac.uk in a new tab) and the group labels use the `{% help %}` tag to drive the in-page help popover. Authors only write domain language (`"variants"`, `"confidence-score"`) — never Nightingale component names or adapter names.
 
 ### Example 4: Extending the EBI default — one line, one new track
 
@@ -1038,7 +1023,7 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 - [x] `registerAdapter()`, `registerSemanticKind()`, and `registerTheme()` each allow a user-defined name to be referenced from config and function correctly.
 - [x] Track-level `filter: "<value>"` shortcut narrows a track's items to those whose `type` field equals the given value.
 - [x] `extends` resolves one or more base configs (URL or file path), merges per the documented rules (sources by key, groups by id, rendering field-wise, child wins). Cycles are detected and fail validation.
-- [x] `defaults.rendering`, `defaults.labelUrl`, and `defaults.helpPage` inherit to every group/track and are overridden at the group and track level per the documented precedence chain.
+- [x] `defaults.rendering` inherits to every group/track and is overridden at the group and track level per the documented precedence chain.
 - [x] Track rendering options (`color`, `shape`, `height`, `layout`, `colorScale`) correctly inherit from `defaults` → group → track, with track winning on conflict.
 - [x] Config validation produces clear, actionable error messages for all edge cases listed above.
 - [x] The schema file declares a stable `$id` URI and data files reference it via `$schema`, so that editors (VS Code, etc.) can resolve the schema and provide autocomplete and inline validation once the URL is hosted. A placeholder `.invalid` URL is used in `default-config.yaml` until the schema is published at release time.
@@ -1129,7 +1114,6 @@ describe('ProtVista Viewer Config Schema — JSON Schema layer', () => {
       extends: './base-config.yaml',
       defaults: {
         rendering: { layout: 'non-overlapping' },
-        labelUrl: 'https://x/{id}',
       },
       sources: { my_features: 'https://example.org/my-features/{accession}' },
       groups: [

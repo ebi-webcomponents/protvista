@@ -25,7 +25,12 @@
  * kind we care about (text / paragraph / inline formatting /
  * conditional blocks).
  */
-import Markdoc, { Tag, type RenderableTreeNode } from '@markdoc/markdoc';
+import Markdoc, {
+  Tag,
+  type RenderableTreeNode,
+  type Schema,
+  type Node,
+} from '@markdoc/markdoc';
 import type { TooltipContext, TooltipSpec, FieldSpec } from './types';
 import { escapeHtml, sanitizeUrl } from '../utils/security';
 
@@ -116,6 +121,167 @@ const markdocConfig = {
     document: { ...Markdoc.nodes.document, render: null as unknown as string },
   },
 };
+
+// -----------------------------------------------------------------------------
+// Labels (group / track)
+// -----------------------------------------------------------------------------
+
+/**
+ * `{% help slug="signal" %}Signal peptide{% /help %}` → `<span
+ * data-article-id="signal">Signal peptide</span>` — the exact DOM
+ * uniprot.org's in-page help-article controller listens for. External
+ * adopters get an inert span they can ignore.
+ *
+ * `slug` is constrained to a restricted charset (letters, digits, `_`,
+ * `-`, `#`) so existing help slugs like
+ * `proteomics#1-data-from-public-mass-spectrometry-based-proteomics-resources`
+ * still validate. Markdoc's `matches` only produces a validation warning
+ * (it does not strip the value at transform time), so the transform
+ * re-checks and degrades a malformed slug to a plain `<span>` rather than
+ * emitting a bogus `data-article-id`. `renderNode` separately
+ * HTML-escapes the attribute value, so this regex is defence-in-depth
+ * plus an author-error signal, not the XSS boundary.
+ */
+const HELP_SLUG_PATTERN = /^[a-zA-Z0-9_#-]+$/;
+
+const helpTag: Schema = {
+  render: 'span',
+  // Inline so the tag nests inside its paragraph's inline stream rather
+  // than forcing a block break — essential given the paragraph wrapper
+  // is suppressed below.
+  inline: true,
+  selfClosing: false,
+  attributes: {
+    slug: { type: String, required: true, matches: HELP_SLUG_PATTERN },
+  },
+  transform(node, config) {
+    const { slug } = node.transformAttributes(config);
+    const children = node.transformChildren(config);
+    if (typeof slug !== 'string' || !HELP_SLUG_PATTERN.test(slug)) {
+      return new Tag('span', {}, children);
+    }
+    return new Tag('span', { 'data-article-id': slug }, children);
+  },
+};
+
+/**
+ * Link override for labels: external `http(s)` links open in a new tab
+ * (`target="_blank" rel="noopener noreferrer"`), preserving the behaviour
+ * the removed `labelUrl` field had. Relative / in-page links (`#anchor`)
+ * stay same-tab. `href` is still sanitised at render time by `renderNode`.
+ */
+const labelLinkNode: Schema = {
+  ...Markdoc.nodes.link,
+  transform(node, config) {
+    const attributes = node.transformAttributes(config);
+    const children = node.transformChildren(config);
+    const href = attributes.href;
+    const external = typeof href === 'string' && /^https?:\/\//i.test(href);
+    return new Tag(
+      'a',
+      external
+        ? { ...attributes, target: '_blank', rel: 'noopener noreferrer' }
+        : attributes,
+      children
+    );
+  },
+};
+
+/**
+ * Markdoc config for the inline-only label surface. Labels are a
+ * single-line UI element, so every block wrapper is collapsed to its
+ * inline children:
+ *
+ *   - `document` / `paragraph` — no `<article>` / `<p>` wrapper, so a
+ *     plain `"Signal peptide"` label renders as bare text.
+ *   - `heading` / `fence` / `blockquote` / `list` / `item` / `hr` /
+ *     `table` (+ the `thead` / `tbody` / `tr` / `td` / `th` cells) —
+ *     block constructs an author might type by mistake degrade to their
+ *     inline text instead of injecting block HTML (`<h1>`, `<ul>`, …)
+ *     into a label row. `warnOnBlockNodes` logs when this happens.
+ *
+ * Overriding `transform` (rather than `render: null`) is required: the
+ * heading / list / table node schemas build their tag with a custom
+ * `transform` that ignores the `render` field, so only returning the
+ * children reliably strips the wrapper.
+ *
+ * The allowed inline surface is text, `em`, `strong`, `code`, links, and
+ * the `{% help %}` tag. Kept separate from the tooltip `markdocConfig`,
+ * which deliberately keeps `<p>` and registers no `help` tag.
+ */
+const inlineOnly = (node?: Schema): Schema => ({
+  ...node,
+  transform: (n, config) => n.transformChildren(config),
+});
+
+const labelMarkdocConfig = {
+  nodes: {
+    document: inlineOnly(Markdoc.nodes.document),
+    paragraph: inlineOnly(Markdoc.nodes.paragraph),
+    heading: inlineOnly(Markdoc.nodes.heading),
+    fence: inlineOnly(Markdoc.nodes.fence),
+    blockquote: inlineOnly(Markdoc.nodes.blockquote),
+    list: inlineOnly(Markdoc.nodes.list),
+    item: inlineOnly(Markdoc.nodes.item),
+    hr: inlineOnly(Markdoc.nodes.hr),
+    table: inlineOnly(Markdoc.nodes.table),
+    thead: inlineOnly(Markdoc.nodes.thead),
+    tbody: inlineOnly(Markdoc.nodes.tbody),
+    tr: inlineOnly(Markdoc.nodes.tr),
+    td: inlineOnly(Markdoc.nodes.td),
+    th: inlineOnly(Markdoc.nodes.th),
+    link: labelLinkNode,
+  },
+  tags: { help: helpTag },
+};
+
+/**
+ * Block-level constructs are not supported inside a single-line label —
+ * `description` (plain-text `title=`) and `dataTooltip` (per-datapoint
+ * Markdoc popover) already serve "a paragraph of content". Warn once
+ * (never throw) when a label's source carries block markup;
+ * `labelMarkdocConfig` has already neutralised it to inline text by the
+ * time this fires.
+ */
+const LABEL_BLOCK_NODE_TYPES = new Set([
+  'heading', 'list', 'item', 'fence', 'blockquote',
+  'hr', 'table', 'thead', 'tbody', 'tr', 'td', 'th',
+]);
+
+function warnOnBlockNodes(ast: Node, source: string): void {
+  for (const node of ast.walk()) {
+    if (LABEL_BLOCK_NODE_TYPES.has(node.type)) {
+      console.warn(
+        `[protvista-uniprot] Label contains block-level markup, which is ` +
+          `not supported — only inline formatting (emphasis, code, links, ` +
+          `{% help %}) renders. Source: ${JSON.stringify(source)}`
+      );
+      return;
+    }
+  }
+}
+
+/**
+ * Render a group / track `label` (a Markdoc inline source string) to an
+ * HTML string for injection via lit's `unsafeHTML`. Reuses the tooltip
+ * `renderNode` walker so label links get the same `sanitizeUrl` / escape
+ * treatment as tooltip content.
+ *
+ * `{accession}` is substituted before parsing — the same pre-parse
+ * substitution the removed `labelUrl` field used — so authors can write
+ * `[AlphaFold](https://alphafold.ebi.ac.uk/entry/{accession})` without
+ * learning Markdoc variables. When `accession` is undefined the
+ * placeholder is left literal (callers gate accession-bearing labels the
+ * same way the old `labelUrl` branch did).
+ */
+export function renderLabel(source: string, accession?: string): string {
+  if (!source) return '';
+  const substituted =
+    accession != null ? source.split('{accession}').join(accession) : source;
+  const ast = Markdoc.parse(substituted);
+  warnOnBlockNodes(ast, substituted);
+  return renderNode(Markdoc.transform(ast, labelMarkdocConfig));
+}
 
 // -----------------------------------------------------------------------------
 // Branch: fields

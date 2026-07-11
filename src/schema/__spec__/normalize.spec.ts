@@ -16,7 +16,6 @@
  *     with the kind preset layered between group and track so
  *     canonical ramps win over group colour but lose to explicit
  *     track overrides;
- *   - labelUrl / helpPage inheritance per the spec's precedence table;
  *   - group `component` inference from child-track components
  *     (all-same / mixed / empty);
  *   - `titleCaseId` fallback for both group and track labels;
@@ -616,64 +615,6 @@ describe('normalizeConfig — rendering cascade', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// labelUrl / helpPage inheritance
-// ─────────────────────────────────────────────────────────────
-
-describe('normalizeConfig — labelUrl / helpPage inheritance', () => {
-  it('inherits labelUrl from defaults to every track without its own', () => {
-    const out = normalizeConfig(
-      cfg({
-        defaults: { labelUrl: 'https://uniprot.org/{accession}' },
-        sources: { features: 'https://x' },
-        groups: [
-          {
-            id: 'C',
-            tracks: [
-              track({ id: 't1' }),
-              track({ id: 't2', labelUrl: 'https://custom/{id}' }),
-            ],
-          },
-        ],
-      })
-    );
-    expect(out.groups[0].tracks[0].labelUrl).toBe(
-      'https://uniprot.org/{accession}'
-    );
-    expect(out.groups[0].tracks[1].labelUrl).toBe('https://custom/{id}');
-  });
-
-  it('inherits helpPage: track > group > defaults', () => {
-    const out = normalizeConfig(
-      cfg({
-        defaults: { helpPage: 'default-help' },
-        sources: { features: 'https://x' },
-        groups: [
-          {
-            id: 'GROUP1',
-            helpPage: 'group1-help',
-            tracks: [
-              track({ id: 't1' }),
-              track({ id: 't2', helpPage: 'track-help' }),
-            ],
-          },
-          {
-            id: 'GROUP2',
-            tracks: [track({ id: 't3' })],
-          },
-        ],
-      })
-    );
-    expect(out.groups[0].tracks[0].helpPage).toBe('group1-help');
-    expect(out.groups[0].tracks[1].helpPage).toBe('track-help');
-    expect(out.groups[1].tracks[0].helpPage).toBe('default-help');
-    // Group helpPage resolution: GROUP1 uses its own; GROUP2 inherits
-    // from defaults.
-    expect(out.groups[0].helpPage).toBe('group1-help');
-    expect(out.groups[1].helpPage).toBe('default-help');
-  });
-});
-
-// ─────────────────────────────────────────────────────────────
 // Component resolution
 // ─────────────────────────────────────────────────────────────
 
@@ -944,8 +885,6 @@ describe('normalizeConfig — top-level fields', () => {
       groups: [{ id: 'C', tracks: [] }],
     });
     expect(out.defaults.rendering).toEqual({});
-    expect(out.defaults.labelUrl).toBeUndefined();
-    expect(out.defaults.helpPage).toBeUndefined();
   });
 });
 

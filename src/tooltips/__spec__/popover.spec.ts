@@ -283,9 +283,10 @@ describe('installClickTooltip', () => {
   });
 
   it('dismisses when a descendant of the group-label is clicked', async () => {
-    // Group labels can contain an inner <span> (for helpPage links).
-    // The closest('[data-group-toggle]') lookup must walk up from
-    // the event target to catch those clicks too.
+    // Group labels are Markdoc-rendered and can nest inline markup —
+    // a `{% help %}` span or an inline link. The
+    // closest('[data-group-toggle]') lookup must walk up from the
+    // event target to catch those clicks too.
     controller = installClickTooltip(host);
     const toggle = document.createElement('div');
     toggle.setAttribute('data-group-toggle', 'DOMAINS');
