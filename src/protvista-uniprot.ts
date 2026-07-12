@@ -56,7 +56,17 @@ import { renderingToAttrs } from './renderer/render-helpers';
 import loaderIcon from './icons/spinner.svg';
 import protvistaStyles from './styles/protvista-styles';
 import loaderStyles from './styles/loader-styles';
+import errorStyles from './styles/error-styles';
 import { CSS_PREFIX } from './styles/css-prefix';
+
+// User-facing error surfaces. `ConfigValidationError` is a value import
+// (used for the `instanceof` narrowing in `_init`'s catch); the display
+// formatter is *not* imported here — it is pulled in lazily via
+// `await import('./errors/format')` only when a config error actually
+// occurs, so the happy path never downloads it.
+import { ConfigValidationError, type ValidationIssue } from './schema/errors';
+import type { ErrorPhase, ErrorContext } from './errors/report';
+import type { FormattedError } from './errors/format';
 
 // Performance marks emitted at three lifecycle transitions:
 //   protvista:script-start    component connectedCallback runs
@@ -114,6 +124,35 @@ type NightingaleEvent = Event & {
     coords?: [number, number];
   };
 };
+
+/** How a track's data fetch failed. See `_trackErrors`. */
+type FetchErrorKind = 'network' | 'http' | 'parse';
+
+/** A single track's fetch failure, correlated to its group/track. */
+type TrackFetchError = {
+  url: string;
+  kind: FetchErrorKind;
+  /** Present only for `kind: 'http'`. */
+  status?: number;
+  groupId: string;
+  trackId: string;
+};
+
+/**
+ * Outcome of the top-level sequence fetch (`loadEntry`). Either the parsed
+ * entry body, or a classified failure — the same `network` / `http` /
+ * `parse` taxonomy used per-track, so the mount panel can distinguish a
+ * *broken* service (retryable) from a *missing* accession (a 4xx).
+ */
+type EntryResult =
+  | { entry: { sequence?: { sequence?: string } } | undefined; error?: undefined }
+  | { entry?: undefined; error: { kind: FetchErrorKind; status?: number } };
+
+const isAbortError = (e: unknown): boolean =>
+  (e as { name?: string } | null)?.name === 'AbortError';
+
+/** Monotonic per-page counter giving each element a unique id nonce. */
+let protvistaInstanceSeq = 0;
 
 @customElement('protvista-uniprot')
 class ProtvistaUniprot extends LitElement {
@@ -190,6 +229,76 @@ class ProtvistaUniprot extends LitElement {
    */
   private _loadAbortController?: AbortController;
 
+  /**
+   * Mount-level error state. When set, `render()` shows the alert panel
+   * instead of the viewer (or the silent blank it used to show for a
+   * config / sequence failure). For a config failure the rich
+   * `FormattedError` fields (grouped issues) are filled in after the
+   * lazy `./errors/format` chunk resolves; until then the one-line
+   * `summary` is enough to render. Not a reactive property (it's an
+   * object) — every mutation is paired with `requestUpdate()`.
+   */
+  private _mountError:
+    | ({
+        phase: ErrorPhase;
+        summary: string;
+        /**
+         * Offer a Retry button in the panel. Set for a *broken* sequence
+         * fetch (network / HTTP 5xx / parse) — a transient service failure
+         * worth re-trying in place. A *missing* entry (HTTP 4xx) sets this
+         * false: re-fetching a 404 is deterministic.
+         */
+        retry?: boolean;
+        issues?: ValidationIssue[];
+      } & Partial<FormattedError>)
+    | null = null;
+
+  /**
+   * Per-track "broken" fetch failures from the most recent `_loadData()`
+   * run, keyed by `${groupId}-${trackId}`. Only genuine failures are
+   * recorded — `network` (the request threw before a response — blocked,
+   * offline, DNS, CORS, timeout), `parse` (a 2xx response whose body
+   * failed to parse), and `http` 5xx (server error). An HTTP 4xx is
+   * treated as "missing, not broken" and never recorded (see
+   * `_collectTrackErrors`). `status` is present only for `http`.
+   */
+  private _trackErrors: Map<string, TrackFetchError> = new Map();
+
+  /** Group ids whose *every* track failed (drives badge wording). */
+  private _groupErrors: Set<string> = new Set();
+
+  /**
+   * Derived error sets, recomputed once per render (in
+   * `_recomputeErrorVisibility`) so the badge/gating sites are O(1)
+   * lookups. `_visibleGroupErrors` = groups with ≥1 track error;
+   * `_anyVisibleError` = whether any track error exists. Every entry in
+   * `_trackErrors` is already a broken failure, so these are simply
+   * derived from its contents.
+   */
+  private _visibleGroupErrors: Set<string> = new Set();
+  private _anyVisibleError = false;
+
+  /**
+   * Per-instance nonce for DOM ids. The component renders in light DOM,
+   * so badge `aria-describedby` ids must be unique across multiple
+   * `<protvista-uniprot>` elements on one page (two with the same
+   * accession + track id would otherwise collide).
+   */
+  private readonly _instanceId: number = (protvistaInstanceSeq += 1);
+
+  /**
+   * Element focused at the moment a mount-level error was reported, so
+   * the panel's close button can hand focus back where it came from.
+   */
+  private _prevFocus: HTMLElement | null = null;
+
+  /**
+   * Edge-detects the error panel's open→closed transition in
+   * `updated()`, so focus is moved in on appear and restored on
+   * dismiss (after Lit has removed the panel from the DOM).
+   */
+  private _panelWasOpen = false;
+
   constructor() {
     super();
     this.openGroups = [];
@@ -230,7 +339,7 @@ class ProtvistaUniprot extends LitElement {
     if (document.querySelector('style[data-protvista-uniprot]')) return;
     const styleTag = document.createElement('style');
     styleTag.setAttribute('data-protvista-uniprot', '');
-    styleTag.textContent = `${protvistaStyles.toString()} ${loaderStyles.toString()}`;
+    styleTag.textContent = `${protvistaStyles.toString()} ${loaderStyles.toString()} ${errorStyles.toString()}`;
     document.querySelector('head')?.append(styleTag);
   }
 
@@ -247,7 +356,13 @@ class ProtvistaUniprot extends LitElement {
     loadComponent('nightingale-sequence-heatmap', NightingaleSequenceHeatmap);
   }
 
-  async _loadData() {
+  /**
+   * Load (or reload) track data. With `only` set (a set of
+   * `${groupId}-${trackId}` keys), only those tracks are re-fetched and
+   * their results spliced into the existing `data` — the targeted-retry
+   * path. Without it, every track is loaded.
+   */
+  async _loadData(only?: Set<string>) {
     const accession = this.accession;
     if (!accession || !this.config) {
       this.loading = false;
@@ -264,7 +379,19 @@ class ProtvistaUniprot extends LitElement {
     this._loadAbortController = controller;
     const { signal } = controller;
 
-    const { rawData, data, hasData } = await loadProtvistaData(
+    // Records HTTP 4xx/5xx fetch failures for this batch, keyed by the
+    // *substituted* URL the closure was handed — the same URLs the loader
+    // reports back in `trackUrls`, so `_collectTrackErrors` can correlate
+    // failures to tracks without re-deriving anything. The closure still
+    // logs to the console unconditionally (preserving legacy behaviour);
+    // this map is what feeds the user-facing badges and the
+    // `protvista-error` event.
+    const fetchErrors = new Map<
+      string,
+      Omit<TrackFetchError, 'groupId' | 'trackId'>
+    >();
+
+    const { rawData, data, hasData, trackUrls } = await loadProtvistaData(
       accession,
       this.config,
       // Preserve the legacy fetchAll semantics: 4xx/5xx and thrown
@@ -273,32 +400,53 @@ class ProtvistaUniprot extends LitElement {
       // re-entry is recognised and silently returned as `null` so it
       // doesn't pollute the console.
       async (url) => {
+        // Three distinct failure modes are recorded so the badge / event
+        // can tell "couldn't reach the server" from "server said 500"
+        // from "unparseable body". Each still returns `null` into the
+        // per-URL slot (legacy swallow-and-continue). `AbortError` from a
+        // superseding `_loadData()` re-entry is silently ignored.
+        let response: Response;
         try {
-          const response = await fetch(url, { signal });
-          if (!response.ok) {
-            // TODO handle this better based on error code
-            console.warn(`HTTP error status: ${response.status} at ${url}`);
-            return null;
-          }
+          response = await fetch(url, { signal });
+        } catch (error) {
+          if (isAbortError(error)) return null;
+          console.warn(`Failed to fetch from ${url}:`, error);
+          fetchErrors.set(url, { url, kind: 'network' });
+          return null;
+        }
+        if (!response.ok) {
+          console.warn(`HTTP error status: ${response.status} at ${url}`);
+          fetchErrors.set(url, { url, kind: 'http', status: response.status });
+          return null;
+        }
+        try {
           return await response.json();
         } catch (error) {
-          if ((error as { name?: string })?.name === 'AbortError') {
-            // Expected — a newer _loadData() call invalidated us.
-            return null;
-          }
-          console.warn(`Failed to fetch or parse JSON from ${url}:`, error);
+          if (isAbortError(error)) return null;
+          console.warn(`Failed to parse JSON from ${url}:`, error);
+          fetchErrors.set(url, { url, kind: 'parse' });
           return null;
         }
       },
       adapters,
-      this.customTrackData
+      this.customTrackData,
+      only ? { only, previousData: this.data } : undefined
     );
 
     // If a newer load started while we were awaiting, drop the result
     // on the floor — the newer call owns subsequent state writes.
     if (signal.aborted) return;
 
-    this.rawData = rawData;
+    // Correlate the "broken" fetch failures back to the tracks/groups
+    // that own them (4xx is skipped as "missing" — see
+    // `_collectTrackErrors`). Done after the abort guard so a stale batch
+    // can't clobber a newer batch's error maps. A targeted retry passes
+    // `only` so it updates just those tracks' error state.
+    this._collectTrackErrors(trackUrls, fetchErrors, only);
+
+    // A targeted retry only carries the reloaded URLs' raw responses —
+    // merge so the rest of `rawData` survives; a full load replaces it.
+    this.rawData = only ? { ...this.rawData, ...rawData } : rawData;
     const wasHasData = this.hasData;
     this.hasData = this.hasData || hasData;
     // Fire the public protvista-event the moment data first becomes
@@ -316,7 +464,26 @@ class ProtvistaUniprot extends LitElement {
     // re-renders without needing a manual `requestUpdate()` at the
     // bottom of this method (the other two lines above still aren't
     // tracked properties, so we keep the call).
-    this.data = { ...this.data, ...data };
+    const merged: Record<string, unknown> = { ...this.data, ...data };
+    // Drop stale per-track entries for tracks this batch (re)loaded but
+    // the loader intentionally produced no data for — a failed fetch, or
+    // an adapter that early-returns on an empty payload (e.g. variation).
+    // Without this, the merge above would keep the *previous* run's data,
+    // so a failed retry — or a switch to an accession whose track fails —
+    // would render stale content under an error badge. Only per-track
+    // keys of the (re)loaded set are cleared; group aggregates and
+    // un-reloaded tracks are untouched.
+    const reloadedKeys =
+      only ??
+      new Set(
+        this.config.groups.flatMap((g) =>
+          g.tracks.map((t) => `${g.id}-${t.id}`)
+        )
+      );
+    for (const key of reloadedKeys) {
+      if (!(key in data)) delete merged[key];
+    }
+    this.data = merged;
 
     // Preserve the pre-extraction side-effect: every track with
     // `id === 'variation'` feeds `this.transformedVariants`. In the
@@ -456,10 +623,45 @@ class ProtvistaUniprot extends LitElement {
         }
       }
     });
+
+    // Groups are `display: none` by default (see protvista-styles.ts) and
+    // revealed imperatively above only when they have data. A group that
+    // has *no* data but a visible fetch error still renders its header +
+    // ⚠ badge (via `renderGroupErrorRow`, or the normal path with an
+    // empty aggregate) — reveal those too, or the error indicator stays
+    // hidden and the group looks like it vanished.
+    for (const groupId of this._visibleGroupErrors) {
+      const groupElt = this.findById<HTMLElement>(
+        `${CSS_PREFIX}-group_${groupId}`
+      );
+      if (groupElt) {
+        groupElt.style.display = 'flex';
+      }
+    }
   }
 
   updated(changedProperties: Map<string, string>) {
     super.updated(changedProperties);
+
+    // Error-panel focus management. Kept at the very top so the early
+    // returns below (suspend / accession change) can't skip it. On
+    // appear, move focus into the alert panel once; on dismiss, restore
+    // it to whatever was focused when the error was reported — done here
+    // (not in the close handler) so the panel is already gone from the
+    // DOM this cycle, avoiding focus landing on an unmounting node
+    // (mirrors the popover controller's restore).
+    const panelOpen = this._mountError !== null;
+    if (panelOpen && !this._panelWasOpen) {
+      this.querySelector<HTMLElement>(`.${CSS_PREFIX}-error-panel`)?.focus({
+        preventScroll: true,
+      });
+    } else if (!panelOpen && this._panelWasOpen) {
+      if (this._prevFocus && this._prevFocus.isConnected) {
+        this._prevFocus.focus({ preventScroll: true });
+      }
+      this._prevFocus = null;
+    }
+    this._panelWasOpen = panelOpen;
 
     // First render with content — manager is in the DOM, not the loader.
     if (this.hasData && !this.loading) {
@@ -568,12 +770,46 @@ class ProtvistaUniprot extends LitElement {
           this.accession = normalized.accession;
         }
         this.config = normalized;
+        // A now-valid config clears a stale config-error panel from a
+        // previous attempt.
+        if (this._mountError?.phase === 'config') {
+          this._mountError = null;
+          this.requestUpdate();
+        }
       } catch (err) {
         // Validation / parse errors are surfaced on the console so
-        // authors see the full `ConfigValidationError.issues[]` list;
-        // the element falls through to the no-data render path below
-        // and shows its empty-state markup rather than a stack trace.
-        console.error('[protvista-uniprot] Failed to load config.', err);
+        // authors see the full `ConfigValidationError.issues[]` list
+        // (developer channel, unchanged), AND routed through the shared
+        // reporter so the user-facing alert panel and the
+        // `protvista-error` event fire too. A config failure is always a
+        // mount-level failure — there is no config to render past.
+        const issues =
+          err instanceof ConfigValidationError ? err.issues : [];
+        const panelSummary = issues.length
+          ? `Config validation failed (${issues.length} issue${issues.length === 1 ? '' : 's'})`
+          : `Failed to load config: ${err instanceof Error ? err.message : String(err)}`;
+        this.reportError('config', {
+          consoleLevel: 'error',
+          message: '[protvista-uniprot] Failed to load config.',
+          consoleArgs: [err],
+          issues,
+          mountFailure: true,
+          panelSummary,
+        });
+        // Upgrade the panel to the rich, path-grouped rendering. The
+        // formatter is lazy so the happy path never downloads it. Guard
+        // against an accession swap re-running `_init()` and replacing
+        // `_mountError` while we awaited the chunk.
+        if (issues.length) {
+          const { formatValidationIssues } = await import('./errors/format');
+          if (this._mountError?.phase === 'config') {
+            this._mountError = {
+              phase: 'config',
+              ...formatValidationIssues(issues),
+            };
+            this.requestUpdate();
+          }
+        }
         this.loading = false;
         this.requestUpdate();
         return;
@@ -582,40 +818,43 @@ class ProtvistaUniprot extends LitElement {
 
     if (!this.accession) return;
     this.loadEntry(this.accession)
-      .then((entryData) => {
-        // `loadEntry` swallows network / parse errors and returns
-        // `undefined`; it can also return a 4xx response body with no
-        // `sequence` field. Guard both so the element falls through to
-        // the no-data render path instead of crashing on a bare
-        // dereference. The empty-state branch in `render()` is keyed on
-        // `!this.sequence`, so leaving `sequence` unset is the
-        // user-visible recovery path.
-        const seq = entryData?.sequence?.sequence;
-        if (typeof seq !== 'string' || seq.length === 0) {
-          console.warn(
-            `[protvista-uniprot] loadEntry returned no usable sequence for '${this.accession}'. Rendering empty-state.`
-          );
-          this.loading = false;
-          this.requestUpdate();
+      .then((result) => {
+        const seq = result.entry?.sequence?.sequence;
+        if (typeof seq === 'string' && seq.length > 0) {
+          this.sequence = seq;
+          this.displayCoordinates = { start: 1, end: this.sequence.length };
+          // A now-valid accession clears any stale sequence-level panel
+          // left over from a previous (bad-accession) attempt.
+          if (this._mountError?.phase === 'sequence') {
+            this._mountError = null;
+            this.requestUpdate();
+          }
           return;
         }
-        this.sequence = seq;
-        this.displayCoordinates = { start: 1, end: this.sequence.length };
-        // We need to get the length of the protein before rendering it
+        // No usable sequence: distinguish *broken* (the service failed —
+        // network / HTTP 5xx / unparseable — so the identifier may be
+        // fine and a Retry is worth offering) from *missing* (an HTTP 4xx,
+        // or a 2xx body with no sequence field — this accession has no
+        // usable entry, so point the user at the identifier). This mirrors
+        // the per-track broken-vs-missing model; the mount can't hide
+        // itself, so both still render a panel — only the wording and the
+        // Retry affordance differ.
+        this._reportSequenceFailure(result.error);
       })
       .catch((err) => {
-        // `loadEntry` is defensive and returns `undefined` on almost
-        // every failure mode, but an unexpected throw (e.g. a
-        // malformed-JSON `response.json()` on an otherwise-2xx reply)
-        // can escape. Without this handler the rejection would surface
-        // as an unhandled promise rejection in the host page's console.
-        // Route it through the same empty-state recovery so the
-        // component stays consistent with the documented
-        // swallow-and-log contract.
-        console.warn(
-          `[protvista-uniprot] Unexpected error from loadEntry for '${this.accession}':`,
-          err
-        );
+        // `loadEntry` classifies every expected failure itself, but an
+        // unexpected throw could still escape. Without this handler the
+        // rejection would surface as an unhandled promise rejection in the
+        // host page's console. Treat it as a broken (retryable) failure.
+        this.reportError('sequence', {
+          consoleLevel: 'warn',
+          message: `[protvista-uniprot] Unexpected error from loadEntry for '${this.accession}':`,
+          panelSummary: `Couldn't load '${this.accession}' — the UniProt data service is unreachable or failing. This is usually temporary.`,
+          consoleArgs: [err],
+          context: { accession: this.accession },
+          mountFailure: true,
+          retry: true,
+        });
         this.loading = false;
         this.requestUpdate();
       });
@@ -702,9 +941,11 @@ class ProtvistaUniprot extends LitElement {
     const isArray = Array.isArray(data);
     const isPlainObject = data !== null && typeof data === 'object' && !isArray;
     if (!isArray && !isPlainObject) {
-      console.warn(
-        `[protvista-uniprot] setTrackData: expected an array or plain object for '${groupId}/${trackId}', got ${data === null ? 'null' : typeof data}. Call ignored.`
-      );
+      this.reportError('set-track-data', {
+        consoleLevel: 'warn',
+        message: `[protvista-uniprot] setTrackData: expected an array or plain object for '${groupId}/${trackId}', got ${data === null ? 'null' : typeof data}. Call ignored.`,
+        context: { groupId, trackId },
+      });
       return;
     }
 
@@ -721,16 +962,20 @@ class ProtvistaUniprot extends LitElement {
     const group = this.config.groups.find((c) => c.id === groupId);
     const track = group?.tracks.find((t) => t.id === trackId);
     if (!track) {
-      console.warn(
-        `[protvista-uniprot] setTrackData: track '${groupId}/${trackId}' not found in config.`
-      );
+      this.reportError('set-track-data', {
+        consoleLevel: 'warn',
+        message: `[protvista-uniprot] setTrackData: track '${groupId}/${trackId}' not found in config.`,
+        context: { groupId, trackId },
+      });
       return;
     }
     const firstSource = track.data[0];
     if (firstSource?.from !== 'custom') {
-      console.warn(
-        `[protvista-uniprot] setTrackData: track '${groupId}/${trackId}' is not 'from: custom' (found '${firstSource?.from ?? 'undefined'}'). Injected data discarded; edit the config to change this track's data source.`
-      );
+      this.reportError('set-track-data', {
+        consoleLevel: 'warn',
+        message: `[protvista-uniprot] setTrackData: track '${groupId}/${trackId}' is not 'from: custom' (found '${firstSource?.from ?? 'undefined'}'). Injected data discarded; edit the config to change this track's data source.`,
+        context: { groupId, trackId },
+      });
       return;
     }
 
@@ -739,6 +984,283 @@ class ProtvistaUniprot extends LitElement {
     // components. `_loadData()` already handles `this.loading` and
     // `this.requestUpdate()`.
     this._loadData();
+  }
+
+  /**
+   * The single seam through which every error reaches a user. It keeps
+   * the developer channel intact (the same `console.warn`/`console.error`
+   * text as before, via `opts.message`) AND adds the two user channels:
+   * the bubbling `protvista-error` event (always dispatched, so an
+   * embedder wires one listener for every flavour) and — when the error
+   * is fatal to the mount (`config`/`sequence`) or `strict` is on — the
+   * visible alert panel.
+   *
+   * Per-track fetch failures pass through here too (for the event); their
+   * visible surface is the `⚠` badge rendered from `_trackErrors`, and
+   * they only raise the panel under `strict`.
+   */
+  private reportError(
+    phase: ErrorPhase,
+    opts: {
+      /** The exact console string used today — keeps dev + user text in lockstep. */
+      message: string;
+      consoleLevel: 'warn' | 'error';
+      /** Populated for `config`; forwarded on the event as `detail.issues`. */
+      issues?: ValidationIssue[];
+      /** Forwarded on the event as `detail.context` (merged over `{ accession }`). */
+      context?: ErrorContext;
+      /** Extra args appended to the `console.*` call (e.g. the caught error). */
+      consoleArgs?: unknown[];
+      /** Force the mount panel regardless of `strict` (used by `config`/`sequence`). */
+      mountFailure?: boolean;
+      /** Skip the console line (the caller already logged it — e.g. the fetch closure). */
+      skipConsole?: boolean;
+      /** User-friendly panel summary when it should differ from `message`. */
+      panelSummary?: string;
+      /**
+       * Offer a Retry button on the promoted mount panel (broken, transient
+       * failures — see `_mountError.retry`). Ignored when the error isn't
+       * promoted to the panel.
+       */
+      retry?: boolean;
+      /**
+       * Suppress the mount-panel promotion even under `strict`. Used by
+       * the per-track correlation pass, which fires one event per failed
+       * track but raises a single *aggregated* panel afterwards rather
+       * than letting each track overwrite the last.
+       */
+      skipPanel?: boolean;
+    }
+  ): void {
+    if (!opts.skipConsole) {
+      console[opts.consoleLevel](opts.message, ...(opts.consoleArgs ?? []));
+    }
+
+    this.dispatchEvent(
+      new CustomEvent('protvista-error', {
+        detail: {
+          phase,
+          issues: opts.issues ?? [],
+          context: { accession: this.accession, ...opts.context },
+        },
+        bubbles: true,
+      })
+    );
+
+    const promote =
+      !opts.skipPanel && (opts.mountFailure || (this.config?.strict ?? false));
+    if (promote) {
+      this._setMountError(
+        phase,
+        opts.panelSummary ?? opts.message.split('\n')[0],
+        opts.issues,
+        opts.retry
+      );
+    }
+    this.requestUpdate();
+  }
+
+  /**
+   * Raise the mount-level alert panel, capturing the currently-focused
+   * element first so the dismiss control can hand focus back (mirrors
+   * `popover.ts`). Shared by `reportError`'s promotion path and the
+   * aggregated per-track panel in `_collectTrackErrors`.
+   */
+  private _setMountError(
+    phase: ErrorPhase,
+    summary: string,
+    issues?: ValidationIssue[],
+    retry?: boolean
+  ): void {
+    const active = document.activeElement;
+    this._prevFocus =
+      active instanceof HTMLElement && active !== document.body ? active : null;
+    this._mountError = { phase, summary, issues, retry };
+  }
+
+  /**
+   * Raise the mount-level sequence panel, choosing wording + affordance by
+   * the failure's classification. *Broken* (network / HTTP 5xx / parse) is
+   * a transient service failure — the accession may be valid, so offer a
+   * Retry. *Missing* (HTTP 4xx, or a 2xx body with no `sequence`) means the
+   * entry doesn't exist — point the user at the identifier, no Retry.
+   */
+  private _reportSequenceFailure(error?: {
+    kind: FetchErrorKind;
+    status?: number;
+  }): void {
+    const broken =
+      error !== undefined &&
+      (error.kind === 'network' ||
+        error.kind === 'parse' ||
+        (error.kind === 'http' && (error.status ?? 0) >= 500));
+    const panelSummary = broken
+      ? `Couldn't load '${this.accession}' — the UniProt data service is unreachable or failing. This is usually temporary.`
+      : `No UniProt entry found for '${this.accession}'. Check that the accession is correct.`;
+    this.reportError('sequence', {
+      consoleLevel: 'warn',
+      message: `[protvista-uniprot] loadEntry returned no usable sequence for '${this.accession}'. Rendering empty-state.`,
+      panelSummary,
+      context: {
+        accession: this.accession,
+        ...(error?.kind ? { errorKind: error.kind } : {}),
+        ...(error?.status !== undefined ? { status: error.status } : {}),
+      },
+      mountFailure: true,
+      retry: broken,
+    });
+    this.loading = false;
+    this.requestUpdate();
+  }
+
+  /**
+   * Retry a *broken* mount failure in place: clear the panel, show the
+   * loader, and re-run `_init()`. The config guard in `_init()` skips the
+   * already-loaded config, so this re-fetches the sequence and every track
+   * — the whole mount was broken, so a full re-fetch is what we want.
+   */
+  private _retryMount(): void {
+    this._mountError = null;
+    this.loading = true;
+    this.requestUpdate();
+    this._init();
+  }
+
+  /**
+   * Correlate the batch's fetch failures (keyed by substituted URL) back
+   * to the tracks that own them, and flag groups whose every track
+   * failed. `trackUrls` is the authoritative per-track URL map returned
+   * by `loadProtvistaData` (the loader is the single source of truth for
+   * which URL each track fetched), so the component no longer re-derives
+   * the substitution. Fires one `track-fetch` event per failed track
+   * (`skipConsole` — the fetch closure already logged the status;
+   * `skipPanel` — the panel is raised once, aggregated, below).
+   */
+  private _collectTrackErrors(
+    trackUrls: Record<string, string[]>,
+    fetchErrors: Map<string, Omit<TrackFetchError, 'groupId' | 'trackId'>>,
+    only?: Set<string>
+  ): void {
+    if (!this.config) {
+      this._trackErrors = new Map();
+      this._groupErrors = new Set();
+      this.requestUpdate();
+      return;
+    }
+
+    // A targeted retry only clears the errors of the tracks it reloaded,
+    // preserving every other track's error; a full load resets the map.
+    if (only) {
+      for (const key of only) this._trackErrors.delete(key);
+    } else {
+      this._trackErrors = new Map();
+    }
+
+    // Correlate this batch's "broken" fetch failures to the tracks that
+    // own them. Untouched tracks aren't in `trackUrls` on a partial
+    // reload, so their errors (cleared above only for the reloaded set)
+    // are left intact.
+    //
+    // An HTTP 4xx is NOT a track error: for a per-entity endpoint it means
+    // "this accession has no data of this kind" (a 404 is the common
+    // case). We want the viewer to flag things that are *broken*, not
+    // *missing* — so a 4xx is treated exactly like an empty response: the
+    // track simply has no data and is hidden, with no badge, event, or
+    // panel. Only `network`, `parse`, and HTTP `5xx` are recorded.
+    for (const group of this.config.groups) {
+      for (const track of group.tracks) {
+        const key = `${group.id}-${track.id}`;
+        const hit = (trackUrls[key] ?? []).find((u) => fetchErrors.has(u));
+        if (!hit) continue;
+        const err = fetchErrors.get(hit)!;
+        if (err.kind === 'http' && (err.status ?? 0) < 500) continue; // missing, not broken
+        this._trackErrors.set(key, {
+          ...err,
+          groupId: group.id,
+          trackId: track.id,
+        });
+      }
+    }
+
+    // Recompute the "every track failed" set from the final error map.
+    this._groupErrors = new Set();
+    for (const group of this.config.groups) {
+      if (
+        group.tracks.length > 0 &&
+        group.tracks.every((t) =>
+          this._trackErrors.has(`${group.id}-${t.id}`)
+        )
+      ) {
+        this._groupErrors.add(group.id);
+      }
+    }
+
+    // Fire one event per track that (re)failed in THIS batch — for a
+    // partial reload, only the reloaded tracks that still fail.
+    const failedKeys = [...this._trackErrors.keys()].filter(
+      (k) => !only || only.has(k)
+    );
+    for (const key of failedKeys) {
+      const err = this._trackErrors.get(key)!;
+      this.reportError('track-fetch', {
+        consoleLevel: 'warn',
+        message: this._describeFetchError(err),
+        context: {
+          groupId: err.groupId,
+          trackId: err.trackId,
+          url: err.url,
+          errorKind: err.kind,
+          ...(err.status !== undefined ? { status: err.status } : {}),
+        },
+        skipConsole: true, // the fetch closure already logged this line
+        skipPanel: true, // the aggregated panel below replaces per-track ones
+      });
+    }
+
+    // Under `strict`, keep ONE aggregated panel in sync with the current
+    // error set — raised/refreshed while failures remain, cleared once a
+    // (re)load resolves them all.
+    if (this.config.strict ?? false) {
+      if (this._trackErrors.size > 0) {
+        const errs = [...this._trackErrors.values()];
+        const summary =
+          errs.length === 1
+            ? `Track '${errs[0].groupId}/${errs[0].trackId}' failed to load — ${this._describeFetchError(errs[0])}.`
+            : `${errs.length} tracks failed to load.`;
+        this._setMountError('track-fetch', summary);
+      } else if (this._mountError?.phase === 'track-fetch') {
+        this._mountError = null;
+      }
+    }
+    this.requestUpdate();
+  }
+
+  /** Human-readable one-liner for a track fetch failure. */
+  private _describeFetchError(err: TrackFetchError): string {
+    switch (err.kind) {
+      case 'network':
+        return `Couldn't reach ${err.url}`;
+      case 'parse':
+        return `Unparseable response from ${err.url}`;
+      default:
+        return `HTTP ${err.status} — ${err.url}`;
+    }
+  }
+
+  /**
+   * Recompute the derived error sets from `_trackErrors` in a single
+   * O(trackErrors) pass. Called once at the top of `render()` so the
+   * badge/gating sites become O(1) lookups. Every entry in `_trackErrors`
+   * is a "broken" failure (4xx is filtered out at collection time as
+   * "missing"), so all of them surface — there is no per-error
+   * visibility check.
+   */
+  private _recomputeErrorVisibility(): void {
+    this._visibleGroupErrors = new Set();
+    this._anyVisibleError = this._trackErrors.size > 0;
+    for (const err of this._trackErrors.values()) {
+      this._visibleGroupErrors.add(err.groupId);
+    }
   }
 
   connectedCallback() {
@@ -785,23 +1307,32 @@ class ProtvistaUniprot extends LitElement {
    * runtime guard in `_init()` — if any segment is missing, the
    * element falls through to empty-state without crashing.
    */
-  async loadEntry(
-    accession: string
-  ): Promise<{ sequence?: { sequence?: string } } | undefined> {
+  async loadEntry(accession: string): Promise<EntryResult> {
+    // Three-branch classification mirroring the per-track fetch closure so
+    // the mount panel can tell *broken* (network / HTTP 5xx / unparseable —
+    // the service is down, offer Retry) from *missing* (HTTP 4xx — this
+    // accession has no entry, verify the identifier). The developer
+    // `console.*` lines are preserved verbatim.
+    let response: Response;
     try {
-      const response = await fetch(
+      response = await fetch(
         `https://www.ebi.ac.uk/proteins/api/proteins/${accession}`
       );
-      if (!response.ok) {
-        console.warn(
-          `[protvista-uniprot] loadEntry: HTTP ${response.status} for '${accession}'.`
-        );
-        return undefined;
-      }
-      return await response.json();
     } catch (e) {
       console.error(`Couldn't load UniProt entry`, e);
-      return undefined;
+      return { error: { kind: 'network' } };
+    }
+    if (!response.ok) {
+      console.warn(
+        `[protvista-uniprot] loadEntry: HTTP ${response.status} for '${accession}'.`
+      );
+      return { error: { kind: 'http', status: response.status } };
+    }
+    try {
+      return { entry: await response.json() };
+    } catch (e) {
+      console.error(`Couldn't load UniProt entry`, e);
+      return { error: { kind: 'parse' } };
     }
   }
 
@@ -882,8 +1413,18 @@ class ProtvistaUniprot extends LitElement {
   }
 
   render() {
+    // Suspend still wins over everything (unchanged semantics).
+    if (this.suspend) {
+      return html``;
+    }
+    // Mount-level error panel BEFORE the readiness gate: config /
+    // sequence failures leave `config` / `sequence` unset, so the old
+    // gate below would have hidden the panel behind a blank render.
+    if (this._mountError) {
+      return this.renderErrorPanel();
+    }
     // Component isn't ready
-    if (!this.sequence || !this.config || this.suspend) {
+    if (!this.sequence || !this.config) {
       return html``;
     }
     if (this.loading) {
@@ -891,10 +1432,18 @@ class ProtvistaUniprot extends LitElement {
         ${svg`${unsafeHTML(loaderIcon)}`}
       </div>`;
     }
+    // Derive error visibility once for this render — every group/track
+    // badge decision below reads the precomputed sets.
+    this._recomputeErrorVisibility();
     if (!this.hasData) {
-      return html`<div class="protvista-no-results">
-        No feature data available for ${this.accession}
-      </div>`;
+      // Fall through to the viewer only when there's a *visible* track
+      // error to show a badge for; otherwise the blanket no-results
+      // message (the silent-hide path) stands.
+      if (!this._anyVisibleError) {
+        return html`<div class="protvista-no-results">
+          No feature data available for ${this.accession}
+        </div>`;
+      }
     }
     return html`
       <nightingale-manager
@@ -919,7 +1468,16 @@ class ProtvistaUniprot extends LitElement {
           </div>
         </div>
         ${this.config.groups.map((group) => {
-          if (!this.data[group.id]) return '';
+          const groupHasData = !!this.data[group.id];
+          const groupHasError = this._visibleGroupErrors.has(group.id);
+          if (!groupHasData && !groupHasError) return '';
+          // Group has a visible fetch failure but no data to draw (all or
+          // some tracks failed): render just the header + badge so the
+          // failure is surfaced even while the group is collapsed. Handles
+          // standalone and grouped alike.
+          if (!groupHasData && groupHasError) {
+            return this.renderGroupErrorRow(group);
+          }
           // A standalone track (authored as a top-level entry with no
           // `tracks:`) is wrapped by the normalizer in a synthetic
           // single-track group flagged `standalone`. Render it as one
@@ -947,7 +1505,7 @@ class ProtvistaUniprot extends LitElement {
                   ? html`<span data-article-id="${group.helpPage}"
                       >${group.label}</span
                     >`
-                  : group.label}
+                  : group.label}${this._renderGroupBadge(group.id)}
               </div>
               <div
                 data-id="${CSS_PREFIX}-group_${group.id}"
@@ -976,14 +1534,17 @@ class ProtvistaUniprot extends LitElement {
             ${group.tracks &&
             group.tracks.map((track) => {
               if (this.openGroups.includes(group.id)) {
-                const trackData = this.data[`${group.id}-${track.id}`];
-                if (
-                  !trackData ||
-                  !(
-                    (Array.isArray(trackData) && trackData.length) ||
-                    Object.keys(trackData).length
-                  )
-                ) {
+                const trackKey = `${group.id}-${track.id}`;
+                const trackData = this.data[trackKey];
+                const trackHasData = !!(
+                  trackData &&
+                  ((Array.isArray(trackData) && trackData.length) ||
+                    Object.keys(trackData).length)
+                );
+                const trackHasError = this._trackErrors.has(trackKey);
+                // A track with neither data nor a (broken) error renders
+                // nothing — this is also the 4xx "missing" path.
+                if (!trackHasData && !trackHasError) {
                   return '';
                 }
                 const attrs = renderingToAttrs(track.rendering);
@@ -1012,25 +1573,27 @@ class ProtvistaUniprot extends LitElement {
                         ? html`<span data-article-id="${track.helpPage}"
                             >${track.label}</span
                           >`
-                        : track.label)}
+                        : track.label)}${this._renderTrackBadge(trackKey)}
                     </div>
-                    <div
-                      class="${CSS_PREFIX}-track-content ${group.component ===
-                      'nightingale-colored-sequence'
-                        ? `${CSS_PREFIX}-track-content__coloured-sequence`
-                        : ''}"
-                      data-id="${CSS_PREFIX}-track_${track.id}"
-                    >
-                      ${this.getTrack(
-                        track.component,
-                        'non-overlapping',
-                        attrs.color,
-                        attrs.shape,
-                        `${group.id}-${track.id}`,
-                        attrs.scale,
-                        attrs.colorRange
-                      )}
-                    </div>
+                    ${trackHasData
+                      ? html`<div
+                          class="${CSS_PREFIX}-track-content ${group.component ===
+                          'nightingale-colored-sequence'
+                            ? `${CSS_PREFIX}-track-content__coloured-sequence`
+                            : ''}"
+                          data-id="${CSS_PREFIX}-track_${track.id}"
+                        >
+                          ${this.getTrack(
+                            track.component,
+                            'non-overlapping',
+                            attrs.color,
+                            attrs.shape,
+                            `${group.id}-${track.id}`,
+                            attrs.scale,
+                            attrs.colorRange
+                          )}
+                        </div>`
+                      : ''}
                   </div>
                 `;
               }
@@ -1060,6 +1623,229 @@ class ProtvistaUniprot extends LitElement {
           : ''}
       </nightingale-manager>
     `;
+  }
+
+  /**
+   * The mount-level alert panel. Replaces the whole viewer whenever
+   * `_mountError` is set (config / sequence failure, or any promoted
+   * warning under `strict`). `role="alert"` (which already implies an
+   * assertive live region — we deliberately do NOT add a conflicting
+   * `aria-live`) and `tabindex="-1"` so `updated()` can move focus in.
+   */
+  private renderErrorPanel() {
+    const err = this._mountError;
+    if (!err) return html``;
+    const raw = err.raw ?? err.issues ?? [];
+    const count = raw.length;
+    // Only offer a dismiss control when there is a working viewer to
+    // return to. A config / sequence failure leaves the component
+    // unrenderable (no config or no sequence), so dismissing would just
+    // reveal a blank element — omit the control for those. A warning
+    // promoted under `strict` (config + sequence loaded fine) stays
+    // dismissible so the author can reveal the partial viewer.
+    const dismissible = !!(this.sequence && this.config);
+    // Retry is offered for a broken (transient) failure — even when the
+    // panel isn't dismissible (a broken sequence fetch leaves no viewer to
+    // reveal, but re-fetching in place is exactly the recovery we want).
+    const retryable = !!err.retry;
+    return html`
+      <div class="${CSS_PREFIX}-error-panel" role="alert" tabindex="-1">
+        <div class="${CSS_PREFIX}-error-panel__head">
+          <p class="${CSS_PREFIX}-error-panel__summary">${err.summary}</p>
+          ${dismissible || retryable
+            ? html`<div class="${CSS_PREFIX}-error-panel__actions">
+                ${retryable
+                  ? html`<button
+                      type="button"
+                      class="${CSS_PREFIX}-error-retry"
+                      @click="${() => this._retryMount()}"
+                    >
+                      Retry
+                    </button>`
+                  : ''}
+                ${dismissible
+                  ? html`<button
+                      type="button"
+                      aria-label="Dismiss error"
+                      @click="${() => this._dismissError()}"
+                    >
+                      Dismiss
+                    </button>`
+                  : ''}
+              </div>`
+            : ''}
+        </div>
+        ${err.groups && err.groups.length
+          ? html`<details class="${CSS_PREFIX}-error-issues" open>
+              <summary>${count} issue${count === 1 ? '' : 's'}</summary>
+              ${err.groups.map(
+                (g) => html`
+                  <div class="${CSS_PREFIX}-error-issue">
+                    <div class="${CSS_PREFIX}-error-issue__path">${g.path}</div>
+                    ${g.items.map(
+                      (it) => html`<div>
+                        ${it.message}
+                        <span class="${CSS_PREFIX}-error-issue__code"
+                          >(${it.code})</span
+                        >
+                      </div>`
+                    )}
+                  </div>
+                `
+              )}
+            </details>`
+          : ''}
+      </div>
+    `;
+  }
+
+  /**
+   * Minimal group row shown when a group has a visible fetch failure but
+   * no data to draw: the header label plus a `⚠` badge, no content. Keeps
+   * the failure visible even while the group is collapsed.
+   */
+  private renderGroupErrorRow(group: NormalizedConfig['groups'][number]) {
+    return html`
+      <div class="${CSS_PREFIX}-group" id="${CSS_PREFIX}-group_${group.id}">
+        <div
+          class="${CSS_PREFIX}-group-label"
+          title="${group.description ?? ''}"
+        >
+          ${group.helpPage
+            ? html`<span data-article-id="${group.helpPage}"
+                >${group.label}</span
+              >`
+            : group.label}${this._renderGroupBadge(group.id)}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * A keyboard-focusable `⚠` badge with its detail exposed both via
+   * `aria-describedby` (screen readers) and `title` (pointer hover).
+   *
+   * `rawId` carries a per-instance nonce (`_instanceId`) so ids stay
+   * unique across multiple `<protvista-uniprot>` elements in the same
+   * (light) DOM, and is sanitised to a valid HTML id: the schema allows
+   * any non-empty string for group/track ids, so an id containing
+   * whitespace would otherwise produce an invalid `id` and split the
+   * `aria-describedby` token list, breaking the association.
+   */
+  private _renderErrorBadge(
+    ariaLabel: string,
+    rawId: string,
+    detail: string,
+    retryLabel: string,
+    retryKeys: string[]
+  ) {
+    const descId = rawId.replace(/[^A-Za-z0-9_-]/g, '-');
+    // Retry is only offered when at least one of the failures is
+    // *recoverable* — retrying a 4xx (e.g. a 404 "no data for this
+    // accession") or an unparseable body just returns the same result.
+    return html`<span
+        class="${CSS_PREFIX}-error-badge"
+        role="img"
+        tabindex="0"
+        aria-label="${ariaLabel}"
+        aria-describedby="${descId}"
+        title="${detail}"
+        >⚠</span
+      ><span id="${descId}" class="${CSS_PREFIX}-visually-hidden">${detail}</span
+      >${retryKeys.length
+        ? html`<button
+            type="button"
+            class="${CSS_PREFIX}-error-retry"
+            aria-label="${retryLabel}"
+            @click="${(e: Event) => {
+              // Don't let the click bubble to the group-label's collapse
+              // toggle — Retry should reload, not expand/collapse the group.
+              e.stopPropagation();
+              this._retry(retryKeys);
+            }}"
+          >
+            Retry
+          </button>`
+        : ''}`;
+  }
+
+  /**
+   * Whether a fetch failure is worth retrying: transport problems
+   * (`network` — connectivity may return) and server errors (`http` 5xx —
+   * may be transient). A 4xx is deterministic (a 404 means the entity has
+   * no data of this kind) and a `parse` failure re-parses the same body,
+   * so neither offers a Retry.
+   */
+  private _isRecoverable(err: TrackFetchError): boolean {
+    return (
+      err.kind === 'network' ||
+      (err.kind === 'http' && (err.status ?? 0) >= 500)
+    );
+  }
+
+  /** A `⚠` badge for a single failed track (only "broken" errors are recorded). */
+  private _renderTrackBadge(key: string) {
+    const err = this._trackErrors.get(key);
+    if (!err) return '';
+    return this._renderErrorBadge(
+      'Track failed to load',
+      `${CSS_PREFIX}-err-${this._instanceId}-${key}`,
+      this._describeFetchError(err),
+      `Retry loading track '${err.trackId}'`,
+      this._isRecoverable(err) ? [key] : []
+    );
+  }
+
+  /**
+   * A `⚠` badge for a group with one or more visibly-failed tracks. The
+   * gating lives here (both render sites call it unconditionally): the
+   * badge is suppressed only when the group is expanded *and* has data,
+   * because the per-track badges in the expanded rows cover it then. A
+   * collapsed group, or a group with no data (its rows never render),
+   * always surfaces the summary badge.
+   */
+  private _renderGroupBadge(groupId: string) {
+    if (!this._visibleGroupErrors.has(groupId)) return '';
+    if (this.openGroups.includes(groupId) && !!this.data[groupId]) return '';
+    const detail = this._groupErrors.has(groupId)
+      ? 'All tracks in this group failed to load'
+      : 'Some tracks in this group failed to load';
+    return this._renderErrorBadge(
+      detail,
+      `${CSS_PREFIX}-gerr-${this._instanceId}-${groupId}`,
+      detail,
+      `Retry loading group '${groupId}'`,
+      this._groupRecoverableKeys(groupId)
+    );
+  }
+
+  /**
+   * `${groupId}-${trackId}` keys of this group's *recoverable* failed
+   * tracks — the set the group's Retry button reloads. Empty when every
+   * failure is a 4xx / parse (no Retry offered).
+   */
+  private _groupRecoverableKeys(groupId: string): string[] {
+    const keys: string[] = [];
+    for (const [key, err] of this._trackErrors) {
+      if (err.groupId === groupId && this._isRecoverable(err)) keys.push(key);
+    }
+    return keys;
+  }
+
+  /**
+   * Re-fetch only the given tracks (by `${groupId}-${trackId}` key) and
+   * re-run the pipeline for them, splicing the results back in. If a
+   * track now loads its badge clears and its data renders; otherwise the
+   * badge stays — self-correcting. Passing no keys reloads everything.
+   */
+  private _retry(keys: string[]) {
+    this._loadData(keys.length ? new Set(keys) : undefined);
+  }
+
+  /** Dismiss the mount panel; `updated()` restores focus next cycle. */
+  private _dismissError() {
+    this._mountError = null;
+    this.requestUpdate();
   }
 
   handleGroupClick(e: MouseEvent) {

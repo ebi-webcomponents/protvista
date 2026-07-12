@@ -69,6 +69,14 @@ type LoadResult = {
   /** True iff any raw response has `features.length > 0`. Mirrors the
    *  legacy `this.hasData` gate for rendering empty-state markup. */
   hasData: boolean;
+  /**
+   * The *substituted* URL(s) each track fetched, keyed by
+   * `${groupId}-${trackId}`. Tracks with no URL source (inline / custom /
+   * file) are omitted. This is the authoritative record of what the
+   * loader fetched — the component correlates its per-URL HTTP failures
+   * against it instead of re-deriving the substitution.
+   */
+  trackUrls: Record<string, string[]>;
 };
 
 /**
@@ -164,7 +172,14 @@ function trackUrl(
  */
 const ACCESSION_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
 
-function safeSubstituteAccession(template: string, accession: string): string {
+/**
+ * Interpolate a single `{accession}` placeholder in a URL template,
+ * gating the substituted value through {@link ACCESSION_PATTERN}. The
+ * loader is the single source of truth for this substitution; it exposes
+ * the resulting per-track URLs via `LoadResult.trackUrls` so callers
+ * never re-derive them.
+ */
+function substituteAccession(template: string, accession: string): string {
   const safe = ACCESSION_PATTERN.test(accession) ? accession : '';
   return template.replace('{accession}', safe);
 }
@@ -174,26 +189,49 @@ export async function loadProtvistaData(
   config: NormalizedConfig,
   fetchOne: FetchOne,
   adapters: AdapterMap,
-  customTrackData: CustomTrackData = {}
+  customTrackData: CustomTrackData = {},
+  /**
+   * Targeted-retry scope. When present, only `only`'s
+   * `${groupId}-${trackId}` keys are (re)fetched and only their (and
+   * their groups') `data` is recomputed; sibling tracks in a touched
+   * group reuse `previousData` so the group aggregate stays complete. The
+   * two fields are bundled so a caller can't pass one without the other.
+   * Omit for the normal full load.
+   */
+  reload?: { only: Set<string>; previousData: Record<string, unknown> }
 ): Promise<LoadResult> {
-  // Collect unique URL templates across all tracks. Dedup is a documented
-  // performance requirement in the spec — identical URLs referenced by
-  // multiple tracks must be fetched exactly once. `trackUrl()` yields an
-  // empty string for `from: inline | file | custom`, so those descriptors
-  // are naturally excluded from the fetch set.
-  const urls = [
-    ...new Set(
-      config.groups.flatMap(({ tracks }) =>
-        tracks.flatMap((t) => trackUrl(t.data))
-      )
-    ),
-  ].filter((u) => u !== '');
+  const only = reload?.only;
+  const previousData = reload?.previousData ?? {};
+  const isReloading = (key: string): boolean => !only || only.has(key);
+
+  // Single pass over the (re)loading tracks builds both the deduped set of
+  // URL *templates* to fetch (identical URLs referenced by multiple tracks
+  // must be fetched exactly once — a spec performance requirement) and the
+  // authoritative per-track map of the *substituted* URL(s) each track
+  // fetched (callers correlate per-URL HTTP failures against it instead of
+  // re-deriving the substitution). `trackUrl()` yields an empty string for
+  // `from: inline | file | custom`, so those are excluded from both.
+  const templates = new Set<string>();
+  const trackUrls: Record<string, string[]> = {};
+  for (const group of config.groups) {
+    for (const track of group.tracks) {
+      const key = `${group.id}-${track.id}`;
+      if (!isReloading(key)) continue;
+      const raw = trackUrl(track.data);
+      const list = (Array.isArray(raw) ? raw : [raw]).filter((u) => u !== '');
+      for (const t of list) templates.add(t);
+      if (list.length > 0) {
+        trackUrls[key] = list.map((u) => substituteAccession(u, accession));
+      }
+    }
+  }
+  const urls = [...templates];
 
   const rawData: Record<string, unknown> = Object.fromEntries(
     await Promise.all(
       urls.map(async (url) => [
         url,
-        await fetchOne(safeSubstituteAccession(url as string, accession)),
+        await fetchOne(substituteAccession(url as string, accession)),
       ])
     )
   );
@@ -206,6 +244,11 @@ export async function loadProtvistaData(
 
   for (const group of config.groups) {
     const groupId = group.id;
+    // A targeted retry only recomputes groups that own a reloaded track;
+    // every other group keeps its existing `data` untouched.
+    if (only && !group.tracks.some((t) => only.has(`${groupId}-${t.id}`))) {
+      continue;
+    }
     const groupData = await Promise.all(
       group.tracks.map(async (track) => {
         const {
@@ -215,33 +258,113 @@ export async function loadProtvistaData(
           kind,
           dataTooltip,
         } = track;
+        const trackKey = `${groupId}-${trackId}`;
+        // Sibling in a touched group that isn't itself being retried:
+        // reuse its previous per-track data so the group aggregate below
+        // stays complete, without rewriting `data[trackKey]`.
+        if (!isReloading(trackKey)) {
+          return previousData[trackKey];
+        }
         const first = dataConfig[0];
         if (!first) return;
-        const trackKey = `${groupId}-${trackId}`;
         const url = first.url;
         const adapter = first.adapter;
 
-        // `from: custom` — consumer-supplied data bypasses fetch + adapter
-        // entirely. If the descriptor declares `custom` but no data
-        // was injected via `setTrackData()`, emit a `console.info`
-        // and leave the slot empty. Injected data still flows through
-        // the downstream `filter:` sugar and tooltip resolver so behaviour
-        // is symmetric with URL-sourced tracks.
-        if (first.from === 'custom') {
-          if (!(trackKey in customTrackData)) {
-            console.info(
-              `Track ${groupId}/${trackId} is 'from: custom' but no data was provided via setTrackData().`
-            );
+        // Isolate the per-track pipeline: an adapter (or filter/tooltip
+        // step) that throws on an unexpected payload — e.g. the empty
+        // body left by a blocked/failed fetch — must degrade *this* track
+        // to no-data, not reject the whole `Promise.all` batch. A reject
+        // here would abort the entire load, skipping the caller's
+        // error-correlation pass so no failure gets surfaced at all.
+        try {
+          // `from: custom` — consumer-supplied data bypasses fetch + adapter
+          // entirely. If the descriptor declares `custom` but no data
+          // was injected via `setTrackData()`, emit a `console.info`
+          // and leave the slot empty. Injected data still flows through
+          // the downstream `filter:` sugar and tooltip resolver so behaviour
+          // is symmetric with URL-sourced tracks.
+          if (first.from === 'custom') {
+            if (!(trackKey in customTrackData)) {
+              console.info(
+                `Track ${groupId}/${trackId} is 'from: custom' but no data was provided via setTrackData().`
+              );
+              return;
+            }
+            const transformedData: any = customTrackData[trackKey];
+            const filteredData =
+              Array.isArray(transformedData) && filter
+                ? transformedData.filter(
+                    ({ type }: { type?: string }) => type === filter
+                  )
+                : transformedData;
+            if (filteredData == null) return;
+            const spec: TooltipSpec | undefined =
+              dataTooltip ?? (kind ? tooltipDefaults[kind] : undefined);
+            const annotated = applyTooltipResolver(filteredData, spec, {
+              accession,
+              trackId,
+              kind: kind ?? '',
+            });
+            data[trackKey] = annotated;
+            return annotated;
+          }
+
+          const trackData = (Array.isArray(url) ? url : [url ?? '']).map(
+            (u) => rawData[u as string] || []
+          );
+
+          // variation-adapter refuses to run against an empty payload
+          // (behaviour preserved from the legacy loader).
+          if (
+            adapter === 'uniprot-variation-json' &&
+            (trackData[0] as unknown[]).length === 0
+          ) {
             return;
           }
-          const transformedData: any = customTrackData[trackKey];
+
+          // 1. Convert data
+          let transformedData: any = adapter
+            ? await adapters[adapter].apply(null, trackData)
+            : trackData;
+
+          if (adapter === 'interpro-entries-json') {
+            const representativeDomains: any[] = [];
+            (transformedData as TransformedInterPro | undefined)?.forEach(
+              (feature) => {
+                feature.locations?.forEach((location) => {
+                  if (location.representative) {
+                    location.fragments?.forEach((fragment) => {
+                      representativeDomains.push({
+                        ...feature,
+                        type: 'InterPro Representative Domain',
+                        start: fragment.start,
+                        end: fragment.end,
+                      });
+                    });
+                  }
+                });
+              }
+            );
+            transformedData = representativeDomains;
+          }
+
+          // 2. Filter raw data if filter is specified
           const filteredData =
             Array.isArray(transformedData) && filter
               ? transformedData.filter(
                   ({ type }: { type?: string }) => type === filter
                 )
               : transformedData;
-          if (filteredData == null) return;
+          if (!filteredData) {
+            return;
+          }
+
+          // 3. Resolve per-item tooltips. Existing `tooltipContent`
+          //    wins, then track-level `dataTooltip`, then the per-kind
+          //    built-in default, then the compact auto-fallback. Graph
+          //    tracks (linegraph, colored-sequence, heatmap) have no
+          //    per-item hover, so the resolver returns `''` and no field
+          //    is written.
           const spec: TooltipSpec | undefined =
             dataTooltip ?? (kind ? tooltipDefaults[kind] : undefined);
           const annotated = applyTooltipResolver(filteredData, spec, {
@@ -249,77 +372,17 @@ export async function loadProtvistaData(
             trackId,
             kind: kind ?? '',
           });
-          data[trackKey] = annotated;
+
+          // 4. Assign track data
+          data[`${groupId}-${trackId}`] = annotated;
           return annotated;
-        }
-
-        const trackData = (Array.isArray(url) ? url : [url ?? '']).map(
-          (u) => rawData[u as string] || []
-        );
-
-        // variation-adapter refuses to run against an empty payload
-        // (behaviour preserved from the legacy loader).
-        if (
-          adapter === 'uniprot-variation-json' &&
-          (trackData[0] as unknown[]).length === 0
-        ) {
-          return;
-        }
-
-        // 1. Convert data
-        let transformedData: any = adapter
-          ? await adapters[adapter].apply(null, trackData)
-          : trackData;
-
-        if (adapter === 'interpro-entries-json') {
-          const representativeDomains: any[] = [];
-          (transformedData as TransformedInterPro | undefined)?.forEach(
-            (feature) => {
-              feature.locations?.forEach((location) => {
-                if (location.representative) {
-                  location.fragments?.forEach((fragment) => {
-                    representativeDomains.push({
-                      ...feature,
-                      type: 'InterPro Representative Domain',
-                      start: fragment.start,
-                      end: fragment.end,
-                    });
-                  });
-                }
-              });
-            }
+        } catch (err) {
+          console.warn(
+            `[protvista-uniprot] track ${groupId}/${trackId} failed to process; rendering it empty.`,
+            err
           );
-          transformedData = representativeDomains;
+          return undefined;
         }
-
-        // 2. Filter raw data if filter is specified
-        const filteredData =
-          Array.isArray(transformedData) && filter
-            ? transformedData.filter(
-                ({ type }: { type?: string }) => type === filter
-              )
-            : transformedData;
-        if (!filteredData) {
-          return;
-        }
-
-        // 3. Resolve per-item tooltips. Existing `tooltipContent`
-        //    wins, then track-level `dataTooltip`, then the per-kind
-        //    built-in default, then the compact auto-fallback. Graph
-        //    tracks (linegraph, colored-sequence, heatmap) have no
-        //    per-item hover, so the resolver returns `''` and no field
-        //    is written.
-        const spec: TooltipSpec | undefined =
-          dataTooltip ?? (kind ? tooltipDefaults[kind] : undefined);
-        const annotated = applyTooltipResolver(filteredData, spec, {
-          accession,
-          trackId,
-          kind: kind ?? '',
-        });
-
-        // 4. Assign track data
-        data[`${groupId}-${trackId}`] = annotated;
-        return annotated;
       })
     );
 
@@ -330,5 +393,5 @@ export async function loadProtvistaData(
         : groupData.flat();
   }
 
-  return { rawData, data, hasData };
+  return { rawData, data, hasData, trackUrls };
 }

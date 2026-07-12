@@ -4742,6 +4742,161 @@ exports[`loadProtvistaData baseline (schema-driven default config) > produces a 
       "url": "https://www.ebi.ac.uk/proteins/api/variation/P05067",
     },
   },
+  "trackUrls": {
+    "ALPHAFOLD_CONFIDENCE-alphafold_confidence": [
+      "https://alphafold.ebi.ac.uk/api/prediction/P05067",
+      "https://www.ebi.ac.uk/proteins/api/proteins/P05067",
+    ],
+    "ALPHAMISSENSE_PATHOGENICITY-alphamissense_pathogenicity": [
+      "https://alphafold.ebi.ac.uk/api/prediction/P05067",
+      "https://www.ebi.ac.uk/proteins/api/proteins/P05067",
+    ],
+    "ALPHAMISSENSE_PATHOGENICITY-alphamissense_pathogenicity_heatmap": [
+      "https://alphafold.ebi.ac.uk/api/prediction/P05067",
+      "https://www.ebi.ac.uk/proteins/api/proteins/P05067",
+    ],
+    "ANTIGEN-antigen": [
+      "https://www.ebi.ac.uk/proteins/api/antigen/P05067",
+    ],
+    "DOMAINS-InterPro representative domain": [
+      "https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/P05067?type=domain&page_size=100",
+    ],
+    "DOMAINS-domain": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "DOMAINS-motif": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "DOMAINS-region": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "DOMAINS-repeat": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "DOMAINS-zn_fing": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "EPITOPE-epitope": [
+      "https://www.ebi.ac.uk/proteins/api/epitope/P05067",
+    ],
+    "MOLECULE_PROCESSING-chain": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "MOLECULE_PROCESSING-init_met": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "MOLECULE_PROCESSING-peptide": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "MOLECULE_PROCESSING-propep": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "MOLECULE_PROCESSING-signal": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "MOLECULE_PROCESSING-transit": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "MUTAGENESIS-mutagen": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "MUTAGENESIS-othermutagen": [
+      "https://www.ebi.ac.uk/proteins/api/mutagenesis/P05067",
+    ],
+    "PROTEOMICS-hpp": [
+      "https://www.ebi.ac.uk/proteins/api/proteomics/hpp/P05067",
+    ],
+    "PROTEOMICS-non_unique": [
+      "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/P05067",
+    ],
+    "PROTEOMICS-proteomics-ptm": [
+      "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/P05067",
+    ],
+    "PROTEOMICS-unique": [
+      "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/P05067",
+    ],
+    "PTM-carbohyd": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "PTM-crosslnk": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "PTM-disulfid": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "PTM-lipid": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "PTM-mod_res": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "PTM-mod_res_ls": [
+      "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/P05067",
+    ],
+    "RNA_EDITING-RNA Editing": [
+      "https://www.ebi.ac.uk/proteins/api/rna-editing/P05067",
+    ],
+    "RNA_EDITING-rna_editing_graph": [
+      "https://www.ebi.ac.uk/proteins/api/rna-editing/P05067",
+    ],
+    "SEQUENCE_INFORMATION-compbias": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "SEQUENCE_INFORMATION-conflict": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "SEQUENCE_INFORMATION-non_cons": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "SEQUENCE_INFORMATION-non_std": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "SEQUENCE_INFORMATION-non_ter": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "SEQUENCE_INFORMATION-unsure": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "SITES-act_site": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "SITES-binding": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "SITES-ca_bind": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "SITES-dna_bind": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "SITES-metal": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "SITES-np_bind": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "SITES-site": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "STRUCTURE_COVERAGE-pdbe_cover": [
+      "https://www.ebi.ac.uk/proteins/api/proteins/P05067",
+    ],
+    "TOPOLOGY-intramem": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "TOPOLOGY-topo_dom": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "TOPOLOGY-transmem": [
+      "https://www.ebi.ac.uk/proteins/api/features/P05067",
+    ],
+    "VARIATION-variation": [
+      "https://www.ebi.ac.uk/proteins/api/variation/P05067",
+    ],
+    "VARIATION-variation_graph": [
+      "https://www.ebi.ac.uk/proteins/api/variation/P05067",
+    ],
+  },
 }
 `;
 

@@ -744,6 +744,110 @@ interface SemanticKindDefinition {
 type AdapterFunction = (...rawResponses: any[]) => unknown | Promise<unknown>;
 ```
 
+### Error events (`protvista-error`)
+
+Every error that the viewer surfaces to a user is *also* dispatched as a
+bubbling `CustomEvent('protvista-error', …)` on the `<protvista-uniprot>`
+element, so an embedder (the UniProt website, a host page) can route it
+into its own toast / modal / analytics with a single listener alongside
+`on()`. This is additive: the existing developer-facing `console.warn` /
+`console.error` output is unchanged. The event fires for every *broken*
+failure the viewer classifies (see below) — a track that is merely
+*missing* (an HTTP 4xx) is treated as "no data" and fires nothing.
+
+```typescript
+type ProtvistaErrorPhase =
+  | 'config'              // config validation / parse failure (mount panel)
+  | 'sequence'            // no usable sequence for the accession (mount panel)
+  | 'track-fetch'         // a track's URL failed (network / HTTP 5xx / unparseable)
+  | 'set-track-data'      // misuse of the setTrackData() escape hatch
+  | 'transform-calculate' // a `calculate` expression threw (see transform-engine.md)
+  | 'tooltip-field-miss'; // a dataTooltip template referenced a missing field
+
+interface ProtvistaErrorDetail {
+  phase: ProtvistaErrorPhase;
+  /** Populated for `config`; the full ConfigValidationError.issues[]. */
+  issues: ValidationIssue[];
+  /** Whatever is relevant to the phase. `accession` is always present when set. */
+  context: {
+    groupId?: string;
+    trackId?: string;
+    accession?: string;
+    url?: string;
+    status?: number;                            // http failures only
+    errorKind?: 'network' | 'http' | 'parse';   // track-fetch: how it failed
+  };
+}
+
+// Embedder usage — one listener for every flavour:
+element.addEventListener('protvista-error', (e: CustomEvent<ProtvistaErrorDetail>) => {
+  switch (e.detail.phase) {
+    case 'config':      showValidationModal(e.detail.issues); break;
+    case 'track-fetch': analytics.trackFailure(e.detail.context); break;
+    // …
+  }
+});
+```
+
+The `phase` vocabulary intentionally aligns with the
+`ValidationIssueCode` taxonomy where the two overlap, so consumers switch
+on one stable set of strings. `transform-calculate` and
+`tooltip-field-miss` are reserved for the transform engine and the
+tooltip field-miss warning respectively; when those features land they
+emit through the same event seam.
+
+A track's data fetch can fail three ways. The viewer draws one line —
+**broken** (surface it) vs **missing** (hide it) — because the goal is to
+let people know when things are *broken*, not when data is simply absent:
+
+- **`network`** — the request never got a response (blocked, offline,
+  DNS, CORS, timeout). **Broken → surfaced** as a `⚠` badge (with a Retry
+  button), because it signals the environment/integration is broken.
+- **`http` 5xx** — server error. **Broken → surfaced** for the same
+  reason (with a Retry button).
+- **`parse`** — a 2xx response whose body failed to parse. **Broken →
+  surfaced** (no Retry — re-fetching an unparseable body is deterministic).
+- **`http` 4xx** — **missing → hidden.** For a per-entity endpoint a 4xx
+  (a 404 is the common case) just means "no data for this accession", so
+  it is treated exactly like an empty 2xx response: the track has no data
+  and is hidden, with no badge, **no `protvista-error` event**, and no
+  panel. This is deliberate and not configurable — surfacing "missing"
+  would be noise.
+
+Surfacing broken failures is unconditional — there is no opt-in flag. One
+knob tunes the *mount panel* promotion (the developer `console.*` channel
+and the `protvista-error` event are unaffected):
+
+- **`strict?: boolean`** — when `true`, every broken warning (empty
+  sequence, per-track fetch failure, `setTrackData` misuse) is promoted to
+  a mount-level failure shown in the error panel, so silent hides fail
+  loudly while a config is being authored. Default `false`. (A 4xx is
+  "missing", not a warning, so `strict` does not promote it.)
+
+Config-validation and sequence failures always render a visible
+`role="alert"` panel (summary + collapsible issue list), replacing the
+previous silent blank render, and move focus to the panel. Because these
+failures leave nothing to fall back to, the panel offers no dismiss
+control; a warning promoted to the panel under `strict` (where a working
+viewer exists underneath) is dismissible and restores focus on close.
+
+The **sequence** fetch (the top-level `loadEntry` call that establishes the
+protein length) applies the same broken-vs-missing distinction as the
+per-track fetches — because the mount can't hide itself, both still render
+a panel, but the wording and affordance differ:
+
+- **Broken sequence** (`network` / HTTP `5xx` / unparseable body) — the
+  data service is unreachable or failing, so the accession may be perfectly
+  valid. The panel reads _"Couldn't load 'X' — the UniProt data service is
+  unreachable or failing. This is usually temporary."_ and offers a
+  **Retry** button that re-runs the mount (re-fetching the sequence and all
+  tracks in place, no page reload). The `protvista-error` `sequence` event
+  carries `context.errorKind` (and `status` for HTTP).
+- **Missing sequence** (HTTP `4xx`, or a `2xx` body with no `sequence`
+  field) — this accession has no entry. The panel reads _"No UniProt entry
+  found for 'X'. Check that the accession is correct."_ and offers no Retry
+  (a 404 is deterministic). The event still fires so embedders can react.
+
 ## Relationship to 3D viewers (MolStar & SVS)
 
 Deep integration with structural viewers like MolStar, and with the emerging [SeqViewSpec (SVS)](https://molstar.org/mol-view-spec) standard being drafted by the Mol\* team, is an explicit non-goal for this grant. Following discussion with the Mol\*/SVS developers, ProtVista will not reshape its configuration schema, event model, or runtime around SVS at this time. SVS is a moving upstream specification, and committing to a preemptive shape during the grant would risk churn with no proportionate user benefit. Broader cross-viewer alignment remains a worthwhile long-term goal and will be revisited post-grant, on whatever the then-current SVS draft recommends.
@@ -950,7 +1054,10 @@ At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, me
 
 | Scenario                                                                                                                          | Expected Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A `url` data source returns HTTP 4xx/5xx                                                                                          | The track is silently hidden (consistent with current behaviour). A `console.warn` is emitted. The rest of the viewer renders normally. The group is hidden if _all_ its tracks have no data.                                                                                                                                                                                                                                                                                           |
+| A `url` data source is **broken** (network error, HTTP 5xx, or unparseable 2xx body)                                              | A `console.warn` is emitted and a bubbling `protvista-error` event (`phase: 'track-fetch'`, with `context.errorKind`) fires. The track shows a `⚠` badge. A collapsed group with any broken track shows a summary badge on its header (all-failed vs partial wording); expanding it reveals the per-track badges. A **Retry** button (re-fetching only the affected track) is offered **only for recoverable failures** — `network` and HTTP `5xx`; a `parse` failure is deterministic, so its badge carries no Retry. `strict: true` promotes the failure to the mount-level error panel. The rest of the viewer renders normally. Surfacing is unconditional — there is no opt-in flag. See _Error events_ under the escape-hatch API. |
+| A `url` data source is **missing** (HTTP `4xx`, e.g. a 404 "no data for this accession")                                          | Treated exactly like an empty 2xx response: the track has no data and is hidden. The developer `console.warn` (`HTTP error status: 404 at …`) still fires (that channel is unchanged), but there is **no** user-facing surface — **no** badge, **no** `protvista-error` event, and **no** panel, even under `strict`. The distinction is broken (surface) vs missing (hide); we flag things that are broken, not absent.                                                                    |
+| The top-level **sequence** fetch is **broken** (network error, HTTP 5xx, or unparseable body)                                     | The whole viewer can't mount (no protein length), so a `role="alert"` panel shows _"Couldn't load '<accession>' — the UniProt data service is unreachable or failing. This is usually temporary."_ with a **Retry** button that re-runs the mount in place (re-fetching the sequence and all tracks — no page reload). A `protvista-error` `phase: 'sequence'` event fires with `context.errorKind` (+ `status` for HTTP). Same broken-vs-missing distinction as the per-track fetches.        |
+| The top-level **sequence** is **missing** (HTTP `4xx`, or a `2xx` body with no `sequence` field — the accession has no entry)      | A `role="alert"` panel shows _"No UniProt entry found for '<accession>'. Check that the accession is correct."_ — no Retry (a 404 is deterministic). The `protvista-error` `phase: 'sequence'` event still fires. Unlike a *missing track* (which hides silently), the mount can't hide itself, so a panel is always shown here.                                                                                                                                                            |
 | A `source` (or bare `url`) value is not a URL, not a file path, and does not match any key in `sources`                           | Config validation fails at load time: `"Unknown source key: '<value>' in track <groupId>/<trackId>. Known sources: ..."`. Viewer does not mount.                                                                                                                                                                                                                                                                                                                                        |
 | `adapter` name does not match any built-in or registered adapter                                                                  | Config validation fails: `"Unknown adapter: <name> in track <groupId>/<trackId>. Did you forget to call registerAdapter()?"`.                                                                                                                                                                                                                                                                                                                                                           |
 | `kind` (semantic) value is not in the semantic-kind vocabulary and is not registered                                              | Config validation fails: `"Unknown semantic kind: '<value>' in track <groupId>/<trackId>. Valid values: .... Register custom kinds with registerSemanticKind()."`.                                                                                                                                                                                                                                                                                                                      |

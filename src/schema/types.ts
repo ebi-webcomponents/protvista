@@ -174,6 +174,16 @@ export interface ProtvistaViewerConfig {
   defaults?: ConfigDefaults;
 
   /**
+   * Authoring-time strictness. When `true`, every error that would
+   * normally be a non-fatal warning (an empty sequence, a per-track
+   * fetch failure, `setTrackData()` misuse) is promoted to a
+   * mount-level failure and shown in the viewer's error panel, so
+   * silent hides fail loudly while a config is being written. Off by
+   * default — production embeds keep the graceful-degradation posture.
+   */
+  strict?: boolean;
+
+  /**
    * Ordered list of top-level entries displayed in the viewer.
    *
    * Each entry is either a `GroupConfig` (a cluster of tracks under a
