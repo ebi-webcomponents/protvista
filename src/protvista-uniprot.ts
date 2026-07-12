@@ -57,6 +57,7 @@ import loaderIcon from './icons/spinner.svg';
 import protvistaStyles from './styles/protvista-styles';
 import loaderStyles from './styles/loader-styles';
 import { CSS_PREFIX } from './styles/css-prefix';
+import { injectStyleOnce, installTokenDefaults } from './styles/inject';
 
 // Performance marks emitted at three lifecycle transitions:
 //   protvista:script-start    component connectedCallback runs
@@ -221,17 +222,15 @@ class ProtvistaUniprot extends LitElement {
 
   addStyles() {
     // We are not using static get styles() as we are not using the shadowDOM because of Mol*.
-    // Guard against double-install: without this, every <protvista-uniprot>
-    // instance on a page would append its own copy of the stylesheet to
-    // <head>. The marker attribute lets every instance share a single
-    // stylesheet node. (Multi-instance isolation — unique DOM ids, scoped
-    // tooltip popovers, etc. — is tracked separately as a next-branch
-    // issue; this guard is the speculative-use-case partial credit.)
-    if (document.querySelector('style[data-protvista-uniprot]')) return;
-    const styleTag = document.createElement('style');
-    styleTag.setAttribute('data-protvista-uniprot', '');
-    styleTag.textContent = `${protvistaStyles.toString()} ${loaderStyles.toString()}`;
-    document.querySelector('head')?.append(styleTag);
+    // Each stylesheet is installed once per page and shared by every
+    // instance (see src/styles/inject.ts). The token defaults and loader
+    // styles carry their own keys so they are shared with
+    // <protvista-uniprot-structure> rather than duplicated. (Multi-instance
+    // isolation — unique DOM ids, scoped tooltip popovers, etc. — is
+    // tracked separately as a next-branch issue.)
+    installTokenDefaults();
+    injectStyleOnce('loader', loaderStyles.toString());
+    injectStyleOnce('viewer', protvistaStyles.toString());
   }
 
   registerWebComponents() {

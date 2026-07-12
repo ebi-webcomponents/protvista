@@ -59,23 +59,42 @@ export class ProtvistaUniprotDatatable<
   private pendingFocusId?: string;
 
   static override styles = css`
+    /* Themable via CSS custom properties. Each --protvista-datatable-*
+       token defaults from the shared global tier (--protvista-*, which
+       inherits in from the host) and falls back to its historical
+       literal. The former --protvista-dt-* names are still honoured as
+       aliases for one major cycle, so existing overrides keep working.
+       Consumers can also target structure via ::part(...) — see the
+       part="…" attributes in render(). */
     :host {
       display: block;
       width: 100%;
-      font-family: inherit;
+      font-family: var(--protvista-font-family, inherit);
 
-      --protvista-dt-primary: #0053d6;
-      --protvista-dt-text-head: #1a1a1a;
-      --protvista-dt-text-body: #2c2c2c;
-      --protvista-dt-text-muted: #444444;
-      --protvista-dt-text-input: #333333;
-      --protvista-dt-bg-base: #ffffff;
-      --protvista-dt-bg-header: #f8f8f8;
-      --protvista-dt-bg-hover: #f1f7ff;
-      --protvista-dt-bg-active: #e6f3ff;
-      --protvista-dt-border: #e0e0e0;
-      --protvista-dt-border-input: #767676;
-      --protvista-dt-shadow-header: #cccccc;
+      --protvista-datatable-accent: var(
+        --protvista-dt-primary,
+        var(--protvista-color-accent, #0053d6)
+      );
+      --protvista-datatable-text-head: var(--protvista-dt-text-head, #1a1a1a);
+      --protvista-datatable-text-body: var(--protvista-dt-text-body, #2c2c2c);
+      --protvista-datatable-text-muted: var(--protvista-dt-text-muted, #444444);
+      --protvista-datatable-text-input: var(--protvista-dt-text-input, #333333);
+      --protvista-datatable-bg-base: var(
+        --protvista-dt-bg-base,
+        var(--protvista-color-surface, #ffffff)
+      );
+      --protvista-datatable-bg-header: var(--protvista-dt-bg-header, #f8f8f8);
+      --protvista-datatable-bg-hover: var(--protvista-dt-bg-hover, #f1f7ff);
+      --protvista-datatable-bg-active: var(--protvista-dt-bg-active, #e6f3ff);
+      --protvista-datatable-border: var(--protvista-dt-border, #e0e0e0);
+      --protvista-datatable-border-input: var(
+        --protvista-dt-border-input,
+        #767676
+      );
+      --protvista-datatable-shadow-header: var(
+        --protvista-dt-shadow-header,
+        #cccccc
+      );
     }
 
     .scroll-container {
@@ -83,26 +102,26 @@ export class ProtvistaUniprotDatatable<
       overflow-y: auto;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
-      border: 1px solid var(--protvista-dt-border);
-      background: var(--protvista-dt-bg-base);
+      border: 1px solid var(--protvista-datatable-border);
+      background: var(--protvista-datatable-bg-base);
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 0.9rem;
-      color: var(--protvista-dt-text-body);
+      color: var(--protvista-datatable-text-body);
     }
 
     thead th {
       position: sticky;
       top: 0;
       z-index: 2;
-      background: var(--protvista-dt-bg-header);
+      background: var(--protvista-datatable-bg-header);
       text-transform: uppercase;
       font-size: 0.75rem;
       letter-spacing: 0.05em;
-      box-shadow: 0 1px 0 var(--protvista-dt-shadow-header);
+      box-shadow: 0 1px 0 var(--protvista-datatable-shadow-header);
     }
 
     th {
@@ -111,12 +130,12 @@ export class ProtvistaUniprotDatatable<
       white-space: nowrap;
       vertical-align: top;
       font-weight: 700;
-      color: var(--protvista-dt-text-head);
+      color: var(--protvista-datatable-text-head);
     }
 
     td {
       padding: 0.75rem 0.5rem;
-      border-bottom: 1px solid var(--protvista-dt-border);
+      border-bottom: 1px solid var(--protvista-datatable-border);
       vertical-align: middle;
     }
 
@@ -127,20 +146,20 @@ export class ProtvistaUniprotDatatable<
     }
 
     tbody tr:hover {
-      background-color: var(--protvista-dt-bg-hover);
+      background-color: var(--protvista-datatable-bg-hover);
     }
 
     tbody tr:focus-visible {
-      background-color: var(--protvista-dt-bg-hover);
-      outline: 2px solid var(--protvista-dt-primary);
+      background-color: var(--protvista-datatable-bg-hover);
+      outline: 2px solid var(--protvista-datatable-accent);
       outline-offset: -2px;
       position: relative;
       z-index: 1;
     }
 
     tbody tr.active {
-      background-color: var(--protvista-dt-bg-active);
-      box-shadow: inset 4px 0 0 var(--protvista-dt-primary);
+      background-color: var(--protvista-datatable-bg-active);
+      box-shadow: inset 4px 0 0 var(--protvista-datatable-accent);
     }
 
     .header-content {
@@ -154,22 +173,44 @@ export class ProtvistaUniprotDatatable<
       padding: 0.4rem;
       font-size: 0.85rem;
       width: 100%;
-      border: 1px solid var(--protvista-dt-border-input);
-      border-radius: 4px;
-      background-color: var(--protvista-dt-bg-base);
-      color: var(--protvista-dt-text-input);
+      border: 1px solid var(--protvista-datatable-border-input);
+      border-radius: var(--protvista-radius, 4px);
+      background-color: var(--protvista-datatable-bg-base);
+      color: var(--protvista-datatable-text-input);
     }
 
     select:focus {
-      outline: 2px solid var(--protvista-dt-primary);
-      border-color: var(--protvista-dt-primary);
+      outline: 2px solid var(--protvista-datatable-accent);
+      border-color: var(--protvista-datatable-accent);
     }
 
     .no-results {
       text-align: center;
       padding: 3rem;
-      color: var(--protvista-dt-text-muted);
+      color: var(--protvista-datatable-text-muted);
       font-style: italic;
+    }
+
+    /* Utility classes for link content rendered into cells (e.g. the
+       structure component's Source / Foldseek links). They live here,
+       not in the caller, because cell content renders inside this
+       shadow root where the caller's global stylesheet cannot reach. */
+    .cell-link {
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .cell-link__icon {
+      display: inline-flex;
+      width: 0.9em;
+      height: 0.9em;
+    }
+
+    .cell-link__icon--sm {
+      width: 0.8em;
+      height: 0.8em;
     }
   `;
 
@@ -395,6 +436,7 @@ export class ProtvistaUniprotDatatable<
 
     return html`
       <select
+        part="filter-select"
         aria-label=${ifDefined(
           col.label ? `Filter by ${col.label}` : undefined
         )}
@@ -412,7 +454,7 @@ export class ProtvistaUniprotDatatable<
   private renderNoResults() {
     return html`
       <tr>
-        <td colspan=${this.columns.length} class="no-results">
+        <td colspan=${this.columns.length} class="no-results" part="no-results">
           No matching results found
         </td>
       </tr>
@@ -421,13 +463,13 @@ export class ProtvistaUniprotDatatable<
 
   override render() {
     return html`
-      <div class="scroll-container">
-        <table>
-          <thead>
+      <div class="scroll-container" part="scroll-container">
+        <table part="table">
+          <thead part="header">
             <tr>
               ${this.columns.map(
                 (col) => html`
-                  <th scope="col">
+                  <th scope="col" part="header-cell">
                     <div class="header-content">
                       <span>${col.label}</span>
                       ${this.renderFilterDropdown(col)}
@@ -461,12 +503,13 @@ export class ProtvistaUniprotDatatable<
                   <tr
                     data-id=${id || ''}
                     class=${isSelected ? 'active' : ''}
+                    part=${isSelected ? 'row row-active' : 'row'}
                     role="option"
                     aria-selected=${isSelected ? 'true' : 'false'}
                     tabindex=${isFocusable ? '0' : '-1'}
                   >
                     ${this.columns.map(
-                      (col) => html`<td>${this.renderCell(col, row)}</td>`
+                      (col) => html`<td part="cell">${this.renderCell(col, row)}</td>`
                     )}
                   </tr>
                 `;
