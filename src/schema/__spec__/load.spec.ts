@@ -21,7 +21,7 @@ import { ConfigValidationError } from '../errors';
 import { createRegistry } from '../registry';
 
 const minimalValidObject = () => ({
-  groups: [
+  rows: [
     {
       id: 'DOMAINS',
       tracks: [{ id: 'domain', kind: 'features', data: 'features' }],
@@ -33,7 +33,7 @@ const minimalValidObject = () => ({
 const minimalValidJson = () => JSON.stringify(minimalValidObject());
 
 const minimalValidYaml = () => `
-groups:
+rows:
   - id: DOMAINS
     tracks:
       - id: domain
@@ -66,7 +66,7 @@ describe('loadConfig — object input', () => {
 
   it('throws ConfigValidationError on invalid input', async () => {
     const bad = {
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [{ id: 'y', kind: 'not-a-kind', data: 'missingKey' }],
@@ -78,7 +78,7 @@ describe('loadConfig — object input', () => {
 
   it('ConfigValidationError carries an `issues[]` array', async () => {
     const bad = {
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [{ id: 'y', kind: 'not-a-kind', data: 'missingKey' }],
@@ -103,7 +103,7 @@ describe('loadConfig — object input', () => {
 
   it('error message lists every issue', async () => {
     const bad = {
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [{ id: 'y', kind: 'not-a-kind', data: 'missingKey' }],

@@ -6,7 +6,7 @@
  *   - `sources`    — merged by key (child wins)
  *   - `defaults`   — merged field-wise (child wins); `rendering`
  *                    nested sub-object also merged field-wise
- *   - `groups` — top-level entries (groups AND standalone tracks,
+ *   - `rows`       — top-level entries (groups AND standalone tracks,
  *                    one shared id namespace) matched by `id`; known
  *                    ids extended in place, new ids appended at the end
  *                    (base order preserved, child-only entries appended
@@ -19,7 +19,7 @@
  *                    inherits the base's shape and field-merges, so the
  *                    base `tracks:` / `data:` it omits survive.
  *   - `tracks`     — within a merged group, matched by `id`;
- *                    same rules as groups
+ *                    same rules as rows
  *   - `rendering`  — field-wise (at every level); `colorScale`
  *                    nested sub-object also field-wise
  *   - Scalar fields (`accession`, `version`, `$schema`, `labelUrl`,
@@ -110,6 +110,7 @@ import type {
 import { isGroupConfig } from './discriminate';
 import { ConfigValidationError } from './errors';
 import { parseConfigText } from './parse';
+import { resolveRowsAlias } from './rows-alias';
 
 // ─────────────────────────────────────────────────────────────
 // Public surface
@@ -254,10 +255,18 @@ async function defaultFetcher(url: string): Promise<string> {
  * resolved up the recursion stack so we can detect cycles.
  */
 async function resolveAndMerge(
-  cfg: ProtvistaViewerConfig,
+  rawCfg: ProtvistaViewerConfig,
   ctx: InternalCtx,
   chain: string[]
 ): Promise<ProtvistaViewerConfig> {
+  // Every config in the chain funnels through here exactly once — the
+  // root handed to `mergeExtends` and each parent `resolveParent`
+  // produces — so this is the single point the alias needs resolving.
+  // It is what lets a base authored with `groups:` merge with a child
+  // authored with `rows:` (or the reverse): both reach `merge` below in
+  // canonical form, matched against one `rows` list.
+  const cfg = resolveRowsAlias(rawCfg);
+
   // The output never carries an `extends` field — it has already
   // been consumed by the time we return.
   const { extends: ext, ...selfBody } = cfg;
@@ -361,10 +370,10 @@ function isUrlOrPath(s: string): boolean {
 }
 
 function emptyConfig(): ProtvistaViewerConfig {
-  // `groups` is required on the authoring type, but pre-merge the
+  // `rows` is required on the authoring type, but pre-merge the
   // accumulator is genuinely empty. We satisfy the type with `[]` and
   // let subsequent merges fill it in.
-  return { groups: [] };
+  return { rows: [] };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -392,13 +401,12 @@ function merge(
     out.defaults = mergeDefaults(base.defaults, child.defaults);
   }
 
-  // `groups` is an ordered list keyed by `id` (one namespace across
+  // `rows` is an ordered list keyed by `id` (one namespace across
   // groups and standalone tracks). `{ ...base, ...child }` above
-  // clobbers base.groups with child.groups, so we always recompute here.
-  out.groups = mergeEntriesById(
-    base.groups ?? [],
-    child.groups ?? []
-  );
+  // clobbers base.rows with child.rows, so we always recompute here.
+  // Both sides are alias-free by now (`resolveAndMerge`), so there is
+  // no `groups` key left to reconcile.
+  out.rows = mergeEntriesById(base.rows ?? [], child.rows ?? []);
 
   return out;
 }
@@ -433,10 +441,10 @@ function mergeColorScale(
 }
 
 /**
- * Merge top-level entry lists by `id` (groups and standalone tracks
- * share one namespace). Base order is preserved; entries whose `id`
- * also appears in `child` are merged in place via `mergeEntry`; entries
- * in `child` with a new `id` are appended at the end in child's order.
+ * Merge row lists by `id` (groups and standalone tracks share one
+ * namespace). Base order is preserved; entries whose `id` also appears
+ * in `child` are merged in place via `mergeEntry`; entries in `child`
+ * with a new `id` are appended at the end in child's order.
  */
 function mergeEntriesById(
   base: TopLevelEntry[],

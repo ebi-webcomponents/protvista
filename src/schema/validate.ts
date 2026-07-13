@@ -48,6 +48,7 @@ import type {
 } from './types';
 import { isGroupConfig } from './discriminate';
 import type { Registry } from './registry';
+import { resolveRowsAlias, rowsAliasConflict } from './rows-alias';
 import type {
   ValidationIssue,
   ValidationResult,
@@ -109,9 +110,21 @@ export function validateConfig(
 ): ValidationResult {
   const issues: ValidationIssue[] = [];
 
+  // ── Deprecated `groups:` alias ────────────────────────────
+  // Fold `groups:` into `rows:` up front so both passes below see one
+  // canonical field. The conflict (both set) is probed separately
+  // rather than letting `resolveRowsAlias` throw, because this function
+  // contracts never to throw. Reporting it alone — and skipping the
+  // structural pass, whose `oneOf` would also reject the config but
+  // with an opaque "must match exactly one schema" — is what keeps the
+  // author's error list to the single actionable line.
+  const conflict = rowsAliasConflict(config);
+  if (conflict) return { valid: false, issues: [conflict] };
+  const resolved = resolveRowsAlias(config);
+
   // ── Structural pass ───────────────────────────────────────
   const structural = getStructuralValidator();
-  const ok = structural(config);
+  const ok = structural(resolved);
   if (!ok) {
     for (const err of structural.errors ?? []) {
       issues.push(ajvErrorToIssue(err));
@@ -123,10 +136,10 @@ export function validateConfig(
   }
 
   // ── Semantic pass ─────────────────────────────────────────
-  const c = config as ProtvistaViewerConfig;
+  const c = resolved as ProtvistaViewerConfig;
   checkVersion(c, issues);
   checkAccessionPlaceholders(c, issues);
-  checkGroups(c, registry, issues);
+  checkRows(c, registry, issues);
 
   return { valid: issues.length === 0, issues };
 }
@@ -230,10 +243,10 @@ function containsAccessionPlaceholder(c: ProtvistaViewerConfig): boolean {
   }
   // Check `defaults.labelUrl`.
   if (c.defaults?.labelUrl?.includes(ACCESSION_PLACEHOLDER)) return true;
-  // Walk every top-level entry → its track(s) → data descriptors. A
-  // standalone-track entry is a single track; a group expands to its
+  // Walk every row → its track(s) → data descriptors. A
+  // standalone-track row is a single track; a group expands to its
   // child tracks.
-  for (const entry of c.groups) {
+  for (const entry of c.rows) {
     const tracks = isGroupConfig(entry) ? entry.tracks : [entry];
     for (const track of tracks) {
       if (track.labelUrl?.includes(ACCESSION_PLACEHOLDER)) return true;
@@ -294,16 +307,16 @@ const KNOWN_COMPONENTS = new Set<string>([
   'nightingale-sequence-heatmap',
 ]);
 
-function checkGroups(
+function checkRows(
   c: ProtvistaViewerConfig,
   registry: Registry,
   issues: ValidationIssue[]
 ): void {
   const sourceKeys = new Set(Object.keys(c.sources ?? {}));
-  // Each top-level entry is either a group (its child tracks are
-  // checked under the group's component) or a standalone track (checked
-  // with no parent group — it must carry its own rendering path).
-  for (const entry of c.groups) {
+  // Each row is either a group (its child tracks are checked under the
+  // group's component) or a standalone track (checked with no parent
+  // group — it must carry its own rendering path).
+  for (const entry of c.rows) {
     if (!isGroupConfig(entry)) {
       checkTrack(undefined, entry, sourceKeys, registry, issues);
       continue;

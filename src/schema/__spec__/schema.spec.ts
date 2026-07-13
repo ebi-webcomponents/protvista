@@ -91,7 +91,7 @@ describe('JSON Schema — accepts representative authored configs', () => {
         features:
           'https://www.ebi.ac.uk/proteins/api/features/{accession}',
       },
-      groups: [
+      rows: [
         {
           id: 'DOMAINS',
           tracks: [
@@ -111,7 +111,7 @@ describe('JSON Schema — accepts representative authored configs', () => {
 
   it('Example 2: inline data, no server', () => {
     expectValid({
-      groups: [
+      rows: [
         {
           id: 'MY_ANNOTATIONS',
           label: 'My custom annotations',
@@ -161,7 +161,7 @@ describe('JSON Schema — accepts representative authored configs', () => {
         alphafoldPrediction:
           'https://alphafold.ebi.ac.uk/api/prediction/{accession}',
       },
-      groups: [
+      rows: [
         {
           id: 'ALPHAFOLD_CONFIDENCE',
           label: 'AlphaFold',
@@ -215,7 +215,7 @@ describe('JSON Schema — accepts representative authored configs', () => {
     expectValid({
       extends: './base-config.yaml',
       sources: { my_features: 'https://example.org/my-features/{accession}' },
-      groups: [
+      rows: [
         {
           id: 'MY_LAB',
           label: 'My lab',
@@ -250,7 +250,7 @@ describe('JSON Schema — fine-grained acceptance', () => {
           a: 'https://a',
           b: 'https://b',
         },
-        groups: [
+        rows: [
           { id: 'C', tracks: [{ id: 't', kind: 'features', ...s }] },
         ],
       });
@@ -282,7 +282,7 @@ describe('JSON Schema — fine-grained acceptance', () => {
     ];
     for (const s of shapes) {
       expectValid({
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -302,17 +302,17 @@ describe('JSON Schema — fine-grained acceptance', () => {
     // that hasn't been decided.
     expectValid({
       extends: './base-config.yaml',
-      groups: [{ id: 'C', tracks: [] }],
+      rows: [{ id: 'C', tracks: [] }],
     });
     expectValid({
       extends: ['./base-config.yaml', './overlay.yaml'],
-      groups: [{ id: 'C', tracks: [] }],
+      rows: [{ id: 'C', tracks: [] }],
     });
   });
 
   it('accepts a colorScale with explicit stops only (no theme)', () => {
     expectValid({
-      groups: [
+      rows: [
         {
           id: 'C',
           tracks: [
@@ -346,7 +346,7 @@ describe('JSON Schema — rejection cases', () => {
   it('rejects inline data with no inlineData', () => {
     expectInvalid(
       {
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -362,7 +362,7 @@ describe('JSON Schema — rejection cases', () => {
   it('rejects a dataTooltip fields spec with no `fields` array', () => {
     expectInvalid(
       {
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -384,7 +384,7 @@ describe('JSON Schema — rejection cases', () => {
   it('rejects a dataTooltip fields spec with a field missing `path`', () => {
     expectInvalid(
       {
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -409,7 +409,7 @@ describe('JSON Schema — rejection cases', () => {
   it('rejects a dataTooltip markdown spec with no `template`', () => {
     expectInvalid(
       {
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -430,7 +430,7 @@ describe('JSON Schema — rejection cases', () => {
 
   it('rejects a dataTooltip object with an unknown `kind`', () => {
     expectInvalid({
-      groups: [
+      rows: [
         {
           id: 'C',
           tracks: [
@@ -451,7 +451,7 @@ describe('JSON Schema — rejection cases', () => {
     expectInvalid(
       {
         version: '0.9',
-        groups: [{ id: 'C', tracks: [] }],
+        rows: [{ id: 'C', tracks: [] }],
       },
       /version/
     );
@@ -460,7 +460,7 @@ describe('JSON Schema — rejection cases', () => {
   it('rejects a colorScale with neither theme nor stops', () => {
     expectInvalid(
       {
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -482,7 +482,7 @@ describe('JSON Schema — rejection cases', () => {
   it('rejects a track with no `data` field', () => {
     expectInvalid(
       {
-        groups: [
+        rows: [
           { id: 'C', tracks: [{ id: 't', kind: 'features' }] },
         ],
       },
@@ -490,14 +490,39 @@ describe('JSON Schema — rejection cases', () => {
     );
   });
 
-  it('rejects a config with no `groups`', () => {
-    expectInvalid({}, /groups/);
+  it('rejects a config with neither `rows` nor `groups`', () => {
+    expectInvalid({}, /rows/);
+  });
+
+  // The deprecated `groups:` spelling stays in the schema for one cycle
+  // so an editor validating a legacy config against the published
+  // schema does not light it up red. The loader folds it into `rows:`
+  // and warns; see rows-alias.spec.ts.
+  it('still accepts the deprecated `groups:` spelling', () => {
+    expectValid({
+      sources: { features: 'https://example.org/features' },
+      groups: [
+        { id: 'C', tracks: [{ id: 't', kind: 'features', data: 'features' }] },
+      ],
+    });
+  });
+
+  it('rejects a config setting both `rows` and `groups`', () => {
+    // `oneOf` (not `anyOf`) is what makes both-at-once a failure. The
+    // runtime resolver catches this earlier with a clearer message, but
+    // the schema must reject it too — it is the contract editors and
+    // external tools validate against.
+    expectInvalid({
+      sources: { features: 'https://example.org/features' },
+      rows: [{ id: 'a', kind: 'features', data: 'features' }],
+      groups: [{ id: 'b', kind: 'features', data: 'features' }],
+    });
   });
 
   it('rejects typos via additionalProperties: false', () => {
     expectInvalid(
       {
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -518,7 +543,7 @@ describe('JSON Schema — rejection cases', () => {
 
   it('rejects a FilterUI value other than "nightingale-filter"', () => {
     expectInvalid({
-      groups: [
+      rows: [
         {
           id: 'C',
           tracks: [
@@ -543,14 +568,14 @@ describe('JSON Schema — rejection cases', () => {
 describe('JSON Schema — top-level standalone tracks', () => {
   it('accepts a single standalone track and zero groups', () => {
     expectValid({
-      groups: [{ id: 'signal_peptide', kind: 'features', data: 'features' }],
+      rows: [{ id: 'signal_peptide', kind: 'features', data: 'features' }],
       sources: { features: 'https://example.org/features' },
     });
   });
 
   it('accepts a config mixing standalone tracks and groups', () => {
     expectValid({
-      groups: [
+      rows: [
         { id: 'signal_peptide', kind: 'features', filter: 'SIGNAL', data: 'features' },
         {
           id: 'DOMAINS',
@@ -566,7 +591,7 @@ describe('JSON Schema — top-level standalone tracks', () => {
     // Matches neither oneOf branch: GroupConfig requires `tracks`,
     // TrackConfig requires `data`.
     expectInvalid({
-      groups: [{ id: 'orphan', kind: 'features' }],
+      rows: [{ id: 'orphan', kind: 'features' }],
       sources: { features: 'https://x' },
     });
   });
@@ -576,7 +601,7 @@ describe('JSON Schema — top-level standalone tracks', () => {
     // additionalProperties:false), so an entry with both `data` and
     // `tracks` matches neither oneOf branch.
     expectInvalid({
-      groups: [
+      rows: [
         { id: 'mixed', kind: 'features', data: 'features', tracks: [] },
       ],
       sources: { features: 'https://x' },

@@ -47,10 +47,10 @@ import type {
 /**
  * Minimal config constructor. Keeps each test's input focused on the
  * field under test and avoids the noise of always spelling out
- * `groups: [...]` with a throw-away track.
+ * `rows: [...]` with a throw-away track.
  */
 function cfg(
-  partial: Partial<ProtvistaViewerConfig> & { groups: TopLevelEntry[] }
+  partial: Partial<ProtvistaViewerConfig> & { rows: TopLevelEntry[] }
 ): ProtvistaViewerConfig {
   return partial;
 }
@@ -95,14 +95,14 @@ describe('titleCaseId', () => {
 describe('normalizeConfig — label fallbacks', () => {
   it('title-cases a group id when label is omitted (spec test)', () => {
     const out = normalizeConfig({
-      groups: [{ id: 'MOLECULE_PROCESSING', tracks: [] }],
+      rows: [{ id: 'MOLECULE_PROCESSING', tracks: [] }],
     });
     expect(out.groups[0].label).toBe('Molecule processing');
   });
 
   it('preserves an explicit group label', () => {
     const out = normalizeConfig({
-      groups: [
+      rows: [
         { id: 'MOLECULE_PROCESSING', label: 'Processing', tracks: [] },
       ],
     });
@@ -113,7 +113,7 @@ describe('normalizeConfig — label fallbacks', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x/{accession}' },
-        groups: [
+        rows: [
           { id: 'C', tracks: [track({ id: 'signal-peptide' })] },
         ],
       })
@@ -130,7 +130,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
   it('wraps a single descriptor in an array', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -152,7 +152,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
   it('keeps a descriptor array intact (multi-input adapter)', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -179,7 +179,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://example.com/features/{accession}' },
-        groups: [{ id: 'C', tracks: [track({ id: 't', data: 'features' })] }],
+        rows: [{ id: 'C', tracks: [track({ id: 't', data: 'features' })] }],
       })
     );
     const d = out.groups[0].tracks[0].data[0];
@@ -193,7 +193,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
   it('resolves string shorthand starting with http(s):// as a literal URL', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           { id: 'C', tracks: [track({ id: 't', data: 'https://x.test/f' })] },
         ],
       })
@@ -208,7 +208,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           { id: 'C', tracks: [track({ id: 't', data: 'nonexistent' })] },
         ],
       })
@@ -230,7 +230,7 @@ describe('normalizeConfig — dataTooltip shorthand expansion', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -258,7 +258,7 @@ describe('normalizeConfig — dataTooltip shorthand expansion', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -284,7 +284,7 @@ describe('normalizeConfig — dataTooltip shorthand expansion', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -305,7 +305,7 @@ describe('normalizeConfig — dataTooltip shorthand expansion', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           { id: 'C', tracks: [track({ id: 't', kind: 'features' })] },
         ],
       })
@@ -323,7 +323,7 @@ describe('normalizeConfig — from defaulting', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -339,7 +339,7 @@ describe('normalizeConfig — from defaulting', () => {
   it("defaults `from` to 'inline' when inlineData is present and `from` is omitted", () => {
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -355,7 +355,7 @@ describe('normalizeConfig — from defaulting', () => {
   it('respects an explicit `from` even when inlineData is present', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -381,7 +381,7 @@ describe('normalizeConfig — adapter inference precedence', () => {
     const registry = createRegistry();
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -407,7 +407,7 @@ describe('normalizeConfig — adapter inference precedence', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://api.example.com/{accession}.json' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [track({ id: 't', kind: 'features', data: 'features' })],
@@ -428,7 +428,7 @@ describe('normalizeConfig — adapter inference precedence', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://api.example.com/features/{accession}' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [track({ id: 't', kind: 'features', data: 'features' })],
@@ -454,7 +454,7 @@ describe('normalizeConfig — source → url resolution', () => {
     // this for cache-key equality.
     const out = normalizeConfig({
       sources: { features: 'https://example.com/features/{accession}' },
-      groups: [
+      rows: [
         {
           id: 'SITES',
           tracks: [
@@ -482,7 +482,7 @@ describe('normalizeConfig — source → url resolution', () => {
     const out = normalizeConfig(
       cfg({
         sources: { a: 'https://a', b: 'https://b' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -502,7 +502,7 @@ describe('normalizeConfig — source → url resolution', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://example.com/features' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -531,7 +531,7 @@ describe('normalizeConfig — rendering cascade', () => {
           rendering: { color: 'red', height: 10, layout: 'non-overlapping' },
         },
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             rendering: { color: 'blue' }, // overrides defaults.color
@@ -556,7 +556,7 @@ describe('normalizeConfig — rendering cascade', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             rendering: { color: 'red' }, // would cascade to tracks
@@ -582,7 +582,7 @@ describe('normalizeConfig — rendering cascade', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -606,7 +606,7 @@ describe('normalizeConfig — rendering cascade', () => {
   it('always produces a defined rendering object on each track (even when nothing is set)', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [{ id: 'C', tracks: [track({ id: 't' })] }],
+        rows: [{ id: 'C', tracks: [track({ id: 't' })] }],
       })
     );
     expect(out.groups[0].tracks[0].rendering).toEqual({});
@@ -625,7 +625,7 @@ describe('normalizeConfig — labelUrl / helpPage inheritance', () => {
       cfg({
         defaults: { labelUrl: 'https://uniprot.org/{accession}' },
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -647,7 +647,7 @@ describe('normalizeConfig — labelUrl / helpPage inheritance', () => {
       cfg({
         defaults: { helpPage: 'default-help' },
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'GROUP1',
             helpPage: 'group1-help',
@@ -683,7 +683,7 @@ describe('normalizeConfig — component resolution', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -704,7 +704,7 @@ describe('normalizeConfig — component resolution', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -729,7 +729,7 @@ describe('normalizeConfig — component resolution', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             component: 'nightingale-linegraph-track',
@@ -746,7 +746,7 @@ describe('normalizeConfig — component resolution', () => {
   it('defaults to nightingale-track-canvas when nothing else resolves', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [{ id: 'C', tracks: [track({ id: 't' })] }],
+        rows: [{ id: 'C', tracks: [track({ id: 't' })] }],
       })
     );
     expect(out.groups[0].tracks[0].component).toBe(
@@ -759,7 +759,7 @@ describe('normalizeConfig — component resolution', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [track({ id: 't', kind: 'features', data: 'features' })],
@@ -782,7 +782,7 @@ describe('normalizeConfig — group component inference', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -804,7 +804,7 @@ describe('normalizeConfig — group component inference', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -824,7 +824,7 @@ describe('normalizeConfig — group component inference', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             component: 'nightingale-linegraph-track',
@@ -846,7 +846,7 @@ describe('normalizeConfig — group component inference', () => {
     // doesn't crash if it iterates empty groups.
     const out = normalizeConfig(
       cfg({
-        groups: [{ id: 'EMPTY', tracks: [] }],
+        rows: [{ id: 'EMPTY', tracks: [] }],
       })
     );
     expect(out.groups[0].component).toBe('nightingale-track-canvas');
@@ -861,7 +861,7 @@ describe('normalizeConfig — duplicate id detection', () => {
   it('rejects duplicate top-level ids (spec test)', () => {
     expect(() =>
       normalizeConfig({
-        groups: [
+        rows: [
           { id: 'DUPED', tracks: [] },
           { id: 'DUPED', tracks: [] },
         ],
@@ -873,7 +873,7 @@ describe('normalizeConfig — duplicate id detection', () => {
     expect(() =>
       normalizeConfig({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           { id: 'shared', tracks: [] },
           { id: 'shared', kind: 'features', data: 'features' },
         ],
@@ -886,7 +886,7 @@ describe('normalizeConfig — duplicate id detection', () => {
       normalizeConfig(
         cfg({
           sources: { features: 'https://x' },
-          groups: [
+          rows: [
             {
               id: 'C',
               tracks: [track({ id: 't' }), track({ id: 't' })],
@@ -902,7 +902,7 @@ describe('normalizeConfig — duplicate id detection', () => {
       normalizeConfig(
         cfg({
           sources: { features: 'https://x' },
-          groups: [
+          rows: [
             { id: 'A', tracks: [track({ id: 'signal' })] },
             { id: 'B', tracks: [track({ id: 'signal' })] },
           ],
@@ -919,7 +919,7 @@ describe('normalizeConfig — duplicate id detection', () => {
 describe('normalizeConfig — top-level fields', () => {
   it("defaults `version` to '1.0' when omitted", () => {
     const out = normalizeConfig({
-      groups: [{ id: 'C', tracks: [] }],
+      rows: [{ id: 'C', tracks: [] }],
     });
     expect(out.version).toBe('1.0');
   });
@@ -927,21 +927,21 @@ describe('normalizeConfig — top-level fields', () => {
   it('preserves accession when set', () => {
     const out = normalizeConfig({
       accession: 'P05067',
-      groups: [{ id: 'C', tracks: [] }],
+      rows: [{ id: 'C', tracks: [] }],
     });
     expect(out.accession).toBe('P05067');
   });
 
   it('always produces a sources object (empty when omitted)', () => {
     const out = normalizeConfig({
-      groups: [{ id: 'C', tracks: [] }],
+      rows: [{ id: 'C', tracks: [] }],
     });
     expect(out.sources).toEqual({});
   });
 
   it('always produces a defaults object with a rendering sub-object', () => {
     const out = normalizeConfig({
-      groups: [{ id: 'C', tracks: [] }],
+      rows: [{ id: 'C', tracks: [] }],
     });
     expect(out.defaults.rendering).toEqual({});
     expect(out.defaults.labelUrl).toBeUndefined();
@@ -961,7 +961,7 @@ describe('normalizeConfig — without a registry', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [track({ id: 't', kind: 'features', data: 'features' })],
@@ -992,7 +992,7 @@ describe('normalizeConfig — output shape guarantees', () => {
         accession: 'P05067',
         defaults: { rendering: { layout: 'non-overlapping' } },
         sources: { features: 'https://x/{accession}' },
-        groups: [
+        rows: [
           {
             id: 'DOMAINS',
             tracks: [
@@ -1046,7 +1046,7 @@ describe('normalizeConfig — standalone top-level tracks', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'signal_peptide',
             label: 'Signal peptide',
@@ -1075,7 +1075,7 @@ describe('normalizeConfig — standalone top-level tracks', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'DOMAINS',
             tracks: [track({ id: 'domain', kind: 'features', data: 'features' })],
@@ -1090,7 +1090,7 @@ describe('normalizeConfig — standalone top-level tracks', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           { id: 'signal_peptide', kind: 'features', filter: 'SIGNAL', data: 'features' },
           {
             id: 'DOMAINS',
@@ -1118,7 +1118,7 @@ describe('normalizeConfig — standalone top-level tracks', () => {
       cfg({
         sources: { features: 'https://x' },
         defaults: { rendering: { layout: 'non-overlapping', color: 'red' } },
-        groups: [
+        rows: [
           { id: 'confidence', kind: 'confidence-score', data: 'features' },
         ],
       }),

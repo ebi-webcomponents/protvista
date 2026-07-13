@@ -39,7 +39,7 @@
  *   9. Resolves `source:` references to concrete `url:` strings via
  *      the root `sources` map, leaving the `source:` field in place
  *      for downstream introspection (validator error messages).
- *  10. Wraps each standalone top-level track (a `groups:` entry with no
+ *  10. Wraps each standalone top-level track (a `rows:` entry with no
  *      `tracks:`) in a synthetic single-track `NormalizedGroup` flagged
  *      `standalone`, so downstream code stays on one uniform
  *      `NormalizedGroup[]` path. Standalone tracks skip the
@@ -73,6 +73,7 @@ import type {
 } from './types';
 import { isGroupConfig } from './discriminate';
 import type { Registry } from './registry';
+import { resolveRowsAlias } from './rows-alias';
 
 // ─────────────────────────────────────────────────────────────
 // Output types — the canonical shape the loader consumes
@@ -113,7 +114,7 @@ export interface NormalizedGroup {
   tracks: NormalizedTrack[];
   /**
    * Set only on the synthetic single-track group that wraps an authored
-   * standalone track (a top-level `groups:` entry with no `tracks:`).
+   * standalone track (a top-level `rows:` entry with no `tracks:`).
    * The renderer reads this to render one row with no group-collapse
    * affordance; a genuine one-track group (authored with `tracks:`)
    * leaves it unset and keeps its collapse header. The wrapper's
@@ -187,10 +188,15 @@ export interface NormalizeOptions {
 }
 
 export function normalizeConfig(
-  config: ProtvistaViewerConfig,
+  rawConfig: ProtvistaViewerConfig,
   opts: NormalizeOptions = {}
 ): NormalizedConfig {
   const { registry } = opts;
+  // Defensive: `loadConfig` has already folded any `groups:` alias into
+  // `rows:`, but `normalizeConfig` is exported and an embedder may call
+  // it directly on an authored config. Re-resolving an alias-free
+  // config is a no-op.
+  const config = resolveRowsAlias(rawConfig);
   const sources = config.sources ?? {};
 
   const defaults: NormalizedDefaults = {
@@ -209,15 +215,15 @@ export function normalizeConfig(
   // spans both shapes (a group id colliding with a standalone-track id
   // is caught here).
   assertUniqueIds(
-    config.groups.map((c) => c.id),
+    config.rows.map((c) => c.id),
     (id) => `Duplicate top-level id '${id}'.`
   );
 
-  // Each entry is either a group of tracks or a standalone track. A
+  // Each row is either a group of tracks or a standalone track. A
   // standalone track is wrapped in a synthetic single-track group so
   // the loader and renderer see one uniform `NormalizedGroup[]`; the
   // `standalone` flag tells the renderer to drop the collapse header.
-  const groups = config.groups.map((c) =>
+  const groups = config.rows.map((c) =>
     isGroupConfig(c)
       ? normalizeGroup(c, defaults, sources, registry)
       : normalizeStandalone(c, defaults, sources, registry)
@@ -294,7 +300,7 @@ function normalizeGroup(
 }
 
 /**
- * Normalize a standalone top-level track (an authored `groups:` entry
+ * Normalize a standalone top-level track (an authored `rows:` entry
  * with no `tracks:`) by wrapping it in a synthetic single-track
  * `NormalizedGroup` flagged `standalone`.
  *

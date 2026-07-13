@@ -5,7 +5,8 @@
   "description": "Declarative configuration for a ProtVista viewer instance (v1). Source-of-truth JSON Schema, authored in lockstep with src/schema/types.ts.",
 
   "type": "object",
-  "required": ["groups"],
+  "$comment": "Exactly one of `rows` / `groups` must be present. `groups` is the deprecated spelling of `rows`, kept for one cycle so existing configs keep validating in editors; the loader folds it into `rows` and warns. `oneOf` (not `anyOf`) is what makes setting BOTH a schema failure — the runtime alias resolver catches that case earlier and reports it with a clearer message.",
+  "oneOf": [{ "required": ["rows"] }, { "required": ["groups"] }],
   "additionalProperties": false,
   "properties": {
     "$schema": { "type": "string" },
@@ -35,19 +36,29 @@
       "additionalProperties": { "type": "string", "minLength": 1 }
     },
     "defaults": { "$ref": "#/$defs/ConfigDefaults" },
-    "groups": {
-      "description": "Ordered list of top-level entries: each is either a group of tracks (has `tracks`) or a standalone track (has `data`, no `tracks`). Mixed freely; declaration order preserved.",
+    "rows": {
+      "description": "Ordered list of rows: each is either a group of tracks (has `tracks`) or a standalone track (has `data`, no `tracks`). Mixed freely; declaration order preserved.",
       "type": "array",
-      "items": {
-        "oneOf": [
-          { "$ref": "#/$defs/GroupConfig" },
-          { "$ref": "#/$defs/TrackConfig" }
-        ]
-      }
+      "items": { "$ref": "#/$defs/TopLevelEntry" }
+    },
+    "groups": {
+      "description": "DEPRECATED — renamed to `rows`. Folded into `rows` on load, with a one-time console warning. Will be removed before the v5 schema is published. Setting both `rows` and `groups` is an error.",
+      "deprecated": true,
+      "type": "array",
+      "items": { "$ref": "#/$defs/TopLevelEntry" }
     }
   },
 
   "$defs": {
+    "TopLevelEntry": {
+      "$comment": "One row. Shared by `rows` and its deprecated `groups` alias so the two spellings cannot drift apart — they must validate identically for the alias to be safe.",
+      "description": "A group of tracks (has `tracks`) or a standalone track (has `data`, no `tracks`).",
+      "oneOf": [
+        { "$ref": "#/$defs/GroupConfig" },
+        { "$ref": "#/$defs/TrackConfig" }
+      ]
+    },
+
     "ConfigDefaults": {
       "description": "Viewer-wide defaults inherited by every group/track.",
       "type": "object",

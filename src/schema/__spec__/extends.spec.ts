@@ -4,7 +4,7 @@
  * Covers every documented rule for `extends`:
  *   - sources merged by key (child wins)
  *   - defaults merged field-wise; rendering + colorScale nested
- *   - groups merged by id (extend in place, append new at end)
+ *   - rows merged by id (extend in place, append new at end)
  *   - tracks merged by id within a merged group
  *   - rendering field-wise at every level
  *   - array extends: multi-parent, left-to-right, later wins
@@ -50,7 +50,7 @@ const base = (): ProtvistaViewerConfig => ({
     rendering: { layout: 'non-overlapping', color: '#333' },
     labelUrl: 'https://example.org/{accession}',
   },
-  groups: [
+  rows: [
     {
       id: 'DOMAINS',
       label: 'Domains',
@@ -97,7 +97,7 @@ describe('mergeExtends — basic merge', () => {
     const child: ProtvistaViewerConfig = {
       extends: '@base',
       sources: { features: 'https://child.example/features' },
-      groups: [],
+      rows: [],
     };
     const out = await mergeExtends(child, { resolver: { '@base': base() } });
     expect(out.sources?.features).toBe('https://child.example/features');
@@ -109,7 +109,7 @@ describe('mergeExtends — basic merge', () => {
     const child: ProtvistaViewerConfig = {
       extends: '@base',
       defaults: { rendering: { color: '#ff0' } },
-      groups: [],
+      rows: [],
     };
     const out = await mergeExtends(child, { resolver: { '@base': base() } });
     expect(out.defaults?.rendering?.color).toBe('#ff0');
@@ -119,10 +119,10 @@ describe('mergeExtends — basic merge', () => {
     expect(out.defaults?.labelUrl).toBe('https://example.org/{accession}');
   });
 
-  it('groups with known id are extended in place', async () => {
+  it('rows with known id are extended in place', async () => {
     const child: ProtvistaViewerConfig = {
       extends: '@base',
-      groups: [
+      rows: [
         {
           id: 'DOMAINS',
           label: 'Overridden label',
@@ -131,19 +131,19 @@ describe('mergeExtends — basic merge', () => {
       ],
     };
     const out = await mergeExtends(child, { resolver: { '@base': base() } });
-    expect(out.groups[0].id).toBe('DOMAINS');
-    expect(out.groups[0].label).toBe('Overridden label');
+    expect(out.rows[0].id).toBe('DOMAINS');
+    expect(out.rows[0].label).toBe('Overridden label');
     // Base tracks survive when child provides empty tracks
-    expect(asGroup(out.groups[0]).tracks.map((t) => t.id)).toEqual([
+    expect(asGroup(out.rows[0]).tracks.map((t) => t.id)).toEqual([
       'domain',
       'region',
     ]);
   });
 
-  it('groups with new id are appended at the end', async () => {
+  it('rows with new id are appended at the end', async () => {
     const child: ProtvistaViewerConfig = {
       extends: '@base',
-      groups: [
+      rows: [
         {
           id: 'MY_LAB',
           label: 'My Lab',
@@ -152,7 +152,7 @@ describe('mergeExtends — basic merge', () => {
       ],
     };
     const out = await mergeExtends(child, { resolver: { '@base': base() } });
-    expect(out.groups.map((c) => c.id)).toEqual([
+    expect(out.rows.map((c) => c.id)).toEqual([
       'DOMAINS',
       'VARIATION',
       'MY_LAB',
@@ -162,7 +162,7 @@ describe('mergeExtends — basic merge', () => {
   it('tracks within a merged group are matched by id', async () => {
     const child: ProtvistaViewerConfig = {
       extends: '@base',
-      groups: [
+      rows: [
         {
           id: 'DOMAINS',
           tracks: [
@@ -184,7 +184,7 @@ describe('mergeExtends — basic merge', () => {
       ],
     };
     const out = await mergeExtends(child, { resolver: { '@base': base() } });
-    const dom = asGroup(out.groups.find((c) => c.id === 'DOMAINS'));
+    const dom = asGroup(out.rows.find((c) => c.id === 'DOMAINS'));
     expect(dom.tracks.map((t) => t.id)).toEqual(['domain', 'region', 'motif']);
     expect(dom.tracks.find((t) => t.id === 'region')?.label).toBe(
       'Renamed region'
@@ -194,7 +194,7 @@ describe('mergeExtends — basic merge', () => {
   it('rendering merges field-wise at group level', async () => {
     const withBaseRendering: ProtvistaViewerConfig = {
       ...base(),
-      groups: [
+      rows: [
         {
           id: 'X',
           rendering: { color: '#000', height: 20 },
@@ -204,7 +204,7 @@ describe('mergeExtends — basic merge', () => {
     };
     const child: ProtvistaViewerConfig = {
       extends: '@base',
-      groups: [
+      rows: [
         {
           id: 'X',
           rendering: { color: '#fff' }, // override color only
@@ -215,7 +215,7 @@ describe('mergeExtends — basic merge', () => {
     const out = await mergeExtends(child, {
       resolver: { '@base': withBaseRendering },
     });
-    const group = out.groups.find((g) => g.id === 'X')!;
+    const group = out.rows.find((g) => g.id === 'X')!;
     expect(group.rendering?.color).toBe('#fff');
     expect(group.rendering?.height).toBe(20);
   });
@@ -239,7 +239,7 @@ describe('mergeExtends — basic merge', () => {
       defaults: {
         rendering: { colorScale: { theme: 'alphafold-ramp' } },
       },
-      groups: [],
+      rows: [],
     };
     const out = await mergeExtends(child, {
       resolver: { '@base': withStops },
@@ -259,15 +259,15 @@ describe('mergeExtends — array / chain', () => {
   it('accepts extends as an array; later parents override earlier', async () => {
     const a: ProtvistaViewerConfig = {
       sources: { features: 'https://a/features' },
-      groups: [],
+      rows: [],
     };
     const b: ProtvistaViewerConfig = {
       sources: { features: 'https://b/features' },
-      groups: [],
+      rows: [],
     };
     const child: ProtvistaViewerConfig = {
       extends: ['@a', '@b'],
-      groups: [],
+      rows: [],
     };
     const out = await mergeExtends(child, { resolver: { '@a': a, '@b': b } });
     // b overrides a
@@ -277,12 +277,12 @@ describe('mergeExtends — array / chain', () => {
   it('child overrides all parents at root level', async () => {
     const a: ProtvistaViewerConfig = {
       sources: { features: 'https://a' },
-      groups: [],
+      rows: [],
     };
     const child: ProtvistaViewerConfig = {
       extends: '@a',
       sources: { features: 'https://child' },
-      groups: [],
+      rows: [],
     };
     const out = await mergeExtends(child, { resolver: { '@a': a } });
     expect(out.sources?.features).toBe('https://child');
@@ -291,17 +291,17 @@ describe('mergeExtends — array / chain', () => {
   it('resolves recursive extends (child → A → B)', async () => {
     const b: ProtvistaViewerConfig = {
       sources: { a: 'https://b/a', b: 'https://b/b' },
-      groups: [],
+      rows: [],
     };
     const a: ProtvistaViewerConfig = {
       extends: '@b',
       sources: { a: 'https://a/a' }, // override b's a
-      groups: [],
+      rows: [],
     };
     const child: ProtvistaViewerConfig = {
       extends: '@a',
       sources: { c: 'https://child/c' },
-      groups: [],
+      rows: [],
     };
     const out = await mergeExtends(child, {
       resolver: { '@a': a, '@b': b },
@@ -322,7 +322,7 @@ describe('mergeExtends — cycle detection', () => {
   it('detects a direct self-extends (A → A)', async () => {
     const a: ProtvistaViewerConfig = {
       extends: '@a',
-      groups: [],
+      rows: [],
     };
     await expect(
       mergeExtends(a, { resolver: { '@a': a } })
@@ -330,11 +330,11 @@ describe('mergeExtends — cycle detection', () => {
   });
 
   it('detects a two-step cycle (A → B → A) with descriptive message', async () => {
-    const a: ProtvistaViewerConfig = { extends: '@b', groups: [] };
-    const b: ProtvistaViewerConfig = { extends: '@a', groups: [] };
+    const a: ProtvistaViewerConfig = { extends: '@b', rows: [] };
+    const b: ProtvistaViewerConfig = { extends: '@a', rows: [] };
     try {
       await mergeExtends(
-        { extends: '@a', groups: [] } as ProtvistaViewerConfig,
+        { extends: '@a', rows: [] } as ProtvistaViewerConfig,
         { resolver: { '@a': a, '@b': b } }
       );
       throw new Error('expected mergeExtends to reject');
@@ -359,7 +359,7 @@ describe('mergeExtends — resolution failures', () => {
   it('throws cannot-resolve-extends on an unknown preset name', async () => {
     const child: ProtvistaViewerConfig = {
       extends: '@acme/nope',
-      groups: [],
+      rows: [],
     };
     try {
       await mergeExtends(child);
@@ -380,7 +380,7 @@ describe('mergeExtends — resolution failures', () => {
     // target name (preset or URL) woven into the message.
     const child: ProtvistaViewerConfig = {
       extends: './broken.json',
-      groups: [],
+      rows: [],
     };
     try {
       await mergeExtends(child, {
@@ -400,11 +400,11 @@ describe('mergeExtends — resolution failures', () => {
   it('falls back to fetcher when resolver declines and name looks like a URL', async () => {
     const child: ProtvistaViewerConfig = {
       extends: 'https://presets.example.org/base.json',
-      groups: [],
+      rows: [],
     };
     const baseJson = JSON.stringify({
       sources: { features: 'https://fetched/features' },
-      groups: [],
+      rows: [],
     });
     const out = await mergeExtends(child, {
       fetcher: async (url) => {
@@ -418,14 +418,14 @@ describe('mergeExtends — resolution failures', () => {
   it('fetcher result is parsed as YAML when it does not start with { or [', async () => {
     const child: ProtvistaViewerConfig = {
       extends: './base.yaml',
-      groups: [],
+      rows: [],
     };
     const out = await mergeExtends(child, {
       fetcher: async () =>
         [
           'sources:',
           '  features: https://yaml/features',
-          'groups: []',
+          'rows: []',
         ].join('\n'),
     });
     expect(out.sources?.features).toBe('https://yaml/features');
@@ -440,12 +440,12 @@ describe('mergeExtends — resolver shapes', () => {
   it('accepts a function resolver (sync return)', async () => {
     const child: ProtvistaViewerConfig = {
       extends: '@base',
-      groups: [],
+      rows: [],
     };
     const out = await mergeExtends(child, {
       resolver: (name) =>
         name === '@base'
-          ? ({ sources: { a: 'https://a' }, groups: [] } as ProtvistaViewerConfig)
+          ? ({ sources: { a: 'https://a' }, rows: [] } as ProtvistaViewerConfig)
           : undefined,
     });
     expect(out.sources?.a).toBe('https://a');
@@ -454,12 +454,12 @@ describe('mergeExtends — resolver shapes', () => {
   it('accepts a function resolver (async return)', async () => {
     const child: ProtvistaViewerConfig = {
       extends: '@base',
-      groups: [],
+      rows: [],
     };
     const out = await mergeExtends(child, {
       resolver: async (name) => {
         if (name !== '@base') return undefined;
-        return { sources: { a: 'https://a' }, groups: [] };
+        return { sources: { a: 'https://a' }, rows: [] };
       },
     });
     expect(out.sources?.a).toBe('https://a');
@@ -468,12 +468,12 @@ describe('mergeExtends — resolver shapes', () => {
   it('resolver can return a raw string (JSON) for re-parsing', async () => {
     const child: ProtvistaViewerConfig = {
       extends: '@base',
-      groups: [],
+      rows: [],
     };
     const out = await mergeExtends(child, {
       resolver: (name) =>
         name === '@base'
-          ? JSON.stringify({ sources: { a: 'https://a' }, groups: [] })
+          ? JSON.stringify({ sources: { a: 'https://a' }, rows: [] })
           : undefined,
     });
     expect(out.sources?.a).toBe('https://a');
@@ -482,12 +482,12 @@ describe('mergeExtends — resolver shapes', () => {
   it('resolver can return a raw string (YAML) for re-parsing', async () => {
     const child: ProtvistaViewerConfig = {
       extends: '@base',
-      groups: [],
+      rows: [],
     };
     const out = await mergeExtends(child, {
       resolver: (name) =>
         name === '@base'
-          ? 'sources:\n  a: https://a\ngroups: []\n'
+          ? 'sources:\n  a: https://a\nrows: []\n'
           : undefined,
     });
     expect(out.sources?.a).toBe('https://a');
@@ -500,7 +500,7 @@ describe('mergeExtends — resolver shapes', () => {
 
 describe('loadConfig — extends integration', () => {
   it('resolves extends before schema validation (partial child is accepted)', async () => {
-    // The child has NO `groups` key; pre-merge that would fail
+    // The child has NO `rows` key; pre-merge that would fail
     // schema validation. After merging the base, it should pass.
     const childYaml = `
 extends: "@base"
@@ -510,7 +510,7 @@ sources:
     const normalized = await loadConfig(childYaml, {
       extendsResolver: {
         '@base': {
-          groups: [
+          rows: [
             {
               id: 'X',
               tracks: [{ id: 't', kind: 'features', data: 'sources' }],
@@ -530,7 +530,7 @@ sources:
       loadConfig(
         {
           extends: '@base',
-          groups: [
+          rows: [
             {
               id: 'X',
               tracks: [
@@ -541,7 +541,7 @@ sources:
         } as ProtvistaViewerConfig,
         {
           extendsResolver: {
-            '@base': { groups: [] } as ProtvistaViewerConfig,
+            '@base': { rows: [] } as ProtvistaViewerConfig,
           },
         }
       )
@@ -561,34 +561,34 @@ describe('mergeExtends — mixed group / standalone-track entries', () => {
     // `tracks` array onto a track-shaped entry).
     const child: ProtvistaViewerConfig = {
       extends: '@base',
-      groups: [{ id: 'DOMAINS', kind: 'features', data: 'features' }],
+      rows: [{ id: 'DOMAINS', kind: 'features', data: 'features' }],
     };
     const out = await mergeExtends(child, { resolver: { '@base': base() } });
-    const domains = out.groups.find((c) => c.id === 'DOMAINS');
+    const domains = out.rows.find((c) => c.id === 'DOMAINS');
     expect(domains).toBeDefined();
     expect(isGroupConfig(domains!)).toBe(false);
     // The base group's `tracks` array is gone — it was replaced, not merged.
     expect('tracks' in domains!).toBe(false);
     expect((domains as { kind?: string }).kind).toBe('features');
     // Order preserved: DOMAINS still first, VARIATION still second.
-    expect(out.groups.map((c) => c.id)).toEqual(['DOMAINS', 'VARIATION']);
+    expect(out.rows.map((c) => c.id)).toEqual(['DOMAINS', 'VARIATION']);
   });
 
   it('two standalone tracks of the same id are field-merged (child wins)', async () => {
     const baseWithStandalone = (): ProtvistaViewerConfig => ({
       sources: { features: 'https://example.org/features' },
-      groups: [
+      rows: [
         { id: 'signal', kind: 'features', label: 'Base', data: 'features' },
       ],
     });
     const child: ProtvistaViewerConfig = {
       extends: '@base',
-      groups: [{ id: 'signal', label: 'Child', data: 'features' }],
+      rows: [{ id: 'signal', label: 'Child', data: 'features' }],
     };
     const out = await mergeExtends(child, {
       resolver: { '@base': baseWithStandalone() },
     });
-    const signal = out.groups.find((c) => c.id === 'signal')!;
+    const signal = out.rows.find((c) => c.id === 'signal')!;
     expect(isGroupConfig(signal)).toBe(false);
     expect(signal.label).toBe('Child');
     // `kind` from the base survives because the two track entries are
@@ -599,15 +599,15 @@ describe('mergeExtends — mixed group / standalone-track entries', () => {
   it('a new standalone track is appended at the end', async () => {
     const child: ProtvistaViewerConfig = {
       extends: '@base',
-      groups: [{ id: 'confidence', kind: 'features', data: 'features' }],
+      rows: [{ id: 'confidence', kind: 'features', data: 'features' }],
     };
     const out = await mergeExtends(child, { resolver: { '@base': base() } });
-    expect(out.groups.map((c) => c.id)).toEqual([
+    expect(out.rows.map((c) => c.id)).toEqual([
       'DOMAINS',
       'VARIATION',
       'confidence',
     ]);
-    expect(isGroupConfig(out.groups[2])).toBe(false);
+    expect(isGroupConfig(out.rows[2])).toBe(false);
   });
 
   it('a child overriding a group scalar without restating `tracks:` keeps the base tracks', async () => {
@@ -617,10 +617,10 @@ describe('mergeExtends — mixed group / standalone-track entries', () => {
     // group to a track and drop `[domain, region]`.
     const child: ProtvistaViewerConfig = {
       extends: '@base',
-      groups: [{ id: 'DOMAINS', label: 'Renamed domains' } as TopLevelEntry],
+      rows: [{ id: 'DOMAINS', label: 'Renamed domains' } as TopLevelEntry],
     };
     const out = await mergeExtends(child, { resolver: { '@base': base() } });
-    const domains = out.groups.find((c) => c.id === 'DOMAINS');
+    const domains = out.rows.find((c) => c.id === 'DOMAINS');
     expect(domains).toBeDefined();
     // Still a group — the shape was inherited from the base, not flipped.
     expect(isGroupConfig(domains!)).toBe(true);
@@ -631,7 +631,7 @@ describe('mergeExtends — mixed group / standalone-track entries', () => {
       'region',
     ]);
     // Order preserved.
-    expect(out.groups.map((c) => c.id)).toEqual(['DOMAINS', 'VARIATION']);
+    expect(out.rows.map((c) => c.id)).toEqual(['DOMAINS', 'VARIATION']);
   });
 
   it('a child overriding a standalone-track scalar without `data:` keeps the base data', async () => {
@@ -639,18 +639,18 @@ describe('mergeExtends — mixed group / standalone-track entries', () => {
     // a base standalone track, preserving its `data` / `kind`.
     const baseWithStandalone = (): ProtvistaViewerConfig => ({
       sources: { features: 'https://example.org/features' },
-      groups: [
+      rows: [
         { id: 'signal', kind: 'features', label: 'Base', data: 'features' },
       ],
     });
     const child: ProtvistaViewerConfig = {
       extends: '@base',
-      groups: [{ id: 'signal', label: 'Renamed signal' } as TopLevelEntry],
+      rows: [{ id: 'signal', label: 'Renamed signal' } as TopLevelEntry],
     };
     const out = await mergeExtends(child, {
       resolver: { '@base': baseWithStandalone() },
     });
-    const signal = out.groups.find((c) => c.id === 'signal')!;
+    const signal = out.rows.find((c) => c.id === 'signal')!;
     expect(isGroupConfig(signal)).toBe(false);
     expect(signal.label).toBe('Renamed signal');
     // Base `data` and `kind` survive the scalar-only override.
