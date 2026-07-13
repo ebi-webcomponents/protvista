@@ -40,9 +40,9 @@
  *      the root `sources` map, leaving the `source:` field in place
  *      for downstream introspection (validator error messages).
  *  10. Wraps each standalone top-level track (a `rows:` entry with no
- *      `tracks:`) in a synthetic single-track `NormalizedGroup` flagged
+ *      `tracks:`) in a synthetic single-track `NormalizedRow` flagged
  *      `standalone`, so downstream code stays on one uniform
- *      `NormalizedGroup[]` path. Standalone tracks skip the
+ *      `NormalizedRow[]` path. Standalone tracks skip the
  *      group-rendering cascade layer (`defaults → kind preset → track`).
  *
  * What normalize does NOT do (delegated to the validator):
@@ -90,7 +90,7 @@ export interface NormalizedConfig {
   accession?: string;
   sources: Record<string, string>;
   defaults: NormalizedDefaults;
-  groups: NormalizedGroup[];
+  rows: NormalizedRow[];
 }
 
 export interface NormalizedDefaults {
@@ -100,7 +100,13 @@ export interface NormalizedDefaults {
   helpPage?: string;
 }
 
-export interface NormalizedGroup {
+/**
+ * One row of the viewer — the internal counterpart of an authored
+ * `rows:` entry. A row always *contains* tracks: a real group holds
+ * however many it declares, a standalone row holds exactly one (see
+ * `standalone` below).
+ */
+export interface NormalizedRow {
   id: string;
   /** Always present after normalize — `titleCaseId(id)` if omitted. */
   label: string;
@@ -113,7 +119,7 @@ export interface NormalizedGroup {
   helpPage?: string;
   tracks: NormalizedTrack[];
   /**
-   * Set only on the synthetic single-track group that wraps an authored
+   * Set only on the synthetic single-track row that wraps an authored
    * standalone track (a top-level `rows:` entry with no `tracks:`).
    * The renderer reads this to render one row with no group-collapse
    * affordance; a genuine one-track group (authored with `tracks:`)
@@ -220,10 +226,10 @@ export function normalizeConfig(
   );
 
   // Each row is either a group of tracks or a standalone track. A
-  // standalone track is wrapped in a synthetic single-track group so
-  // the loader and renderer see one uniform `NormalizedGroup[]`; the
+  // standalone track is wrapped in a synthetic single-track row so
+  // the loader and renderer see one uniform `NormalizedRow[]`; the
   // `standalone` flag tells the renderer to drop the collapse header.
-  const groups = config.rows.map((c) =>
+  const rows = config.rows.map((c) =>
     isGroupConfig(c)
       ? normalizeGroup(c, defaults, sources, registry)
       : normalizeStandalone(c, defaults, sources, registry)
@@ -234,7 +240,7 @@ export function normalizeConfig(
     ...(config.accession !== undefined ? { accession: config.accession } : {}),
     sources,
     defaults,
-    groups,
+    rows,
   };
 }
 
@@ -247,7 +253,7 @@ function normalizeGroup(
   defaults: NormalizedDefaults,
   sources: Record<string, string>,
   registry: Registry | undefined
-): NormalizedGroup {
+): NormalizedRow {
   assertUniqueIds(
     c.tracks.map((t) => t.id),
     (id) => `Duplicate track id '${id}' in group '${c.id}'.`
@@ -302,10 +308,10 @@ function normalizeGroup(
 /**
  * Normalize a standalone top-level track (an authored `rows:` entry
  * with no `tracks:`) by wrapping it in a synthetic single-track
- * `NormalizedGroup` flagged `standalone`.
+ * `NormalizedRow` flagged `standalone`.
  *
  * Wrapping keeps the loader and renderer on one uniform
- * `NormalizedGroup[]` path — the alternative (a bare `NormalizedTrack`
+ * `NormalizedRow[]` path — the alternative (a bare `NormalizedTrack`
  * union at the top level) would force every downstream consumer
  * (data loader, render loop, per-group side-effects) to branch on the
  * entry shape. The trade-off is documented in `docs/architecture.md`.
@@ -327,7 +333,7 @@ function normalizeStandalone(
   defaults: NormalizedDefaults,
   sources: Record<string, string>,
   registry: Registry | undefined
-): NormalizedGroup {
+): NormalizedRow {
   const track = normalizeTrack(
     t,
     undefined,

@@ -97,7 +97,7 @@ describe('normalizeConfig — label fallbacks', () => {
     const out = normalizeConfig({
       rows: [{ id: 'MOLECULE_PROCESSING', tracks: [] }],
     });
-    expect(out.groups[0].label).toBe('Molecule processing');
+    expect(out.rows[0].label).toBe('Molecule processing');
   });
 
   it('preserves an explicit group label', () => {
@@ -106,7 +106,7 @@ describe('normalizeConfig — label fallbacks', () => {
         { id: 'MOLECULE_PROCESSING', label: 'Processing', tracks: [] },
       ],
     });
-    expect(out.groups[0].label).toBe('Processing');
+    expect(out.rows[0].label).toBe('Processing');
   });
 
   it('title-cases a track id when label is omitted', () => {
@@ -118,7 +118,7 @@ describe('normalizeConfig — label fallbacks', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].label).toBe('Signal peptide');
+    expect(out.rows[0].tracks[0].label).toBe('Signal peptide');
   });
 });
 
@@ -143,7 +143,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
         ],
       })
     );
-    const d = out.groups[0].tracks[0].data;
+    const d = out.rows[0].tracks[0].data;
     expect(Array.isArray(d)).toBe(true);
     expect(d).toHaveLength(1);
     expect(d[0].url).toBe('https://x');
@@ -168,8 +168,8 @@ describe('normalizeConfig — data shorthand expansion', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].data).toHaveLength(2);
-    expect(out.groups[0].tracks[0].data.map((d) => d.url)).toEqual([
+    expect(out.rows[0].tracks[0].data).toHaveLength(2);
+    expect(out.rows[0].tracks[0].data.map((d) => d.url)).toEqual([
       'https://a',
       'https://b',
     ]);
@@ -182,7 +182,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
         rows: [{ id: 'C', tracks: [track({ id: 't', data: 'features' })] }],
       })
     );
-    const d = out.groups[0].tracks[0].data[0];
+    const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('url');
     expect(d.source).toBe('features');
     // Resolution populates `url` alongside `source` so the loader can
@@ -198,7 +198,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
         ],
       })
     );
-    const d = out.groups[0].tracks[0].data[0];
+    const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('url');
     expect(d.url).toBe('https://x.test/f');
     expect(d.source).toBeUndefined();
@@ -213,7 +213,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
         ],
       })
     );
-    const d = out.groups[0].tracks[0].data[0];
+    const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('url');
     expect(d.source).toBe('nonexistent');
     expect(d.url).toBeUndefined();
@@ -244,7 +244,7 @@ describe('normalizeConfig — dataTooltip shorthand expansion', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].dataTooltip).toEqual({
+    expect(out.rows[0].tracks[0].dataTooltip).toEqual({
       kind: 'markdown',
       template: '### {% $name %}',
     });
@@ -272,7 +272,7 @@ describe('normalizeConfig — dataTooltip shorthand expansion', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].dataTooltip).toEqual(fieldsSpec);
+    expect(out.rows[0].tracks[0].dataTooltip).toEqual(fieldsSpec);
   });
 
   it('passes a markdown-form dataTooltip (with variables) through unchanged', () => {
@@ -298,7 +298,7 @@ describe('normalizeConfig — dataTooltip shorthand expansion', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].dataTooltip).toEqual(markdownSpec);
+    expect(out.rows[0].tracks[0].dataTooltip).toEqual(markdownSpec);
   });
 
   it('omits dataTooltip from the normalized track when absent on input', () => {
@@ -310,7 +310,7 @@ describe('normalizeConfig — dataTooltip shorthand expansion', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].dataTooltip).toBeUndefined();
+    expect(out.rows[0].tracks[0].dataTooltip).toBeUndefined();
   });
 });
 
@@ -333,7 +333,7 @@ describe('normalizeConfig — from defaulting', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].data[0].from).toBe('url');
+    expect(out.rows[0].tracks[0].data[0].from).toBe('url');
   });
 
   it("defaults `from` to 'inline' when inlineData is present and `from` is omitted", () => {
@@ -349,7 +349,7 @@ describe('normalizeConfig — from defaulting', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].data[0].from).toBe('inline');
+    expect(out.rows[0].tracks[0].data[0].from).toBe('inline');
   });
 
   it('respects an explicit `from` even when inlineData is present', () => {
@@ -368,7 +368,7 @@ describe('normalizeConfig — from defaulting', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].data[0].from).toBe('custom');
+    expect(out.rows[0].tracks[0].data[0].from).toBe('custom');
   });
 });
 
@@ -399,7 +399,7 @@ describe('normalizeConfig — adapter inference precedence', () => {
       }),
       { registry }
     );
-    expect(out.groups[0].tracks[0].data[0].adapter).toBe('my-custom-adapter');
+    expect(out.rows[0].tracks[0].data[0].adapter).toBe('my-custom-adapter');
   });
 
   it('prefers the kind canonical adapter for sources-key shorthand', () => {
@@ -418,7 +418,7 @@ describe('normalizeConfig — adapter inference precedence', () => {
     );
     // The author explicitly said `kind: features`, so they want the
     // UniProt JSON adapter that the kind resolves to.
-    expect(out.groups[0].tracks[0].data[0].adapter).toBe(
+    expect(out.rows[0].tracks[0].data[0].adapter).toBe(
       'uniprot-features-json'
     );
   });
@@ -437,7 +437,7 @@ describe('normalizeConfig — adapter inference precedence', () => {
       }),
       { registry }
     );
-    expect(out.groups[0].tracks[0].data[0].adapter).toBe(
+    expect(out.rows[0].tracks[0].data[0].adapter).toBe(
       'uniprot-features-json'
     );
   });
@@ -470,7 +470,7 @@ describe('normalizeConfig — source → url resolution', () => {
         },
       ],
     });
-    const urls = out.groups
+    const urls = out.rows
       .flatMap((c) => c.tracks)
       .flatMap((t) => t.data)
       .flatMap((d) => (Array.isArray(d.url) ? d.url : [d.url]))
@@ -492,7 +492,7 @@ describe('normalizeConfig — source → url resolution', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].data[0].url).toEqual([
+    expect(out.rows[0].tracks[0].data[0].url).toEqual([
       'https://a',
       'https://b',
     ]);
@@ -515,7 +515,7 @@ describe('normalizeConfig — source → url resolution', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].data[0].url).toBe('https://overridden');
+    expect(out.rows[0].tracks[0].data[0].url).toBe('https://overridden');
   });
 });
 
@@ -545,7 +545,7 @@ describe('normalizeConfig — rendering cascade', () => {
         ],
       })
     );
-    const r = out.groups[0].tracks[0].rendering;
+    const r = out.rows[0].tracks[0].rendering;
     expect(r.color).toBe('blue'); // from group
     expect(r.height).toBe(20); // from track
     expect(r.layout).toBe('non-overlapping'); // from defaults
@@ -572,7 +572,7 @@ describe('normalizeConfig — rendering cascade', () => {
     // the group's `color: red` is NOT overridden because the kind
     // preset doesn't touch that field. This proves the merge is
     // field-wise, not whole-object.
-    const r = out.groups[0].tracks[0].rendering;
+    const r = out.rows[0].tracks[0].rendering;
     expect(r.color).toBe('red');
     expect(r.colorScale?.theme).toBe('alphafold-ramp');
   });
@@ -599,7 +599,7 @@ describe('normalizeConfig — rendering cascade', () => {
       { registry }
     );
     expect(
-      out.groups[0].tracks[0].rendering.colorScale?.theme
+      out.rows[0].tracks[0].rendering.colorScale?.theme
     ).toBe('my-custom');
   });
 
@@ -609,9 +609,9 @@ describe('normalizeConfig — rendering cascade', () => {
         rows: [{ id: 'C', tracks: [track({ id: 't' })] }],
       })
     );
-    expect(out.groups[0].tracks[0].rendering).toEqual({});
+    expect(out.rows[0].tracks[0].rendering).toEqual({});
     expect(out.defaults.rendering).toEqual({});
-    expect(out.groups[0].rendering).toEqual({});
+    expect(out.rows[0].rendering).toEqual({});
   });
 });
 
@@ -636,10 +636,10 @@ describe('normalizeConfig — labelUrl / helpPage inheritance', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].labelUrl).toBe(
+    expect(out.rows[0].tracks[0].labelUrl).toBe(
       'https://uniprot.org/{accession}'
     );
-    expect(out.groups[0].tracks[1].labelUrl).toBe('https://custom/{id}');
+    expect(out.rows[0].tracks[1].labelUrl).toBe('https://custom/{id}');
   });
 
   it('inherits helpPage: track > group > defaults', () => {
@@ -663,13 +663,13 @@ describe('normalizeConfig — labelUrl / helpPage inheritance', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].helpPage).toBe('group1-help');
-    expect(out.groups[0].tracks[1].helpPage).toBe('track-help');
-    expect(out.groups[1].tracks[0].helpPage).toBe('default-help');
+    expect(out.rows[0].tracks[0].helpPage).toBe('group1-help');
+    expect(out.rows[0].tracks[1].helpPage).toBe('track-help');
+    expect(out.rows[1].tracks[0].helpPage).toBe('default-help');
     // Group helpPage resolution: GROUP1 uses its own; GROUP2 inherits
     // from defaults.
-    expect(out.groups[0].helpPage).toBe('group1-help');
-    expect(out.groups[1].helpPage).toBe('default-help');
+    expect(out.rows[0].helpPage).toBe('group1-help');
+    expect(out.rows[1].helpPage).toBe('default-help');
   });
 });
 
@@ -694,7 +694,7 @@ describe('normalizeConfig — component resolution', () => {
       }),
       { registry }
     );
-    expect(out.groups[0].tracks[0].component).toBe(
+    expect(out.rows[0].tracks[0].component).toBe(
       'nightingale-colored-sequence'
     );
   });
@@ -720,7 +720,7 @@ describe('normalizeConfig — component resolution', () => {
       }),
       { registry }
     );
-    expect(out.groups[0].tracks[0].component).toBe(
+    expect(out.rows[0].tracks[0].component).toBe(
       'nightingale-track-canvas'
     );
   });
@@ -738,7 +738,7 @@ describe('normalizeConfig — component resolution', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].component).toBe(
+    expect(out.rows[0].tracks[0].component).toBe(
       'nightingale-linegraph-track'
     );
   });
@@ -749,7 +749,7 @@ describe('normalizeConfig — component resolution', () => {
         rows: [{ id: 'C', tracks: [track({ id: 't' })] }],
       })
     );
-    expect(out.groups[0].tracks[0].component).toBe(
+    expect(out.rows[0].tracks[0].component).toBe(
       'nightingale-track-canvas'
     );
   });
@@ -768,7 +768,7 @@ describe('normalizeConfig — component resolution', () => {
       }),
       { registry }
     );
-    expect(out.groups[0].tracks[0].kind).toBe('features');
+    expect(out.rows[0].tracks[0].kind).toBe('features');
   });
 });
 
@@ -796,7 +796,7 @@ describe('normalizeConfig — group component inference', () => {
     );
     // features → nightingale-track-canvas
     // peptides → nightingale-track-canvas
-    expect(out.groups[0].component).toBe('nightingale-track-canvas');
+    expect(out.rows[0].component).toBe('nightingale-track-canvas');
   });
 
   it('falls back to nightingale-track-canvas for a mixed-component group', () => {
@@ -816,7 +816,7 @@ describe('normalizeConfig — group component inference', () => {
       }),
       { registry }
     );
-    expect(out.groups[0].component).toBe('nightingale-track-canvas');
+    expect(out.rows[0].component).toBe('nightingale-track-canvas');
   });
 
   it('preserves an explicit group component even when children disagree', () => {
@@ -837,7 +837,7 @@ describe('normalizeConfig — group component inference', () => {
       }),
       { registry }
     );
-    expect(out.groups[0].component).toBe('nightingale-linegraph-track');
+    expect(out.rows[0].component).toBe('nightingale-linegraph-track');
   });
 
   it('picks a default component for a zero-track group', () => {
@@ -849,7 +849,7 @@ describe('normalizeConfig — group component inference', () => {
         rows: [{ id: 'EMPTY', tracks: [] }],
       })
     );
-    expect(out.groups[0].component).toBe('nightingale-track-canvas');
+    expect(out.rows[0].component).toBe('nightingale-track-canvas');
   });
 });
 
@@ -969,12 +969,12 @@ describe('normalizeConfig — without a registry', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].kind).toBe('features');
+    expect(out.rows[0].tracks[0].kind).toBe('features');
     // Adapter stays undefined because there's no registry to look up
     // the kind's canonical adapter.
-    expect(out.groups[0].tracks[0].data[0].adapter).toBeUndefined();
+    expect(out.rows[0].tracks[0].data[0].adapter).toBeUndefined();
     // Component falls through to the default.
-    expect(out.groups[0].tracks[0].component).toBe(
+    expect(out.rows[0].tracks[0].component).toBe(
       'nightingale-track-canvas'
     );
   });
@@ -1014,7 +1014,7 @@ describe('normalizeConfig — output shape guarantees', () => {
     expect(out.sources.features).toBe('https://x/{accession}');
     expect(out.defaults.rendering.layout).toBe('non-overlapping');
 
-    const c = out.groups[0];
+    const c = out.rows[0];
     expect(c.id).toBe('DOMAINS');
     expect(c.label).toBe('Domains');
     expect(c.component).toBe('nightingale-track-canvas');
@@ -1058,8 +1058,8 @@ describe('normalizeConfig — standalone top-level tracks', () => {
       }),
       { registry }
     );
-    expect(out.groups).toHaveLength(1);
-    const g = out.groups[0];
+    expect(out.rows).toHaveLength(1);
+    const g = out.rows[0];
     expect(g.standalone).toBe(true);
     // Wrapper mirrors the wrapped track: same id, label === track.label,
     // same resolved component.
@@ -1083,7 +1083,7 @@ describe('normalizeConfig — standalone top-level tracks', () => {
         ],
       })
     );
-    expect(out.groups[0].standalone).toBeUndefined();
+    expect(out.rows[0].standalone).toBeUndefined();
   });
 
   it('preserves declaration order across mixed standalone tracks and groups', () => {
@@ -1100,12 +1100,12 @@ describe('normalizeConfig — standalone top-level tracks', () => {
         ],
       })
     );
-    expect(out.groups.map((g) => g.id)).toEqual([
+    expect(out.rows.map((g) => g.id)).toEqual([
       'signal_peptide',
       'DOMAINS',
       'confidence',
     ]);
-    expect(out.groups.map((g) => g.standalone)).toEqual([
+    expect(out.rows.map((g) => g.standalone)).toEqual([
       true,
       undefined,
       true,
@@ -1124,14 +1124,14 @@ describe('normalizeConfig — standalone top-level tracks', () => {
       }),
       { registry }
     );
-    const r = out.groups[0].tracks[0].rendering;
+    const r = out.rows[0].tracks[0].rendering;
     // Inherited straight from defaults (no group layer to intercept),
     // with the confidence-score kind preset layered on top.
     expect(r.layout).toBe('non-overlapping');
     expect(r.color).toBe('red');
     expect(r.colorScale?.theme).toBe('alphafold-ramp');
     // The synthetic wrapper's own rendering is the defaults layer only.
-    expect(out.groups[0].rendering.color).toBe('red');
-    expect(out.groups[0].rendering.colorScale).toBeUndefined();
+    expect(out.rows[0].rendering.color).toBe('red');
+    expect(out.rows[0].rendering.colorScale).toBeUndefined();
   });
 });

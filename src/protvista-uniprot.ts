@@ -137,7 +137,7 @@ class ProtvistaUniprot extends LitElement {
    * Fully-resolved config consumed by the renderer and
    * `loadProtvistaData()`. Populated in `_init()` by running the
    * schema pipeline (`loadConfig`) over one of the three input
-   * sources below. The renderer reads `NormalizedGroup` /
+   * sources below. The renderer reads `NormalizedRow` /
    * `NormalizedTrack` fields (`id`, `description`, `component`,
    * `rendering.*`, `filterUI`, `data[]`) directly — no intermediate
    * adapter is involved.
@@ -325,7 +325,7 @@ class ProtvistaUniprot extends LitElement {
     // TODO(#variation-hardcoded): lift the id-based match out of the
     // component and into a track-level role/flag so arbitrary
     // consumer configs can opt into the variation-filter surface.
-    for (const group of this.config.groups) {
+    for (const group of this.config.rows) {
       for (const track of group.tracks) {
         if (track.id === 'variation') {
           const key = `${group.id}-${track.id}`;
@@ -384,7 +384,7 @@ class ProtvistaUniprot extends LitElement {
       if (element && element.data !== data) {
         element.data = data;
       }
-      const currentGroup = this.config?.groups.find((c) => c.id === id);
+      const currentGroup = this.config?.rows.find((c) => c.id === id);
       if (
         currentGroup &&
         currentGroup.tracks &&
@@ -718,7 +718,7 @@ class ProtvistaUniprot extends LitElement {
     // needed here and no validation is possible yet (no config).
     if (!this.config) return;
 
-    const group = this.config.groups.find((c) => c.id === groupId);
+    const group = this.config.rows.find((c) => c.id === groupId);
     const track = group?.tracks.find((t) => t.id === trackId);
     if (!track) {
       console.warn(
@@ -822,7 +822,7 @@ class ProtvistaUniprot extends LitElement {
    * data-binding and the `${CSS_PREFIX}-group_${group.id}` visibility
    * toggle work the same way they do for a collapsible group.
    */
-  renderStandaloneTrack(group: NormalizedConfig['groups'][number]) {
+  renderStandaloneTrack(group: NormalizedConfig['rows'][number]) {
     const track = group.tracks[0];
     const trackData = track && this.data[`${group.id}-${track.id}`];
     if (
@@ -918,7 +918,7 @@ class ProtvistaUniprot extends LitElement {
             ></nightingale-sequence>
           </div>
         </div>
-        ${this.config.groups.map((group) => {
+        ${this.config.rows.map((group) => {
           if (!this.data[group.id]) return '';
           // A standalone track (authored as a top-level entry with no
           // `tracks:`) is wrapped by the normalizer in a synthetic

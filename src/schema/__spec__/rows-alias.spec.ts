@@ -83,8 +83,8 @@ describe('rows / groups equivalence', () => {
     expect(fromGroups).toEqual(fromRows);
     // Both spellings survive into the same rendered row list — the
     // group AND the standalone track, in declaration order.
-    expect(fromRows.groups.map((g) => g.id)).toEqual(['DOMAINS', 'signal']);
-    expect(fromRows.groups[1].standalone).toBe(true);
+    expect(fromRows.rows.map((g) => g.id)).toEqual(['DOMAINS', 'signal']);
+    expect(fromRows.rows[1].standalone).toBe(true);
 
     warn.mockRestore();
   });

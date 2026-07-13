@@ -520,7 +520,7 @@ sources:
         } as ProtvistaViewerConfig,
       },
     });
-    expect(normalized.groups).toHaveLength(1);
+    expect(normalized.rows).toHaveLength(1);
     expect(normalized.sources.extra).toBe('https://extra');
     expect(normalized.sources.sources).toBe('https://base/src');
   });
