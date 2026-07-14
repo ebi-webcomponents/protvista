@@ -4508,6 +4508,152 @@ exports[`loadProtvistaData baseline (schema-driven default config) > produces a 
         "type": "unique",
       },
     ],
+    "VARIATION-variation__unfiltered": [
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "ACT_SITE",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "BINDING",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "CA_BIND",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "CARBOHYD",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "CHAIN",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "COMPBIAS",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "CONFLICT",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "CROSSLNK",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "DISULFID",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "DNA_BIND",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "DOMAIN",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "INIT_MET",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "INTRAMEM",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "LIPID",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "METAL",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "MOD_RES",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "MOD_RES_LS",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "MOTIF",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "MUTAGEN",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "NON_CONS",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "NON_STD",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "NON_TER",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "NP_BIND",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "PEPTIDE",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "PROPEP",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "REGION",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "REPEAT",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "SIGNAL",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "SITE",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "TOPO_DOM",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "TRANSIT",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "TRANSMEM",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "UNSURE",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "ZN_FING",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "non_unique",
+      },
+      {
+        "_adapter": "uniprot-variation-json",
+        "type": "unique",
+      },
+    ],
     "VARIATION-variation_graph": [
       {
         "_adapter": "uniprot-variation-counts-json",
@@ -4796,6 +4942,7 @@ exports[`loadProtvistaData baseline (schema-driven default config) > returns an 
   "MUTAGENESIS",
   "VARIATION-variation_graph",
   "VARIATION-variation",
+  "VARIATION-variation__unfiltered",
   "VARIATION",
   "RNA_EDITING-rna_editing_graph",
   "RNA_EDITING-RNA Editing",

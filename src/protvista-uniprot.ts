@@ -36,7 +36,11 @@ import alphaMissenseHeatmapAdapter from './adapters/alphamissense-heatmap-adapte
 import ProtvistaUniprotStructure from './protvista-uniprot-structure';
 
 import { loadComponent } from './utils';
-import { loadProtvistaData, type CustomTrackData } from './load-data';
+import {
+  loadProtvistaData,
+  UNFILTERED_SUFFIX,
+  type CustomTrackData,
+} from './load-data';
 import {
   installClickTooltip,
   type TooltipController,
@@ -129,10 +133,6 @@ class ProtvistaUniprot extends LitElement {
   private suspend?: boolean;
   private accession?: string;
   private sequence?: string;
-  private transformedVariants?: {
-    sequence: string;
-    variants: TransformedVariant[];
-  };
   /**
    * Fully-resolved config consumed by the renderer and
    * `loadProtvistaData()`. Populated in `_init()` by running the
@@ -199,7 +199,6 @@ class ProtvistaUniprot extends LitElement {
     this.data = {};
     this.rawData = {};
     this.displayCoordinates = {};
-    this.transformedVariants = { sequence: '', variants: [] };
     this.addStyles();
   }
 
@@ -318,25 +317,11 @@ class ProtvistaUniprot extends LitElement {
     // tracked properties, so we keep the call).
     this.data = { ...this.data, ...data };
 
-    // Preserve the pre-extraction side-effect: every track with
-    // `id === 'variation'` feeds `this.transformedVariants`. In the
-    // current config only VARIATION-variation exists, but the
-    // legacy code matched by track id alone — so mirror that exactly.
-    // TODO(#variation-hardcoded): lift the id-based match out of the
-    // component and into a track-level role/flag so arbitrary
-    // consumer configs can opt into the variation-filter surface.
-    for (const group of this.config.groups) {
-      for (const track of group.tracks) {
-        if (track.id === 'variation') {
-          const key = `${group.id}-${track.id}`;
-          if (key in data) {
-            this.transformedVariants = data[
-              key
-            ] as typeof this.transformedVariants;
-          }
-        }
-      }
-    }
+    // The variation filter's pristine baseline now rides along in
+    // `data` under `${groupId}-${trackId}${UNFILTERED_SUFFIX}` for any
+    // track that opts into `filterUI: 'nightingale-filter'` — written by
+    // the loader, consumed by `handleFilterClick`. No id-based copy step
+    // is needed here anymore.
 
     // Clear the stored controller if it's still us — if a newer call
     // already overwrote it, leaving ours stale would defeat
@@ -377,6 +362,10 @@ class ProtvistaUniprot extends LitElement {
   async _loadDataInComponents() {
     await frame();
     Object.entries(this.data).forEach(([id, data]) => {
+      // `__unfiltered` baselines are inert filter state, not renderable
+      // track/group payloads — skip them so this walk's "every key maps
+      // to a track or group" invariant holds.
+      if (id.endsWith(UNFILTERED_SUFFIX)) return;
       const element = this.findById<NightingaleTrackCanvas>(
         `${CSS_PREFIX}-track-${id}`
       );
@@ -1088,47 +1077,62 @@ class ProtvistaUniprot extends LitElement {
     return filters?.filter((f) => f.name === filterName)?.[0];
   }
 
-  // TODO(#variation-filter-hardcoded): this filter callback is wired
-  // exclusively for the variation track — it reads `consequence` and
-  // `provenance` facets out of `filterConfig` and writes back into
-  // `VARIATION-variation`. A non-variation track with its own filter UI
-  // would have to route around this handler. Moving the filter glue
-  // into `filter-config.ts` (or onto the track spec itself) would
-  // decouple the component from a single hardcoded kind.
-  handleFilterClick(e: CustomEvent) {
+  // The write target is no longer hardcoded: `trackKey` is threaded in
+  // from `getFilterComponent` (via the `@change` binding), and the
+  // pristine baseline is read from the loader-written
+  // `${trackKey}${UNFILTERED_SUFFIX}` slot — so any track that opts into
+  // `filterUI: 'nightingale-filter'` gets the same behaviour regardless
+  // of its id.
+  //
+  // TODO(#variation-filter-hardcoded): two things are still
+  // variation-specific — (1) the `consequence` / `provenance` facet set
+  // this handler reads, and (2) the `{ sequence, variants }` bundle
+  // shape it filters. Non-bundle payloads are skipped by the guard below
+  // rather than filtered. Moving the facet definitions plus a
+  // shape-agnostic predicate onto the track spec (or into
+  // `filter-config.ts`) would let arbitrary filterable tracks opt in.
+  handleFilterClick(e: CustomEvent, trackKey: string) {
     const target = e.target as Element as NightingaleFilter;
     const consequenceFilters = this.groupByGroup(target.filters, 'consequence');
     const provenanceFilters = this.groupByGroup(target.filters, 'provenance');
 
     const selectedFilters = e.detail?.value;
+    if (!selectedFilters) return;
 
-    if (selectedFilters) {
-      const selectedConsequenceFilters = selectedFilters
-        .map((f) => this.getFilter(consequenceFilters, f))
-        .filter(Boolean);
-      const selectedProvenanceFilters = selectedFilters
-        .map((f) => this.getFilter(provenanceFilters, f))
-        .filter(Boolean);
+    const baseline = this.data[`${trackKey}${UNFILTERED_SUFFIX}`] as
+      | { sequence: string; variants: TransformedVariant[] }
+      | undefined;
+    // `filterUI` is a generic opt-in, so guard against a baseline that is
+    // absent (filter fired before the loader ran) or not a variant
+    // bundle (e.g. a plain feature array) — either would be silently
+    // corrupted by the object-spread write below.
+    if (!baseline || !Array.isArray(baseline.variants)) return;
 
-      const filteredVariants = this.transformedVariants?.variants
-        ?.filter((variant) =>
-          selectedConsequenceFilters.some((filter) =>
-            filter.filterPredicate(variant)
-          )
+    const selectedConsequenceFilters = selectedFilters
+      .map((f) => this.getFilter(consequenceFilters, f))
+      .filter(Boolean);
+    const selectedProvenanceFilters = selectedFilters
+      .map((f) => this.getFilter(provenanceFilters, f))
+      .filter(Boolean);
+
+    const filteredVariants = baseline.variants
+      .filter((variant) =>
+        selectedConsequenceFilters.some((filter) =>
+          filter.filterPredicate(variant)
         )
-        .filter((variant) =>
-          selectedProvenanceFilters.some((filter) =>
-            filter.filterPredicate(variant)
-          )
-        );
+      )
+      .filter((variant) =>
+        selectedProvenanceFilters.some((filter) =>
+          filter.filterPredicate(variant)
+        )
+      );
 
-      this.data['VARIATION-variation'] = {
-        ...this.data['VARIATION-variation'],
-        variants: filteredVariants,
-      };
+    this.data[trackKey] = {
+      ...baseline,
+      variants: filteredVariants,
+    };
 
-      this._loadDataInComponents();
-    }
+    this._loadDataInComponents();
   }
 
   getGroupTypesAsString(tracks: NormalizedTrack[]) {
@@ -1140,7 +1144,7 @@ class ProtvistaUniprot extends LitElement {
       <nightingale-filter
         style="minWidth: 20%"
         for="${CSS_PREFIX}-track-${forId}"
-        @change="${this.handleFilterClick}"
+        @change="${(e: CustomEvent) => this.handleFilterClick(e, forId)}"
       ></nightingale-filter>
     `;
   }
