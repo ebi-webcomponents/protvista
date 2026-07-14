@@ -153,9 +153,13 @@ When a track has no `dataTooltip` and no per-kind default, `resolve.ts` synthesi
 
 Per-API data shapers. Each adapter takes a raw response (or several, for multi-URL tracks) and returns the shape a Nightingale component expects. Adapters are named `<source>-<format>`: `uniprot-features-json`, `alphafold-prediction-json`, `interpro-entries-json`, etc. The convention makes coupling explicit at a glance.
 
-Adapters are registered with the runtime registry at boot time by a `registerBuiltinAdapters(registry)` call in `src/load-data.ts`. The registry holds them as `(name → AdapterFunction)` so the validator can close the open-string `adapter:` union and the loader can look the function up at fetch time.
+These reach the loader as a plain `AdapterMap`: `src/protvista-uniprot.ts` collects them into an `adapters` object and passes it into `loadProtvistaData()`, which looks the function up by name at fetch time. They do not go through the runtime registry.
 
-To add a new adapter: write the function, add a case to `KnownAdapterName` in `src/schema/types.ts`, and register it in `registerBuiltinAdapters`. The schema's `adapter` field is open-string (with `(string & {})` as the IntelliSense-preserving suffix), so consumer-registered adapters type-check too.
+The registry's adapter bucket is a separate, consumer-facing surface. `createRegistry()` seeds it by calling `registerBuiltinAdapters(registry)` (`src/schema/registry.ts`), which walks the `BUILTIN_ADAPTERS` table in `src/schema/adapters/`. That table is the aggregation point for adapters that ship with the library and are usable without EBI-specific API plumbing — the generic-format adapters (`features-json`, `features-csv`, `features-tsv`, `bed`) land there, one ticket at a time. It is empty today.
+
+Seeding runs through the same public `registerAdapter()` a consumer calls, so both share one namespace with defined precedence: **built-ins register first, and a consumer's later `registerAdapter()` of the same name overrides.** That override is permitted once — registering a name that is not a built-in twice still throws `RegistryCollisionError`, so a consumer colliding with their own adapter is still caught. Themes and semantic kinds have no override path; registering over those built-ins always throws.
+
+To add a built-in adapter: write the module in `src/schema/adapters/`, add a case to `KnownAdapterName` in `src/schema/types.ts`, and add one line to `BUILTIN_ADAPTERS`. The schema's `adapter` field is open-string (with `(string & {})` as the IntelliSense-preserving suffix), so consumer-registered adapters type-check too.
 
 ### `src/utils/security.ts`
 
@@ -193,10 +197,23 @@ Embedders register their own at runtime via the element's `registerSemanticKind(
 
 ### A new adapter
 
-1. Write the function in `src/adapters/`. Signature: `(...rawResponses: unknown[]) => unknown | Promise<unknown>`.
+Signature in every case: `(...rawResponses: unknown[]) => unknown | Promise<unknown>`.
+
+For a **UniProt-API adapter** (the `<source>-<format>` family):
+
+1. Write the function in `src/adapters/`.
 2. Add to `KnownAdapterName` in `src/schema/types.ts`.
-3. Register it in `registerBuiltinAdapters()` in `src/load-data.ts` (or, for consumer adapters, expose `registerAdapter(name, fn)` on the element's runtime API).
-4. Add a unit test under `src/adapters/__tests__/` (or `__spec__/`).
+3. Add it to the `adapters` map in `src/protvista-uniprot.ts` so the loader can resolve it.
+4. Add a unit test under `src/adapters/__tests__/`.
+
+For a **built-in generic adapter** (no EBI API coupling — registry-seeded):
+
+1. Write the module in `src/schema/adapters/`.
+2. Add to `KnownAdapterName` in `src/schema/types.ts`.
+3. Add one line to `BUILTIN_ADAPTERS` in `src/schema/adapters/index.ts`. `registerBuiltinAdapters()` needs no change, and `src/schema/__spec__/registry.spec.ts` asserts against the table, so it picks the new entry up automatically.
+4. Add a unit test under `src/schema/__spec__/`.
+
+For a **consumer adapter**, no library change is needed: call `registerAdapter(name, fn)` on the element's runtime API. It overrides a built-in of the same name.
 
 ### A new colour-scale theme
 

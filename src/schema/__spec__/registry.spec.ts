@@ -12,6 +12,7 @@ import {
   RegistryCollisionError,
   type Registry,
 } from '../registry';
+import { BUILTIN_ADAPTERS } from '../adapters';
 import type {
   SemanticKindDefinition,
   AdapterFunction,
@@ -82,11 +83,18 @@ describe('Registry — built-in seeding', () => {
     }
   });
 
-  it('ships with no pre-registered adapters', () => {
-    // Adapter function bodies are registered by the loader.
-    // A fresh registry therefore holds none.
+  it('pre-registers every built-in adapter, with no consumer-side call', () => {
+    // `BUILTIN_ADAPTERS` is the source of truth; asserting against it
+    // (rather than a hardcoded list) keeps this honest as the
+    // generic-format adapter tickets fill the table in one at a time.
     const r = createRegistry();
-    expect(r.listAdapters()).toEqual([]);
+    const names = BUILTIN_ADAPTERS.map(([name]) => name);
+
+    expect(r.listAdapters()).toEqual([...names].sort());
+    for (const name of names) {
+      expect(r.hasAdapter(name)).toBe(true);
+      expect(r.getAdapter(name)).toBeTypeOf('function');
+    }
   });
 });
 
