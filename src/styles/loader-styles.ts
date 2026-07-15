@@ -11,10 +11,10 @@ export default css`
   }
 
   .protvista-no-results {
-    background-color: #e4e8eb;
+    background-color: var(--protvista-no-results-bg);
     display: flex;
     justify-content: center;
     padding: 1rem;
-    font-size: 0.8rem;
+    font-size: var(--protvista-font-size);
   }
 `;
