@@ -35,6 +35,10 @@
       "additionalProperties": { "type": "string", "minLength": 1 }
     },
     "defaults": { "$ref": "#/$defs/ConfigDefaults" },
+    "strict": {
+      "description": "Promote every non-fatal warning (empty sequence, per-track fetch failure, setTrackData misuse) to a mount-level failure shown in the viewer's error panel. Default false.",
+      "type": "boolean"
+    },
     "groups": {
       "description": "Ordered list of top-level entries: each is either a group of tracks (has `tracks`) or a standalone track (has `data`, no `tracks`). Mixed freely; declaration order preserved.",
       "type": "array",

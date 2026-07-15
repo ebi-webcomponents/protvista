@@ -86,6 +86,8 @@ export interface NormalizedConfig {
   accession?: string;
   sources: Record<string, string>;
   defaults: NormalizedDefaults;
+  /** Author-set: promote warnings to a mount-level failure. See `ProtvistaViewerConfig.strict`. */
+  strict?: boolean;
   groups: NormalizedGroup[];
 }
 
@@ -214,6 +216,7 @@ export function normalizeConfig(
     ...(config.accession !== undefined ? { accession: config.accession } : {}),
     sources,
     defaults,
+    ...(config.strict !== undefined ? { strict: config.strict } : {}),
     groups,
   };
 }

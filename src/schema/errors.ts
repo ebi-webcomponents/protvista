@@ -98,6 +98,19 @@ export class ConfigValidationError extends Error {
 }
 
 /**
+ * The one-line header summarising a batch of validation issues, e.g.
+ * `Config validation failed (3 issues):`. The single source of truth for
+ * this wording — shared by the `ConfigValidationError.message` body
+ * (console channel) and the user-facing error panel (via
+ * `src/errors/format.ts`) so the two never drift.
+ */
+export function formatValidationSummary(issues: ValidationIssue[]): string {
+  return issues.length === 1
+    ? 'Config validation failed (1 issue):'
+    : `Config validation failed (${issues.length} issues):`;
+}
+
+/**
  * Format a list of issues as a readable multi-line summary:
  *
  *     Config validation failed (3 issues):
@@ -106,12 +119,8 @@ export class ConfigValidationError extends Error {
  *       - ...
  */
 function formatIssues(issues: ValidationIssue[]): string {
-  const header =
-    issues.length === 1
-      ? 'Config validation failed (1 issue):'
-      : `Config validation failed (${issues.length} issues):`;
   const body = issues
     .map((i) => `  - ${i.path}: ${i.message} (${i.code})`)
     .join('\n');
-  return `${header}\n${body}`;
+  return `${formatValidationSummary(issues)}\n${body}`;
 }
