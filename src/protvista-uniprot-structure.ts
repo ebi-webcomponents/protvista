@@ -125,7 +125,6 @@ export type ProcessedStructureData = {
   amAnnotationsUrl?: string;
   isoformId?: string;
   isoformIsCanonical?: boolean;
-  afPrediction?: boolean; // Flag to differentiate the structure source as AlphaFold prediction API vs 3DBeacons AlphaFold
   oligomericState?: string;
 };
 
@@ -203,26 +202,31 @@ const processAFData = (
 
       let chain = d.chainId;
       const oligomericState = d.isComplex
-          ? `${d.assemblyType}${d.oligomericState}`
-          : 'Monomer';
+        ? `${d.assemblyType}${d.oligomericState}`
+        : 'Monomer';
 
       if (d.isComplex && oligomericState === 'Homodimer') {
-        chain = data.filter(({ modelEntityId }) => modelEntityId === d.modelEntityId).flatMap(({ chainId }) => chainId).sort().join(', ');
+        chain = data
+          .filter(({ modelEntityId }) => modelEntityId === d.modelEntityId)
+          .flatMap(({ chainId }) => chainId)
+          .sort()
+          .join(', ');
       }
       return {
         id: d.modelEntityId,
         source: 'AlphaFold DB',
         positions: `${d.sequenceStart}-${d.sequenceEnd}`,
         protvistaFeatureId: d.modelEntityId,
-        downloadUrl: d.pdbUrl,
+        downloadUrl: d.cifUrl,
         amAnnotationsUrl: d.amAnnotationsUrl,
         isoformId: !d.isComplex ? isoformMatch?.isoformId : undefined,
-        isoformIsCanonical: !d.isComplex && isoformMatch
-          ? isoformMatch.sequence === canonicalSequence
-          : undefined,
+        isoformIsCanonical:
+          !d.isComplex && isoformMatch
+            ? isoformMatch.sequence === canonicalSequence
+            : undefined,
         afPrediction: true,
         oligomericState,
-        chain
+        chain,
       };
     })
     .sort((a, b) => getIsoformNum(a.id) - getIsoformNum(b.id))
@@ -280,8 +284,11 @@ const process3DBeaconsData = (
           ? 'https://www.isoform.io/home'
           : summary.model_page_url,
       chain:
-        summary.entities?.flatMap((entity) => entity.identifier_category === 'UNIPROT' ? entity.chain_ids : []).join(', ') ||
-        undefined,
+        summary.entities
+          ?.flatMap((entity) =>
+            entity.identifier_category === 'UNIPROT' ? entity.chain_ids : []
+          )
+          .join(', ') || undefined,
       oligomericState: summary.oligomeric_state || undefined,
     })) || []
   );
@@ -645,11 +652,12 @@ class ProtvistaUniprotStructure extends LitElement {
   }
 
   private applySelection(row: ProcessedStructureData) {
-    const { id, source, downloadUrl, amAnnotationsUrl, afPrediction } = row;
+    const { id, source, downloadUrl, amAnnotationsUrl, oligomericState } = row;
 
     if (
       this.checksum ||
-      (providersFrom3DBeacons.includes(source) && !afPrediction)
+      providersFrom3DBeacons.includes(source) ||
+      (source === 'AlphaFold DB' && oligomericState !== 'Monomer')
     ) {
       this.modelUrl = downloadUrl ?? '';
       // Reset the rest
@@ -658,6 +666,7 @@ class ProtvistaUniprotStructure extends LitElement {
       this.colorTheme = 'alphafold';
       if (source === 'AlphaFold DB') {
         this.metaInfo = AFMetaInfo;
+        this.alphamissenseAvailable = !!amAnnotationsUrl;
       }
     } else {
       this.structureId = id;
