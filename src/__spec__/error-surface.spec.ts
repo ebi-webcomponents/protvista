@@ -404,6 +404,69 @@ describe('mount panel — focus management', () => {
 
     expect(document.activeElement).toBe(sibling);
   });
+
+  it('preserves the focus-restore target across a re-entrant strict re-raise', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: unknown) => {
+        const url = String(input);
+        if (url.includes('/proteins/api/proteins/')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ sequence: { sequence: 'MSEQENCE' } }),
+          } as unknown as Response;
+        }
+        // Persistently-broken (5xx) track so the strict panel stays up.
+        return { ok: false, status: 500, json: async () => ({}) } as unknown as Response;
+      })
+    );
+
+    const sibling = document.createElement('button');
+    document.body.append(sibling);
+    appended.push(sibling);
+    sibling.focus();
+    expect(document.activeElement).toBe(sibling);
+
+    const el = mountEl({
+      viewerConfig: {
+        strict: true,
+        groups: [
+          { id: 'g', tracks: [{ id: 'bad', kind: 'features', data: 'https://example.org/bad.json' }] },
+        ],
+      },
+      accession: 'P05067',
+    });
+
+    await vi.waitFor(() => {
+      if (!el.querySelector(`${PANEL} button[aria-label="Dismiss error"]`)) {
+        throw new Error('dismissible panel not ready');
+      }
+    });
+    await el.updateComplete;
+
+    // Focus has moved into the panel on appear.
+    const panel = el.querySelector<HTMLElement>(PANEL)!;
+    expect(document.activeElement).toBe(panel);
+
+    // Re-entrant load while the panel is open and still failing: strict
+    // re-raises the aggregated panel via `_setMountError`. This must NOT
+    // re-capture the focus-restore target — which is now the panel itself.
+    await el._loadData();
+    await el.updateComplete;
+
+    // Dismiss and confirm focus returns to the ORIGINAL pre-error element,
+    // not lost to <body> because `_prevFocus` was clobbered to the (now
+    // removed) panel.
+    const dismiss = el.querySelector<HTMLButtonElement>(
+      `${PANEL} button[aria-label="Dismiss error"]`
+    )!;
+    dismiss.click();
+    await el.updateComplete;
+
+    expect(document.activeElement).toBe(sibling);
+  });
 });
 
 // ── Per-track badges ──────────────────────────────────────────────
@@ -786,6 +849,67 @@ describe('retry affordance', () => {
       target.querySelectorAll(`.${CSS_PREFIX}-error-retry`).length
     ).toBe(2);
   });
+
+  it('two disjoint targeted retries do not cancel each other', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    let healthy = false;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        healthy
+          ? ({
+              ok: true,
+              status: 200,
+              json: async () => ({ features: [{ type: 'X', begin: '1', end: '2' }] }),
+            } as unknown as Response)
+          : ({ ok: false, status: 500, json: async () => ({}) } as unknown as Response)
+      )
+    );
+
+    const config: NormalizedConfig = {
+      version: '1.0',
+      sources: {},
+      defaults: { rendering: {} },
+      groups: [
+        {
+          id: 'g1',
+          label: 'G1',
+          component: 'nightingale-track-canvas',
+          rendering: {},
+          tracks: [urlTrack('a', 'https://example.org/a.json')],
+        },
+        {
+          id: 'g2',
+          label: 'G2',
+          component: 'nightingale-track-canvas',
+          rendering: {},
+          tracks: [urlTrack('b', 'https://example.org/b.json')],
+        },
+      ],
+    };
+    const el = buildLoaded(config, { hasData: true });
+
+    await el._loadData();
+    expect(el._trackErrors.has('g1-a')).toBe(true);
+    expect(el._trackErrors.has('g2-b')).toBe(true);
+
+    // Service recovers, then fire two targeted retries for tracks in
+    // different groups "simultaneously" (no await between). A single
+    // shared AbortController would abort the first before it committed —
+    // its badge would silently stay stale. Disjoint key-sets must run
+    // concurrently instead.
+    healthy = true;
+    const p1 = el._loadData(new Set(['g1-a']));
+    const p2 = el._loadData(new Set(['g2-b']));
+    await Promise.all([p1, p2]);
+
+    // Neither retry was dropped: both errors cleared and both tracks
+    // committed their data.
+    expect(el._trackErrors.has('g1-a')).toBe(false);
+    expect(el._trackErrors.has('g2-b')).toBe(false);
+    expect(el.data['g1-a']).toBeDefined();
+    expect(el.data['g2-b']).toBeDefined();
+  });
 });
 
 // ── strict mode ───────────────────────────────────────────────────
@@ -832,6 +956,58 @@ describe('strict mode', () => {
     expect(panels[0].textContent).toMatch(/2 tracks failed to load/);
     // But still one event per failed track for embedders.
     expect(events.filter((e) => e.detail.phase === 'track-fetch').length).toBe(2);
+  });
+
+  it('offers Retry on the aggregated panel for a recoverable (5xx) failure', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    stubFetch([['/bad', { ok: false, status: 503 }]]);
+
+    const el = buildLoaded(
+      normConfig([urlTrack('bad', 'https://example.org/bad.json')], {
+        strict: true,
+      })
+    );
+
+    await el._loadData();
+    const target = renderTarget(el);
+
+    // A transient failure is retryable everywhere else — the strict panel
+    // must offer the same affordance rather than only Dismiss.
+    const panel = target.querySelector(PANEL)!;
+    expect(panel).not.toBeNull();
+    expect(panel.querySelector(`.${CSS_PREFIX}-error-retry`)).not.toBeNull();
+  });
+
+  it('omits Retry on the aggregated panel when every failure is non-recoverable (parse)', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    // 200 OK but an unparseable body → `parse` kind: deterministic, so no
+    // Retry (re-parsing the same bytes changes nothing).
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          ({
+            ok: true,
+            status: 200,
+            json: async () => {
+              throw new SyntaxError('bad json');
+            },
+          }) as unknown as Response
+      )
+    );
+
+    const el = buildLoaded(
+      normConfig([urlTrack('bad', 'https://example.org/bad.json')], {
+        strict: true,
+      })
+    );
+
+    await el._loadData();
+    const target = renderTarget(el);
+
+    const panel = target.querySelector(PANEL)!;
+    expect(panel).not.toBeNull();
+    expect(panel.querySelector(`.${CSS_PREFIX}-error-retry`)).toBeNull();
   });
 });
 

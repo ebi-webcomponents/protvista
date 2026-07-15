@@ -218,16 +218,24 @@ class ProtvistaUniprot extends LitElement {
   private _tooltipController?: TooltipController;
 
   /**
-   * Cancels the in-flight `_loadData()` run, if any. Held here so
-   * re-entrant callers — `setTrackData()` firing mid-flight,
-   * `_init()` re-running on `suspend` toggling, or
-   * `disconnectedCallback` tearing the element out — can abort the
-   * active fetch batch and discard its result rather than racing it
-   * against the current one. Without this, a slow fetch from call N
-   * could land after the `Object.assign` from call N+1 and overwrite
-   * the newer state.
+   * In-flight `_loadData()` batches, each paired with the key-set it
+   * targets (`only`) — or `undefined` for a full load. A new call aborts
+   * and drops every batch whose key-set *intersects* its own: a full load
+   * (no `only`) intersects everything, and two targeted retries that share
+   * a track supersede the older one so the newer write wins. Disjoint
+   * targeted retries share no keys, so they run concurrently instead of
+   * silently cancelling each other — e.g. Retry clicks on two different
+   * badges. The abort guard after the await discards a superseded batch so
+   * a stale fetch can't land after and overwrite newer state.
+   *
+   * Re-entrant callers relying on this: `setTrackData()` firing mid-flight,
+   * `_init()` re-running on `suspend`/`accession` change, and
+   * `disconnectedCallback` tearing the element out (which aborts all).
    */
-  private _loadAbortController?: AbortController;
+  private _loadBatches: Array<{
+    controller: AbortController;
+    only?: Set<string>;
+  }> = [];
 
   /**
    * Mount-level error state. When set, `render()` shows the alert panel
@@ -370,13 +378,28 @@ class ProtvistaUniprot extends LitElement {
       return;
     }
 
-    // Cancel any still-running fetch batch. A second call to
-    // `_loadData()` (from `setTrackData()`, `_init()` re-entry, or a
-    // config swap) must invalidate the previous batch: without this,
-    // the earlier batch could resolve later and overwrite newer state.
-    this._loadAbortController?.abort();
+    // Abort and forget every in-flight batch this call supersedes: one
+    // whose key-set intersects ours (a full load — no `only` — intersects
+    // everything). Disjoint targeted retries share no keys, so they keep
+    // running. Without this, a single shared AbortController meant any
+    // second `_loadData()` silently aborted the first, so two Retry clicks
+    // on different badges left the earlier badge stale — no data, no
+    // error, no event, no feedback.
+    const intersects = (batch: { only?: Set<string> }): boolean => {
+      if (!only || !batch.only) return true;
+      for (const key of only) if (batch.only.has(key)) return true;
+      return false;
+    };
+    this._loadBatches = this._loadBatches.filter((batch) => {
+      if (intersects(batch)) {
+        batch.controller.abort();
+        return false;
+      }
+      return true;
+    });
     const controller = new AbortController();
-    this._loadAbortController = controller;
+    const batch = { controller, only };
+    this._loadBatches.push(batch);
     const { signal } = controller;
 
     // Records HTTP 4xx/5xx fetch failures for this batch, keyed by the
@@ -505,12 +528,10 @@ class ProtvistaUniprot extends LitElement {
       }
     }
 
-    // Clear the stored controller if it's still us — if a newer call
-    // already overwrote it, leaving ours stale would defeat
-    // future cancellation attempts.
-    if (this._loadAbortController === controller) {
-      this._loadAbortController = undefined;
-    }
+    // Drop ourselves from the in-flight set. A superseding call would have
+    // aborted us and the guard above would have returned early, so
+    // reaching here means we still own our writes.
+    this._loadBatches = this._loadBatches.filter((b) => b !== batch);
 
     this.loading = false;
     markOnce('protvista:data-loaded');
@@ -1072,9 +1093,21 @@ class ProtvistaUniprot extends LitElement {
     issues?: ValidationIssue[],
     retry?: boolean
   ): void {
-    const active = document.activeElement;
-    this._prevFocus =
-      active instanceof HTMLElement && active !== document.body ? active : null;
+    // Capture the focus-restore target only on the closed→open
+    // transition. A re-entrant call while the panel is already open (under
+    // `strict`, `_collectTrackErrors` re-raises the aggregated panel on
+    // every `_loadData()` batch while failures persist) must NOT
+    // re-capture: focus has by then been moved into the panel itself, and
+    // recording the panel as `_prevFocus` would break the "restore focus
+    // to the pre-error element" contract when the panel is dismissed (the
+    // panel is gone by then, so the restore silently no-ops to <body>).
+    if (this._mountError === null) {
+      const active = document.activeElement;
+      this._prevFocus =
+        active instanceof HTMLElement && active !== document.body
+          ? active
+          : null;
+    }
     this._mountError = { phase, summary, issues, retry };
   }
 
@@ -1227,7 +1260,14 @@ class ProtvistaUniprot extends LitElement {
           errs.length === 1
             ? `Track '${errs[0].groupId}/${errs[0].trackId}' failed to load — ${this._describeFetchError(errs[0])}.`
             : `${errs.length} tracks failed to load.`;
-        this._setMountError('track-fetch', summary);
+        // Offer Retry when at least one failure is recoverable (network /
+        // HTTP 5xx) — mirrors the per-badge affordance so the strict panel
+        // isn't the one place a transient failure can't be retried in
+        // place. The panel's Retry re-runs the whole load (`_retryMount`),
+        // which is the right scope: the panel has replaced the entire
+        // viewer, so there's no partial UI to preserve.
+        const retryable = errs.some((e) => this._isRecoverable(e));
+        this._setMountError('track-fetch', summary, undefined, retryable);
       } else if (this._mountError?.phase === 'track-fetch') {
         this._mountError = null;
       }
@@ -1292,10 +1332,10 @@ class ProtvistaUniprot extends LitElement {
   disconnectedCallback() {
     this._tooltipController?.dispose();
     this._tooltipController = undefined;
-    // Cancel any still-running fetch batch so the detached element
+    // Cancel every still-running fetch batch so the detached element
     // can't commit state writes back into a no-longer-mounted DOM.
-    this._loadAbortController?.abort();
-    this._loadAbortController = undefined;
+    for (const batch of this._loadBatches) batch.controller.abort();
+    this._loadBatches = [];
     super.disconnectedCallback();
   }
 
