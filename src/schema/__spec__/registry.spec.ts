@@ -83,6 +83,16 @@ describe('Registry — built-in seeding', () => {
     }
   });
 
+  it('names every built-in adapter exactly once', () => {
+    // The table is edited one line at a time by separate adapter
+    // tickets, so a copy-paste duplicate is a realistic mistake. A
+    // duplicate would otherwise throw from inside every
+    // `createRegistry()` — i.e. every mount and every test. Fail here,
+    // where the message points at the table.
+    const names = BUILTIN_ADAPTERS.map(([name]) => name);
+    expect(names).toEqual([...new Set(names)]);
+  });
+
   it('pre-registers every built-in adapter, with no consumer-side call', () => {
     // `BUILTIN_ADAPTERS` is the source of truth; asserting against it
     // (rather than a hardcoded list) keeps this honest as the
@@ -192,6 +202,22 @@ describe('Registry — collision detection', () => {
     expect(() => r.registerAdapter('my-adapter', fn)).toThrow(
       RegistryCollisionError
     );
+  });
+
+  it('agrees the article with the bucket noun', () => {
+    const r = createRegistry();
+    r.registerAdapter('my-adapter', (x) => x);
+
+    // 'adapter' takes 'an'; the other two buckets take 'a'.
+    expect(() => r.registerAdapter('my-adapter', (x) => x)).toThrow(
+      "an adapter with this name is already registered"
+    );
+    expect(() =>
+      r.registerSemanticKind('features', {
+        component: 'nightingale-track-canvas',
+        adapter: 'x',
+      })
+    ).toThrow('a semantic kind with this name is already registered');
   });
 
   it('rejects empty / non-string names', () => {

@@ -229,7 +229,9 @@ export class RegistryCollisionError extends Error {
   public readonly registeredName: string;
   constructor(bucket: string, name: string) {
     super(
-      `Cannot register ${bucket} '${name}': a ${bucket} with this name is already registered.`
+      `Cannot register ${bucket} '${name}': ${
+        /^[aeiou]/i.test(bucket) ? 'an' : 'a'
+      } ${bucket} with this name is already registered.`
     );
     this.name = 'RegistryCollisionError';
     this.bucket = bucket;
@@ -260,8 +262,30 @@ export class RegistryCollisionError extends Error {
  * Not idempotent: calling it twice on the same registry re-registers
  * each name, which the second time around burns the built-in's
  * one permitted override.
+ *
+ * @throws if `BUILTIN_ADAPTERS` names an adapter twice — a library
+ *   defect, not a consumer error. See the dedup guard below.
  */
 export function registerBuiltinAdapters(registry: Registry): void {
+  // Guard the table against itself. Without this, a duplicated row
+  // surfaces as a RegistryCollisionError thrown from inside
+  // `createRegistry()` — and since every element mount and every test
+  // builds a registry, that reads as "the library is broken" rather
+  // than "the table has a duplicate line". The table is edited one
+  // line at a time by separate adapter tickets, so a copy-paste
+  // duplicate is a realistic mistake worth naming precisely.
+  const seen = new Set<string>();
+  for (const [name] of BUILTIN_ADAPTERS) {
+    if (seen.has(name)) {
+      throw new Error(
+        `BUILTIN_ADAPTERS (src/schema/adapters) registers '${name}' more than ` +
+          `once. Each built-in adapter must appear exactly once — remove the ` +
+          `duplicate entry.`
+      );
+    }
+    seen.add(name);
+  }
+
   for (const [name, fn] of BUILTIN_ADAPTERS) {
     registry.registerAdapter(name, fn);
   }
