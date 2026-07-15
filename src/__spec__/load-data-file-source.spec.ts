@@ -13,6 +13,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { loadConfig } from '../schema/load';
+import { createRegistry } from '../schema/registry';
 import { loadProtvistaData, type AdapterMap } from '../load-data';
 import { featuresCsv } from '../schema/adapters/features-csv';
 
@@ -47,6 +48,26 @@ describe('loadProtvistaData — from: file (features-csv)', () => {
       end: 25,
       description: 'Kinase domain',
     });
+
+    // A CSV/TSV-only viewer must report hasData=true, or the element blanks
+    // to its empty-state panel despite features having parsed. The legacy
+    // heuristic only sees the UniProt `.features` raw shape; this pins the
+    // additive text-body path.
+    expect(result.hasData).toBe(true);
+  });
+
+  it('leaves hasData=false for a header-only (empty) CSV file', async () => {
+    const config = await loadConfig({
+      groups: [
+        {
+          id: 'MY',
+          tracks: [{ id: 'hits', kind: 'features', data: './empty.csv' }],
+        },
+      ],
+    });
+    const fetchOne = vi.fn(async () => 'type,start,end,description');
+    const result = await loadProtvistaData('P05067', config, fetchOne, adapters);
+    expect(result.hasData).toBe(false);
   });
 
   it('still fetches an ordinary API track as json', async () => {
@@ -67,4 +88,65 @@ describe('loadProtvistaData — from: file (features-csv)', () => {
 
     expect(fetchOne).toHaveBeenCalledWith('https://example.org/feats', 'json');
   });
+
+  it('keys body type on the adapter, not the URL extension (explicit json adapter on a .csv URL → json)', async () => {
+    const registry = createRegistry();
+    registry.registerAdapter('my-json', () => []);
+    const config = await loadConfig(
+      {
+        groups: [
+          {
+            id: 'API',
+            tracks: [
+              {
+                id: 't',
+                kind: 'features',
+                data: { from: 'url', url: 'https://h/x.csv', adapter: 'my-json' },
+              },
+            ],
+          },
+        ],
+      },
+      { registry }
+    );
+
+    const fetchOne = vi.fn(async () => []);
+    await loadProtvistaData('P05067', config, fetchOne, { 'my-json': () => [] });
+
+    // URL ends in .csv, but the explicit adapter is not a text-body adapter,
+    // so the body must still be fetched as JSON (regression-safety for
+    // alphamissense-*-csv-style tracks that fetch JSON from .csv URLs).
+    expect(fetchOne).toHaveBeenCalledWith('https://h/x.csv', 'json');
+  });
+
+  it.each([
+    ['features-csv', 'my-json'],
+    ['my-json', 'features-csv'],
+  ])(
+    'fetches a URL shared by a text-body and a json track once, as text (%s then %s)',
+    async (firstAdapter, secondAdapter) => {
+      const registry = createRegistry();
+      registry.registerAdapter('my-json', () => []);
+      const tracks = [firstAdapter, secondAdapter].map((adapter, i) => ({
+        id: `t${i}`,
+        kind: 'features',
+        data: { from: 'url', url: './shared.csv', adapter },
+      }));
+      const config = await loadConfig(
+        { groups: [{ id: 'G', tracks }] },
+        { registry }
+      );
+
+      const fetchOne = vi.fn(async () => CSV);
+      await loadProtvistaData('P05067', config, fetchOne, {
+        'features-csv': featuresCsv,
+        'my-json': () => [],
+      });
+
+      // Deduped to a single fetch; text wins regardless of declaration order
+      // (a delimited body would fail a JSON parse, so text is the safe choice).
+      expect(fetchOne).toHaveBeenCalledTimes(1);
+      expect(fetchOne).toHaveBeenCalledWith('./shared.csv', 'text');
+    }
+  );
 });

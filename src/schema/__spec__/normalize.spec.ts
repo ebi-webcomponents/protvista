@@ -266,6 +266,28 @@ describe('normalizeConfig — data shorthand expansion', () => {
     expect(d.adapter).toBe('my-csv');
   });
 
+  it('infers the extension adapter over the kind adapter (ext beats kind)', () => {
+    // With a registry present, `kind: features` resolves to a canonical
+    // adapter; a `.csv` url must still win, so the file is parsed as CSV
+    // rather than fed to the kind's JSON adapter.
+    const out = normalizeConfig(
+      cfg({
+        groups: [
+          {
+            id: 'C',
+            tracks: [
+              track({ id: 't', kind: 'features', data: './features.csv' }),
+            ],
+          },
+        ],
+      }),
+      { registry: createRegistry() }
+    );
+    const d = out.groups[0].tracks[0].data[0];
+    expect(d.from).toBe('file');
+    expect(d.adapter).toBe('features-csv');
+  });
+
   it('leaves an unrecognised extension (./x.gff) as a best-effort source key', () => {
     const out = normalizeConfig(
       cfg({

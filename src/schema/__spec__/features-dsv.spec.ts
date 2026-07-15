@@ -67,6 +67,16 @@ describe('parseDelimited', () => {
   it('returns no rows for empty input', () => {
     expect(parseDelimited('', ',')).toEqual([]);
   });
+
+  it('does not append a spurious empty row for a trailing newline', () => {
+    expect(parseDelimited('a\n', ',')).toEqual([['a']]);
+  });
+
+  it('preserves a final quoted-empty field as its own row', () => {
+    // Regression guard for the flush condition: a trailing `""` row must
+    // not be dropped (matters for the reusable headerless case).
+    expect(parseDelimited('a\n""', ',')).toEqual([['a'], ['']]);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -125,10 +135,40 @@ describe('features-csv adapter', () => {
     );
   });
 
-  it('returns [] and warns on a non-string body', () => {
+  it('numbers rows by record even when a quoted field spans physical lines', () => {
+    // Row 2 is valid but its description contains an embedded newline; the
+    // malformed row 3 must still be reported as "row 3" (record-based, not
+    // physical-line-based).
+    const csv =
+      'type,start,end,description\n' +
+      'DOMAIN,1,5,"multi\nline note"\n' +
+      'SITE,x,9,bad';
+    expect(() => featuresCsv(csv)).toThrow(
+      /features-csv: row 3, column "start": expected a number, got "x"/
+    );
+  });
+
+  it('rejects a non-decimal numeric literal (hex) rather than coercing it', () => {
+    // Number('0x10') is 16; the adapter must not silently accept it.
+    const csv = 'type,start,end,description\nDOMAIN,0x10,25,x';
+    expect(() => featuresCsv(csv)).toThrow(
+      /features-csv: row 2, column "start": expected a number, got "0x10"/
+    );
+  });
+
+  it('throws on a duplicate header column', () => {
+    const csv = 'type,start,end,start,description\nDOMAIN,1,5,2,x';
+    expect(() => featuresCsv(csv)).toThrow(
+      /features-csv: duplicate header column "start"/
+    );
+  });
+
+  it('returns [] and warns with a descriptive message on a non-string body', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     expect(featuresCsv({ not: 'text' })).toEqual([]);
-    expect(warn).toHaveBeenCalledOnce();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('expected a text body')
+    );
     warn.mockRestore();
   });
 });
@@ -159,10 +199,12 @@ describe('features-tsv adapter', () => {
     ]);
   });
 
-  it('returns [] and warns on a non-string body', () => {
+  it('returns [] and warns with a descriptive message on a non-string body', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     expect(featuresTsv(42)).toEqual([]);
-    expect(warn).toHaveBeenCalledOnce();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('expected a text body')
+    );
     warn.mockRestore();
   });
 });

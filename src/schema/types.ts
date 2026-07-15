@@ -297,14 +297,18 @@ export interface TrackConfig {
    *
    *   - matches a key in root `sources`  → { from: url,  source: <value> }
    *   - starts with http:// or https://  → { from: url,  url: <value> }
+   *   - path to a known data file        → { from: file, url: <value> }
+   *     (`./x.csv`, `./x.tsv`)
    *
-   * Adapter inference: the track's semantic `kind` selects the
-   * canonical adapter for each `from: url` source.
+   * Adapter inference (most specific first): an explicit `adapter:`
+   * wins; otherwise a known data-file extension on the URL (`./x.csv`
+   * → `features-csv`, `./x.tsv` → `features-tsv`); otherwise the
+   * track's semantic `kind` selects the canonical adapter.
    *
-   * Generic-format adapters for bring-your-own-data files (CSV / TSV /
-   * JSON / BED via file-path shorthand) is left as future work.
-   * Today, authors with their own data files register a custom
-   * adapter via `registerAdapter()` and pin it explicitly with
+   * Generic-format file adapters: CSV and TSV ship today
+   * (`features-csv` / `features-tsv`, pre-registered); JSON and BED
+   * file shorthands are follow-up work. For a format not yet covered,
+   * register a custom adapter via `registerAdapter()` and pin it with
    * `adapter: <name>` on the descriptor.
    *
    * The array form is normalized internally; runtime code always sees

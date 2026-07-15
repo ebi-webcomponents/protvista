@@ -282,7 +282,16 @@ export async function loadProtvistaData(
     )
   );
 
-  const hasData = Object.values(rawData).some(
+  // `hasData` gates the viewer's empty-state panel. The legacy heuristic
+  // only recognises the UniProt JSON shape (`raw.features.length`), which
+  // is invisible to a bring-your-own file track: its raw body is a CSV/TSV
+  // *string* and its adapted output is a bare feature array with no
+  // `.features` wrapper. So a viewer built solely from `./x.csv` tracks
+  // would parse correctly yet blank out. We additionally set the flag when
+  // a delimited-text track yields a non-empty feature array (see
+  // `assignTrackData`) — additive, so the existing raw-shape semantics
+  // (and the tests that pin them) are unchanged.
+  let hasData = Object.values(rawData).some(
     (d) => !!(d as { features?: unknown[] } | null)?.features?.length
   );
 
@@ -300,6 +309,15 @@ export async function loadProtvistaData(
     data[key] = payload;
     if (track.filterUI === 'nightingale-filter') {
       data[`${key}${UNFILTERED_SUFFIX}`] = payload;
+    }
+    const adapter = track.data[0]?.adapter;
+    if (
+      adapter !== undefined &&
+      TEXT_BODY_ADAPTERS.has(adapter) &&
+      Array.isArray(payload) &&
+      payload.length > 0
+    ) {
+      hasData = true;
     }
   };
 

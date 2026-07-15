@@ -47,7 +47,12 @@ export function parseDelimited(text: string, delimiter: string): string[][] {
   let field = '';
   let row: string[] = [];
   let inQuotes = false;
-  let sawAnyChar = false;
+  // Whether the current row has consumed any content (a field char, a
+  // delimiter, or an opening quote) since the last row break. Drives the
+  // final flush: a row that has started but not been terminated by a
+  // newline is emitted, while a trailing newline leaves nothing pending.
+  // A quoted-empty final field (`""`) counts as started, so it is not lost.
+  let rowStarted = false;
 
   const pushField = () => {
     row.push(field);
@@ -57,11 +62,11 @@ export function parseDelimited(text: string, delimiter: string): string[][] {
     pushField();
     rows.push(row);
     row = [];
+    rowStarted = false;
   };
 
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
-    sawAnyChar = true;
 
     if (inQuotes) {
       if (c === '"') {
@@ -80,8 +85,10 @@ export function parseDelimited(text: string, delimiter: string): string[][] {
 
     if (c === '"') {
       inQuotes = true;
+      rowStarted = true;
     } else if (c === delimiter) {
       pushField();
+      rowStarted = true;
     } else if (c === '\n') {
       pushRow();
     } else if (c === '\r') {
@@ -90,13 +97,14 @@ export function parseDelimited(text: string, delimiter: string): string[][] {
       pushRow();
     } else {
       field += c;
+      rowStarted = true;
     }
   }
 
-  // Flush the final record unless the text ended exactly on a row break
-  // (i.e. there is no dangling partial row to emit). An empty input
-  // yields no rows at all.
-  if (field !== '' || row.length > 0 || (sawAnyChar && rows.length === 0)) {
+  // Flush a dangling final row (input that did not end on a row break).
+  // A trailing newline leaves `rowStarted` false, so no spurious empty
+  // row is appended; empty input yields no rows at all.
+  if (rowStarted) {
     pushRow();
   }
 
@@ -106,20 +114,40 @@ export function parseDelimited(text: string, delimiter: string): string[][] {
 const REQUIRED_COLUMNS = ['type', 'start', 'end', 'description'] as const;
 
 /**
+ * A plain decimal number literal (optional sign, integer/fraction, optional
+ * exponent). Deliberately stricter than `Number()`, which would silently
+ * accept `0x10`, `0b1`, `0o7`, and `Infinity` — none of which is a sane
+ * coordinate. A cell that fails this is reported as "expected a number".
+ */
+const DECIMAL = /^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$/;
+
+/** Parse a trimmed decimal token, or `null` if it is empty / not decimal. */
+function parseDecimal(raw: string): number | null {
+  const t = raw.trim();
+  if (t === '' || !DECIMAL.test(t)) return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
  * Turn tokenized rows (header + data) into `FeatureRecord`s.
  *
  * The header row must contain `type`, `start`, `end`, and `description`
- * (in any order); `score` is optional. Every data row must have exactly
- * as many fields as the header. `start`/`end` are coerced to numbers and
- * must be finite; `score`, when the column is present and the cell is
- * non-empty, is likewise coerced and validated.
+ * (in any order, no duplicates); `score` is optional. Every data row must
+ * have exactly as many fields as the header. `start`/`end` are coerced to
+ * decimal numbers and must be finite; `score`, when the column is present
+ * and the cell is non-empty, is likewise coerced and validated.
  *
- * On any violation this throws with a message naming the offending row
- * (by 1-based line number, header = line 1) and column, e.g.
- * `features-csv: row 3, column "start": expected a number, got "abc"`.
- * The loader's per-track try/catch turns that throw into the track's
- * parse-failure surface (⚠ badge / `protvista-error`), so a bad file
- * degrades one track rather than taking the viewer down.
+ * On any violation this throws with a message naming the offending row (by
+ * 1-based line number, header = line 1) and, where meaningful, the column —
+ * e.g. `features-csv: row 3, column "start": expected a number, got "abc"`.
+ * The loader's per-track try/catch catches the throw, emits a
+ * `console.warn`, and renders that one track empty; the descriptive
+ * message reaches the developer console so the file can be fixed. (It does
+ * not currently raise a ⚠ badge / `protvista-error` event — a text body
+ * that parses as text but is semantically malformed is invisible to the
+ * fetch-level error surface. Surfacing adapter throws as track errors is a
+ * follow-up.)
  */
 export function rowsToFeatureRecords(
   rows: string[][],
@@ -132,7 +160,14 @@ export function rowsToFeatureRecords(
   const header = rows[0];
   const index: Record<string, number> = {};
   header.forEach((name, i) => {
-    index[name.trim()] = i;
+    const key = name.trim();
+    if (key in index) {
+      throw new Error(
+        `${formatLabel}: duplicate header column "${key}". ` +
+          `Each column name must be unique.`
+      );
+    }
+    index[key] = i;
   });
 
   for (const col of REQUIRED_COLUMNS) {
@@ -159,8 +194,8 @@ export function rowsToFeatureRecords(
 
     const num = (col: string): number => {
       const raw = cells[index[col]];
-      const n = Number(raw);
-      if (raw.trim() === '' || !Number.isFinite(n)) {
+      const n = parseDecimal(raw);
+      if (n === null) {
         throw new Error(
           `${formatLabel}: row ${line}, column "${col}": expected a number, ` +
             `got "${raw}".`
@@ -181,8 +216,8 @@ export function rowsToFeatureRecords(
     if (hasScore) {
       const rawScore = cells[index.score];
       if (rawScore.trim() !== '') {
-        const s = Number(rawScore);
-        if (!Number.isFinite(s)) {
+        const s = parseDecimal(rawScore);
+        if (s === null) {
           throw new Error(
             `${formatLabel}: row ${line}, column "score": expected a number, ` +
               `got "${rawScore}".`

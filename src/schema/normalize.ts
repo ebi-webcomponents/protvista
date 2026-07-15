@@ -11,10 +11,10 @@
  *   1. Expands the `data` shorthand forms (string, single descriptor,
  *      array) into a `NormalizedDataSource[]`. Runtime code never has
  *      to branch on "is this a string / object / array?" again.
- *   2. Resolves string-shorthand data rules (sources key, http(s) URL)
- *      per the table in `TrackConfig.data`. Generic-format adapters
- *      for bring-your-own-data files (file-path shorthand and
- *      extension-based adapter inference) is left as future work.
+ *   2. Resolves string-shorthand data rules (sources key, http(s) URL,
+ *      or a known data-file path like `./x.csv` → `from: file` with the
+ *      extension's built-in adapter) per the table in `TrackConfig.data`.
+ *      CSV/TSV file shorthands resolve today; JSON/BED are follow-up work.
  *   3. Fills in defaults for `from` (`"url"` when omitted, `"inline"`
  *      when `inlineData` is present).
  *   4. Resolves semantic kinds via the registry into (component,
