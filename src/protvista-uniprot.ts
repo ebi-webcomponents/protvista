@@ -32,6 +32,8 @@ import proteomicsPTMApdapter from './adapters/ptm-exchange-adapter';
 import alphaFoldConfidenceAdapter from './adapters/alphafold-confidence-adapter';
 import alphaMissensePathogenicityAdapter from './adapters/alphamissense-pathogenicity-adapter';
 import alphaMissenseHeatmapAdapter from './adapters/alphamissense-heatmap-adapter';
+import { featuresCsv } from './schema/adapters/features-csv';
+import { featuresTsv } from './schema/adapters/features-tsv';
 
 import ProtvistaUniprotStructure from './protvista-uniprot-structure';
 
@@ -119,6 +121,12 @@ export const adapters = {
   'alphafold-prediction-json': alphaFoldConfidenceAdapter,
   'alphamissense-average-csv': alphaMissensePathogenicityAdapter,
   'alphamissense-full-csv': alphaMissenseHeatmapAdapter,
+  // Generic-format bring-your-own-data adapters. These are also seeded
+  // into the schema Registry via BUILTIN_ADAPTERS (which gates config
+  // validation); they must additionally live here because this is the
+  // map the loader actually invokes to transform a track's fetched body.
+  'features-csv': featuresCsv,
+  'features-tsv': featuresTsv,
 };
 
 type NightingaleEvent = Event & {
@@ -439,7 +447,7 @@ class ProtvistaUniprot extends LitElement {
       // per-URL slot. `AbortError` thrown by a later `_loadData()`
       // re-entry is recognised and silently returned as `null` so it
       // doesn't pollute the console.
-      async (url) => {
+      async (url, responseType) => {
         // Three distinct failure modes are recorded so the badge / event
         // can tell "couldn't reach the server" from "server said 500"
         // from "unparseable body". Each still returns `null` into the
@@ -458,6 +466,20 @@ class ProtvistaUniprot extends LitElement {
           console.warn(`HTTP error status: ${response.status} at ${url}`);
           fetchErrors.set(url, { url, kind: 'http', status: response.status });
           return null;
+        }
+        // Delimited generic-format bodies (features-csv / features-tsv) are
+        // handed to their adapter as raw text; everything else is JSON.
+        // `response.text()` does not reject on content, so the parse-failure
+        // branch below only guards the JSON path.
+        if (responseType === 'text') {
+          try {
+            return await response.text();
+          } catch (error) {
+            if (isAbortError(error)) return null;
+            console.warn(`Failed to read text from ${url}:`, error);
+            fetchErrors.set(url, { url, kind: 'parse' });
+            return null;
+          }
         }
         try {
           return await response.json();

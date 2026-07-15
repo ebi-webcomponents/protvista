@@ -10,15 +10,20 @@
  * directory, add its name to `KnownAdapterName` in `../types`, and add
  * one line to the table below.
  *
- * The table is empty today. The generic-format adapters
- * (`features-json`, `features-csv`, `features-tsv`, `bed`) each land in
- * their own ticket and fill it in one line at a time.
+ * The generic-format adapters (`features-json`, `features-csv`,
+ * `features-tsv`, `bed`) each land in their own ticket and fill it in
+ * one line at a time — `features-csv` / `features-tsv` are here today.
  */
 
 import type { AdapterFunction, KnownAdapterName } from '../types';
+import { featuresCsv } from './features-csv';
+import { featuresTsv } from './features-tsv';
 
 export const BUILTIN_ADAPTERS: ReadonlyArray<
   readonly [KnownAdapterName, AdapterFunction]
 > = [
+  ['features-csv', featuresCsv],
+  ['features-tsv', featuresTsv],
   // ['features-json', featuresJson],
+  // ['bed', bed],
 ];

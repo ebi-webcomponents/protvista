@@ -218,6 +218,68 @@ describe('normalizeConfig — data shorthand expansion', () => {
     expect(d.url).toBeUndefined();
   });
 
+  it('resolves a ./x.csv file path to {from: file, url, adapter: features-csv}', () => {
+    const out = normalizeConfig(
+      cfg({
+        groups: [
+          { id: 'C', tracks: [track({ id: 't', data: './features.csv' })] },
+        ],
+      })
+    );
+    const d = out.groups[0].tracks[0].data[0];
+    expect(d.from).toBe('file');
+    expect(d.url).toBe('./features.csv');
+    expect(d.adapter).toBe('features-csv');
+  });
+
+  it('resolves a ./x.tsv file path to {from: file, url, adapter: features-tsv}', () => {
+    const out = normalizeConfig(
+      cfg({
+        groups: [
+          { id: 'C', tracks: [track({ id: 't', data: '../data/hits.tsv' })] },
+        ],
+      })
+    );
+    const d = out.groups[0].tracks[0].data[0];
+    expect(d.from).toBe('file');
+    expect(d.url).toBe('../data/hits.tsv');
+    expect(d.adapter).toBe('features-tsv');
+  });
+
+  it('lets an explicit adapter win over file-extension inference', () => {
+    const out = normalizeConfig(
+      cfg({
+        groups: [
+          {
+            id: 'C',
+            tracks: [
+              track({
+                id: 't',
+                data: { from: 'file', url: './features.csv', adapter: 'my-csv' },
+              }),
+            ],
+          },
+        ],
+      })
+    );
+    const d = out.groups[0].tracks[0].data[0];
+    expect(d.adapter).toBe('my-csv');
+  });
+
+  it('leaves an unrecognised extension (./x.gff) as a best-effort source key', () => {
+    const out = normalizeConfig(
+      cfg({
+        groups: [
+          { id: 'C', tracks: [track({ id: 't', data: './notes.gff' })] },
+        ],
+      })
+    );
+    const d = out.groups[0].tracks[0].data[0];
+    expect(d.from).toBe('url');
+    expect(d.source).toBe('./notes.gff');
+    expect(d.adapter).toBeUndefined();
+  });
+
 });
 
 // ─────────────────────────────────────────────────────────────

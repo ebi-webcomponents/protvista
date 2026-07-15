@@ -582,10 +582,12 @@ export type ComponentName = KnownComponentName | (string & {});
  * Most authors never name an adapter directly — the semantic `kind`
  * field resolves to one automatically.
  *
- * Generic-format adapters for bring-your-own-data files (CSV / TSV /
- * JSON / BED) is left as future work. Today, authors with their own
- * data formats register a custom adapter via `registerAdapter()` and
- * pin it with `adapter: <name>` on the descriptor.
+ * Generic-format adapters for bring-your-own-data files use the
+ * `features-<format>` naming. `features-csv` and `features-tsv` ship
+ * today (point a track at `./x.csv` / `./x.tsv`); `features-json` and
+ * `bed` are follow-up work. Authors with a bespoke format still register
+ * a custom adapter via `registerAdapter()` and pin it with
+ * `adapter: <name>` on the descriptor.
  */
 export type KnownAdapterName =
   | 'uniprot-features-json'
@@ -599,7 +601,9 @@ export type KnownAdapterName =
   | 'interpro-entries-json'
   | 'alphafold-prediction-json'
   | 'alphamissense-average-csv'
-  | 'alphamissense-full-csv';
+  | 'alphamissense-full-csv'
+  | 'features-csv'
+  | 'features-tsv';
 
 /** Open-ended `AdapterName`. Adapters registered via `registerAdapter()` also type-check. */
 export type AdapterName = KnownAdapterName | (string & {});

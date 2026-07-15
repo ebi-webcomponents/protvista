@@ -106,6 +106,16 @@ describe('Registry — built-in seeding', () => {
       expect(r.getAdapter(name)).toBeTypeOf('function');
     }
   });
+
+  it('ships the generic-format delimited adapters out of the box', () => {
+    // The bring-your-own-data path relies on these being pre-registered
+    // on every fresh registry (so `data: "./x.csv"` loads without an
+    // "Unknown adapter" error). Assert them by name so a regression that
+    // drops either from the table is caught explicitly.
+    const r = createRegistry();
+    expect(r.hasAdapter('features-csv')).toBe(true);
+    expect(r.hasAdapter('features-tsv')).toBe(true);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────

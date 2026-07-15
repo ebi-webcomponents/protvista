@@ -36,7 +36,7 @@ groups:
 
 A bench scientist writes only domain-level concepts (`kind: features`, the `my_hotspots` source-key) — never Nightingale component names, adapter names, or JavaScript. See [Example 4](#example-4-extending-the-ebi-default--one-line-one-new-track) for the full behaviour.
 
-> **Note.** Generic-format adapters that would let an author point at a local file with a `data: ./hotspots.csv` shorthand (CSV / TSV / JSON / BED) are a planned addition — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md). Until those land, the BYO-data path goes through a hosted URL (as in the example above) or a `registerAdapter()`-supplied custom adapter pinned with `adapter: <name>` on the descriptor.
+> **Note.** Generic-format adapters let an author point a track at a local file with a `data: ./hotspots.csv` shorthand. **CSV and TSV ship today** (`features-csv` / `features-tsv`, pre-registered out of the box); **JSON and BED are a planned addition** — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md). For a format not yet covered, the BYO-data path goes through a hosted URL or a `registerAdapter()`-supplied custom adapter pinned with `adapter: <name>` on the descriptor.
 
 ## Non-Goals
 
@@ -1033,7 +1033,23 @@ groups:
 
 At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, merges its `sources`, `defaults`, and 15 groups underneath this config, then appends the `MY_LAB` group at the end of the group list. The user sees the full canonical UniProt viewer with their one extra track tacked on — authored in a handful of lines of YAML. Overriding a specific EBI track is equally cheap: declare a group with the same `id` as one in the base and the merge rules fold it in field-wise. The `extends:` value can equally be a relative file path (`./uniprot-default.yaml`) if the adopter hosts their own copy of the base config.
 
-> **Note.** Generic-format adapters that would let the author point at a local file with a `data: ./hotspots.csv` shorthand instead of a hosted URL are a planned addition — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md).
+**Bring-your-own file — point the track at a spreadsheet:**
+
+Instead of a hosted `sources` URL, the same track can point straight at a local delimited file. The `.csv` / `.tsv` extension infers the pre-registered `features-csv` / `features-tsv` adapter, so no `adapter:` and no `registerAdapter()` glue is needed:
+
+```yaml
+groups:
+  - id: MY_LAB
+    label: My lab
+    tracks:
+      - id: hotspots
+        kind: features
+        data: ./hotspots.csv # header: type,start,end,description[,score]
+```
+
+At load time the loader recognises `./hotspots.csv` as a file source, fetches it as **text** (not JSON), runs `features-csv` to turn the rows into feature records, and renders them on `nightingale-track-canvas` exactly as a URL-sourced `kind: features` track would. A `.tsv` file behaves identically via `features-tsv`. The header row must be `type,start,end,description[,score]`; `start`/`end`/`score` are coerced to numbers.
+
+> **Note.** CSV and TSV ship today; JSON and BED file shorthands are a planned addition — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md).
 
 ## Edge Cases & Error Handling
 
@@ -1045,6 +1061,8 @@ At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, me
 | The top-level **sequence** is **missing** (HTTP `4xx`, or a `2xx` body with no `sequence` field — the accession has no entry)      | A `role="alert"` panel shows _"No UniProt entry found for '<accession>'. Check that the accession is correct."_ — no Retry (a 404 is deterministic). The `protvista-error` `phase: 'sequence'` event still fires. Unlike a *missing track* (which hides silently), the mount can't hide itself, so a panel is always shown here.                                                                                                                                                            |
 | A `source` (or bare `url`) value is not a URL, not a file path, and does not match any key in `sources`                           | Config validation fails at load time: `"Unknown source key: '<value>' in track <groupId>/<trackId>. Known sources: ..."`. Viewer does not mount.                                                                                                                                                                                                                                                                                                                                        |
 | `adapter` name does not match any built-in or registered adapter                                                                  | Config validation fails: `"Unknown adapter: <name> in track <groupId>/<trackId>. Did you forget to call registerAdapter()?"`.                                                                                                                                                                                                                                                                                                                                                           |
+| A bring-your-own **CSV/TSV** file has a malformed header or row (a missing required column, a non-numeric coordinate, or a ragged row) | The `features-csv` / `features-tsv` adapter throws a descriptive error naming the offending row (by 1-based line number, header = line 1) and column — e.g. `features-csv: row 3, column "start": expected a number, got "abc"`, `features-csv: missing required header column "end"`, or `features-csv: row 4 is ragged — expected 4 columns, got 3`. The loader treats the throw as a deterministic **parse** failure for that one track: a `console.warn`, a ⚠ badge, and a `protvista-error` (`phase: 'track-fetch'`, `errorKind: 'parse'`) — **no Retry** (a malformed file is deterministic). The rest of the viewer renders normally. |
+| A `data:` string shorthand is a file path with an **unrecognised extension** (e.g. `./notes.gff`)                                   | Not a known generic format, so it falls through to the sources-key rule: config validation fails with `"Unknown source key: './notes.gff' in track <groupId>/<trackId>. Known sources: ..."`. Use a hosted URL, a supported extension (`.csv` / `.tsv`), or the object form with an explicit `adapter:`.                                                                                                                                                                                    |
 | `kind` (semantic) value is not in the semantic-kind vocabulary and is not registered                                              | Config validation fails: `"Unknown semantic kind: '<value>' in track <groupId>/<trackId>. Valid values: .... Register custom kinds with registerSemanticKind()."`.                                                                                                                                                                                                                                                                                                                      |
 | A track has no `kind`, no `component`, and the parent group has no `component`                                                    | Config validation fails: `"Track <groupId>/<trackId> has no 'kind' or 'component'. Set a semantic 'kind' (e.g. 'features') or provide 'component' explicitly."`.                                                                                                                                                                                                                                                                                                                        |
 | A `dataTooltip` template references a field that does not exist on the adapter's output                                           | That placeholder renders as an empty string. The viewer does not fail.                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -1145,6 +1163,8 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 - [x] Built-in themes `alphafold-ramp` and `alphamissense-ramp` are defined once, used by default in `confidence-score` / `pathogenicity-score` semantic kinds, and available to any track via `colorScale.theme`.
 - [x] An external-lab adopter can write a ten-line config using `extends:` pointing at a URL or local file path to a base config and add one extra track, with the base viewer inherited intact.
 - [x] `accession` can be supplied via config, HTML attribute, or `setConfig()`. The HTML attribute takes precedence over the config value. A config with `{accession}` placeholders but no accession from any source fails validation with a clear message.
+- [x] Generic-format adapters `features-csv` and `features-tsv` are pre-registered on every fresh registry. A track that points at `./x.csv` / `./x.tsv` loads end to end — inferring the adapter from the extension, fetching the file as text, and rendering on `nightingale-track-canvas` — without consumer-side adapter registration. (`features-json` / `bed` are follow-up work.)
+- [x] File-extension shorthand (`./hits.csv` → `features-csv`, `./hits.tsv` → `features-tsv`) maps to the matching pre-registered adapter; a malformed file produces a descriptive error naming the offending row and column.
 
 ## Tests
 
