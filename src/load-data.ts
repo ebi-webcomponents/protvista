@@ -389,8 +389,17 @@ export async function loadProtvistaData(
     data[groupId] =
       group.component === 'nightingale-linegraph-track' ||
       group.component === 'nightingale-colored-sequence'
-        ? groupData[0]
-        : groupData.flat();
+        ? // Graph groups render only their first track, so a failed
+          // first track legitimately leaves the aggregate `undefined`
+          // (the component reads that as "no data" and shows the error
+          // row). Keep it as-is.
+          groupData[0]
+        : // Flattened multi-track aggregate: drop the `undefined` slots a
+          // failed (or empty) track leaves behind. Without this the array
+          // is truthy-but-holey — the holes reach Nightingale's `.data`
+          // setter, and an all-failed group reads as "has data" instead of
+          // routing to the error row.
+          groupData.flat().filter((entry) => entry != null);
   }
 
   return { rawData, data, hasData, trackUrls };

@@ -187,11 +187,11 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       `Track GROUP/mine is 'from: custom' but no data was provided via setTrackData().`
     );
     expect('GROUP-mine' in data).toBe(false);
-    // Group aggregate is `.flat()` of the per-track return values.
-    // The missing-data branch `return`s with no value, so the track
-    // contributes `undefined` to the aggregate — matching how the URL
-    // branch handles a missing payload (parity with legacy behaviour).
-    expect(data.GROUP).toEqual([undefined]);
+    // Group aggregate is `.flat()` of the per-track return values, with the
+    // `undefined` slots a missing/failed track leaves behind filtered out.
+    // So a group whose only track produced no data is a clean empty array,
+    // not `[undefined]` — no hole reaches the renderer or Nightingale.
+    expect(data.GROUP).toEqual([]);
     expect(fetchOne).not.toHaveBeenCalled();
   });
 

@@ -1045,6 +1045,68 @@ describe('collapsed group surfacing', () => {
   });
 });
 
+// ── aggregate data hygiene ────────────────────────────────────────
+
+describe('aggregate data hygiene', () => {
+  it('an all-failed canvas group renders the minimal error row, not an aggregate over holes', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    stubFetch([['/bad', { ok: false, status: 500 }]]);
+
+    // A standard (canvas) group whose only track 5xx-fails. Its flattened
+    // aggregate is `[undefined]` before filtering — truthy-but-holey.
+    const el = buildLoaded(
+      normConfig([urlTrack('bad', 'https://example.org/bad.json')]),
+      { hasData: false, openGroups: [] }
+    );
+
+    await el._loadData();
+
+    // The aggregate is a clean empty array — no `undefined` slot leaks to
+    // Nightingale's `.data` setter.
+    expect(el.data['g']).toEqual([]);
+
+    const target = renderTarget(el);
+    // Routed through `renderGroupErrorRow`: header + ⚠ badge, and crucially
+    // NO aggregate content track (which the normal path would render).
+    expect(target.querySelector(BADGE)).not.toBeNull();
+    expect(
+      target.querySelector(`.${CSS_PREFIX}-aggregate-track-content`)
+    ).toBeNull();
+  });
+
+  it('a partial canvas-group failure leaves the surviving features but no holes', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const fetchMock = vi.fn(async (input: unknown) => {
+      const url = String(input);
+      return url.includes('/bad')
+        ? ({ ok: false, status: 500, json: async () => ({}) } as unknown as Response)
+        : ({
+            ok: true,
+            status: 200,
+            json: async () => ({ features: [{ type: 'X', begin: '1', end: '2' }] }),
+          } as unknown as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    // One group, two tracks: one succeeds, one 5xx-fails. The aggregate
+    // used to be `[...features, undefined]`.
+    const el = buildLoaded(
+      normConfig([
+        urlTrack('ok', 'https://example.org/ok.json'),
+        urlTrack('bad', 'https://example.org/bad.json'),
+      ]),
+      { hasData: true }
+    );
+
+    await el._loadData();
+
+    const aggregate = el.data['g'] as unknown[];
+    expect(Array.isArray(aggregate)).toBe(true);
+    expect(aggregate).not.toContain(undefined);
+    expect(aggregate.length).toBeGreaterThan(0);
+  });
+});
+
 // ── per-instance id uniqueness ────────────────────────────────────
 
 describe('badge id uniqueness across instances', () => {

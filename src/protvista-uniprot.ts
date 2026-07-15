@@ -151,6 +151,22 @@ type EntryResult =
 const isAbortError = (e: unknown): boolean =>
   (e as { name?: string } | null)?.name === 'AbortError';
 
+/**
+ * Whether a value carries something a Nightingale track can actually draw.
+ * A bare truthiness check is wrong here: an empty array `[]` and an
+ * all-`undefined` aggregate are both truthy yet have nothing to render, so
+ * `!!data` would treat a wholly-failed group as if it had data and skip
+ * the error row. Arrays must be non-empty; anything else (an object, or a
+ * sequence string) must have at least one own key. Mirrors the inline
+ * checks it replaces at the three render-gating sites so behaviour is
+ * unchanged except for the `[]` / `[undefined]` cases this is fixing.
+ */
+const hasRenderableData = (value: unknown): boolean => {
+  if (value == null) return false;
+  if (Array.isArray(value)) return value.length > 0;
+  return Object.keys(value as object).length > 0;
+};
+
 /** Monotonic per-page counter giving each element a unique id nonce. */
 let protvistaInstanceSeq = 0;
 
@@ -1396,14 +1412,7 @@ class ProtvistaUniprot extends LitElement {
   renderStandaloneTrack(group: NormalizedConfig['groups'][number]) {
     const track = group.tracks[0];
     const trackData = track && this.data[`${group.id}-${track.id}`];
-    if (
-      !track ||
-      !trackData ||
-      !(
-        (Array.isArray(trackData) && trackData.length) ||
-        Object.keys(trackData).length
-      )
-    ) {
+    if (!track || !hasRenderableData(trackData)) {
       return '';
     }
     const attrs = renderingToAttrs(track.rendering);
@@ -1508,14 +1517,21 @@ class ProtvistaUniprot extends LitElement {
           </div>
         </div>
         ${this.config.groups.map((group) => {
-          const groupHasData = !!this.data[group.id];
+          const groupHasData = hasRenderableData(this.data[group.id]);
           const groupHasError = this._visibleGroupErrors.has(group.id);
           if (!groupHasData && !groupHasError) return '';
-          // Group has a visible fetch failure but no data to draw (all or
-          // some tracks failed): render just the header + badge so the
-          // failure is surfaced even while the group is collapsed. Handles
-          // standalone and grouped alike.
-          if (!groupHasData && groupHasError) {
+          // Group has a visible fetch failure but no aggregate to draw (all
+          // or some tracks failed). While it's collapsed, render just the
+          // header + badge so the failure stays visible; handles standalone
+          // (never expandable) and collapsed grouped tracks alike. When
+          // it's expanded, fall through instead so the per-track rows —
+          // each with its own ⚠ badge and Retry — render; those are more
+          // informative than a single group-level badge.
+          if (
+            !groupHasData &&
+            groupHasError &&
+            !this.openGroups.includes(group.id)
+          ) {
             return this.renderGroupErrorRow(group);
           }
           // A standalone track (authored as a top-level entry with no
@@ -1576,11 +1592,7 @@ class ProtvistaUniprot extends LitElement {
               if (this.openGroups.includes(group.id)) {
                 const trackKey = `${group.id}-${track.id}`;
                 const trackData = this.data[trackKey];
-                const trackHasData = !!(
-                  trackData &&
-                  ((Array.isArray(trackData) && trackData.length) ||
-                    Object.keys(trackData).length)
-                );
+                const trackHasData = hasRenderableData(trackData);
                 const trackHasError = this._trackErrors.has(trackKey);
                 // A track with neither data nor a (broken) error renders
                 // nothing — this is also the 4xx "missing" path.
