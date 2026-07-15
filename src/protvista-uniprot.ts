@@ -45,6 +45,7 @@ import {
   installClickTooltip,
   type TooltipController,
 } from './tooltips/popover';
+import { renderLabel } from './tooltips/resolve';
 
 import filterConfig, { colorConfig } from './filter-config';
 
@@ -805,10 +806,12 @@ class ProtvistaUniprot extends LitElement {
    * flagged `standalone` by the normalizer) as one row: a plain
    * (non-clickable) track label plus the track content, with no
    * group-collapse affordance. The label affordances and the inner
-   * element id (`${CSS_PREFIX}-track-${group.id}-${track.id}`) matches the
+   * element id (`${CSS_PREFIX}-track-${group.id}-${track.id}`) match the
    * expanded grouped-track row, so the shared `_loadDataInComponents`
    * data-binding and the `${CSS_PREFIX}-group_${group.id}` visibility
-   * toggle work the same way they do for a collapsible group.
+   * toggle work unchanged. Every wrapper class/id carries `CSS_PREFIX`
+   * for parity with the grouped path (so the `.${CSS_PREFIX}-group` /
+   * `-track-label` / `-track-content` rules apply here too).
    */
   renderStandaloneTrack(group: NormalizedConfig['groups'][number]) {
     const track = group.tracks[0];
@@ -835,18 +838,7 @@ class ProtvistaUniprot extends LitElement {
         >
           ${(track.filterUI === 'nightingale-filter' &&
             this.getFilterComponent(`${group.id}-${track.id}`)) ||
-          (track.labelUrl &&
-            this.accession &&
-            html`<a
-              target="_blank"
-              href="${track.labelUrl.replace('{accession}', this.accession)}"
-              >${track.label}</a
-            >`) ||
-          (track.helpPage
-            ? html`<span data-article-id="${track.helpPage}"
-                >${track.label}</span
-              >`
-            : track.label)}
+          unsafeHTML(renderLabel(track.label, this.accession))}
         </div>
         <div
           class="${CSS_PREFIX}-track-content ${track.component ===
@@ -931,11 +923,7 @@ class ProtvistaUniprot extends LitElement {
                 title="${group.description ?? ''}"
                 @click="${this.handleGroupClick}"
               >
-                ${group.helpPage
-                  ? html`<span data-article-id="${group.helpPage}"
-                      >${group.label}</span
-                    >`
-                  : group.label}
+                ${unsafeHTML(renderLabel(group.label, this.accession))}
               </div>
               <div
                 data-id="${CSS_PREFIX}-group_${group.id}"
@@ -986,21 +974,7 @@ class ProtvistaUniprot extends LitElement {
                     >
                       ${(track.filterUI === 'nightingale-filter' &&
                         this.getFilterComponent(`${group.id}-${track.id}`)) ||
-                      (track.labelUrl &&
-                        this.accession &&
-                        html`<a
-                          target="_blank"
-                          href="${track.labelUrl.replace(
-                            '{accession}',
-                            this.accession
-                          )}"
-                          >${track.label}</a
-                        >`) ||
-                      (track.helpPage
-                        ? html`<span data-article-id="${track.helpPage}"
-                            >${track.label}</span
-                          >`
-                        : track.label)}
+                      unsafeHTML(renderLabel(track.label, this.accession))}
                     </div>
                     <div
                       class="${CSS_PREFIX}-track-content ${group.component ===
@@ -1051,19 +1025,26 @@ class ProtvistaUniprot extends LitElement {
   }
 
   handleGroupClick(e: MouseEvent) {
-    let target = e.target as Element;
+    const target = e.target as Element;
+    // A Markdoc-rendered label can contain an inline link. A click on that
+    // link should navigate only — not also collapse/expand the group — so
+    // bail before the toggle logic when the click landed on (or inside) an
+    // <a>.
+    if (target.closest('a')) return;
+    // Climb to the group-label host regardless of what inner inline
+    // element (a `{% help %}` span, emphasis) the click landed on — a
+    // Markdoc-rendered label can nest arbitrary inline markup, so a
+    // single-level `parentElement` hop is no longer sufficient.
+    const host = target.closest('[data-group-toggle]');
+    if (!host) return;
 
-    if (target instanceof HTMLSpanElement) {
-      target = target.parentElement as Element;
-    }
+    const toggle = host.getAttribute('data-group-toggle');
 
-    const toggle = target.getAttribute('data-group-toggle');
-
-    if (toggle && !target.classList.contains('open')) {
-      target.classList.add('open');
+    if (toggle && !host.classList.contains('open')) {
+      host.classList.add('open');
       this.openGroups = [...this.openGroups, toggle];
     } else {
-      target.classList.remove('open');
+      host.classList.remove('open');
       this.openGroups = [...this.openGroups].filter((d) => d !== toggle);
     }
   }

@@ -48,7 +48,6 @@ const base = (): ProtvistaViewerConfig => ({
   },
   defaults: {
     rendering: { layout: 'non-overlapping', color: '#333' },
-    labelUrl: 'https://example.org/{accession}',
   },
   groups: [
     {
@@ -115,8 +114,6 @@ describe('mergeExtends — basic merge', () => {
     expect(out.defaults?.rendering?.color).toBe('#ff0');
     // base defaults.rendering.layout survives
     expect(out.defaults?.rendering?.layout).toBe('non-overlapping');
-    // base defaults.labelUrl survives
-    expect(out.defaults?.labelUrl).toBe('https://example.org/{accession}');
   });
 
   it('groups with known id are extended in place', async () => {

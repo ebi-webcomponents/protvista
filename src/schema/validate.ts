@@ -195,12 +195,13 @@ function checkVersion(
  * `{accession}` placeholders. If any appear and no `accession` is
  * set, fail with a stable message naming the missing accession.
  *
- * Fields that support the placeholder: `sources` values, track
- * `labelUrl`, and any `url:` inside a `DataSourceDescriptor` (both
- * the scalar and array forms). We do not search `dataTooltip`
- * because it is rendered per-item at display time with a different
- * interpolation routine (Markdoc's own variable expansion), and
- * `description` is plain text that does not accept placeholders.
+ * Fields that support the placeholder: `sources` values, group/track
+ * `label` (interpolated before the label's Markdoc render), and any
+ * `url:` inside a `DataSourceDescriptor` (both the scalar and array
+ * forms). We do not search `dataTooltip` because it is rendered
+ * per-item at display time with a different interpolation routine
+ * (Markdoc's own variable expansion), and `description` is plain text
+ * that does not accept placeholders.
  */
 function checkAccessionPlaceholders(
   c: ProtvistaViewerConfig,
@@ -228,15 +229,18 @@ function containsAccessionPlaceholder(c: ProtvistaViewerConfig): boolean {
       }
     }
   }
-  // Check `defaults.labelUrl`.
-  if (c.defaults?.labelUrl?.includes(ACCESSION_PLACEHOLDER)) return true;
   // Walk every top-level entry → its track(s) → data descriptors. A
   // standalone-track entry is a single track; a group expands to its
-  // child tracks.
+  // child tracks. Group and track `label` accept `{accession}` (it is
+  // interpolated before the label's Markdoc render), so both are
+  // searched.
   for (const entry of c.groups) {
+    if (isGroupConfig(entry) && entry.label?.includes(ACCESSION_PLACEHOLDER)) {
+      return true;
+    }
     const tracks = isGroupConfig(entry) ? entry.tracks : [entry];
     for (const track of tracks) {
-      if (track.labelUrl?.includes(ACCESSION_PLACEHOLDER)) return true;
+      if (track.label?.includes(ACCESSION_PLACEHOLDER)) return true;
       if (stringFieldIncludes(track.data, ACCESSION_PLACEHOLDER)) return true;
     }
   }

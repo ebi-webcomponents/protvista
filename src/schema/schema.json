@@ -53,9 +53,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "rendering": { "$ref": "#/$defs/RenderingOptions" },
-        "labelUrl": { "type": "string", "minLength": 1 },
-        "helpPage": { "type": "string", "minLength": 1 }
+        "rendering": { "$ref": "#/$defs/RenderingOptions" }
       }
     },
 
@@ -65,7 +63,10 @@
       "additionalProperties": false,
       "properties": {
         "id": { "type": "string", "minLength": 1 },
-        "label": { "type": "string" },
+        "label": {
+          "type": "string",
+          "description": "Human-readable label. A Markdoc inline source string — Markdown (emphasis, code, links) plus the `{% help slug=\"…\" %}…{% /help %}` tag; `{accession}` is interpolated before rendering. Block-level markup is not supported. Falls back to a title-cased form of `id` if omitted."
+        },
         "description": {
           "type": "string",
           "description": "Short plain-text description shown as a native tooltip (HTML `title` attribute) when hovering the group label. No Markdown or HTML interpretation."
@@ -75,8 +76,7 @@
           "type": "array",
           "items": { "$ref": "#/$defs/TrackConfig" }
         },
-        "rendering": { "$ref": "#/$defs/RenderingOptions" },
-        "helpPage": { "type": "string", "minLength": 1 }
+        "rendering": { "$ref": "#/$defs/RenderingOptions" }
       }
     },
 
@@ -86,8 +86,10 @@
       "additionalProperties": false,
       "properties": {
         "id": { "type": "string", "minLength": 1 },
-        "label": { "type": "string" },
-        "labelUrl": { "type": "string", "minLength": 1 },
+        "label": {
+          "type": "string",
+          "description": "Human-readable label. A Markdoc inline source string — Markdown (emphasis, code, links) plus the `{% help slug=\"…\" %}…{% /help %}` tag; `{accession}` is interpolated before rendering. Block-level markup is not supported. Falls back to a title-cased form of `id` if omitted."
+        },
         "kind": { "$ref": "#/$defs/SemanticKind" },
         "component": { "$ref": "#/$defs/ComponentName" },
         "data": {
@@ -109,8 +111,7 @@
         "dataTooltip": { "$ref": "#/$defs/DataTooltip" },
         "filter": { "type": "string", "minLength": 1 },
         "filterUI": { "const": "nightingale-filter" },
-        "rendering": { "$ref": "#/$defs/RenderingOptions" },
-        "helpPage": { "type": "string", "minLength": 1 }
+        "rendering": { "$ref": "#/$defs/RenderingOptions" }
       }
     },
 

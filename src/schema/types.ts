@@ -147,7 +147,7 @@ export interface ProtvistaViewerConfig {
   /**
    * The primary accession or identifier for this viewer instance.
    * Used to interpolate `{accession}` placeholders in `sources`,
-   * `labelUrl`, and any other template string in the config.
+   * group/track `label`, and any other template string in the config.
    *
    * If no accession is supplied (attribute, setConfig, or config file)
    * and the config contains `{accession}` placeholders, validation
@@ -168,8 +168,6 @@ export interface ProtvistaViewerConfig {
    *
    * Precedence (highest first):
    *   track.rendering > group.rendering > defaults.rendering
-   *   track.labelUrl  > defaults.labelUrl
-   *   track.helpPage  > group.helpPage > defaults.helpPage
    */
   defaults?: ConfigDefaults;
 
@@ -205,15 +203,6 @@ export type TopLevelEntry = GroupConfig | TrackConfig;
 export interface ConfigDefaults {
   /** Default rendering options inherited by every track. */
   rendering?: RenderingOptions;
-
-  /**
-   * Default `labelUrl` template for every track that does not set
-   * its own. Supports `{accession}` and `{id}` placeholders.
-   */
-  labelUrl?: string;
-
-  /** Default help-page slug. */
-  helpPage?: string;
 }
 
 export interface GroupConfig {
@@ -221,9 +210,12 @@ export interface GroupConfig {
   id: string;
 
   /**
-   * Human-readable label shown in the UI. Optional — if omitted,
-   * falls back to a title-cased form of `id`
-   * (e.g. `"MOLECULE_PROCESSING"` → `"Molecule processing"`).
+   * Human-readable label shown in the UI. A Markdoc inline source
+   * string — Markdown (emphasis, code, links) plus the
+   * `{% help slug="…" %}…{% /help %}` tag; `{accession}` is
+   * interpolated before rendering. Block-level markup is not
+   * supported. Optional — if omitted, falls back to a title-cased form
+   * of `id` (e.g. `"MOLECULE_PROCESSING"` → `"Molecule processing"`).
    */
   label?: string;
 
@@ -248,20 +240,19 @@ export interface GroupConfig {
 
   /** Group-level rendering defaults; individual tracks inherit these. */
   rendering?: RenderingOptions;
-
-  /** Optional URL slug for the help-page link on the group label. */
-  helpPage?: string;
 }
 
 export interface TrackConfig {
   /** Unique identifier within its parent group (e.g. `"signal"`). */
   id: string;
 
-  /** Human-readable label. Falls back to a title-cased form of `id`. */
+  /**
+   * Human-readable label. A Markdoc inline source string — Markdown
+   * (emphasis, code, links) plus the `{% help slug="…" %}…{% /help %}`
+   * tag; `{accession}` is interpolated before rendering. Block-level
+   * markup is not supported. Falls back to a title-cased form of `id`.
+   */
   label?: string;
-
-  /** URL for the label to link to. Supports `{accession}` and `{id}`. */
-  labelUrl?: string;
 
   /**
    * Semantic track kind — describes WHAT the track displays.
@@ -370,9 +361,6 @@ export interface TrackConfig {
 
   /** Track-level rendering overrides; merged on top of group defaults. */
   rendering?: RenderingOptions;
-
-  /** Optional URL slug for the help-page link on the track label. */
-  helpPage?: string;
 }
 
 /**
