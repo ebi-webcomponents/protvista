@@ -910,6 +910,59 @@ describe('retry affordance', () => {
     expect(el.data['g1-a']).toBeDefined();
     expect(el.data['g2-b']).toBeDefined();
   });
+
+  it('two concurrent per-track retries in the SAME group keep both in the aggregate', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    let healthy = false;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: unknown) => {
+        const url = String(input);
+        if (!healthy) {
+          return { ok: false, status: 500, json: async () => ({}) } as unknown as Response;
+        }
+        // Distinct feature per track so we can tell them apart in the aggregate.
+        const type = url.includes('/a.json') ? 'A' : 'B';
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ features: [{ type, begin: '1', end: '2' }] }),
+        } as unknown as Response;
+      })
+    );
+
+    // ONE group with TWO url tracks. Their per-track retry keys (g-a, g-b)
+    // are disjoint, so the two retries run concurrently — but they share a
+    // group aggregate `data['g']`.
+    const el = buildLoaded(
+      normConfig([
+        urlTrack('a', 'https://example.org/a.json'),
+        urlTrack('b', 'https://example.org/b.json'),
+      ]),
+      { hasData: true }
+    );
+
+    await el._loadData();
+    expect(el._trackErrors.has('g-a')).toBe(true);
+    expect(el._trackErrors.has('g-b')).toBe(true);
+
+    // Both recover; fire both per-track retries with no await between. Each
+    // snapshots `this.data` before the other commits, so a snapshot-derived
+    // group aggregate would clobber to the last writer, dropping one track.
+    healthy = true;
+    await Promise.all([
+      el._loadData(new Set(['g-a'])),
+      el._loadData(new Set(['g-b'])),
+    ]);
+
+    // Per-track keys correct AND the group aggregate holds BOTH tracks.
+    expect(el.data['g-a']).toBeDefined();
+    expect(el.data['g-b']).toBeDefined();
+    const aggregate = el.data['g'] as Array<{ type?: string }>;
+    expect(Array.isArray(aggregate)).toBe(true);
+    const types = aggregate.map((f) => f.type).sort();
+    expect(types).toEqual(['A', 'B']);
+  });
 });
 
 // ── strict mode ───────────────────────────────────────────────────
@@ -1009,6 +1062,98 @@ describe('strict mode', () => {
     expect(panel).not.toBeNull();
     expect(panel.querySelector(`.${CSS_PREFIX}-error-retry`)).toBeNull();
   });
+
+  it('clicking the aggregated-panel Retry re-runs the load and tears the panel down on recovery', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    let trackHealthy = false;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: unknown) => {
+        const url = String(input);
+        if (url.includes('/proteins/api/proteins/')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ sequence: { sequence: 'MSEQENCE' } }),
+          } as unknown as Response;
+        }
+        // The one track: 5xx until the service recovers.
+        return trackHealthy
+          ? ({
+              ok: true,
+              status: 200,
+              json: async () => ({ features: [{ type: 'X', begin: '1', end: '2' }] }),
+            } as unknown as Response)
+          : ({ ok: false, status: 500, json: async () => ({}) } as unknown as Response);
+      })
+    );
+
+    const el = mountEl({
+      viewerConfig: {
+        strict: true,
+        groups: [
+          { id: 'g', tracks: [{ id: 'bad', kind: 'features', data: 'https://example.org/bad.json' }] },
+        ],
+      },
+      accession: 'P05067',
+    });
+
+    // Strict raises the aggregated panel with a Retry (5xx is recoverable).
+    const retry = await vi.waitFor(() => {
+      const btn = el.querySelector<HTMLButtonElement>(
+        `${PANEL} .${CSS_PREFIX}-error-retry`
+      );
+      if (!btn) throw new Error('strict retry not ready');
+      return btn;
+    });
+
+    // Service recovers, then the user clicks Retry → _retryMount re-runs the
+    // whole load; the track succeeds, so the strict panel is cleared.
+    trackHealthy = true;
+    retry.click();
+
+    await vi.waitFor(() => {
+      if (el.querySelector(PANEL)) throw new Error('panel still present');
+    });
+    expect((el as unknown as El)._mountError).toBeNull();
+    expect((el as unknown as El)._trackErrors.size).toBe(0);
+    expect(el.data['g-bad']).toBeDefined();
+  });
+
+  it('a successful reload clears a previously-raised aggregated panel (track-fetch clear branch)', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    let healthy = false;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        healthy
+          ? ({
+              ok: true,
+              status: 200,
+              json: async () => ({ features: [{ type: 'X', begin: '1', end: '2' }] }),
+            } as unknown as Response)
+          : ({ ok: false, status: 500, json: async () => ({}) } as unknown as Response)
+      )
+    );
+
+    const el = buildLoaded(
+      normConfig([urlTrack('bad', 'https://example.org/bad.json')], {
+        strict: true,
+      }),
+      { hasData: true }
+    );
+
+    await el._loadData();
+    // Panel is up under strict while the track is failing.
+    expect(el._mountError).not.toBeNull();
+    expect(el._mountError!.phase).toBe('track-fetch');
+
+    // A subsequent successful reload must clear the aggregated panel via the
+    // `phase === 'track-fetch'` clear branch in _collectTrackErrors.
+    healthy = true;
+    await el._loadData();
+    expect(el._mountError).toBeNull();
+  });
 });
 
 // ── collapsed / partial-failure surfacing ─────────────────────────
@@ -1104,6 +1249,40 @@ describe('aggregate data hygiene', () => {
     expect(Array.isArray(aggregate)).toBe(true);
     expect(aggregate).not.toContain(undefined);
     expect(aggregate.length).toBeGreaterThan(0);
+  });
+
+  it('an EXPANDED all-failed group shows per-track badges and no populated aggregate track', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    stubFetch([
+      ['/a.json', { ok: false, status: 500 }],
+      ['/b.json', { ok: false, status: 500 }],
+    ]);
+
+    // Expanded (openGroups) all-failed group: falls through to the normal
+    // per-track render, not the collapsed error row. Its aggregate is `[]`.
+    const el = buildLoaded(
+      normConfig([
+        urlTrack('a', 'https://example.org/a.json'),
+        urlTrack('b', 'https://example.org/b.json'),
+      ]),
+      { hasData: false, openGroups: ['g'] }
+    );
+
+    await el._loadData();
+    expect(el.data['g']).toEqual([]);
+
+    const target = renderTarget(el);
+    // Per-track rows each carry a ⚠ badge (the group badge is suppressed
+    // while expanded).
+    expect(target.querySelectorAll(BADGE).length).toBe(2);
+    // The aggregate content div is present but renders NO inner track over
+    // the empty `[]` (the gate is `hasRenderableData`, not a bare truthy
+    // check — an empty array is truthy but has nothing to draw).
+    const aggregate = target.querySelector(
+      `.${CSS_PREFIX}-aggregate-track-content`
+    );
+    expect(aggregate).not.toBeNull();
+    expect(aggregate!.querySelector('*')).toBeNull();
   });
 });
 

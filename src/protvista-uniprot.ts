@@ -523,6 +523,29 @@ class ProtvistaUniprot extends LitElement {
     for (const key of reloadedKeys) {
       if (!(key in data)) delete merged[key];
     }
+
+    // Recompute each reloaded group's aggregate from the LIVE merged
+    // per-track values rather than the loader's snapshot-derived
+    // `data[groupId]`. Two concurrent targeted retries on different tracks
+    // of the *same* group each snapshot `this.data` (as `previousData`)
+    // before either commits, so the loader's aggregate for the later batch
+    // omits the earlier batch's just-recovered sibling — and merging its
+    // `data[groupId]` would clobber the aggregate, silently dropping a
+    // track. Rebuilding from the merged per-track keys is order-independent
+    // and self-consistent (and a no-op for a full load). Mirrors the
+    // loader's per-component aggregate rule.
+    for (const group of this.config.groups) {
+      const touched = group.tracks.some((t) =>
+        reloadedKeys.has(`${group.id}-${t.id}`)
+      );
+      if (!touched) continue;
+      const trackValues = group.tracks.map((t) => merged[`${group.id}-${t.id}`]);
+      merged[group.id] =
+        group.component === 'nightingale-linegraph-track' ||
+        group.component === 'nightingale-colored-sequence'
+          ? trackValues[0]
+          : trackValues.flat().filter((entry) => entry != null);
+    }
     this.data = merged;
 
     // The variation filter's pristine baseline now rides along in
@@ -1553,16 +1576,17 @@ class ProtvistaUniprot extends LitElement {
                   ? 'opacity:0'
                   : 'opacity:1'}"
               >
-                ${this.data[group.id] &&
-                this.getTrack(
-                  group.component,
-                  'non-overlapping',
-                  groupAttrs.color,
-                  groupAttrs.shape,
-                  group.id,
-                  groupAttrs.scale,
-                  groupAttrs.colorRange
-                )}
+                ${hasRenderableData(this.data[group.id])
+                  ? this.getTrack(
+                      group.component,
+                      'non-overlapping',
+                      groupAttrs.color,
+                      groupAttrs.shape,
+                      group.id,
+                      groupAttrs.scale,
+                      groupAttrs.colorRange
+                    )
+                  : ''}
               </div>
             </div>
 
