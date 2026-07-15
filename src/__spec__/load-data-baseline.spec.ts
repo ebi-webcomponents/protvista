@@ -52,7 +52,11 @@ import { dirname, resolve } from 'node:path';
 
 import { loadConfig } from '../schema/load';
 import type { NormalizedConfig } from '../schema/normalize';
-import { loadProtvistaData, type AdapterMap } from '../load-data';
+import {
+  loadProtvistaData,
+  UNFILTERED_SUFFIX,
+  type AdapterMap,
+} from '../load-data';
 
 const REFERENCE_ACCESSION = 'P05067';
 
@@ -284,6 +288,29 @@ describe('loadProtvistaData baseline (schema-driven default config)', () => {
     ] as ReturnType<typeof vi.fn>;
     expect(variationAdapter).not.toHaveBeenCalled();
     expect(result.data).not.toHaveProperty('VARIATION-variation');
+  });
+
+  it('mirrors a filterUI track under an __unfiltered baseline key', async () => {
+    // The default config's variation track sets
+    // `filterUI: nightingale-filter`, so the loader mirrors its adapted
+    // payload under `${trackKey}${UNFILTERED_SUFFIX}` — the pristine
+    // baseline the component's filter handler re-filters against without
+    // compounding. The opt-in is `filterUI`, NOT a hardcoded track id.
+    const result = await loadProtvistaData(
+      REFERENCE_ACCESSION,
+      config,
+      cannedFetch,
+      mockAdapters
+    );
+    const baselineKey = `VARIATION-variation${UNFILTERED_SUFFIX}`;
+    // Same reference as the live slot at load time.
+    expect(result.data[baselineKey]).toBe(result.data['VARIATION-variation']);
+    // ...and it is the ONLY baseline: tracks without `filterUI` get no
+    // `__unfiltered` copy, proving no id is special-cased.
+    const unfilteredKeys = Object.keys(result.data).filter((k) =>
+      k.endsWith(UNFILTERED_SUFFIX)
+    );
+    expect(unfilteredKeys).toEqual([baselineKey]);
   });
 
   it('rewrites InterPro representative fragments with the expected synthetic type', async () => {
