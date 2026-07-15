@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+### Breaking — `label` is now a Markdoc string; `helpPage` and `labelUrl` removed
+
+Group and track `label` is now a Markdoc **inline** source string rendered
+through the same `@markdoc/markdoc` pipeline as `dataTooltip`. This collapses
+the previous three-field label surface (`label` + `helpPage` + `labelUrl`) into
+one: write Markdown, including a link if you want one. `{accession}` is
+interpolated into the label before rendering (same substitution `labelUrl`
+used). The allowed surface is inline only — emphasis, code, links, and a
+registered `{% help %}` custom tag; block-level markup (headings, lists, code
+fences, tables) is rejected with a console warning and degrades to inline text.
+
+The `helpPage` and `labelUrl` fields have been **removed** from the schema
+(`ConfigDefaults`, `GroupConfig`, `TrackConfig`).
+
+**Migration.** Rewrite affected labels:
+
+| Before                                                        | After                                                                       |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `label: Signal peptide`<br>`helpPage: signal`                 | `label: '{% help slug="signal" %}Signal peptide{% /help %}'`                |
+| `label: AlphaFold Confidence`<br>`labelUrl: https://x/{accession}` | `label: '[AlphaFold Confidence](https://x/{accession})'`               |
+
+The `{% help slug="…" %}…{% /help %}` tag renders
+`<span data-article-id="…">…</span>` — byte-identical to what `helpPage`
+produced. External `http(s)` links in a label open in a new tab
+(`target="_blank" rel="noopener noreferrer"`), matching the old `labelUrl`
+anchor. `slug` is restricted to `^[a-zA-Z0-9_#-]+$`.
+
+**uniprot.org embedders:** the in-page help popover keeps working **only if the
+`{% help %}` tag stays registered** (it is, by default, in this package's label
+renderer). The `data-article-id` DOM your help-article controller listens for is
+unchanged. If you strip or fail to register the tag, help spans stop rendering
+and the popovers break — that is the one visible DOM regression to watch for.
+
 ### Breaking — internal CSS classes and DOM ids are now hash-prefixed
 
 `<protvista-uniprot>` renders in light DOM (required by Mol*), so its

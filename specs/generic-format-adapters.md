@@ -384,31 +384,37 @@ export const bed: AdapterFunction = (raw) => {
 
 ### 4.7 Registry wiring (`src/schema/registry.ts`)
 
-A new `registerBuiltinAdapters(registry)` helper alongside the
-existing `createRegistry()` factory:
+**Already implemented** (issue #188) — this section is retained for
+context; no registry work is left for the adapter tickets.
+
+`registerBuiltinAdapters(registry)` lives alongside the `createRegistry()`
+factory and walks a `BUILTIN_ADAPTERS` table in `src/schema/adapters/`:
 
 ```ts
-import { featuresJson } from './adapters/features-json';
-import { featuresCsv } from './adapters/features-csv';
-import { featuresTsv } from './adapters/features-tsv';
-import { bed } from './adapters/bed';
-
-/**
- * Seed the four generic-format adapters into the registry.
- * Called once by the loader at element init alongside the
- * UniProt-API-specific adapter wiring.
- */
 export function registerBuiltinAdapters(registry: Registry): void {
-  registry.registerAdapter('features-json', featuresJson);
-  registry.registerAdapter('features-csv', featuresCsv);
-  registry.registerAdapter('features-tsv', featuresTsv);
-  registry.registerAdapter('bed', bed);
+  for (const [name, fn] of BUILTIN_ADAPTERS) {
+    registry.registerAdapter(name, fn);
+  }
 }
 ```
 
-The `<protvista-uniprot>` element calls this in `_init()` before the
-first `_loadData()`, after the existing UniProt-API adapters have
-been wired into the local adapter map.
+`createRegistry()` calls it once at construction, so the built-ins are
+present on every registry before any config loads — not at element
+`_init()` as originally sketched here. Each adapter ticket therefore
+adds its module plus **one line** to `BUILTIN_ADAPTERS`:
+
+```ts
+export const BUILTIN_ADAPTERS: ReadonlyArray<
+  readonly [KnownAdapterName, AdapterFunction]
+> = [
+  ['features-json', featuresJson],  // ← one line per ticket
+];
+```
+
+Precedence: built-ins register first through the same public
+`registerAdapter()` path consumers use, and a consumer registering the
+same name later overrides the built-in (once). So an adopter whose CSV
+has a different column layout can replace `features-csv` with their own.
 
 ### 4.8 Normalizer (`src/schema/normalize.ts`)
 
@@ -549,7 +555,7 @@ The strip pulled the following passages. Restore them on land:
 One PR.
 
 1. Create `src/schema/adapters/features-json.ts`, `features-csv.ts`, `features-tsv.ts`, `bed.ts` with the parsers in §4.3–§4.6.
-2. Add `registerBuiltinAdapters(registry)` to `src/schema/registry.ts` and call it from the `<protvista-uniprot>` element's `_init()` before the first `_loadData()`.
+2. ~~Add `registerBuiltinAdapters(registry)` to `src/schema/registry.ts`~~ — **done in issue #188**; it exists and `createRegistry()` calls it. Each adapter only adds one line to `BUILTIN_ADAPTERS` in `src/schema/adapters/index.ts`.
 3. Restore the four `KnownAdapterName` entries in `src/schema/types.ts` (under the existing `Generic format adapters` comment block).
 4. Restore `inferAdapterFromExtension` and its three call sites in `src/schema/normalize.ts`.
 5. Restore `KNOWN_EXTENSIONS`, `hasKnownExtension`, `extensionOf`, and the `cannot-infer-adapter` branch in `src/schema/validate.ts`.

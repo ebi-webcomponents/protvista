@@ -22,6 +22,12 @@ import { CSS_PREFIX } from './css-prefix';
  *      isn't a descendant of `<protvista-uniprot>`, so we can't bleed
  *      onto a consumer's own elements anywhere else on the page.
  *
+ * Colours, sizes, and other themable values are read from the
+ * `--protvista-*` design tokens (see `src/styles/tokens.ts`); their
+ * defaults are injected on the `protvista-uniprot` host at render time
+ * and inherit here, so consumers retheme by overriding a token rather
+ * than by targeting these (private, hash-prefixed) class names.
+ *
  * The single exception is `.feature` (below): it is deliberately left
  * unprefixed because the component never *applies* that class itself —
  * the rule styles feature glyphs rendered by Nightingale child
@@ -30,7 +36,7 @@ import { CSS_PREFIX } from './css-prefix';
 const p = unsafeCSS(CSS_PREFIX);
 export default css`
   protvista-uniprot .${p}-track-content {
-    width: 80vw;
+    width: var(--protvista-track-content-width);
   }
 
   protvista-uniprot .${p}-track-content__coloured-sequence {
@@ -53,14 +59,14 @@ export default css`
   protvista-uniprot .${p}-track-label,
   protvista-uniprot .${p}-nav-track-label,
   protvista-uniprot .${p}-credits {
-    min-width: 20vw;
-    max-width: 20vw;
+    min-width: var(--protvista-label-width);
+    max-width: var(--protvista-label-width);
     padding: 0.5em;
     line-height: normal;
   }
 
   protvista-uniprot .${p}-group-label {
-    background-color: #b2f5ff;
+    background-color: var(--protvista-group-label-bg);
     cursor: pointer;
   }
 
@@ -71,7 +77,7 @@ export default css`
     height: 0;
     border-top: 5px solid transparent;
     border-bottom: 5px solid transparent;
-    border-left: 5px solid #333;
+    border-left: 5px solid var(--protvista-caret-color);
     margin-right: 5px;
     -webkit-transition: all 0.1s;
     /* Safari */
@@ -86,27 +92,27 @@ export default css`
     height: 0;
     border-left: 5px solid transparent;
     border-right: 5px solid transparent;
-    border-top: 5px solid #333;
+    border-top: 5px solid var(--protvista-caret-color);
     margin-right: 5px;
   }
 
   protvista-uniprot .${p}-track-label {
-    background-color: #d9faff;
+    background-color: var(--protvista-track-label-bg);
   }
 
   protvista-uniprot nightingale-track-canvas {
-    border-top: 1px solid #d9faff;
+    border-top: 1px solid var(--protvista-track-border-color);
   }
 
   protvista-uniprot nightingale-navigation .handle {
-    fill: darkgrey;
-    stroke: black;
+    fill: var(--protvista-nav-handle-fill);
+    stroke: var(--protvista-nav-handle-stroke);
     stroke-width: 0.5px;
     height: 19px;
   }
 
   protvista-uniprot nightingale-filter {
-    font-size: 0.8rem;
+    font-size: var(--protvista-font-size);
   }
 
   /* Intentionally unprefixed: styles feature glyphs rendered by
@@ -121,7 +127,7 @@ export default css`
    *
    * The popover is a plain <div role="tooltip"> attached to the host's
    * light DOM. Floating UI handles positioning via an inline
-   * \`transform\`; everything else is themable here.
+   * \`transform\`; everything else is themable via \`--protvista-tooltip-*\`.
    *
    * Layout: the resolver emits a flat \`<h5>Label</h5><p>value</p>\`
    * stream per field. We turn that into a dense two-column grid
@@ -130,15 +136,15 @@ export default css`
    * compact definition-list look.
    * ------------------------------------------------------------------------- */
   protvista-uniprot .protvista-tooltip {
-    background: #fff;
-    color: #222;
-    border: 1px solid #c5c8cc;
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: var(--protvista-tooltip-bg);
+    color: var(--protvista-tooltip-color);
+    border: 1px solid var(--protvista-tooltip-border);
+    border-radius: var(--protvista-radius);
+    box-shadow: var(--protvista-shadow-popover);
     padding: 0.5em 0.75em;
-    font-size: 0.8rem;
+    font-size: var(--protvista-font-size);
     line-height: 1.35;
-    max-width: 320px;
+    max-width: var(--protvista-tooltip-max-width);
   }
 
   protvista-uniprot .protvista-tooltip .content {
@@ -155,7 +161,7 @@ export default css`
     padding: 0;
     font-size: inherit;
     font-weight: 600;
-    color: #4a5056;
+    color: var(--protvista-color-text-muted);
     white-space: nowrap;
   }
 
@@ -188,22 +194,22 @@ export default css`
      selector matches plain sides plus the -start / -end variants
      flip() can produce. */
   protvista-uniprot .protvista-tooltip .arrow {
-    background: #fff;
+    background: var(--protvista-tooltip-bg);
   }
   protvista-uniprot .protvista-tooltip[data-placement^='top'] .arrow {
-    border-right: 1px solid #c5c8cc;
-    border-bottom: 1px solid #c5c8cc;
+    border-right: 1px solid var(--protvista-tooltip-border);
+    border-bottom: 1px solid var(--protvista-tooltip-border);
   }
   protvista-uniprot .protvista-tooltip[data-placement^='bottom'] .arrow {
-    border-left: 1px solid #c5c8cc;
-    border-top: 1px solid #c5c8cc;
+    border-left: 1px solid var(--protvista-tooltip-border);
+    border-top: 1px solid var(--protvista-tooltip-border);
   }
   protvista-uniprot .protvista-tooltip[data-placement^='left'] .arrow {
-    border-top: 1px solid #c5c8cc;
-    border-right: 1px solid #c5c8cc;
+    border-top: 1px solid var(--protvista-tooltip-border);
+    border-right: 1px solid var(--protvista-tooltip-border);
   }
   protvista-uniprot .protvista-tooltip[data-placement^='right'] .arrow {
-    border-bottom: 1px solid #c5c8cc;
-    border-left: 1px solid #c5c8cc;
+    border-bottom: 1px solid var(--protvista-tooltip-border);
+    border-left: 1px solid var(--protvista-tooltip-border);
   }
 `;

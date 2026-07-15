@@ -12,6 +12,7 @@ import externalLinkIcon from './icons/external-link.svg';
 
 import loaderIcon from './icons/spinner.svg';
 import loaderStyles from './styles/loader-styles';
+import { injectStyleOnce, installTokenDefaults } from './styles/inject';
 
 const PDBLinks = [
   { name: 'PDBe', link: 'https://www.ebi.ac.uk/pdbe-srv/view/entry/' },
@@ -280,26 +281,28 @@ const process3DBeaconsData = (
   );
 };
 
+// The legend swatch colours mirror the AlphaFold pLDDT / AlphaMissense
+// pathogenicity ramps used by the track rendering — they are data
+// encodings, not themable UI, so they live as fixed values in classed
+// rules (see `cssStyle`) rather than `--protvista-*` tokens. Classing
+// them (instead of inline `style=`) keeps the template CSP-clean.
 const AFMetaInfo = html`
   <strong>Model Confidence:</strong>
   <ul class="no-bullet">
     <li>
-      <span class="af-legend" style="background-color: rgb(0, 83, 214)"></span>
+      <span class="af-legend af-legend--very-high"></span>
       Very high (pLDDT > 90)
     </li>
     <li>
-      <span
-        class="af-legend"
-        style="background-color: rgb(101, 203, 243)"
-      ></span>
+      <span class="af-legend af-legend--confident"></span>
       Confident (90 > pLDDT > 70)
     </li>
     <li>
-      <span class="af-legend" style="background-color:rgb(255, 219, 19)"></span>
+      <span class="af-legend af-legend--low"></span>
       Low (70 > pLDDT > 50)
     </li>
     <li>
-      <span class="af-legend" style="background-color:rgb(255, 125, 69)"></span>
+      <span class="af-legend af-legend--very-low"></span>
       Very low (pLDDT < 50)
     </li>
   </ul>
@@ -313,18 +316,15 @@ const AMMetaInfo = html`
   <strong>Model Pathogenicity:</strong>
   <ul class="no-bullet">
     <li>
-      <span class="af-legend" style="background-color: rgb(154, 19, 26)"></span>
+      <span class="af-legend af-legend--am-pathogenic"></span>
       Likely pathogenic (score > 0.564)
     </li>
     <li>
-      <span
-        class="af-legend"
-        style="background-color: rgb(168, 169, 173)"
-      ></span>
+      <span class="af-legend af-legend--am-uncertain"></span>
       Uncertain (0.564 >= score >= 0.34)
     </li>
     <li>
-      <span class="af-legend" style="background-color: rgb(61, 84, 147)"></span>
+      <span class="af-legend af-legend--am-benign"></span>
       Likely benign (score < 0.34)
     </li>
   </ul>
@@ -335,17 +335,21 @@ const AMMetaInfo = html`
   </p>
 `;
 
+// These links are rendered as datatable cell content, i.e. inside the
+// datatable's shadow root — so their layout is styled by the datatable's
+// own `.cell-link` utility classes (see protvista-uniprot-datatable.ts),
+// not the structure component's global stylesheet, which cannot reach
+// into the shadow tree. Classing (instead of inline `style=`) keeps the
+// markup CSP-clean.
 const sourceDownloadLink = (downloadUrl: string) =>
   html`<a
     href="${downloadUrl}"
     aria-label="Download source file"
     title="Download source file"
-    style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;"
+    class="cell-link"
   >
     Source
-    <span style="display: inline-flex; width: 0.9em; height: 0.9em;">
-      ${svg`${unsafeHTML(downloadIcon)}`}
-    </span>
+    <span class="cell-link__icon">${svg`${unsafeHTML(downloadIcon)}`}</span>
   </a>`;
 
 const foldseekLink = (accession: string, sourceDB: string) => {
@@ -356,12 +360,12 @@ const foldseekLink = (accession: string, sourceDB: string) => {
     rel="noopener noreferrer"
     aria-label="Open Foldseek in a new tab"
     title="Open Foldseek in a new tab"
-    style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;"
+    class="cell-link"
   >
     Foldseek
-    <span style="display: inline-flex; width: 0.8em; height: 0.8em;">
-      ${svg`${unsafeHTML(externalLinkIcon)}`}
-    </span>
+    <span class="cell-link__icon cell-link__icon--sm"
+      >${svg`${unsafeHTML(externalLinkIcon)}`}</span
+    >
   </a>`;
 };
 
@@ -580,25 +584,16 @@ class ProtvistaUniprotStructure extends LitElement {
     this.onRowSelected(data[0]);
   }
 
-  disconnectedCallback() {
-    this.removeStyles();
-  }
-
   addStyles() {
-    // We are not using static get styles() as we are not using the shadowDOM because of Mol*
-    if (!document.getElementById(styleId)) {
-      const styleTag = document.createElement('style');
-      styleTag.id = styleId;
-      styleTag.textContent = `
-      ${loaderStyles.toString()}
-      ${this.cssStyle}
-      `;
-      document.querySelector('head')?.append(styleTag);
-    }
-  }
-
-  removeStyles() {
-    document.getElementById(styleId)?.remove();
+    // We are not using static get styles() as we are not using the shadowDOM because of Mol*.
+    // Shared, keyed, install-once stylesheets (see src/styles/inject.ts):
+    // the token defaults and loader styles are shared with
+    // <protvista-uniprot>. These are never removed on disconnect — the
+    // shared nodes back every instance, so tearing one down would strip
+    // styling from any other viewer still on the page.
+    installTokenDefaults();
+    injectStyleOnce('loader', loaderStyles.toString());
+    injectStyleOnce(styleId, ProtvistaUniprotStructure.cssStyle.toString());
   }
 
   private onRowSelected(row: ProcessedStructureData) {
@@ -633,8 +628,9 @@ class ProtvistaUniprotStructure extends LitElement {
     this.onRowSelected(e.detail);
   };
 
-  get cssStyle() {
-    return css`
+  // Built once at class definition rather than per instance: addStyles()
+  // runs in every constructor but the sheet is injected only once.
+  private static readonly cssStyle = css`
       .protvista-uniprot-structure {
         line-height: normal;
       }
@@ -681,12 +677,36 @@ class ProtvistaUniprotStructure extends LitElement {
         height: 16px;
       }
 
+      /* Legend swatch colours: fixed data encodings mirroring the
+         AlphaFold pLDDT / AlphaMissense pathogenicity ramps (not themable
+         UI). Classed here rather than set via inline style= on the span. */
+      .protvista-uniprot-structure__meta .af-legend--very-high {
+        background-color: rgb(0, 83, 214);
+      }
+      .protvista-uniprot-structure__meta .af-legend--confident {
+        background-color: rgb(101, 203, 243);
+      }
+      .protvista-uniprot-structure__meta .af-legend--low {
+        background-color: rgb(255, 219, 19);
+      }
+      .protvista-uniprot-structure__meta .af-legend--very-low {
+        background-color: rgb(255, 125, 69);
+      }
+      .protvista-uniprot-structure__meta .af-legend--am-pathogenic {
+        background-color: rgb(154, 19, 26);
+      }
+      .protvista-uniprot-structure__meta .af-legend--am-uncertain {
+        background-color: rgb(168, 169, 173);
+      }
+      .protvista-uniprot-structure__meta .af-legend--am-benign {
+        background-color: rgb(61, 84, 147);
+      }
+
       .am-disabled * {
         cursor: not-allowed;
-        color: #808080;
+        color: var(--protvista-color-disabled);
       }
     `;
-  }
 
   /**
    * we need to use the light DOM.

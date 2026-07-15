@@ -45,6 +45,7 @@ import {
   installClickTooltip,
   type TooltipController,
 } from './tooltips/popover';
+import { renderLabel } from './tooltips/resolve';
 
 import filterConfig, { colorConfig } from './filter-config';
 
@@ -62,6 +63,7 @@ import protvistaStyles from './styles/protvista-styles';
 import loaderStyles from './styles/loader-styles';
 import errorStyles from './styles/error-styles';
 import { CSS_PREFIX } from './styles/css-prefix';
+import { injectStyleOnce, installTokenDefaults } from './styles/inject';
 
 // User-facing error surfaces. `ConfigValidationError` is a value import
 // (used for the `instanceof` narrowing in `_init`'s catch); the display
@@ -353,17 +355,17 @@ class ProtvistaUniprot extends LitElement {
 
   addStyles() {
     // We are not using static get styles() as we are not using the shadowDOM because of Mol*.
-    // Guard against double-install: without this, every <protvista-uniprot>
-    // instance on a page would append its own copy of the stylesheet to
-    // <head>. The marker attribute lets every instance share a single
-    // stylesheet node. (Multi-instance isolation — unique DOM ids, scoped
-    // tooltip popovers, etc. — is tracked separately as a next-branch
-    // issue; this guard is the speculative-use-case partial credit.)
-    if (document.querySelector('style[data-protvista-uniprot]')) return;
-    const styleTag = document.createElement('style');
-    styleTag.setAttribute('data-protvista-uniprot', '');
-    styleTag.textContent = `${protvistaStyles.toString()} ${loaderStyles.toString()} ${errorStyles.toString()}`;
-    document.querySelector('head')?.append(styleTag);
+    // Each stylesheet is installed once per page and shared by every
+    // instance (see src/styles/inject.ts). The token defaults and loader
+    // styles carry their own keys so they are shared with
+    // <protvista-uniprot-structure> rather than duplicated. The error
+    // surface carries its own key too. (Multi-instance isolation — unique
+    // DOM ids, scoped tooltip popovers, etc. — is tracked separately as a
+    // next-branch issue.)
+    installTokenDefaults();
+    injectStyleOnce('loader', loaderStyles.toString());
+    injectStyleOnce('viewer', protvistaStyles.toString());
+    injectStyleOnce('error', errorStyles.toString());
   }
 
   registerWebComponents() {
@@ -1393,10 +1395,12 @@ class ProtvistaUniprot extends LitElement {
    * flagged `standalone` by the normalizer) as one row: a plain
    * (non-clickable) track label plus the track content, with no
    * group-collapse affordance. The label affordances and the inner
-   * element id (`${CSS_PREFIX}-track-${group.id}-${track.id}`) matches the
+   * element id (`${CSS_PREFIX}-track-${group.id}-${track.id}`) match the
    * expanded grouped-track row, so the shared `_loadDataInComponents`
    * data-binding and the `${CSS_PREFIX}-group_${group.id}` visibility
-   * toggle work the same way they do for a collapsible group.
+   * toggle work unchanged. Every wrapper class/id carries `CSS_PREFIX`
+   * for parity with the grouped path (so the `.${CSS_PREFIX}-group` /
+   * `-track-label` / `-track-content` rules apply here too).
    */
   renderStandaloneTrack(group: NormalizedConfig['groups'][number]) {
     const track = group.tracks[0];
@@ -1416,18 +1420,7 @@ class ProtvistaUniprot extends LitElement {
         >
           ${(track.filterUI === 'nightingale-filter' &&
             this.getFilterComponent(`${group.id}-${track.id}`)) ||
-          (track.labelUrl &&
-            this.accession &&
-            html`<a
-              target="_blank"
-              href="${track.labelUrl.replace('{accession}', this.accession)}"
-              >${track.label}</a
-            >`) ||
-          (track.helpPage
-            ? html`<span data-article-id="${track.helpPage}"
-                >${track.label}</span
-              >`
-            : track.label)}
+          unsafeHTML(renderLabel(track.label, this.accession))}
         </div>
         <div
           class="${CSS_PREFIX}-track-content ${track.component ===
@@ -1546,11 +1539,9 @@ class ProtvistaUniprot extends LitElement {
                 title="${group.description ?? ''}"
                 @click="${this.handleGroupClick}"
               >
-                ${group.helpPage
-                  ? html`<span data-article-id="${group.helpPage}"
-                      >${group.label}</span
-                    >`
-                  : group.label}${this._renderGroupBadge(group.id)}
+                ${unsafeHTML(
+                  renderLabel(group.label, this.accession)
+                )}${this._renderGroupBadge(group.id)}
               </div>
               <div
                 data-id="${CSS_PREFIX}-group_${group.id}"
@@ -1600,21 +1591,9 @@ class ProtvistaUniprot extends LitElement {
                     >
                       ${(track.filterUI === 'nightingale-filter' &&
                         this.getFilterComponent(`${group.id}-${track.id}`)) ||
-                      (track.labelUrl &&
-                        this.accession &&
-                        html`<a
-                          target="_blank"
-                          href="${track.labelUrl.replace(
-                            '{accession}',
-                            this.accession
-                          )}"
-                          >${track.label}</a
-                        >`) ||
-                      (track.helpPage
-                        ? html`<span data-article-id="${track.helpPage}"
-                            >${track.label}</span
-                          >`
-                        : track.label)}${this._renderTrackBadge(trackKey)}
+                      unsafeHTML(
+                        renderLabel(track.label, this.accession)
+                      )}${this._renderTrackBadge(trackKey)}
                     </div>
                     ${trackHasData
                       ? html`<div
@@ -1752,11 +1731,9 @@ class ProtvistaUniprot extends LitElement {
           class="${CSS_PREFIX}-group-label"
           title="${group.description ?? ''}"
         >
-          ${group.helpPage
-            ? html`<span data-article-id="${group.helpPage}"
-                >${group.label}</span
-              >`
-            : group.label}${this._renderGroupBadge(group.id)}
+          ${unsafeHTML(
+            renderLabel(group.label, this.accession)
+          )}${this._renderGroupBadge(group.id)}
         </div>
       </div>
     `;
@@ -1890,19 +1867,26 @@ class ProtvistaUniprot extends LitElement {
   }
 
   handleGroupClick(e: MouseEvent) {
-    let target = e.target as Element;
+    const target = e.target as Element;
+    // A Markdoc-rendered label can contain an inline link. A click on that
+    // link should navigate only — not also collapse/expand the group — so
+    // bail before the toggle logic when the click landed on (or inside) an
+    // <a>.
+    if (target.closest('a')) return;
+    // Climb to the group-label host regardless of what inner inline
+    // element (a `{% help %}` span, emphasis) the click landed on — a
+    // Markdoc-rendered label can nest arbitrary inline markup, so a
+    // single-level `parentElement` hop is no longer sufficient.
+    const host = target.closest('[data-group-toggle]');
+    if (!host) return;
 
-    if (target instanceof HTMLSpanElement) {
-      target = target.parentElement as Element;
-    }
+    const toggle = host.getAttribute('data-group-toggle');
 
-    const toggle = target.getAttribute('data-group-toggle');
-
-    if (toggle && !target.classList.contains('open')) {
-      target.classList.add('open');
+    if (toggle && !host.classList.contains('open')) {
+      host.classList.add('open');
       this.openGroups = [...this.openGroups, toggle];
     } else {
-      target.classList.remove('open');
+      host.classList.remove('open');
       this.openGroups = [...this.openGroups].filter((d) => d !== toggle);
     }
   }

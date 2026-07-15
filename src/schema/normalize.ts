@@ -20,13 +20,11 @@
  *   4. Resolves semantic kinds via the registry into (component,
  *      adapter, rendering preset) and folds the preset into the
  *      track's rendering chain.
- *   5. Cascades rendering / labelUrl / helpPage inheritance so the
- *      loader sees fully-resolved per-track blocks (no walking of
+ *   5. Cascades rendering inheritance so the loader sees
+ *      fully-resolved per-track blocks (no walking of
  *      defaults → group → track at render time):
  *
  *         track.rendering > group.rendering > defaults.rendering
- *         track.labelUrl  > defaults.labelUrl
- *         track.helpPage  > group.helpPage  > defaults.helpPage
  *
  *   6. Infers group `component` from child-track `component`s when
  *      omitted (all-same → that component; mixed →
@@ -81,8 +79,7 @@ import type { Registry } from './registry';
 /**
  * Fully-resolved config. The only fields kept optional are those that
  * are semantically optional at runtime (e.g. `accession` — absent in
- * configs not yet bound to a specific protein; `helpPage` — absent
- * when no help link is wanted).
+ * configs not yet bound to a specific protein).
  */
 export interface NormalizedConfig {
   version: '1.0';
@@ -97,8 +94,6 @@ export interface NormalizedConfig {
 export interface NormalizedDefaults {
   /** Always present (at minimum: `{}`). Renderers can spread it safely. */
   rendering: RenderingOptions;
-  labelUrl?: string;
-  helpPage?: string;
 }
 
 export interface NormalizedGroup {
@@ -111,7 +106,6 @@ export interface NormalizedGroup {
   component: ComponentName;
   /** Resolved cascade: defaults → group. */
   rendering: RenderingOptions;
-  helpPage?: string;
   tracks: NormalizedTrack[];
   /**
    * Set only on the synthetic single-track group that wraps an authored
@@ -128,7 +122,6 @@ export interface NormalizedGroup {
 export interface NormalizedTrack {
   id: string;
   label: string;
-  labelUrl?: string;
   /** Preserved verbatim so the validator + loader can use it. */
   kind?: string;
   /** Resolved: track.component > kind.component > parent.component > canvas. */
@@ -147,7 +140,6 @@ export interface NormalizedTrack {
   filterUI?: 'nightingale-filter';
   /** Resolved cascade: defaults → group → kind preset → track. */
   rendering: RenderingOptions;
-  helpPage?: string;
 }
 
 /**
@@ -197,12 +189,6 @@ export function normalizeConfig(
 
   const defaults: NormalizedDefaults = {
     rendering: { ...(config.defaults?.rendering ?? {}) },
-    ...(config.defaults?.labelUrl !== undefined
-      ? { labelUrl: config.defaults.labelUrl }
-      : {}),
-    ...(config.defaults?.helpPage !== undefined
-      ? { helpPage: config.defaults.helpPage }
-      : {}),
   };
 
   // Duplicate top-level-id detection BEFORE we recurse so errors refer
@@ -283,15 +269,12 @@ function normalizeGroup(
     component = 'nightingale-track-canvas';
   }
 
-  const helpPage = c.helpPage ?? defaults.helpPage;
-
   return {
     id: c.id,
     label: c.label ?? titleCaseId(c.id),
     ...(c.description !== undefined ? { description: c.description } : {}),
     component,
     rendering: groupRendering,
-    ...(helpPage !== undefined ? { helpPage } : {}),
     tracks,
   };
 }
@@ -316,8 +299,8 @@ function normalizeGroup(
  * The wrapper mirrors the resolved track: same `id`, `label`
  * (`label === track.label`), and `component`. The renderer reads the
  * `standalone` flag to render a single row with no collapse header;
- * the track's own `label` / `labelUrl` / `description` / `helpPage`
- * drive that row's label affordances.
+ * the track's own `label` / `description` drive that row's label
+ * affordances.
  */
 function normalizeStandalone(
   t: TrackConfig,
@@ -339,7 +322,6 @@ function normalizeStandalone(
     label: track.label,
     component: track.component,
     rendering: { ...defaults.rendering },
-    ...(track.helpPage !== undefined ? { helpPage: track.helpPage } : {}),
     tracks: [track],
     standalone: true,
   };
@@ -392,13 +374,9 @@ function normalizeTrack(
 
   const data = expandData(t, kindDef?.adapter, sources);
 
-  const labelUrl = t.labelUrl ?? defaults.labelUrl;
-  const helpPage = t.helpPage ?? parent?.helpPage ?? defaults.helpPage;
-
   return {
     id: t.id,
     label: t.label ?? titleCaseId(t.id),
-    ...(labelUrl !== undefined ? { labelUrl } : {}),
     ...(t.kind !== undefined ? { kind: t.kind } : {}),
     component,
     data,
@@ -409,7 +387,6 @@ function normalizeTrack(
     ...(t.filter !== undefined ? { filter: t.filter } : {}),
     ...(t.filterUI !== undefined ? { filterUI: t.filterUI } : {}),
     rendering,
-    ...(helpPage !== undefined ? { helpPage } : {}),
   };
 }
 
