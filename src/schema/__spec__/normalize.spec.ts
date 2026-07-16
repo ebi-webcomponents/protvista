@@ -246,6 +246,20 @@ describe('normalizeConfig — data shorthand expansion', () => {
     expect(d.adapter).toBe('features-tsv');
   });
 
+  it('resolves a ./x.bed file path to {from: file, url, adapter: bed}', () => {
+    const out = normalizeConfig(
+      cfg({
+        groups: [
+          { id: 'C', tracks: [track({ id: 't', data: './regions.bed' })] },
+        ],
+      })
+    );
+    const d = out.groups[0].tracks[0].data[0];
+    expect(d.from).toBe('file');
+    expect(d.url).toBe('./regions.bed');
+    expect(d.adapter).toBe('bed');
+  });
+
   it('lets an explicit adapter win over file-extension inference', () => {
     const out = normalizeConfig(
       cfg({
