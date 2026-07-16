@@ -48,6 +48,27 @@ describe('bed adapter', () => {
     ]);
   });
 
+  it('preserves a literal "." name (a valid BED name, not an empty cell)', () => {
+    expect(bed('chr1\t5\t9\t.')).toEqual([
+      { type: 'BED', start: 6, end: 9, description: '.' },
+    ]);
+  });
+
+  it('passes an out-of-range score through verbatim (no 0–1000 → 0–1 shift)', () => {
+    // Guards the load-bearing "no renormalise" decision: an in-range 500
+    // would look identical whether or not a /1000 shift existed.
+    expect(bed('chr1\t100\t200\tpeak\t9999')).toEqual([
+      { type: 'BED', start: 101, end: 200, description: 'peak', score: 9999 },
+    ]);
+  });
+
+  it('accepts fractional and negative scores (real-world BED, matching CSV/TSV)', () => {
+    // Peak-callers / p-value tracks write floats and signed values into the
+    // score column; the adapter must not reject them.
+    expect(bed('chr1\t100\t200\tpeak\t35.7')[0]).toMatchObject({ score: 35.7 });
+    expect(bed('chr1\t100\t200\tpeak\t-10.2')[0]).toMatchObject({ score: -10.2 });
+  });
+
   it('omits description/score when the BED4/BED5 cells are empty', () => {
     // Trailing empty `name` and `score` fields must not produce an empty
     // description or a NaN score.
@@ -69,6 +90,16 @@ describe('bed adapter', () => {
       { type: 'BED', start: 101, end: 200, description: 'peak1' },
       { type: 'BED', start: 301, end: 400, description: 'peak2' },
     ]);
+  });
+
+  it('skips an indented comment line rather than parsing it as data', () => {
+    expect(bed('  # indented note\nchr1\t100\t200')).toEqual([
+      { type: 'BED', start: 101, end: 200 },
+    ]);
+  });
+
+  it('returns [] for empty input', () => {
+    expect(bed('')).toEqual([]);
   });
 
   it('handles CRLF line endings and a trailing newline', () => {

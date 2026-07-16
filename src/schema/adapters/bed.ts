@@ -49,12 +49,14 @@
  */
 
 import type { AdapterFunction } from '../types';
-import type { FeatureRecord } from './dsv';
+import { parseDecimal, type FeatureRecord } from './dsv';
 
 /**
- * BED coordinates (and the spec's score) are non-negative integers, so we
- * accept exactly that. Deliberately stricter than `Number()`, which would
- * coerce `0x10` and `1.5` and silently shift features.
+ * BED coordinates are non-negative integers, so we accept exactly that.
+ * Deliberately stricter than `Number()`, which would coerce `0x10` and
+ * `1.5` and silently shift features. (Score is *not* validated with this —
+ * it uses the DSV siblings' `parseDecimal`, since real BED files carry
+ * fractional / signed scores; see the score branch below.)
  */
 const NON_NEGATIVE_INT = /^\d+$/;
 
@@ -79,7 +81,10 @@ export const bed: AdapterFunction = (raw) => {
     const lineNo = i + 1; // 1-based physical line number for error messages.
 
     // Skip blank lines and BED comment / `track` / `browser` header lines.
-    if (line.trim() === '' || HEADER_LINE.test(line)) continue;
+    // Test the trimmed line so an indented comment is skipped too, not
+    // mis-parsed as (malformed) data.
+    const trimmed = line.trim();
+    if (trimmed === '' || HEADER_LINE.test(trimmed)) continue;
 
     const cols = line.split('\t');
     if (cols.length < 3) {
@@ -105,14 +110,18 @@ export const bed: AdapterFunction = (raw) => {
     if (cols.length >= 4 && cols[3] !== '') record.description = cols[3];
 
     // BED5: score → score, passed through verbatim (no 0–1000 → 0–1 shift).
+    // Validated with the DSV siblings' decimal grammar rather than the
+    // integer coord rule: real BED files carry fractional / signed scores
+    // (peak-caller `-10log10(q)`, p-values, signal), and this keeps the
+    // number grammar identical to `features-csv` / `features-tsv`.
     if (cols.length >= 5 && cols[4].trim() !== '') {
-      const rawScore = cols[4].trim();
-      if (!NON_NEGATIVE_INT.test(rawScore)) {
+      const s = parseDecimal(cols[4]);
+      if (s === null) {
         throw new Error(
           `bed: line ${lineNo}: non-numeric score "${cols[4]}" (BED column 5).`
         );
       }
-      record.score = Number(rawScore);
+      record.score = s;
     }
 
     // BED6 strand and any further columns are dropped.

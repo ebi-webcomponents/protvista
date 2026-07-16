@@ -128,7 +128,7 @@ export const adapters = {
   // map the loader actually invokes to transform a track's fetched body.
   'features-csv': featuresCsv,
   'features-tsv': featuresTsv,
-  bed: bed,
+  bed,
 };
 
 type NightingaleEvent = Event & {
@@ -469,8 +469,8 @@ class ProtvistaUniprot extends LitElement {
           fetchErrors.set(url, { url, kind: 'http', status: response.status });
           return null;
         }
-        // Delimited generic-format bodies (features-csv / features-tsv) are
-        // handed to their adapter as raw text; everything else is JSON.
+        // Delimited generic-format bodies (features-csv / features-tsv / bed)
+        // are handed to their adapter as raw text; everything else is JSON.
         // `response.text()` does not reject on content, so the parse-failure
         // branch below only guards the JSON path.
         if (responseType === 'text') {
