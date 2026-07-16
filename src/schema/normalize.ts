@@ -11,10 +11,10 @@
  *   1. Expands the `data` shorthand forms (string, single descriptor,
  *      array) into a `NormalizedDataSource[]`. Runtime code never has
  *      to branch on "is this a string / object / array?" again.
- *   2. Resolves string-shorthand data rules (sources key, http(s) URL)
- *      per the table in `TrackConfig.data`. Generic-format adapters
- *      for bring-your-own-data files (file-path shorthand and
- *      extension-based adapter inference) is left as future work.
+ *   2. Resolves string-shorthand data rules (sources key, http(s) URL,
+ *      or a known data-file path like `./x.csv` → `from: file` with the
+ *      extension's built-in adapter) per the table in `TrackConfig.data`.
+ *      CSV/TSV file shorthands resolve today; JSON/BED are follow-up work.
  *   3. Fills in defaults for `from` (`"url"` when omitted, `"inline"`
  *      when `inlineData` is present).
  *   4. Resolves semantic kinds via the registry into (component,
@@ -71,6 +71,7 @@ import type {
 } from './types';
 import { isGroupConfig } from './discriminate';
 import type { Registry } from './registry';
+import { dataFileFormatForPath } from './file-formats';
 
 // ─────────────────────────────────────────────────────────────
 // Output types — the canonical shape the loader consumes
@@ -468,16 +469,18 @@ function resolveStringShorthand(
   if (/^https?:\/\//i.test(value)) {
     return { from: 'url', url: value };
   }
-  // 3. Fell off the end. Best-effort: assume the author intended a
+  // 3. A path to a known data file (`./hits.csv`, `../x.tsv`, `/data.csv`)
+  //    → from: file. The adapter is inferred from the extension in
+  //    `expandDescriptor`. The value is kept on `url` so the loader
+  //    fetches it through the same path as a URL source.
+  if (dataFileFormatForPath(value)) {
+    return { from: 'file', url: value };
+  }
+  // 4. Fell off the end. Best-effort: assume the author intended a
   //    sources-key reference. The validator surfaces
   //    "Unknown source key: '<value>' in track <groupId>/<trackId>.
   //    Known sources: ..." with the registered keys listed — a far
   //    better error than any the engine could produce here.
-  //
-  //    Generic-format adapters for bring-your-own-data files
-  //    (`./hits.csv` etc.) is left as future work. Today, authors
-  //    with their own data files use the object form with an explicit
-  //    `from: 'file'` and a `registerAdapter()`-supplied `adapter:`.
   return { from: 'url', source: value };
 }
 
@@ -491,12 +494,16 @@ function expandDescriptor(
   const from: NormalizedDataSource['from'] =
     d.from ?? (d.inlineData !== undefined ? 'inline' : 'url');
 
-  // Adapter inference: explicit `adapter:` wins; otherwise fall back
-  // to the kind's canonical adapter (e.g. a `kind: confidence-score`
-  // track pointed at a raw API URL gets `alphafold-prediction-json`).
-  // File-extension inference (`./x.csv` → `features-csv` etc.) is
-  // left as future work.
-  const adapter = d.adapter ?? kindAdapter;
+  // Adapter inference, most specific first: an explicit `adapter:` wins;
+  // otherwise a known data-file extension on the URL (`./x.csv` →
+  // `features-csv`); otherwise the kind's canonical adapter (e.g. a
+  // `kind: confidence-score` track pointed at a raw API URL gets
+  // `alphafold-prediction-json`).
+  const inferredFromExt =
+    typeof d.url === 'string'
+      ? dataFileFormatForPath(d.url)?.adapter
+      : undefined;
+  const adapter = d.adapter ?? inferredFromExt ?? kindAdapter;
 
   // Resolve `source:` to concrete URL(s) via the sources map. Both
   // fields stay on the descriptor so the validator can still produce

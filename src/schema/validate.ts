@@ -48,6 +48,7 @@ import type {
 } from './types';
 import { isGroupConfig } from './discriminate';
 import type { Registry } from './registry';
+import { dataFileFormatForPath } from './file-formats';
 import type {
   ValidationIssue,
   ValidationResult,
@@ -452,18 +453,17 @@ function checkDescriptor(
 
 /**
  * Apply the string-shorthand resolution rules from
- * `TrackConfig.data`. For this validator we only need to detect two
- * failure cases:
+ * `TrackConfig.data`. For this validator we only need to detect the
+ * one failure case:
  *
- *   - the value is not a URL and not a known sources key →
- *     "Unknown source key".
+ *   - the value is not a URL, not a known data-file path, and not a
+ *     known sources key → "Unknown source key".
  *
- * Generic-format adapters for bring-your-own-data files (CSV / TSV /
- * JSON / BED via `./hits.csv`-style shorthand) is left as future
- * work. Today, file-path values fall through to the
- * unknown-sources-key error; authors with their own data files use
- * the object form with an explicit `from: 'file'` plus a
- * `registerAdapter()`-supplied `adapter:` they pin themselves.
+ * A `./hits.csv`-style path to a known generic format (see
+ * `dataFileFormatForPath`) is accepted here; normalize.ts resolves it
+ * to `from: 'file'` with the extension's built-in adapter. An
+ * unrecognised extension (`./x.gff`) still falls through to the
+ * unknown-source-key error.
  *
  * The rest of the expansion is normalize.ts's job.
  */
@@ -479,7 +479,12 @@ function checkStringShorthand(
   // Rule 2: http(s) URL is OK without any adapter/kind inference.
   if (/^https?:\/\//i.test(value)) return;
 
-  // Rule 3 fell through: treat as sources-key reference, surface
+  // Rule 3: a path to a known data file (`./hits.csv`, `../x.tsv`) is OK
+  // — normalize.ts resolves it to `from: file` with the extension's
+  // built-in adapter, so it will load without an "Unknown adapter" error.
+  if (dataFileFormatForPath(value)) return;
+
+  // Rule 4 fell through: treat as sources-key reference, surface
   // "Unknown source key" with the registered keys list.
   issues.push({
     path: trackPath,

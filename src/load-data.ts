@@ -33,6 +33,7 @@
  */
 
 import type { NormalizedConfig, NormalizedTrack } from './schema/normalize';
+import { TEXT_BODY_ADAPTERS } from './schema/file-formats';
 import type { TransformedInterPro } from './adapters/types/interpro';
 import { resolveTooltip } from './tooltips/resolve';
 import { tooltipDefaults } from './tooltips/defaults';
@@ -48,7 +49,16 @@ type AdapterFn = (...rawArgs: any[]) => unknown | Promise<unknown>;
 
 export type AdapterMap = Record<string, AdapterFn>;
 
-type FetchOne = (url: string) => Promise<unknown>;
+/**
+ * Fetch a single URL. `responseType` tells the fetcher how to read the
+ * body: `'json'` for API responses (the default for every UniProt/AlphaFold
+ * source), `'text'` for delimited bring-your-own-data files (`features-csv`
+ * / `features-tsv`) whose adapters parse raw text.
+ */
+type FetchOne = (
+  url: string,
+  responseType: 'text' | 'json'
+) => Promise<unknown>;
 
 /**
  * Map of `${groupId}-${trackId}` → pre-shaped data for `from: custom`
@@ -164,9 +174,10 @@ function applyTooltipResolver(
 
 /**
  * Extract the URL (`string | string[]`) from a `NormalizedDataSource`.
- * Only `from: url` sources have a usable URL — other sources (inline,
- * file, custom) yield an empty string so the dedupe pass skips them
- * cleanly, matching legacy behaviour.
+ * `from: url` and `from: file` sources both carry a usable `url` (a file
+ * shorthand like `./x.csv` is normalised onto `url`); `inline` and
+ * `custom` sources have none and yield an empty string so the dedupe
+ * pass skips them cleanly.
  */
 function trackUrl(
   data: NormalizedConfig['groups'][number]['tracks'][number]['data']
@@ -230,16 +241,28 @@ export async function loadProtvistaData(
   // authoritative per-track map of the *substituted* URL(s) each track
   // fetched (callers correlate per-URL HTTP failures against it instead of
   // re-deriving the substitution). `trackUrl()` yields an empty string for
-  // `from: inline | file | custom`, so those are excluded from both.
+  // `from: inline | custom`, so those are excluded; `from: file` sources
+  // carry their path on `url`, so they are fetched here like any URL.
   const templates = new Set<string>();
   const trackUrls: Record<string, string[]> = {};
+  // Per-template body type: `text` for the delimited generic-format
+  // adapters, `json` (default) for everything else. Keyed by template so a
+  // URL shared by two tracks resolves once; if any referencing track needs
+  // text, text wins (a delimited body would fail a JSON parse anyway).
+  const bodyType: Map<string, 'text' | 'json'> = new Map();
   for (const group of config.groups) {
     for (const track of group.tracks) {
       const key = `${group.id}-${track.id}`;
       if (!isReloading(key)) continue;
       const raw = trackUrl(track.data);
       const list = (Array.isArray(raw) ? raw : [raw]).filter((u) => u !== '');
-      for (const t of list) templates.add(t);
+      const adapter = track.data[0]?.adapter;
+      const wantsText = adapter !== undefined && TEXT_BODY_ADAPTERS.has(adapter);
+      for (const t of list) {
+        templates.add(t);
+        if (wantsText) bodyType.set(t, 'text');
+        else if (!bodyType.has(t)) bodyType.set(t, 'json');
+      }
       if (list.length > 0) {
         trackUrls[key] = list.map((u) => substituteAccession(u, accession));
       }
@@ -251,12 +274,24 @@ export async function loadProtvistaData(
     await Promise.all(
       urls.map(async (url) => [
         url,
-        await fetchOne(substituteAccession(url as string, accession)),
+        await fetchOne(
+          substituteAccession(url as string, accession),
+          bodyType.get(url) ?? 'json'
+        ),
       ])
     )
   );
 
-  const hasData = Object.values(rawData).some(
+  // `hasData` gates the viewer's empty-state panel. The legacy heuristic
+  // only recognises the UniProt JSON shape (`raw.features.length`), which
+  // is invisible to a bring-your-own file track: its raw body is a CSV/TSV
+  // *string* and its adapted output is a bare feature array with no
+  // `.features` wrapper. So a viewer built solely from `./x.csv` tracks
+  // would parse correctly yet blank out. We additionally set the flag when
+  // a delimited-text track yields a non-empty feature array (see
+  // `assignTrackData`) — additive, so the existing raw-shape semantics
+  // (and the tests that pin them) are unchanged.
+  let hasData = Object.values(rawData).some(
     (d) => !!(d as { features?: unknown[] } | null)?.features?.length
   );
 
@@ -274,6 +309,15 @@ export async function loadProtvistaData(
     data[key] = payload;
     if (track.filterUI === 'nightingale-filter') {
       data[`${key}${UNFILTERED_SUFFIX}`] = payload;
+    }
+    const adapter = track.data[0]?.adapter;
+    if (
+      adapter !== undefined &&
+      TEXT_BODY_ADAPTERS.has(adapter) &&
+      Array.isArray(payload) &&
+      payload.length > 0
+    ) {
+      hasData = true;
     }
   };
 
