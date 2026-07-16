@@ -318,6 +318,11 @@ exporting `featuresCsv` / `featuresTsv` from the same module.
 >    p-values, signal) and the standard tooling (`bedtools`, `pybedtools`)
 >    preserves the column unchanged, so dividing by 1000 would silently
 >    corrupt those files.
+> 3. **Coordinate edge cases are handled**, which the naive `start = n+1,
+>    end = m` shift is not: a zero-length feature (`chromStart == chromEnd`,
+>    a legal insertion point) becomes a single-base point (`start == end`)
+>    instead of an inverted range, and a genuinely inverted
+>    `chromEnd < chromStart` line throws the standard malformed-row error.
 >
 > The code block below is retained as design context; `src/schema/adapters/bed.ts`
 > is the source of truth.
@@ -543,6 +548,7 @@ not a nested `__spec__/adapters/`.)
 
 - BED3, BED4 (`name`), BED5 (`name`, `score`), BED6 (with `strand` — dropped).
 - Coordinate shift: BED 0-indexed half-open → ProtVista 1-indexed inclusive. Pin both edges with explicit fixtures (`100 200` → `start: 101, end: 200`; `0` start → `1`).
+- Zero-length feature (`chromStart == chromEnd`, a legal insertion point) → single-base point `start == end` (not an inverted range); a genuinely inverted `chromEnd < chromStart` line throws a line-named error.
 - Score passed through verbatim: a BED `500` stays `500`.
 - Skip lines: `track …`, `browser …`, `# comment`, blank lines.
 - Sub-3-column rows throw a line-named error.

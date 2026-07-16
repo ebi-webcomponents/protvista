@@ -42,6 +42,18 @@ describe('bed adapter', () => {
     expect(bed('chr1\t0\t10')).toEqual([{ type: 'BED', start: 1, end: 10 }]);
   });
 
+  it('renders a zero-length feature (chromStart === chromEnd) as a single-base point', () => {
+    // Spec-legal insertion point: the empty half-open span collapses to a
+    // 1-based point with start === end (not the inverted {start: 6, end: 5}).
+    expect(bed('chr1\t5\t5')).toEqual([{ type: 'BED', start: 6, end: 6 }]);
+  });
+
+  it('throws a line-named error on a genuinely inverted interval (end < start)', () => {
+    expect(() => bed('chr1\t5\t4')).toThrow(
+      /bed: line 1: end \(4\) is before start \(5\) \(BED columns 2–3\)\./
+    );
+  });
+
   it('maps BED4 name → description without a score', () => {
     expect(bed('chr1\t5\t9\tregion-a')).toEqual([
       { type: 'BED', start: 6, end: 9, description: 'region-a' },

@@ -35,14 +35,25 @@
  *
  * e.g. a BED interval `100  200` becomes `start: 101, end: 200`.
  *
+ * Two coordinate edge cases the naive shift would get wrong:
+ *   - **Zero-length feature** (`chromStart === chromEnd`) — a spec-legal
+ *     insertion point (common in variant-caller BED). The half-open span
+ *     is empty, and the viewer can't represent a zero-width feature, so
+ *     the naive shift would emit the inverted `{ start: n+1, end: n }`.
+ *     Instead we surface it as a single-base point (`start === end`) so it
+ *     renders sensibly rather than silently dropping in the track canvas.
+ *   - **Inverted interval** (`chromEnd < chromStart`) — genuinely corrupt
+ *     BED; treated as a malformed row and thrown like the cases below.
+ *
  * `score` is emitted verbatim (not renormalised to 0–1). The BED spec
  * nominally defines score as 0–1000, but real-world files routinely carry
  * out-of-range values (peak-caller `-10log10(q)`, p-values, signal), and
  * the standard tooling (`bedtools`, `pybedtools`) passes it through
  * unchanged — so dividing by 1000 would silently corrupt those files.
  *
- * On malformed input (fewer than 3 columns, or a non-numeric coordinate /
- * score) this throws a descriptive error naming the offending line. The
+ * On malformed input (fewer than 3 columns, a non-numeric coordinate /
+ * score, or an inverted `end < start` interval) this throws a descriptive
+ * error naming the offending line. The
  * loader's per-track try/catch turns that into the track's parse-failure
  * surface (a `console.warn` + an empty track) rather than crashing the
  * viewer — matching the delimited adapters.
@@ -97,11 +108,24 @@ export const bed: AdapterFunction = (raw) => {
     const start0 = parseCoord(cols[1], lineNo, 'start', 2);
     const end0 = parseCoord(cols[2], lineNo, 'end', 3);
 
-    // BED is 0-based half-open; the viewer is 1-based inclusive.
+    // A genuinely inverted interval is corrupt BED — surface it like any
+    // other malformed row. (chromEnd === chromStart is *not* inverted; it
+    // is a legal zero-length feature, handled below.)
+    if (end0 < start0) {
+      throw new Error(
+        `bed: line ${lineNo}: end (${end0}) is before start (${start0}) ` +
+          `(BED columns 2–3).`
+      );
+    }
+
+    // BED is 0-based half-open; the viewer is 1-based inclusive. A
+    // zero-length feature (chromStart === chromEnd) collapses to a
+    // single-base point (start === end) rather than an inverted range.
+    const start = start0 + 1;
     const record: FeatureRecord = {
       type: 'BED',
-      start: start0 + 1,
-      end: end0,
+      start,
+      end: end0 === start0 ? start : end0,
     };
 
     // BED4: name → description (skip an empty / placeholder `.` cell only
