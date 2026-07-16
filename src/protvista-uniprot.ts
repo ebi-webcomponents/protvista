@@ -34,6 +34,7 @@ import alphaMissensePathogenicityAdapter from './adapters/alphamissense-pathogen
 import alphaMissenseHeatmapAdapter from './adapters/alphamissense-heatmap-adapter';
 import { featuresCsv } from './schema/adapters/features-csv';
 import { featuresTsv } from './schema/adapters/features-tsv';
+import { featuresJson } from './schema/adapters/features-json';
 
 import ProtvistaUniprotStructure from './protvista-uniprot-structure';
 
@@ -127,6 +128,7 @@ export const adapters = {
   // map the loader actually invokes to transform a track's fetched body.
   'features-csv': featuresCsv,
   'features-tsv': featuresTsv,
+  'features-json': featuresJson,
 };
 
 type NightingaleEvent = Event & {

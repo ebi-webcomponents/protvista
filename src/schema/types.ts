@@ -587,10 +587,10 @@ export type ComponentName = KnownComponentName | (string & {});
  * field resolves to one automatically.
  *
  * Generic-format adapters for bring-your-own-data files use the
- * `features-<format>` naming. `features-csv` and `features-tsv` ship
- * today (point a track at `./x.csv` / `./x.tsv`); `features-json` and
- * `bed` are follow-up work. Authors with a bespoke format still register
- * a custom adapter via `registerAdapter()` and pin it with
+ * `features-<format>` naming. `features-csv`, `features-tsv`, and
+ * `features-json` ship today (point a track at `./x.csv` / `./x.tsv` /
+ * `./x.json`); `bed` is follow-up work. Authors with a bespoke format
+ * still register a custom adapter via `registerAdapter()` and pin it with
  * `adapter: <name>` on the descriptor.
  */
 export type KnownAdapterName =
@@ -607,7 +607,8 @@ export type KnownAdapterName =
   | 'alphamissense-average-csv'
   | 'alphamissense-full-csv'
   | 'features-csv'
-  | 'features-tsv';
+  | 'features-tsv'
+  | 'features-json';
 
 /** Open-ended `AdapterName`. Adapters registered via `registerAdapter()` also type-check. */
 export type AdapterName = KnownAdapterName | (string & {});

@@ -36,7 +36,7 @@ groups:
 
 A bench scientist writes only domain-level concepts (`kind: features`, the `my_hotspots` source-key) — never Nightingale component names, adapter names, or JavaScript. See [Example 4](#example-4-extending-the-ebi-default--one-line-one-new-track) for the full behaviour.
 
-> **Note.** Generic-format adapters let an author point a track at a local file with a `data: ./hotspots.csv` shorthand. **CSV and TSV ship today** (`features-csv` / `features-tsv`, pre-registered out of the box); **JSON and BED are a planned addition** — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md). For a format not yet covered, the BYO-data path goes through a hosted URL or a `registerAdapter()`-supplied custom adapter pinned with `adapter: <name>` on the descriptor.
+> **Note.** Generic-format adapters let an author point a track at a local file with a `data: ./hotspots.csv` shorthand. **CSV, TSV, and JSON ship today** (`features-csv` / `features-tsv` / `features-json`, pre-registered out of the box); **BED is a planned addition** — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md). For a format not yet covered, the BYO-data path goes through a hosted URL or a `registerAdapter()`-supplied custom adapter pinned with `adapter: <name>` on the descriptor.
 
 ## Non-Goals
 
@@ -278,12 +278,14 @@ interface TrackConfig {
    * Adapter inference: the track's semantic `kind` selects the
    * canonical adapter.
    *
-   * File-path shorthand against generic-format adapters (CSV / TSV /
-   * JSON / BED via `data: ./hits.csv`-style values) is a planned
-   * addition — see `specs/generic-format-adapters.md`. Until those
-   * adapters ship, authors with their own data files use the object
-   * form with an explicit `from: 'file'` plus a `registerAdapter()`-
-   * supplied `adapter:` they pin themselves.
+   * File-path shorthand against generic-format adapters resolves the
+   * adapter from the extension: `./hits.csv → features-csv`,
+   * `./hits.tsv → features-tsv`, `./hits.json → features-json` (all
+   * pre-registered and shipping today; `.bed → bed` is a planned
+   * addition — see `specs/generic-format-adapters.md`). For a format
+   * not yet covered, authors use the object form with an explicit
+   * `from: 'file'` plus a `registerAdapter()`-supplied `adapter:` they
+   * pin themselves.
    *
    * The array form is normalized internally; runtime code always
    * sees `DataSourceDescriptor[]`.
@@ -608,9 +610,10 @@ type ComponentName = KnownComponentName | (string & {});
  * visible only when overriding the default or registering a
  * custom one at runtime.
  *
- * Generic-format adapters for bring-your-own-data files (CSV / TSV /
- * JSON / BED) are a planned addition — see
- * `specs/generic-format-adapters.md` for the design.
+ * Generic-format adapters for bring-your-own-data files ship today for
+ * CSV / TSV / JSON (`features-csv` / `features-tsv` / `features-json`);
+ * BED is a planned addition — see `specs/generic-format-adapters.md`
+ * for the design.
  */
 type KnownAdapterName =
   // ── Source-specific (coupled to a particular API output) ──
@@ -1049,7 +1052,9 @@ groups:
 
 At load time the loader recognises `./hotspots.csv` as a file source, fetches it as **text** (not JSON), runs `features-csv` to turn the rows into feature records, and renders them on `nightingale-track-canvas` exactly as a URL-sourced `kind: features` track would. A `.tsv` file behaves identically via `features-tsv`. The header row must be `type,start,end,description[,score]`; `start`/`end`/`score` are coerced to numbers.
 
-> **Note.** CSV and TSV ship today; JSON and BED file shorthands are a planned addition — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md).
+A `.json` file behaves the same via `features-json`, except the body is fetched as **JSON** (not text): the file must be an array of feature objects — `[{ "type": "DOMAIN", "start": 10, "end": 25, "description": "…", "score": 0.9 }, …]`. The start coordinate may be given as either `start` or `begin` (normalised to `start`); `description` and `score` are optional. A malformed record throws a descriptive, record-and-field-named error (e.g. `features-json: record 2, field "start": expected a number, got "abc"`), which the loader turns into an empty track plus a console warning rather than crashing the viewer.
+
+> **Note.** CSV, TSV, and JSON ship today; the BED file shorthand is a planned addition — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md).
 
 ## Edge Cases & Error Handling
 
@@ -1163,8 +1168,8 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 - [x] Built-in themes `alphafold-ramp` and `alphamissense-ramp` are defined once, used by default in `confidence-score` / `pathogenicity-score` semantic kinds, and available to any track via `colorScale.theme`.
 - [x] An external-lab adopter can write a ten-line config using `extends:` pointing at a URL or local file path to a base config and add one extra track, with the base viewer inherited intact.
 - [x] `accession` can be supplied via config, HTML attribute, or `setConfig()`. The HTML attribute takes precedence over the config value. A config with `{accession}` placeholders but no accession from any source fails validation with a clear message.
-- [x] Generic-format adapters `features-csv` and `features-tsv` are pre-registered on every fresh registry. A track that points at `./x.csv` / `./x.tsv` loads end to end — inferring the adapter from the extension, fetching the file as text, and rendering on `nightingale-track-canvas` — without consumer-side adapter registration. (`features-json` / `bed` are follow-up work.)
-- [x] File-extension shorthand (`./hits.csv` → `features-csv`, `./hits.tsv` → `features-tsv`) maps to the matching pre-registered adapter; a malformed file makes the adapter throw a descriptive error naming the offending row (and, where applicable, column), which the loader logs while rendering that track empty.
+- [x] Generic-format adapters `features-csv`, `features-tsv`, and `features-json` are pre-registered on every fresh registry. A track that points at `./x.csv` / `./x.tsv` / `./x.json` loads end to end — inferring the adapter from the extension, fetching the file as text (CSV/TSV) or JSON, and rendering on `nightingale-track-canvas` — without consumer-side adapter registration. (`bed` is follow-up work.)
+- [x] File-extension shorthand (`./hits.csv` → `features-csv`, `./hits.tsv` → `features-tsv`, `./hits.json` → `features-json`) maps to the matching pre-registered adapter; a malformed file makes the adapter throw a descriptive error naming the offending row/record (and, where applicable, the column/field), which the loader logs while rendering that track empty.
 
 ## Tests
 

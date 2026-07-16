@@ -32,8 +32,8 @@ export interface DataFileFormat {
 export const DATA_FILE_FORMATS: Record<string, DataFileFormat> = {
   '.csv': { ext: '.csv', adapter: 'features-csv', body: 'text' },
   '.tsv': { ext: '.tsv', adapter: 'features-tsv', body: 'text' },
-  // features-json + bed ticket adds:
-  // '.json': { ext: '.json', adapter: 'features-json', body: 'json' },
+  '.json': { ext: '.json', adapter: 'features-json', body: 'json' },
+  // bed ticket adds:
   // '.bed':  { ext: '.bed',  adapter: 'bed',           body: 'text' },
 };
 
@@ -46,6 +46,19 @@ export const TEXT_BODY_ADAPTERS: ReadonlySet<string> = new Set(
   Object.values(DATA_FILE_FORMATS)
     .filter((f) => f.body === 'text')
     .map((f) => f.adapter)
+);
+
+/**
+ * Every built-in generic-format (bring-your-own-file) adapter, regardless
+ * of body type. Derived from {@link DATA_FILE_FORMATS}. Unlike
+ * {@link TEXT_BODY_ADAPTERS} — which drives the fetch-as-text decision and
+ * so must exclude JSON — this set gates the viewer's `hasData` empty-state
+ * check, which cares only that a track produced a non-empty feature array
+ * (see `assignTrackData` in `load-data.ts`). It therefore includes the
+ * JSON-body `features-json` too.
+ */
+export const GENERIC_FILE_ADAPTERS: ReadonlySet<string> = new Set(
+  Object.values(DATA_FILE_FORMATS).map((f) => f.adapter)
 );
 
 /**

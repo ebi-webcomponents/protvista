@@ -219,33 +219,49 @@ adapter supplied a non-empty value). Adapters that produce additional
 fields are fine — they pass through to the tooltip resolver and are
 addressable from `dataTooltip` `path` values.
 
-### 4.3 `features-json` (`src/schema/adapters/features-json.ts`)
+### 4.3 `features-json` (`src/schema/adapters/features-json.ts`) — shipped
 
-The simplest of the four. The fetch already produced parsed JSON; the
-adapter validates it's an array of objects and lets it through:
+The simplest of the four: the fetch already produced parsed JSON, so
+there is no tokenizer — just structural validation. As shipped (issue
+#189) it follows the same **strict, throw-with-index** convention as
+`features-csv` / `features-tsv` rather than the lenient filter-and-warn
+originally sketched here:
+
+- A body that is not an array → `console.warn` + return `[]` (the
+  defensive wrong-container guard, mirroring the delimited adapters'
+  non-string guard).
+- Each element is validated and pared down to the canonical
+  `FeatureRecord` shape. The start coordinate is read from `start` **or**
+  `begin` (UniProt convention) and normalised to `start`; `start` wins
+  when both are present. `description` / `score` are optional.
+- Any malformed record **throws** an `Error` naming the 0-based array
+  index and the field, e.g.
+  `features-json: record 2, field "start": expected a number, got "abc"`.
+  Coordinates and score must be genuine finite JSON numbers — a string
+  coordinate (`"10"`) is a type error and is rejected, not coerced. The
+  loader's per-track try/catch turns the throw into an empty track plus a
+  console warning, so one bad file never crashes the viewer.
 
 ```ts
 import type { AdapterFunction } from '../types';
+import type { FeatureRecord } from './dsv';
 
 export const featuresJson: AdapterFunction = (raw) => {
   if (!Array.isArray(raw)) {
     console.warn(
-      "[protvista] features-json adapter: expected an array; got " +
+      '[protvista] features-json adapter: expected an array; got ' +
         typeof raw +
-        ". Treating as empty."
+        '. Treating as empty.'
     );
     return [];
   }
-  // Filter rows that don't carry the required fields. We don't throw —
-  // a malformed row shouldn't take the whole track down.
-  return raw.filter(
-    (r): r is Record<string, unknown> =>
-      r != null &&
-      typeof r === 'object' &&
-      typeof (r as { type: unknown }).type === 'string' &&
-      Number.isFinite((r as { start: unknown }).start) &&
-      Number.isFinite((r as { end: unknown }).end)
-  );
+  const records: FeatureRecord[] = [];
+  raw.forEach((item, i) => {
+    // …validate item; throw `features-json: record ${i}, field "…": …`
+    // on any violation; push a clean { type, start, end, description?,
+    // score? } record. See the source for the full checks.
+  });
+  return records;
 };
 ```
 
