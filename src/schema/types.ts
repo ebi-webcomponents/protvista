@@ -298,16 +298,16 @@ export interface TrackConfig {
    *   - matches a key in root `sources`  → { from: url,  source: <value> }
    *   - starts with http:// or https://  → { from: url,  url: <value> }
    *   - path to a known data file        → { from: file, url: <value> }
-   *     (`./x.csv`, `./x.tsv`)
+   *     (`./x.csv`, `./x.tsv`, `./x.bed`)
    *
    * Adapter inference (most specific first): an explicit `adapter:`
    * wins; otherwise a known data-file extension on the URL (`./x.csv`
-   * → `features-csv`, `./x.tsv` → `features-tsv`); otherwise the
-   * track's semantic `kind` selects the canonical adapter.
+   * → `features-csv`, `./x.tsv` → `features-tsv`, `./x.bed` → `bed`);
+   * otherwise the track's semantic `kind` selects the canonical adapter.
    *
-   * Generic-format file adapters: CSV and TSV ship today
-   * (`features-csv` / `features-tsv`, pre-registered); JSON and BED
-   * file shorthands are follow-up work. For a format not yet covered,
+   * Generic-format file adapters: CSV, TSV, and BED ship today
+   * (`features-csv` / `features-tsv` / `bed`, pre-registered); the JSON
+   * file shorthand is follow-up work. For a format not yet covered,
    * register a custom adapter via `registerAdapter()` and pin it with
    * `adapter: <name>` on the descriptor.
    *
@@ -587,10 +587,11 @@ export type ComponentName = KnownComponentName | (string & {});
  * field resolves to one automatically.
  *
  * Generic-format adapters for bring-your-own-data files use the
- * `features-<format>` naming. `features-csv` and `features-tsv` ship
- * today (point a track at `./x.csv` / `./x.tsv`); `features-json` and
- * `bed` are follow-up work. Authors with a bespoke format still register
- * a custom adapter via `registerAdapter()` and pin it with
+ * `features-<format>` naming (except `bed`, which keeps its well-known
+ * format name). `features-csv`, `features-tsv`, and `bed` ship today
+ * (point a track at `./x.csv` / `./x.tsv` / `./x.bed`); `features-json`
+ * is follow-up work. Authors with a bespoke format still register a
+ * custom adapter via `registerAdapter()` and pin it with
  * `adapter: <name>` on the descriptor.
  */
 export type KnownAdapterName =
@@ -606,8 +607,12 @@ export type KnownAdapterName =
   | 'alphafold-prediction-json'
   | 'alphamissense-average-csv'
   | 'alphamissense-full-csv'
+  /** CSV with columns: `type,start,end,description[,score]`. */
   | 'features-csv'
-  | 'features-tsv';
+  /** TSV (tab-separated) with the same columns as `features-csv`. */
+  | 'features-tsv'
+  /** Standard BED (tab-separated). 0-based half-open → shifted to 1-based inclusive. */
+  | 'bed';
 
 /** Open-ended `AdapterName`. Adapters registered via `registerAdapter()` also type-check. */
 export type AdapterName = KnownAdapterName | (string & {});

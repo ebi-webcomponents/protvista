@@ -115,6 +115,7 @@ describe('Registry — built-in seeding', () => {
     const r = createRegistry();
     expect(r.hasAdapter('features-csv')).toBe(true);
     expect(r.hasAdapter('features-tsv')).toBe(true);
+    expect(r.hasAdapter('bed')).toBe(true);
   });
 });
 

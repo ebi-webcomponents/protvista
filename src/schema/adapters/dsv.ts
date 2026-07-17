@@ -1,17 +1,21 @@
 /**
  * Shared parser core for the delimited generic-format adapters
- * (`features-csv`, `features-tsv`, and — when it lands — `bed`).
+ * (`features-csv`, `features-tsv`, and `bed`).
  *
- * Two independent pieces live here so they can be reused without
+ * Three independent pieces live here so they can be reused without
  * dragging the feature-mapping opinions along:
  *
  *   - `parseDelimited()` is a format-agnostic RFC-4180 tokenizer. It
  *     knows about quoting and delimiters, nothing about ProtVista
- *     features. `bed` (tab-delimited, headerless, positional columns)
- *     can reuse it directly.
+ *     features. `bed` does *not* use it — BED is headerless and
+ *     positional with no quoting to honour, so `bed` hand-splits on
+ *     tabs and shares only `parseDecimal` and the `FeatureRecord` shape
+ *     from this module.
  *   - `rowsToFeatureRecords()` layers the ProtVista feature convention
  *     on top: a required `type,start,end,description[,score]` header,
  *     numeric coercion, and strict, row/column-named error reporting.
+ *   - `parseDecimal()` is the shared strict-number validator, reused by
+ *     `bed` for its `score` column so the number grammars can't drift.
  *
  * We deliberately hand-roll the tokenizer rather than pull in
  * `d3-dsv`/`papaparse`: it is small and stable, the shipped web-component
@@ -122,7 +126,7 @@ const REQUIRED_COLUMNS = ['type', 'start', 'end', 'description'] as const;
 const DECIMAL = /^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$/;
 
 /** Parse a trimmed decimal token, or `null` if it is empty / not decimal. */
-function parseDecimal(raw: string): number | null {
+export function parseDecimal(raw: string): number | null {
   const t = raw.trim();
   if (t === '' || !DECIMAL.test(t)) return null;
   const n = Number(t);
