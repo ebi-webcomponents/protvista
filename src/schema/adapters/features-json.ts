@@ -11,9 +11,16 @@
  *
  * Each record's start coordinate may be given as either `start` or
  * `begin` (the UniProt convention); it is normalised to `start` on
- * output. Records are pared down to the canonical `FeatureRecord` shape
- * the Nightingale tracks consume — extra fields are dropped so the four
+ * output. `start` wins when both are present and non-null; a `null`
+ * (or absent) `start` falls back to `begin` rather than masking it.
+ * Records are pared down to the canonical `FeatureRecord` shape the
+ * Nightingale tracks consume — extra fields are dropped so the four
  * generic adapters share one output contract.
+ *
+ * `description` and `score` are optional: absent or `null` omits the
+ * field from the output, but a *present* value of the wrong type (e.g.
+ * `description: 42`, `score: "high"`) throws rather than being silently
+ * dropped — both fields are held to the same type contract.
  *
  * Malformed input throws a descriptive, record/field-named error (naming
  * the offending array index and field); the loader's per-track try/catch
@@ -67,7 +74,10 @@ export const featuresJson: AdapterFunction = (raw) => {
     }
 
     // Accept `start` or `begin`; `start` wins when both are present.
-    const rawStart = r.start !== undefined ? r.start : r.begin;
+    // `!= null` (not `!== undefined`) so an explicit `start: null` falls
+    // back to `begin` instead of masking it — matching the `score` guard
+    // below, which likewise treats `null` as absent.
+    const rawStart = r.start != null ? r.start : r.begin;
     if (!isFiniteNumber(rawStart)) {
       throw new Error(
         `${FORMAT_LABEL}: record ${i}, field "start": expected a number, ` +
@@ -87,8 +97,16 @@ export const featuresJson: AdapterFunction = (raw) => {
       end: r.end,
     };
 
-    if (typeof r.description === 'string' && r.description !== '') {
-      record.description = r.description;
+    if (r.description !== undefined && r.description !== null) {
+      if (typeof r.description !== 'string') {
+        throw new Error(
+          `${FORMAT_LABEL}: record ${i}, field "description": expected a ` +
+            `string, got ${describe(r.description)}.`
+        );
+      }
+      if (r.description !== '') {
+        record.description = r.description;
+      }
     }
 
     if (r.score !== undefined && r.score !== null) {

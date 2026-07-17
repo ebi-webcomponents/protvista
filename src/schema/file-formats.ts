@@ -10,11 +10,11 @@
  *   - `load-data.ts` — decides whether to read a track's response as text
  *     (delimited formats) or JSON.
  *
- * To add a format (the follow-up `features-json` + `bed` ticket): add one
- * row below and register the adapter in `adapters/index.ts` and the
- * runtime `adapters` map in `protvista-uniprot.ts`. Nothing else here
- * needs to change — `body: 'json'` vs `'text'` already distinguishes a
- * JSON payload (`features-json`) from delimited text (`bed`).
+ * To add a format (the follow-up `bed` ticket): add one row below and
+ * register the adapter in `adapters/index.ts` and the runtime `adapters`
+ * map in `protvista-uniprot.ts`. Nothing else here needs to change —
+ * `body: 'json'` vs `'text'` already distinguishes a JSON payload
+ * (`features-json`) from delimited text (`bed`).
  */
 
 import type { KnownAdapterName } from './types';

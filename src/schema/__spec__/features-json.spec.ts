@@ -4,9 +4,13 @@
  * Covers:
  *   - happy path: an array of feature objects → clean feature records
  *     (`type`, `start`, `end`, optional `description` / `score`);
- *   - the `begin` alias normalising to `start` (and `start` winning when
- *     both are present);
- *   - `description` / `score` omitted when absent or empty;
+ *   - the `begin` alias normalising to `start` (`start` winning when both
+ *     are present, and a `null` `start` falling back to `begin` rather
+ *     than masking it);
+ *   - `description` / `score` omitted when absent, `null`, or (for
+ *     `description`) empty — but a present, wrong-typed value throws;
+ *   - `isFiniteNumber` accepting negative/float coordinates and rejecting
+ *     `NaN` / `Infinity`, and retaining a falsy `score: 0`;
  *   - strict, record/field-named errors on malformed input (non-string
  *     `type`, non-number `start` / `end` / `score`, non-object element);
  *   - the non-array guard returning `[]` with a warning.
@@ -37,6 +41,24 @@ describe('features-json adapter', () => {
     expect(
       featuresJson([{ type: 'DOMAIN', start: 10, begin: 99, end: 25 }])
     ).toEqual([{ type: 'DOMAIN', start: 10, end: 25 }]);
+  });
+
+  it('falls back to `begin` when `start` is explicitly null, rather than masking it', () => {
+    expect(
+      featuresJson([{ type: 'DOMAIN', start: null, begin: 10, end: 25 }])
+    ).toEqual([{ type: 'DOMAIN', start: 10, end: 25 }]);
+  });
+
+  it('accepts negative and floating-point coordinates', () => {
+    expect(
+      featuresJson([{ type: 'DOMAIN', start: -5, end: 3.14 }])
+    ).toEqual([{ type: 'DOMAIN', start: -5, end: 3.14 }]);
+  });
+
+  it('retains a falsy score of 0', () => {
+    expect(
+      featuresJson([{ type: 'DOMAIN', start: 1, end: 5, score: 0 }])
+    ).toEqual([{ type: 'DOMAIN', start: 1, end: 5, score: 0 }]);
   });
 
   it('omits description and score when absent', () => {
@@ -90,6 +112,15 @@ describe('features-json adapter', () => {
     );
   });
 
+  it('rejects NaN and Infinity coordinates despite being typeof "number"', () => {
+    expect(() =>
+      featuresJson([{ type: 'DOMAIN', start: NaN, end: 5 }])
+    ).toThrow(/features-json: record 0, field "start": expected a number/);
+    expect(() =>
+      featuresJson([{ type: 'DOMAIN', start: 1, end: Infinity }])
+    ).toThrow(/features-json: record 0, field "end": expected a number/);
+  });
+
   it('throws a record+field-named error on a non-number end', () => {
     expect(() =>
       featuresJson([{ type: 'DOMAIN', start: 1, end: 'zz' }])
@@ -100,6 +131,14 @@ describe('features-json adapter', () => {
     expect(() =>
       featuresJson([{ type: 'DOMAIN', start: 1, end: 5, score: 'high' }])
     ).toThrow(/features-json: record 0, field "score": expected a number, got string/);
+  });
+
+  it('throws on a present, non-string description — symmetric with score', () => {
+    expect(() =>
+      featuresJson([{ type: 'DOMAIN', start: 1, end: 5, description: 42 }])
+    ).toThrow(
+      /features-json: record 0, field "description": expected a string, got number/
+    );
   });
 
   it('reports the correct index for a malformed record after valid ones', () => {
