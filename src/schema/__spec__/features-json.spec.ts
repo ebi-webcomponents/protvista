@@ -49,6 +49,28 @@ describe('features-json adapter', () => {
     ).toEqual([{ type: 'DOMAIN', start: 10, end: 25 }]);
   });
 
+  it('retains a falsy `start` of 0 (the `!= null` trap done right)', () => {
+    expect(featuresJson([{ type: 'DOMAIN', start: 0, end: 5 }])).toEqual([
+      { type: 'DOMAIN', start: 0, end: 5 },
+    ]);
+  });
+
+  it('normalises a falsy `begin` of 0 to `start`', () => {
+    expect(featuresJson([{ type: 'DOMAIN', begin: 0, end: 5 }])).toEqual([
+      { type: 'DOMAIN', start: 0, end: 5 },
+    ]);
+  });
+
+  it('throws on a present-but-invalid `start` rather than falling back to a valid `begin`', () => {
+    // A `null`/absent `start` falls back to `begin`, but a *present*
+    // garbage `start` is a real error — it must not be masked.
+    expect(() =>
+      featuresJson([{ type: 'DOMAIN', start: '10', begin: 20, end: 5 }])
+    ).toThrow(
+      /features-json: record 0, field "start": expected a number, got string/
+    );
+  });
+
   it('accepts negative and floating-point coordinates', () => {
     expect(
       featuresJson([{ type: 'DOMAIN', start: -5, end: 3.14 }])
@@ -83,12 +105,31 @@ describe('features-json adapter', () => {
     expect(featuresJson([])).toEqual([]);
   });
 
+  it('accepts a prototype-less record (Object.create(null))', () => {
+    const record = Object.assign(Object.create(null), {
+      type: 'DOMAIN',
+      start: 1,
+      end: 5,
+    });
+    expect(featuresJson([record])).toEqual([
+      { type: 'DOMAIN', start: 1, end: 5 },
+    ]);
+  });
+
   it('returns [] and warns with a descriptive message on a non-array body', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     expect(featuresJson({ not: 'an array' })).toEqual([]);
     expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('expected an array')
+      expect.stringContaining('[protvista] features-json adapter:')
     );
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('got object'));
+    warn.mockRestore();
+  });
+
+  it('returns [] and names the type on a `null` body', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(featuresJson(null)).toEqual([]);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('got null'));
     warn.mockRestore();
   });
 
@@ -160,7 +201,7 @@ describe('features-json adapter', () => {
       /features-json: record 0 is not an object \(got string\)/
     );
     expect(() => featuresJson([[1, 2]])).toThrow(
-      /features-json: record 0 is not an object \(got object\)/
+      /features-json: record 0 is not an object \(got array\)/
     );
   });
 });

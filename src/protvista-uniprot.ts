@@ -470,9 +470,10 @@ class ProtvistaUniprot extends LitElement {
           return null;
         }
         // Delimited generic-format bodies (features-csv / features-tsv) are
-        // handed to their adapter as raw text; everything else is JSON.
-        // `response.text()` does not reject on content, so the parse-failure
-        // branch below only guards the JSON path.
+        // handed to their adapter as raw text; everything else — including
+        // the JSON-body generic-format adapter (features-json) — is parsed
+        // as JSON. `response.text()` does not reject on content, so the
+        // parse-failure branch below only guards the JSON path.
         if (responseType === 'text') {
           try {
             return await response.text();

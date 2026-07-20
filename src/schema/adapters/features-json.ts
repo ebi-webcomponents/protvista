@@ -40,9 +40,17 @@ function isFiniteNumber(x: unknown): x is number {
   return typeof x === 'number' && Number.isFinite(x);
 }
 
-/** How a value reads in an error message: its `typeof`, or `"null"`. */
+/**
+ * How a value reads in an error message: its `typeof`, or `"null"` /
+ * `"array"`. Arrays are called out explicitly because `typeof []` is
+ * `"object"` — reporting "got object" for an array is technically true
+ * but misleading, especially in the "record N is not an object" guard
+ * where the offending value often *is* an array.
+ */
 function describe(x: unknown): string {
-  return x === null ? 'null' : typeof x;
+  if (x === null) return 'null';
+  if (Array.isArray(x)) return 'array';
+  return typeof x;
 }
 
 export const featuresJson: AdapterFunction = (raw) => {

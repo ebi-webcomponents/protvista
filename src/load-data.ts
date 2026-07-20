@@ -55,8 +55,9 @@ export type AdapterMap = Record<string, AdapterFn>;
 /**
  * Fetch a single URL. `responseType` tells the fetcher how to read the
  * body: `'json'` for API responses (the default for every UniProt/AlphaFold
- * source), `'text'` for delimited bring-your-own-data files (`features-csv`
- * / `features-tsv`) whose adapters parse raw text.
+ * source) and for the JSON-body bring-your-own-data file adapter
+ * (`features-json`), `'text'` for delimited bring-your-own-data files
+ * (`features-csv` / `features-tsv`) whose adapters parse raw text.
  */
 type FetchOne = (
   url: string,
