@@ -40,8 +40,8 @@ exports[`loadProtvistaData baseline (schema-driven default config) > invokes eac
 exports[`loadProtvistaData baseline (schema-driven default config) > produces a stable result for the reference accession 1`] = `
 {
   "data": {
-    "ALPHAFOLD_CONFIDENCE": "VVHLM",
-    "ALPHAFOLD_CONFIDENCE-alphafold_confidence": "VVHLM",
+    "ALPHAFOLD_CONFIDENCE": "HHMLD",
+    "ALPHAFOLD_CONFIDENCE-alphafold_confidence": "HHMLD",
     "ALPHAMISSENSE_PATHOGENICITY": "HHhpP",
     "ALPHAMISSENSE_PATHOGENICITY-alphamissense_pathogenicity": "HHhpP",
     "ALPHAMISSENSE_PATHOGENICITY-alphamissense_pathogenicity_heatmap": [
