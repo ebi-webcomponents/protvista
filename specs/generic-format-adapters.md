@@ -320,6 +320,29 @@ exporting `featuresCsv` / `featuresTsv` from the same module.
 
 ### 4.6 `bed` (`src/schema/adapters/bed.ts`)
 
+> **Implemented** — the shipped adapter diverges from the illustrative
+> sample below on two points, decided during implementation:
+> 1. **Malformed lines throw** (fewer than 3 columns, or a non-numeric
+>    coordinate/score) with a descriptive, line-named error — matching the
+>    strict `features-csv` / `features-tsv` siblings — rather than the
+>    warn-and-skip shown here. Blank lines and `track`/`browser`/`#`
+>    comment lines are still skipped silently (they are legal BED, not
+>    malformed).
+> 2. **`score` is passed through verbatim** (no 0–1000 → 0–1 renormalise).
+>    The BED spec nominally defines score as 0–1000, but real-world files
+>    routinely carry out-of-range values (peak-caller `-10log10(q)`,
+>    p-values, signal) and the standard tooling (`bedtools`, `pybedtools`)
+>    preserves the column unchanged, so dividing by 1000 would silently
+>    corrupt those files.
+> 3. **Coordinate edge cases are handled**, which the naive `start = n+1,
+>    end = m` shift is not: a zero-length feature (`chromStart == chromEnd`,
+>    a legal insertion point) becomes a single-base point (`start == end`)
+>    instead of an inverted range, and a genuinely inverted
+>    `chromEnd < chromStart` line throws the standard malformed-row error.
+>
+> The code block below is retained as design context; `src/schema/adapters/bed.ts`
+> is the source of truth.
+
 Standard BED parser. BED is tab-delimited but **headerless** — columns
 are positional. Spec: <https://samtools.github.io/hts-specs/BEDv1.pdf>.
 
@@ -334,7 +357,7 @@ fields:
 | `chromStart` | `start` (note: BED is 0-indexed half-open, ProtVista is 1-indexed inclusive — adapter shifts) |
 | `chromEnd` | `end` (same shift) |
 | `name` | `description` |
-| `score` | `score` (BED's 0–1000 range; renormalise to 0–1) |
+| `score` | `score` (passed through verbatim — see the note above) |
 | `chrom`, `strand`, the rest | dropped |
 
 The `type` field doesn't exist in BED. Synthesise it: every record
@@ -534,14 +557,18 @@ The fifth re-adds extension-inference cases that the strip removed.
 Same fixtures as CSV, with tabs as the delimiter. Confirms shared
 parser core and the delimiter switch.
 
-### 5.4 `src/schema/__spec__/adapters/bed.spec.ts`
+### 5.4 `src/schema/__spec__/bed.spec.ts`
+
+(Lives in the flat `__spec__/` directory alongside `features-dsv.spec.ts`,
+not a nested `__spec__/adapters/`.)
 
 - BED3, BED4 (`name`), BED5 (`name`, `score`), BED6 (with `strand` — dropped).
-- Coordinate shift: BED 0-indexed half-open → ProtVista 1-indexed inclusive. Pin both edges with explicit fixtures.
-- Score normalisation: a BED `500` becomes `0.5`.
+- Coordinate shift: BED 0-indexed half-open → ProtVista 1-indexed inclusive. Pin both edges with explicit fixtures (`100 200` → `start: 101, end: 200`; `0` start → `1`).
+- Zero-length feature (`chromStart == chromEnd`, a legal insertion point) → single-base point `start == end` (not an inverted range); a genuinely inverted `chromEnd < chromStart` line throws a line-named error.
+- Score passed through verbatim: a BED `500` stays `500`.
 - Skip lines: `track …`, `browser …`, `# comment`, blank lines.
-- Sub-3-column rows skipped with a warning.
-- Non-numeric coords on a row skipped with a warning.
+- Sub-3-column rows throw a line-named error.
+- Non-numeric coords / score throw a line-named error.
 
 ### 5.5 Re-add to existing files
 

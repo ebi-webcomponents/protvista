@@ -35,6 +35,7 @@ import alphaMissenseHeatmapAdapter from './adapters/alphamissense-heatmap-adapte
 import { featuresCsv } from './schema/adapters/features-csv';
 import { featuresTsv } from './schema/adapters/features-tsv';
 import { featuresJson } from './schema/adapters/features-json';
+import { bed } from './schema/adapters/bed';
 
 import ProtvistaUniprotStructure from './protvista-uniprot-structure';
 
@@ -129,6 +130,7 @@ export const adapters = {
   'features-csv': featuresCsv,
   'features-tsv': featuresTsv,
   'features-json': featuresJson,
+  bed,
 };
 
 type NightingaleEvent = Event & {
@@ -469,8 +471,8 @@ class ProtvistaUniprot extends LitElement {
           fetchErrors.set(url, { url, kind: 'http', status: response.status });
           return null;
         }
-        // Delimited generic-format bodies (features-csv / features-tsv) are
-        // handed to their adapter as raw text; everything else — including
+        // Delimited generic-format bodies (features-csv / features-tsv / bed)
+        // are handed to their adapter as raw text; everything else — including
         // the JSON-body generic-format adapter (features-json) — is parsed
         // as JSON. `response.text()` does not reject on content, so the
         // parse-failure branch below only guards the JSON path.

@@ -17,12 +17,14 @@ import { adapters } from '../protvista-uniprot';
 import { featuresCsv } from '../schema/adapters/features-csv';
 import { featuresTsv } from '../schema/adapters/features-tsv';
 import { featuresJson } from '../schema/adapters/features-json';
+import { bed } from '../schema/adapters/bed';
 
 describe('<protvista-uniprot> exported adapters map — generic formats', () => {
   it.each([
     ['features-csv', featuresCsv],
     ['features-tsv', featuresTsv],
     ['features-json', featuresJson],
+    ['bed', bed],
   ])('wires %s to its adapter function', (name, fn) => {
     expect(adapters[name as keyof typeof adapters]).toBe(fn);
   });
