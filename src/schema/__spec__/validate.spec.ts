@@ -26,7 +26,7 @@ const freshRegistry = () => {
 };
 
 const minimalValid = (): ProtvistaViewerConfig => ({
-  groups: [
+  rows: [
     {
       id: 'DOMAINS',
       tracks: [{ id: 'domain', kind: 'features', data: 'features' }],
@@ -49,7 +49,7 @@ describe('validateConfig — happy paths', () => {
   it('accepts a config with no accession when no placeholders are present', () => {
     const cfg: ProtvistaViewerConfig = {
       sources: { features: 'https://example.org/features' },
-      groups: [
+      rows: [
         {
           id: 'DOMAINS',
           tracks: [{ id: 'domain', kind: 'features', data: 'features' }],
@@ -64,7 +64,7 @@ describe('validateConfig — happy paths', () => {
     const cfg: ProtvistaViewerConfig = {
       accession: 'P05067',
       sources: { features: 'https://example.org/{accession}/features' },
-      groups: [
+      rows: [
         {
           id: 'DOMAINS',
           tracks: [{ id: 'domain', kind: 'features', data: 'features' }],
@@ -81,16 +81,19 @@ describe('validateConfig — happy paths', () => {
 // ─────────────────────────────────────────────────────────────
 
 describe('validateConfig — structural errors', () => {
-  it('rejects a missing `groups` root field', () => {
+  it('rejects a config carrying neither `rows` nor `groups`', () => {
     const result = validateConfig({}, freshRegistry());
     expect(result.valid).toBe(false);
     expect(result.issues[0].code).toBe('schema');
-    expect(result.issues[0].message).toContain("'groups'");
+    // The root `oneOf` requires exactly one of the two spellings, so a
+    // config with neither fails both branches. `rows` is the canonical
+    // one and the only one an author should be reaching for.
+    expect(result.issues.some((i) => i.message.includes("'rows'"))).toBe(true);
   });
 
   it('rejects an unknown top-level field', () => {
     const result = validateConfig(
-      { groups: [], foo: 'bar' },
+      { rows: [], foo: 'bar' },
       freshRegistry()
     );
     expect(result.valid).toBe(false);
@@ -102,7 +105,7 @@ describe('validateConfig — structural errors', () => {
     // not a cascade of semantic ones — the validator bails after
     // the structural pass.
     const bad = {
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [{ id: 'y' /* data missing */ }],
@@ -123,7 +126,7 @@ describe('validateConfig — unknown source key', () => {
   it('flags a string-shorthand value that is not a sources key or URL', () => {
     const cfg: ProtvistaViewerConfig = {
       sources: { knownKey: 'https://example.org/k' },
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [{ id: 'y', kind: 'features', data: 'missingKey' }],
@@ -141,7 +144,7 @@ describe('validateConfig — unknown source key', () => {
   it('flags an explicit `source:` reference that does not resolve', () => {
     const cfg: ProtvistaViewerConfig = {
       sources: { k: 'https://example.org/k' },
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [
@@ -162,7 +165,7 @@ describe('validateConfig — unknown source key', () => {
 
   it('accepts a ./x.csv file-path shorthand (built-in adapter, no unknown-source-key)', () => {
     const cfg: ProtvistaViewerConfig = {
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [{ id: 'y', kind: 'features', data: './features.csv' }],
@@ -176,7 +179,7 @@ describe('validateConfig — unknown source key', () => {
 
   it('accepts a ./x.json file-path shorthand (built-in adapter, no unknown-source-key)', () => {
     const cfg: ProtvistaViewerConfig = {
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [{ id: 'y', kind: 'features', data: './features.json' }],
@@ -196,7 +199,7 @@ describe('validateConfig — unknown source key', () => {
 describe('validateConfig — unknown adapter / kind / component', () => {
   it('flags an unknown `adapter` name', () => {
     const cfg: ProtvistaViewerConfig = {
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [
@@ -218,7 +221,7 @@ describe('validateConfig — unknown adapter / kind / component', () => {
 
   it('flags an unknown semantic `kind`', () => {
     const cfg: ProtvistaViewerConfig = {
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [
@@ -242,7 +245,7 @@ describe('validateConfig — unknown adapter / kind / component', () => {
 
   it('flags an unknown `component` on a track', () => {
     const cfg: ProtvistaViewerConfig = {
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [
@@ -267,7 +270,7 @@ describe('validateConfig — unknown adapter / kind / component', () => {
 describe('validateConfig — missing track renderer', () => {
   it('flags a track with no kind, no component, and no group component', () => {
     const cfg: ProtvistaViewerConfig = {
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [
@@ -285,7 +288,7 @@ describe('validateConfig — missing track renderer', () => {
 
   it('accepts a track with no kind/component when the group has component', () => {
     const cfg: ProtvistaViewerConfig = {
-      groups: [
+      rows: [
         {
           id: 'X',
           component: 'nightingale-track-canvas',
@@ -310,7 +313,7 @@ describe('validateConfig — standalone top-level tracks', () => {
   it('accepts a single standalone track with zero groups', () => {
     const cfg: ProtvistaViewerConfig = {
       sources: { features: 'https://example.org/features' },
-      groups: [{ id: 'signal_peptide', kind: 'features', data: 'features' }],
+      rows: [{ id: 'signal_peptide', kind: 'features', data: 'features' }],
     };
     const result = validateConfig(cfg, freshRegistry());
     expect(result.valid).toBe(true);
@@ -320,7 +323,7 @@ describe('validateConfig — standalone top-level tracks', () => {
   it('accepts a config mixing standalone tracks and groups', () => {
     const cfg: ProtvistaViewerConfig = {
       sources: { features: 'https://example.org/features' },
-      groups: [
+      rows: [
         { id: 'signal_peptide', kind: 'features', filter: 'SIGNAL', data: 'features' },
         {
           id: 'DOMAINS',
@@ -336,7 +339,7 @@ describe('validateConfig — standalone top-level tracks', () => {
 
   it('flags a standalone track with no kind and no component, same as a grouped track', () => {
     const cfg: ProtvistaViewerConfig = {
-      groups: [
+      rows: [
         { id: 'orphan', data: { url: 'https://example.org/x', adapter: 'uniprot-features-json' } },
       ],
     };
@@ -363,7 +366,7 @@ describe('validateConfig — from: inline without inlineData', () => {
     // loose (any error message mentioning `inlineData`) so this test
     // doesn't have to pin which pass produced it.
     const cfg: ProtvistaViewerConfig = {
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [
@@ -388,7 +391,7 @@ describe('validateConfig — from: inline without inlineData', () => {
 describe('validateConfig — colorScale', () => {
   it('flags an unknown theme', () => {
     const cfg: ProtvistaViewerConfig = {
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [
@@ -411,7 +414,7 @@ describe('validateConfig — colorScale', () => {
 
   it('accepts a built-in theme', () => {
     const cfg: ProtvistaViewerConfig = {
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [
@@ -465,7 +468,7 @@ describe('validateConfig — accession placeholders', () => {
   it('flags a config with {accession} placeholder but no accession', () => {
     const cfg: ProtvistaViewerConfig = {
       sources: { features: 'https://example.org/{accession}/features' },
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [{ id: 'y', kind: 'features', data: 'features' }],
@@ -480,7 +483,7 @@ describe('validateConfig — accession placeholders', () => {
 
   it('finds {accession} in a descriptor url', () => {
     const cfg: ProtvistaViewerConfig = {
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [
@@ -504,7 +507,7 @@ describe('validateConfig — accession placeholders', () => {
   it('finds {accession} in a track label', () => {
     const cfg: ProtvistaViewerConfig = {
       sources: { features: 'https://example.org/features' },
-      groups: [
+      rows: [
         {
           id: 'X',
           tracks: [
@@ -525,7 +528,7 @@ describe('validateConfig — accession placeholders', () => {
   it('finds {accession} in a group label', () => {
     const cfg: ProtvistaViewerConfig = {
       sources: { features: 'https://example.org/features' },
-      groups: [
+      rows: [
         {
           id: 'X',
           label: 'Entry {accession}',

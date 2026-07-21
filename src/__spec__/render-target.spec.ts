@@ -170,7 +170,7 @@ const testConfig: NormalizedConfig = {
   version: '1.0',
   sources: {},
   defaults: { rendering: {} },
-  groups: [
+  rows: [
     {
       id: 'GROUP_CANVAS',
       label: '{% help slug="canvas_help" %}Canvas group{% /help %}',
@@ -334,7 +334,7 @@ describe('full render — shell + per-group DOM with frozen fixtures', () => {
       data: testData,
       // Expand every group so the track-level render branch is
       // exercised for each component.
-      openGroups: testConfig.groups.map((c) => c.id),
+      openGroups: testConfig.rows.map((c) => c.id),
     });
     target = document.createElement('div');
     render(el.render(), target);
@@ -354,10 +354,10 @@ describe('full render — shell + per-group DOM with frozen fixtures', () => {
     const groupDivs = target.querySelectorAll(`div.${CSS_PREFIX}-group`);
     expect(
       Array.from(groupDivs).map((d) => d.getAttribute('id'))
-    ).toEqual(testConfig.groups.map((c) => `${CSS_PREFIX}-group_${c.id}`));
+    ).toEqual(testConfig.rows.map((c) => `${CSS_PREFIX}-group_${c.id}`));
   });
 
-  for (const group of testConfig.groups) {
+  for (const group of testConfig.rows) {
     it(`group ${group.id} — stable DOM snapshot`, () => {
       const div = target.querySelector(`#${CSS_PREFIX}-group_${group.id}`);
       expect(div).not.toBeNull();
@@ -395,7 +395,7 @@ describe('full render — shell + per-group DOM with frozen fixtures', () => {
     const closedTarget = document.createElement('div');
     render(closed.render(), closedTarget);
     expect(closedTarget.querySelectorAll(`.${CSS_PREFIX}-group`).length).toBe(
-      testConfig.groups.length
+      testConfig.rows.length
     );
     expect(
       closedTarget.querySelectorAll(`.${CSS_PREFIX}-group__track`).length
@@ -454,7 +454,7 @@ const standaloneConfig: NormalizedConfig = {
   version: '1.0',
   sources: {},
   defaults: { rendering: {} },
-  groups: [
+  rows: [
     {
       id: 'signal_peptide',
       label: 'Signal peptide',

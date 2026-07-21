@@ -47,7 +47,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
       sources: {
         features: 'https://www.ebi.ac.uk/proteins/api/features/{accession}',
       },
-      groups: [
+      rows: [
         {
           id: 'DOMAINS',
           tracks: [
@@ -64,12 +64,12 @@ describe('ProtvistaViewerConfig — type contract', () => {
       ],
     };
     expectType<ProtvistaViewerConfig>(config);
-    expect(config.groups).toHaveLength(1);
+    expect(config.rows).toHaveLength(1);
   });
 
   it('Example 2: inline data (Starter Kit, no server)', () => {
     const config: ProtvistaViewerConfig = {
-      groups: [
+      rows: [
         {
           id: 'MY_ANNOTATIONS',
           label: 'My custom annotations',
@@ -103,7 +103,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
       ],
     };
     expectType<ProtvistaViewerConfig>(config);
-    expect((config.groups[0] as GroupConfig).tracks[0].data).toMatchObject({
+    expect((config.rows[0] as GroupConfig).tracks[0].data).toMatchObject({
       from: 'inline',
     });
   });
@@ -120,7 +120,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
         alphafoldPrediction:
           'https://alphafold.ebi.ac.uk/api/prediction/{accession}',
       },
-      groups: [
+      rows: [
         {
           id: 'ALPHAFOLD_CONFIDENCE',
           label:
@@ -162,7 +162,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
       ],
     };
     expectType<ProtvistaViewerConfig>(config);
-    expect(config.groups).toHaveLength(2);
+    expect(config.rows).toHaveLength(2);
   });
 
   it('Example 4: extends — one line, one new track', () => {
@@ -176,7 +176,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
       sources: {
         my_hotspots: 'https://my-lab.example.org/protvista/hotspots/{accession}',
       },
-      groups: [
+      rows: [
         {
           id: 'MY_LAB',
           label: 'My lab',
@@ -317,9 +317,9 @@ describe('Structural subsetting', () => {
     expect(minimalGroup.tracks).toEqual([]);
   });
 
-  it('ProtvistaViewerConfig requires only `groups`', () => {
-    const c: ProtvistaViewerConfig = { groups: [] };
+  it('ProtvistaViewerConfig requires only `rows`', () => {
+    const c: ProtvistaViewerConfig = { rows: [] };
     expectType<ProtvistaViewerConfig>(c);
-    expect(c.groups).toEqual([]);
+    expect(c.rows).toEqual([]);
   });
 });

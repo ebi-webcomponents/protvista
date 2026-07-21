@@ -31,7 +31,7 @@ export function makeConfig(track: NormalizedTrack): NormalizedConfig {
     version: '1.0',
     sources: {},
     defaults: { rendering: {} },
-    groups: [
+    rows: [
       {
         id: 'GROUP',
         label: 'group',
