@@ -22,7 +22,7 @@ rather than each maintaining their own divergent samples.
 | [`inline-data/`](./inline-data) | `from: inline` — no network fetch for track data |
 | [`csv/`](./csv) | Bring-your-own CSV file — `features-csv` adapter, inferred from the `.csv` extension |
 | [`tsv/`](./tsv) | Bring-your-own TSV file — `features-tsv` adapter, inferred from the `.tsv` extension |
-| [`json/`](./json) | Bring-your-own JSON file — `features-json` adapter, inferred from the `.json` extension |
+| [`json/`](./json) | Bring-your-own JSON file — `features-json` adapter, inferred from the `.json` extension (the adapter accepts either `start` or `begin` per record; this example uses `start` throughout) |
 | [`bed/`](./bed) | Bring-your-own BED file — `bed` adapter, inferred from the `.bed` extension |
 | [`extend-default/`](./extend-default) | `extends:` the shipped canonical UniProt config and layers one custom CSV-backed track on top |
 
@@ -61,3 +61,23 @@ Point the `config-src` attribute at any example's config file:
 
 or during local development (`yarn start`), edit `index.html` to add
 the tag above and browse to it.
+
+**Path-resolution caveat.** `<protvista-uniprot>` fetches `config-src`
+itself relative to the hosting page, but everything *inside* the
+fetched config — a track's `data: ./hotspots.csv` shorthand, an
+`extends:` reference — is resolved by the loader's default fetcher as
+a bare `fetch(url)`, which the browser resolves against the *hosting
+page's* URL, not the config file's own directory. This is transparent
+for `basic/` and `inline-data/` (neither references another file), so
+"point `config-src` at any example" is literally true only for those
+two. For the file-backed examples (`csv/`, `tsv/`, `json/`, `bed/`,
+`extend-default/`), the snippet above only resolves correctly when
+the hosting page itself lives in that example's own directory (e.g.
+serve from `examples/csv/` and use `config-src="./config.yaml"`) — a
+page at the repo root loading `config-src="./examples/csv/config.yaml"`
+will fetch `./hotspots.csv` against the repo root instead and render
+that group empty. `extend-default/config.yaml` sidesteps this for its
+own `extends:` target by using an origin-absolute path
+(`/src/default-config.yaml`, see the comment in that file) — but its
+`data: ./hotspots.csv` track is still page-relative like every other
+file-backed example.

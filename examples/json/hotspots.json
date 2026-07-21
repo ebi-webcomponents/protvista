@@ -1,7 +1,7 @@
 [
   {
     "type": "DOMAIN",
-    "begin": 18,
+    "start": 18,
     "end": 289,
     "description": "Extracellular domain (custom re-annotation)",
     "score": 0.95

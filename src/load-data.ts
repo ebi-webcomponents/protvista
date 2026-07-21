@@ -327,6 +327,36 @@ export async function loadProtvistaData(
     }
   };
 
+  // Shared tail for `from: custom` and `from: inline` tracks: apply
+  // the track's `filter:` shortcut, resolve tooltips, and assign the
+  // result. The only difference between the two sources is where
+  // `transformedData` comes from — consumer-injected via
+  // `setTrackData()` vs. the descriptor's own `inlineData` — both
+  // skip the fetch + adapter step entirely.
+  const filterResolveAndAssign = (
+    transformedData: unknown,
+    trackKey: string,
+    track: NormalizedTrack
+  ): unknown => {
+    const { filter, kind, dataTooltip, id: trackId } = track;
+    const filteredData =
+      Array.isArray(transformedData) && filter
+        ? (transformedData as Array<{ type?: string }>).filter(
+            ({ type }) => type === filter
+          )
+        : transformedData;
+    if (filteredData == null) return undefined;
+    const spec: TooltipSpec | undefined =
+      dataTooltip ?? (kind ? tooltipDefaults[kind] : undefined);
+    const annotated = applyTooltipResolver(filteredData, spec, {
+      accession,
+      trackId,
+      kind: kind ?? '',
+    });
+    assignTrackData(trackKey, annotated, track);
+    return annotated;
+  };
+
   for (const group of config.groups) {
     const groupId = group.id;
     // A targeted retry only recomputes groups that own a reloaded track;
@@ -375,23 +405,11 @@ export async function loadProtvistaData(
               );
               return;
             }
-            const transformedData: any = customTrackData[trackKey];
-            const filteredData =
-              Array.isArray(transformedData) && filter
-                ? transformedData.filter(
-                    ({ type }: { type?: string }) => type === filter
-                  )
-                : transformedData;
-            if (filteredData == null) return;
-            const spec: TooltipSpec | undefined =
-              dataTooltip ?? (kind ? tooltipDefaults[kind] : undefined);
-            const annotated = applyTooltipResolver(filteredData, spec, {
-              accession,
-              trackId,
-              kind: kind ?? '',
-            });
-            assignTrackData(trackKey, annotated, track);
-            return annotated;
+            return filterResolveAndAssign(
+              customTrackData[trackKey],
+              trackKey,
+              track
+            );
           }
 
           // `from: inline` — the payload lives on the descriptor itself
@@ -399,23 +417,7 @@ export async function loadProtvistaData(
           // adapter. Filter + tooltip resolution still apply, mirroring
           // `from: custom` above.
           if (first.from === 'inline') {
-            const transformedData: any = first.inlineData;
-            const filteredData =
-              Array.isArray(transformedData) && filter
-                ? transformedData.filter(
-                    ({ type }: { type?: string }) => type === filter
-                  )
-                : transformedData;
-            if (filteredData == null) return;
-            const spec: TooltipSpec | undefined =
-              dataTooltip ?? (kind ? tooltipDefaults[kind] : undefined);
-            const annotated = applyTooltipResolver(filteredData, spec, {
-              accession,
-              trackId,
-              kind: kind ?? '',
-            });
-            assignTrackData(trackKey, annotated, track);
-            return annotated;
+            return filterResolveAndAssign(first.inlineData, trackKey, track);
           }
 
           const trackData = (Array.isArray(url) ? url : [url ?? '']).map(

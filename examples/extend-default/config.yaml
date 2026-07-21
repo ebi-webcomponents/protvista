@@ -3,17 +3,25 @@
 # restated — `sources`, `defaults`, all 15 EBI groups, every built-in
 # colour theme: all pulled in from the base.
 #
-# NOTE on the relative `extends:` path: it resolves correctly under a
-# fetcher that resolves paths relative to *this config file's own
-# location* (which is what src/__spec__/examples.spec.ts supplies,
-# and what a deliberately-configured embedder would supply via
-# `loadConfig`'s `extendsFetcher` option). The *default* loader
-# fetcher (`globalThis.fetch`) resolves relative URLs against the
-# *page's* URL, not the config file's location — this is existing
-# `mergeExtends` fetcher behaviour, not specific to this example. See
-# examples/README.md.
+# NOTE on the `extends:` path being origin-absolute (leading `/`),
+# not `../../src/default-config.yaml`: `<protvista-uniprot>` does not
+# expose any `extendsFetcher` hook to embedders — it always calls
+# `loadConfig` with the library default, which fetches `extends:`
+# targets via bare `globalThis.fetch(url)`. A relative path there
+# resolves against the *hosting page's* URL, not this config file's
+# location, so `../../src/default-config.yaml` would 404 for any page
+# that isn't nested exactly two directories below the repo root. An
+# origin-absolute path resolves correctly under that same default
+# fetcher regardless of which page's `config-src` mounts this file —
+# as long as the page is served from this repo's root (e.g. the dev
+# server, `yarn start`; the built `demo/` bundle does not expose
+# `src/` as static files, so this specific example is a dev-time
+# reference, not something the deployed demo site can mount). See
+# examples/README.md and the "default-fetcher semantics" test in
+# `src/__spec__/examples.spec.ts`, which pins this exact contract
+# against the real, unmodified default fetcher (no CI-only shim).
 accession: P05067
-extends: ../../src/default-config.yaml
+extends: /src/default-config.yaml
 
 groups:
   - id: MY_LAB
