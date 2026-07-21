@@ -868,6 +868,49 @@ Accessibility is a grant-level commitment (see the OMP) and is baked into the sc
 - **Sensible out-of-the-box fallback.** Tooltip precedence is: non-empty `item.tooltipContent` supplied by an adapter, then `track.dataTooltip`, then `tooltipDefaults[kind]`, then auto-fallback. When the auto-fallback runs, it renders through Markdoc and emits at most ten rows in this order: `type`, `description`, position (`start | begin` plus `end`, collapsed to `Position` when equal), variant sequence (`wildType` plus `alternativeSequence | variant`), `consequenceType`, `clinicalSignificances`, `score`, `xrefs`, `evidences`, then remaining top-level scalar fields such as values added by `calculate` transforms. Missing fields drop out; an item carrying none of them stays empty. Xrefs become links only when the entry carries a URL that passes the tooltip URL allowlist (`http:`, `https:`, `mailto:`, or relative URL forms).
 - **No colour-only encoding.** `RenderingOptions.shape` exists partly so tracks can encode distinctions redundantly (e.g. shape _and_ colour) rather than colour alone. Config authors building custom tracks are encouraged to use shape or label text as a secondary channel alongside colour.
 
+## React host integration
+
+Rich, stateful, product-specific tooltips (evidence icons, taxonomy lookups, cross-links into an app's own routing, React components) are not a config concern. The library offers exactly two paths for the per-datapoint tooltip surface, and there is no in-between — no programmatic per-`kind` override registry ships:
+
+1. **Declarative tooltips (library-owned).** Authored in YAML as `dataTooltip` (`kind: fields` or `kind: markdown`, or the bare-string shorthand) and rendered by the library's built-in Floating-UI click popover. See [`docs/data-tooltip.md`](../docs/data-tooltip.md).
+2. **Consumer-owned tooltips (host-owned).** The React host sets `notooltip` on the element, listens for the Nightingale `change` event, and renders its own overlay at the reported coordinates. This is the canonical path for React adopters and the contract is normative below.
+
+A tutorial-flavoured walkthrough with a copy-pasteable minimal example lives at [`docs/react-integration.md`](../docs/react-integration.md); this section is the normative contract.
+
+### The `notooltip` attribute
+
+`notooltip` (boolean attribute, JS property `notooltip`, default `false`) disables the built-in popover's DOM mount — the library's click-tooltip controller stays quiet and never appends its `<div role="tooltip">` to the light DOM. A React host that renders its own overlay always wants `notooltip` set, so the two tooltip surfaces don't both appear on a click.
+
+`notooltip` does **not** suppress `feature.tooltipContent` resolution. The tooltip-content pipeline runs during data loading regardless of the attribute, so the pre-rendered declarative HTML string is still attached to each item and is still readable off the `change` event (`detail.feature.tooltipContent`). A consumer that wants the library's declarative string — but rendered inside its own overlay chrome — can set `notooltip` and read `tooltipContent` straight off the event.
+
+### The `change` event contract
+
+Attach a `change` listener to the `<protvista-uniprot>` element. Its `detail` carries:
+
+- **`eventType`** — one of `'click'`, `'mouseover'`, `'mouseout'`, `'reset'`, emitted by the underlying Nightingale track (`@nightingale-elements`) and re-exposed on the viewer's `change` event. This vocabulary is load-bearing:
+  - `'click'` — the user clicked a feature. Open (or replace) your tooltip.
+  - `'mouseover'` / `'mouseout'` — hover enter/leave over a feature. Drive host hover state if you want hover tooltips; ignore otherwise.
+  - `'reset'` — Nightingale emits this when the user scrolls or zooms the view, meaning "stop showing any per-feature tooltip." Treat it as a dismissal.
+
+  uniprot-website encodes the dismissal set as `hideTooltipEvents = new Set([undefined, 'reset', 'click'])` — a bare event with no `eventType` (`undefined`), a `reset`, and a fresh `click` all dismiss the current overlay (the `click` then re-opens for the newly clicked feature). Everything else is a hover signal.
+- **`feature`** — the full adapter-output item for the interacted datapoint, including any `tooltipContent` the library pre-computed.
+- **`coords`** — an `[x, y]` tuple in **page coordinates** (`pageX`/`pageY` — viewport-relative *plus* the current scroll offset). To position against the viewport (what Floating UI and `position: fixed` expect), subtract `window.scrollX` / `window.scrollY`, exactly as the built-in popover does. If you instead render into an absolutely-positioned container that already lives in page-coordinate space, use `[x, y]` unchanged.
+
+The `change` payload (`eventType`, `feature`, `coords`) is part of the viewer's stable compatibility surface — see [`docs/architecture-audit.md`](../docs/architecture-audit.md).
+
+### Rendering the overlay
+
+The host owns the overlay entirely — JSX, lifecycle, and styling. Render it into a portal or a Floating-UI-positioned `<div>` anchored at `coords`, show it on `click`, and hide it on the `{undefined, 'reset', 'click'}` dismissal set above. The library contributes only the event and the (optional) pre-rendered `tooltipContent`.
+
+Two interaction edge cases worth knowing:
+
+- **Collapsed group aggregates.** A click on a collapsed group's aggregate track opens a tooltip *without* a highlight state change — distinct from a click on an expanded detail track, which also toggles the highlight. Hosts that key any behaviour off the highlight should not assume every tooltip-opening click carries one.
+- **Bring-your-own-data kinds.** Consumers pairing generic semantic kinds (e.g. `linegraph`) with a React host are a primary audience for this pattern — the event contract is identical regardless of `kind`.
+
+### React 19 note
+
+The mount/unmount of the `change` listener is naturally expressed as a single ref callback that returns its cleanup function (React 19). Prefer that shape over the older split-`useEffect` mount/unmount pair; new adopters should not copy the split form as canonical. The worked example in [`docs/react-integration.md`](../docs/react-integration.md) shows both.
+
 ## Security and trust model
 
 The viewer runs in the embedder's browsing context and inherits the embedder's CSP and same-origin policy. The schema does not introduce new privilege — it only declaratively names the network destinations the viewer will fetch.

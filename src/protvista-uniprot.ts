@@ -192,7 +192,11 @@ let protvistaInstanceSeq = 0;
 class ProtvistaUniprot extends LitElement {
   private openGroups: string[];
   private nostructure: boolean;
-  /** Opt out of the built-in click tooltip. Consumers rendering a React overlay typically set this. */
+  /**
+   * Opt out of the built-in click tooltip. Consumers rendering a React overlay typically set this.
+   * @see specs/config-approach.md "React host integration" (and docs/react-integration.md) for the
+   * `change`-event listener pattern React hosts pair with this attribute.
+   */
   private notooltip?: boolean;
   private hasData: boolean;
   private loading: boolean;
