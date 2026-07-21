@@ -51,9 +51,9 @@ describe('loadConfig — object input', () => {
   it('accepts an object and returns a NormalizedConfig', async () => {
     const normalized = await loadConfig(minimalValidObject());
     expect(normalized.version).toBe('1.0');
-    expect(normalized.groups).toHaveLength(1);
-    expect(normalized.groups[0].id).toBe('DOMAINS');
-    expect(normalized.groups[0].tracks[0].component).toBe(
+    expect(normalized.rows).toHaveLength(1);
+    expect(normalized.rows[0].id).toBe('DOMAINS');
+    expect(normalized.rows[0].tracks[0].component).toBe(
       'nightingale-track-canvas'
     );
   });
@@ -61,7 +61,7 @@ describe('loadConfig — object input', () => {
   it('uses a caller-provided registry', async () => {
     const registry = createRegistry();
     const normalized = await loadConfig(minimalValidObject(), { registry });
-    expect(normalized.groups[0].tracks[0].kind).toBe('features');
+    expect(normalized.rows[0].tracks[0].kind).toBe('features');
   });
 
   it('throws ConfigValidationError on invalid input', async () => {
@@ -128,7 +128,7 @@ describe('loadConfig — object input', () => {
 describe('loadConfig — JSON string input', () => {
   it('parses a valid JSON string', async () => {
     const normalized = await loadConfig(minimalValidJson());
-    expect(normalized.groups[0].id).toBe('DOMAINS');
+    expect(normalized.rows[0].id).toBe('DOMAINS');
   });
 
   it('propagates SyntaxError from malformed JSON', async () => {
@@ -137,12 +137,12 @@ describe('loadConfig — JSON string input', () => {
 
   it('detects JSON from leading `{`', async () => {
     const normalized = await loadConfig(`   ${minimalValidJson()}`);
-    expect(normalized.groups[0].id).toBe('DOMAINS');
+    expect(normalized.rows[0].id).toBe('DOMAINS');
   });
 
   it('respects explicit format: "json"', async () => {
     const normalized = await loadConfig(minimalValidJson(), { format: 'json' });
-    expect(normalized.groups[0].id).toBe('DOMAINS');
+    expect(normalized.rows[0].id).toBe('DOMAINS');
   });
 });
 
@@ -153,7 +153,7 @@ describe('loadConfig — JSON string input', () => {
 describe('loadConfig — YAML string input', () => {
   it('parses a valid YAML string', async () => {
     const normalized = await loadConfig(minimalValidYaml());
-    expect(normalized.groups[0].id).toBe('DOMAINS');
+    expect(normalized.rows[0].id).toBe('DOMAINS');
     expect(normalized.sources.features).toBe(
       'https://example.org/features'
     );
@@ -162,14 +162,14 @@ describe('loadConfig — YAML string input', () => {
   it('detects YAML when the leading char is not { or [', async () => {
     // Same content as the JSON test but lacks braces → YAML path.
     const normalized = await loadConfig(minimalValidYaml());
-    expect(normalized.groups[0].tracks[0].kind).toBe('features');
+    expect(normalized.rows[0].tracks[0].kind).toBe('features');
   });
 
   it('respects explicit format: "yaml"', async () => {
     const normalized = await loadConfig(minimalValidYaml(), {
       format: 'yaml',
     });
-    expect(normalized.groups[0].id).toBe('DOMAINS');
+    expect(normalized.rows[0].id).toBe('DOMAINS');
   });
 
   it('YAML round-trips: JSON → YAML → JSON has identical normalized output', async () => {

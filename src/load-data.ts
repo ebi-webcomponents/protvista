@@ -141,7 +141,7 @@ function applyTooltipResolver(
  * cleanly, matching legacy behaviour.
  */
 function trackUrl(
-  data: NormalizedConfig['groups'][number]['tracks'][number]['data']
+  data: NormalizedConfig['rows'][number]['tracks'][number]['data']
 ): string | string[] {
   const first = data[0];
   if (!first) return '';
@@ -183,7 +183,7 @@ export async function loadProtvistaData(
   // are naturally excluded from the fetch set.
   const urls = [
     ...new Set(
-      config.groups.flatMap(({ tracks }) =>
+      config.rows.flatMap(({ tracks }) =>
         tracks.flatMap((t) => trackUrl(t.data))
       )
     ),
@@ -204,7 +204,7 @@ export async function loadProtvistaData(
 
   const data: Record<string, unknown> = {};
 
-  for (const group of config.groups) {
+  for (const group of config.rows) {
     const groupId = group.id;
     const groupData = await Promise.all(
       group.tracks.map(async (track) => {

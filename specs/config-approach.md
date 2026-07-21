@@ -1156,7 +1156,7 @@ describe('ProtVista Viewer Config Schema — runtime layer', () => {
     const cfg = normalize({
       rows: [{ id: 'MOLECULE_PROCESSING', tracks: [] }],
     });
-    expect(cfg.groups[0].label).toBe('Molecule processing');
+    expect(cfg.rows[0].label).toBe('Molecule processing');
   });
 
   it('merges an extends chain per documented rules', async () => {
@@ -1221,7 +1221,7 @@ describe('ProtVista Viewer Config Schema — runtime layer', () => {
         },
       ],
     });
-    const urls = config.groups
+    const urls = config.rows
       .flatMap((c) => c.tracks)
       .flatMap((t) => t.data)
       .flatMap((d: any) => (Array.isArray(d.url) ? d.url : [d.url]))
