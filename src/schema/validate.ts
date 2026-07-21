@@ -300,10 +300,18 @@ function componentKnown(name: string, registry: Registry): boolean {
   );
 }
 
-/** Valid component names, for error messages. */
+/**
+ * Valid component names, for error messages. Sorted so the text is
+ * stable regardless of whether the registry has consumer components
+ * seeded (the element's) or none (a bare `createRegistry()`) — adopters
+ * grep these messages, and insertion order would otherwise leak the
+ * registry's provenance into them.
+ */
 function knownComponentList(registry: Registry): string {
   return listQuoted(
-    new Set<string>([...RENDERABLE_COMPONENT_NAMES, ...registry.listComponents()])
+    new Set<string>(
+      [...RENDERABLE_COMPONENT_NAMES, ...registry.listComponents()].sort()
+    )
   );
 }
 

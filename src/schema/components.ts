@@ -17,22 +17,29 @@
  * are emitted unconditionally by the element's own template and are not
  * config-selectable, so they are deliberately absent.
  *
- * Keep this set aligned by hand with the `KnownComponentName` union in
- * `types.ts` — the `ReadonlySet<KnownComponentName>` annotation rejects
- * an extra or misspelled name but does *not* force every union member to
- * appear (a strict subset still type-checks), so a name added to the
- * union but omitted here would slip through. A drift-guard test does
- * assert this set and the renderable half of `built-in-components.ts`
- * stay in lockstep.
+ * Alignment with the `KnownComponentName` union in `types.ts` is
+ * enforced by the compiler: the `satisfies Record<KnownComponentName,
+ * true>` below fails to type-check if a union member is missing *or* if
+ * a name here isn't in the union. (A bare `ReadonlySet<KnownComponentName>`
+ * would only catch the second — a strict subset still type-checks — so
+ * the keyed-object form is what makes an omission a build error rather
+ * than a silent gap.) A drift-guard test separately asserts this set and
+ * the renderable half of `built-in-components.ts` stay in lockstep.
  */
 
 import type { KnownComponentName } from './types';
 
+/**
+ * Keyed by name so the `satisfies` below can demand exhaustiveness.
+ * The values carry no meaning — only the key set is used.
+ */
+const RENDERABLE = {
+  'nightingale-track-canvas': true,
+  'nightingale-colored-sequence': true,
+  'nightingale-variation-canvas': true,
+  'nightingale-linegraph-track': true,
+  'nightingale-sequence-heatmap': true,
+} satisfies Record<KnownComponentName, true>;
+
 export const RENDERABLE_COMPONENT_NAMES: ReadonlySet<KnownComponentName> =
-  new Set<KnownComponentName>([
-    'nightingale-track-canvas',
-    'nightingale-colored-sequence',
-    'nightingale-variation-canvas',
-    'nightingale-linegraph-track',
-    'nightingale-sequence-heatmap',
-  ]);
+  new Set(Object.keys(RENDERABLE) as KnownComponentName[]);

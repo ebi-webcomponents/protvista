@@ -6,8 +6,12 @@
  * This is the *only* module that statically imports the Nightingale /
  * Mol* element constructors. The schema layer (registry, validator)
  * never does, so `validateConfig` / `createRegistry` stay runnable
- * standalone (see `schema/load.ts`). A consumer building a leaner viewer
- * can skip importing this module and seed their own constructors.
+ * standalone (see `schema/load.ts`) — that is the boundary this module
+ * exists to hold. Note it buys nothing for anyone importing
+ * `<protvista-uniprot>` itself: the element imports this module
+ * statically, so the constructors are in every viewer bundle. The win is
+ * for schema-layer-only consumers (editor tooling, CI config linters),
+ * which reach `validateConfig` without pulling in a single element.
  *
  * Two groups:
  *

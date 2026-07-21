@@ -225,7 +225,7 @@ For a **consumer adapter**, no library change is needed: call `registerAdapter(n
 
 The renderable components an author can select are seeded into the registry from `src/built-in-components.ts` — the single home for the Nightingale constructors (the schema layer never imports them, so `validateConfig` stays runnable standalone). To add one:
 
-1. Add its tag name to `KnownComponentName` in `src/schema/types.ts` and to `RENDERABLE_COMPONENT_NAMES` in `src/schema/components.ts` (align these by hand — the `ReadonlySet<KnownComponentName>` annotation catches an extra/misspelled name but not an omitted union member; a drift-guard test only relates the set to the constructor table).
+1. Add its tag name to `KnownComponentName` in `src/schema/types.ts` and to the `RENDERABLE` table in `src/schema/components.ts` (the `satisfies Record<KnownComponentName, true>` there makes an omission on either side a compile error, so `tsc` will tell you if you skip half of this step).
 2. Add its `[name, ctor]` pair to `RENDERABLE_COMPONENTS` in `src/built-in-components.ts`.
 3. Add a `case` to `getTrack()` in `src/protvista-uniprot.ts` so the renderer can draw it (lit-html cannot template dynamic tag names).
 

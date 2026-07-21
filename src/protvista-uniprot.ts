@@ -2189,7 +2189,17 @@ class ProtvistaUniprot extends LitElement {
           </nightingale-sequence-heatmap>
         `;
       default:
-        console.warn('No Matching ProtvistaTrack Found.');
+        // Reached when a component is registered and validated but has
+        // no `case` here — the current gap for consumer components (see
+        // "Register + load + render" in docs/architecture.md). Name the
+        // component and the row: validation deliberately accepts these
+        // now, so this warning is the only signal the author gets that
+        // the row rendered empty.
+        console.warn(
+          `[protvista-uniprot] No renderer for component '${component}'` +
+            `${id ? ` (row '${id}')` : ''}. Custom components are defined ` +
+            `and validated but not yet drawn — the row renders empty.`
+        );
         break;
     }
   }
