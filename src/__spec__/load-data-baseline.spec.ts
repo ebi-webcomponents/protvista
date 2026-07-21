@@ -126,10 +126,16 @@ const FILTER_TYPES_USED = [
 
 /** `nightingale-colored-sequence` fixtures: a plain joined string of
  *  per-residue category codes, matching `alphafold-confidence-adapter.ts`
- *  / `alphamissense-pathogenicity-adapter.ts` real output. Distinct
- *  strings keep the two colored-sequence groups visually distinguishable
- *  in the snapshot. */
-const ALPHAFOLD_CONFIDENCE_FIXTURE = 'VVHLM';
+ *  / `alphamissense-pathogenicity-adapter.ts` real output. Each adapter
+ *  draws from its OWN code alphabet (the two are NOT interchangeable):
+ *    - AlphaFold confidence: `{H, M, L, D}` — the four pLDDT bands of the
+ *      `alphafold-ramp` scale (`H:90,M:70,L:50,D:0`), confirmed against a
+ *      real `-confidence.json` payload.
+ *    - AlphaMissense pathogenicity: `{H, V, L, A, l, h, p, P}` — the
+ *      `alphamissense-ramp` scale codes.
+ *  Distinct strings keep the two colored-sequence groups visually
+ *  distinguishable in the snapshot. */
+const ALPHAFOLD_CONFIDENCE_FIXTURE = 'HHMLD';
 const ALPHAMISSENSE_AVERAGE_FIXTURE = 'HHhpP';
 
 /** `nightingale-sequence-heatmap` fixture, matching
