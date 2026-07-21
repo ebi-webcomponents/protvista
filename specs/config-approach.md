@@ -953,7 +953,7 @@ rows:
 
 **Expected output (viewer behaviour):**
 
-At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, merges its `sources`, `defaults`, and 15 groups underneath this config, then appends the `MY_LAB` group at the end of the group list. The user sees the full canonical UniProt viewer with their one extra track tacked on — authored in a handful of lines of YAML. Overriding a specific EBI track is equally cheap: declare a group with the same `id` as one in the base and the merge rules fold it in field-wise. The `extends:` value can equally be a relative file path (`./uniprot-default.yaml`) if the adopter hosts their own copy of the base config.
+At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, merges its `sources`, `defaults`, and 15 groups underneath this config, then appends the `MY_LAB` group at the end of the top-level `rows` list. The user sees the full canonical UniProt viewer with their one extra track tacked on — authored in a handful of lines of YAML. Overriding a specific EBI track is equally cheap: declare a group with the same `id` as one in the base and the merge rules fold it in field-wise. The `extends:` value can equally be a relative file path (`./uniprot-default.yaml`) if the adopter hosts their own copy of the base config.
 
 > **Note.** Generic-format adapters that would let the author point at a local file with a `data: ./hotspots.csv` shorthand instead of a hosted URL are a planned addition — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md).
 

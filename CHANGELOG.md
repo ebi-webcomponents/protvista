@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+### Deprecated — the top-level `groups:` config field is now `rows:`
+
+The top-level entry list is renamed from `groups:` to `rows:`. That array
+has held two kinds of entry since standalone single-row tracks landed — a
+group (a collapsible cluster, has `tracks:`) and a standalone track (one
+row on its own, has `data:`) — so `groups:` named it dishonestly. Every
+top-level entry is one vertical lane; a group is simply an expandable
+lane.
+
+**Migration.** Rename the field. Nothing else about the entries changes:
+
+```yaml
+# Before                     # After
+groups:                      rows:
+  - id: DOMAINS                - id: DOMAINS
+    tracks: [...]                tracks: [...]
+```
+
+`groups:` still works and is treated as an exact alias for `rows:`, but
+loading a config that uses it now emits a one-time `console.warn`. The
+alias will be **removed before the v5 schema is published** — one release
+cycle from now.
+
+Setting both `rows:` and `groups:` is a validation error
+(`rows-alias-conflict`) rather than a silent preference for one: the two
+lists would render very differently and the config gives no way to tell
+which was meant.
+
+**Not affected:** `tracks:` nested inside a group keeps its name — only
+the top-level field is renamed. The post-load `NormalizedConfig` model
+already exposes `rows` / `NormalizedRow`, so the authoring field and the
+resolved model now agree.
+
 ### Breaking — internal CSS classes and DOM ids are now hash-prefixed
 
 `<protvista-uniprot>` renders in light DOM (required by Mol*), so its
