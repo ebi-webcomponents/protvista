@@ -15,6 +15,7 @@ src/
   protvista-uniprot.ts           the custom element (Lit class)
   protvista-uniprot-datatable.ts companion table component
   protvista-uniprot-structure.ts companion 3D-structure component
+  built-in-components.ts         built-in element constructors + registry seeder
   index.ts                       re-exports + customElements.define
   default-config.yaml            the canonical UniProt viewer, in config form
   load-data.ts                   per-track fetch + adapter pipeline
@@ -79,7 +80,7 @@ The element wraps these stages in `loadConfig()` (`src/schema/load.ts`) and `_in
 - Hands off name resolution to a caller-supplied `resolver` first; falls back to URL / file-path fetching for anything resolver-declined that looks like a URL or path; everything else is `cannot-resolve-extends`.
 - Strips `extends:` from the output so downstream stages don't have to think about it.
 
-Merge rules: `sources` and `defaults.rendering` merge by key (child wins); top-level `groups` entries — groups and standalone tracks alike, one shared id namespace — and a group's `tracks` merge by `id` (child extends in place, new ids append); scalar fields are child-wins. Entry shape is read from the child's own keys, never from absence: a child that *positively* declares the other shape (a `tracks:` block over a base track, or a `data:` track over a base group) is a deliberate flip and replaces the base entry wholesale — child wins, no field merge — so a stale `tracks:` array or group `component` can't bleed onto the wrong shape. A child that declares *neither* `tracks:` nor `data:` is a scalar-only partial override: it inherits the base's shape and field-merges, so the base `tracks:` / `data:` it omits survive (e.g. overriding a group's `label` without restating its `tracks:` keeps them).
+Merge rules: `sources` and `defaults.rendering` merge by key (child wins); top-level `rows` entries — groups and standalone tracks alike, one shared id namespace — and a group's `tracks` merge by `id` (child extends in place, new ids append); scalar fields are child-wins. A base and a child may be authored with different spellings of the row list (`rows:` vs the deprecated `groups:`); the alias is resolved on every config entering the merger, so both sides match against one canonical `rows` list. Entry shape is read from the child's own keys, never from absence: a child that *positively* declares the other shape (a `tracks:` block over a base track, or a `data:` track over a base group) is a deliberate flip and replaces the base entry wholesale — child wins, no field merge — so a stale `tracks:` array or group `component` can't bleed onto the wrong shape. A child that declares *neither* `tracks:` nor `data:` is a scalar-only partial override: it inherits the base's shape and field-merges, so the base `tracks:` / `data:` it omits survive (e.g. overriding a group's `label` without restating its `tracks:` keeps them).
 
 ### 3. Validate
 
@@ -101,16 +102,20 @@ The validator is non-throwing — it returns a `ValidationResult` with an `issue
 - Group `component` is inferred from child tracks if omitted (all-same → that component; mixed → `nightingale-track-canvas`).
 - `label` falls back to a title-cased `id` when omitted.
 - Duplicate ids throw at this stage (with the offending id named). Top-level ids share one namespace across groups and standalone tracks; track ids are unique within their group.
-- A **standalone top-level track** (a `groups:` entry with no `tracks:`) is wrapped in a synthetic single-track `NormalizedGroup` flagged `standalone`, so downstream code stays on one uniform `NormalizedGroup[]` path. A standalone track **bypasses the group-rendering layer**: its cascade is `defaults.rendering → kind preset → track.rendering` (no group block in between). Wrapping was chosen over a bare-`NormalizedTrack` union because it keeps the data loader and renderer from having to branch on entry shape; the cost is a synthetic group object whose `label` mirrors the track's.
+- A **standalone top-level track** (a `rows:` entry with no `tracks:`) is wrapped in a synthetic single-track `NormalizedRow` flagged `standalone`, so downstream code stays on one uniform `NormalizedRow[]` path. A standalone track **bypasses the group-rendering layer**: its cascade is `defaults.rendering → kind preset → track.rendering` (no group block in between). Wrapping was chosen over a bare-`NormalizedTrack` union because it keeps the data loader and renderer from having to branch on entry shape; the cost is a synthetic group object whose `label` mirrors the track's.
 - `source:` references are resolved against the root `sources` map, with the original `source:` field preserved so the validator can produce author-friendly error messages.
 
 Normalize is deliberately non-throwing for unknown names — `validateConfig` is the canonical place for those errors, and running normalize on something already known to fail validation should produce a best-effort output rather than a stack of derived errors.
 
-### 5. Load + render
+### 5. Register + load + render
+
+Once `loadConfig()` returns a `NormalizedConfig`, the element **defines the custom-element tags the config references, from the registry** — component resolution is registry-owned end to end (name → constructor → `customElements.define`), not just name-mapping. The registry's `components` bucket is seeded at element construction with the built-in renderable constructors (`registerBuiltinComponents`, from `src/built-in-components.ts`) and extended by consumers via `registerComponent(name, ctor)`. `_init()` walks every resolved `row.component` / `track.component`, looks each up with `registry.getComponent(name)`, and defines it through the guarded `loadComponent()` helper. So a consumer-defined kind whose component lives outside the built-in set gets its tag registered without the embedder ever calling `customElements.define`. The structural chrome the template always emits (`nightingale-manager`, `-navigation`, `-sequence`, `-filter`, `protvista-uniprot-structure`) is not config-selectable and is registered directly from `STRUCTURAL_COMPONENTS` in `connectedCallback`, so it stays out of the config-facing registry bucket.
 
 `loadProtvistaData()` walks the `NormalizedConfig`, fetches each track's URL(s) (or reads `inlineData`), runs the named adapter, applies the per-item tooltip resolver, and writes the result into a `Record<groupId-trackId, data>` map. The element then sets that map as the `data` property on each Nightingale component in the DOM.
 
-The renderer draws each `NormalizedGroup` as a collapsible header plus its child-track rows. A group flagged `standalone` (the synthetic wrapper around an authored standalone track) is drawn instead as a single row with a plain, non-clickable track label and no collapse affordance — it reuses the same `group_<id>` container and `track-<id>-<id>` element id as a grouped track, so the shared visibility / data-binding code needs no special case. A genuine one-track group keeps its collapse header; the difference is author-controlled (presence of `tracks:`), never auto-collapsed.
+Registering a component defines its tag, but the renderer's `getTrack()` still holds a fixed `switch(component)` (lit-html cannot template dynamic tag names) with cases only for the built-in renderable components. A consumer component is therefore *defined and validated* but not yet *drawn* — dynamic `getTrack` rendering is deferred to the Canvas/WebGL rendering work.
+
+The renderer draws each `NormalizedRow` as a collapsible header plus its child-track rows. A group flagged `standalone` (the synthetic wrapper around an authored standalone track) is drawn instead as a single row with a plain, non-clickable track label and no collapse affordance — it reuses the same `group_<id>` container and `track-<id>-<id>` element id as a grouped track, so the shared visibility / data-binding code needs no special case. A genuine one-track group keeps its collapse header; the difference is author-controlled (presence of `tracks:`), never auto-collapsed.
 
 Concurrency: `_loadData()` uses an `AbortController` so a re-init (e.g. accession change) cancels in-flight fetches before the new round starts. DOM queries are scoped per-instance via `CSS.escape(this._instanceId)` so two viewers on the same page don't cross-talk.
 
@@ -124,13 +129,15 @@ The config-as-data engine. Module-by-module:
 | -------------- | ------------------------------------------------------------------------------------------------------ |
 | `types.ts`     | TypeScript surface for `ProtvistaViewerConfig` and friends. Type-only, runtime-free.                   |
 | `schema.json`  | JSON Schema (draft 2020-12). Source of truth for structural validation.                                |
-| `discriminate.ts` | `isGroupConfig` — the one predicate distinguishing a group from a standalone track in a `groups:` entry. |
+| `discriminate.ts` | `isGroupConfig` — the one predicate distinguishing a group from a standalone track in a `rows:` entry. |
+| `rows-alias.ts` | `resolveRowsAlias` — folds the deprecated `groups:` spelling into `rows:` (warning once per process) so no later stage carries an alias branch. |
 | `errors.ts`    | `ValidationIssue`, `ValidationResult`, `ConfigValidationError`, the issue-code union.                  |
 | `parse.ts`     | YAML / JSON string → plain object.                                                                     |
 | `extends.ts`   | `extends:` chain resolver + merger.                                                                    |
 | `validate.ts`  | Two-pass validator (Ajv + semantic).                                                                   |
 | `normalize.ts` | Shorthand expansion, inheritance cascade, kind resolution, duplicate-id detection.                     |
-| `registry.ts`  | Runtime registry for adapters, semantic kinds, themes. Per-instance, not module-global.                |
+| `registry.ts`  | Runtime registry for adapters, semantic kinds, themes, and components (name → ctor). Per-instance, not module-global. |
+| `components.ts` | Pure-string `RENDERABLE_COMPONENT_NAMES` — the built-in component names the validator recognises, constructor-free so it stays in the schema layer. |
 | `load.ts`      | Orchestrator: `loadConfig(input, opts) → NormalizedConfig`. Throws `ConfigValidationError` on failure. |
 | `index.ts`     | Re-export surface for embedders.                                                                       |
 
@@ -217,6 +224,20 @@ For a **built-in generic adapter** (no EBI API coupling — registry-seeded):
 
 For a **consumer adapter**, no library change is needed: call `registerAdapter(name, fn)` on the element's runtime API. It overrides a built-in of the same name.
 
+### A new component (built-in renderable)
+
+The renderable components an author can select are seeded into the registry from `src/built-in-components.ts` — the single home for the Nightingale constructors (the schema layer never imports them, so `validateConfig` stays runnable standalone). To add one:
+
+1. Add its tag name to `KnownComponentName` in `src/schema/types.ts` and to the `RENDERABLE` table in `src/schema/components.ts` (the `satisfies Record<KnownComponentName, true>` there makes an omission on either side a compile error, so `tsc` will tell you if you skip half of this step).
+2. Add its `[name, ctor]` pair to `RENDERABLE_COMPONENTS` in `src/built-in-components.ts`.
+3. Add a `case` to `getTrack()` in `src/protvista-uniprot.ts` so the renderer can draw it (lit-html cannot template dynamic tag names).
+
+Structural chrome the template always emits (manager, navigation, sequence, filter, structure) is not config-selectable and lives in `STRUCTURAL_COMPONENTS` in the same module, registered directly rather than through the registry.
+
+### A consumer component (runtime)
+
+Register a custom component so a semantic kind (or an explicit `component:`) resolving to its tag gets defined automatically: `element.registerComponent('my-track', MyTrackCtor)`. Then reference it — usually by also registering a kind, `element.registerSemanticKind('my-kind', { component: 'my-track', adapter: 'my-adapter' })`, and writing `kind: my-kind` in the config. When the config loads, the registration walk defines `my-track` for you — no `customElements.define` call needed. Validation catches a kind whose component was never registered before mount (`unknown-component`). Note the current limitation: the tag is *defined and validated* but not yet *rendered*, because `getTrack()` has no case for it (see "Register + load + render").
+
 ### A new colour-scale theme
 
 "Theme" here means a named colour ramp for `colorScale` rendering (e.g. `alphafold-ramp`, `alphamissense-ramp`) — a value referenced from `ColorScaleConfig.theme` in the config. It is **not** a CSS theme for the overall component look-and-feel. CSS theming for the element as a whole is a separate concern handled via the component's stylesheet (`src/styles/protvista-styles.ts`) and any CSS variables it exposes.
@@ -231,7 +252,11 @@ Add to `RenderingOptions` in `src/schema/types.ts` and to `RenderingOptions` in 
 
 ### One id namespace for top-level entries
 
-The config's `groups:` array holds a discriminated union of `GroupConfig` (has `tracks:`) and standalone `TrackConfig` (has `data:`, no `tracks:`) — `isGroupConfig` in `src/schema/discriminate.ts` is the single source of truth for the discrimination, mirrored structurally by the `oneOf` in `schema.json`. The two shapes share **one id namespace**: a standalone track's `id` may not collide with a group's `id` (normalize throws `Duplicate top-level id '…'`). Track ids only need to be unique within their own group. When you add a code path that walks `config.groups`, route the shape check through `isGroupConfig` rather than hand-rolling a `'tracks' in entry` test, so all three stages (validate / normalize / extends) stay in lockstep. The field is still named `groups:` for back-compat even though it now also accepts non-groups.
+The config's `rows:` array holds a discriminated union of `GroupConfig` (has `tracks:`) and standalone `TrackConfig` (has `data:`, no `tracks:`) — `isGroupConfig` in `src/schema/discriminate.ts` is the single source of truth for the discrimination, mirrored structurally by the `oneOf` in `schema.json`. The two shapes share **one id namespace**: a standalone track's `id` may not collide with a group's `id` (normalize throws `Duplicate top-level id '…'`). Track ids only need to be unique within their own group. When you add a code path that walks `config.rows`, route the shape check through `isGroupConfig` rather than hand-rolling a `'tracks' in entry` test, so all three stages (validate / normalize / extends) stay in lockstep.
+
+The list was originally called `groups:`, which stopped being honest once it began holding standalone tracks alongside real groups. `rows:` is the canonical name — every entry is one vertical lane, and a group is simply an expandable lane. `groups:` survives as a deprecated alias for one cycle: `resolveRowsAlias` (`src/schema/rows-alias.ts`) folds it into `rows:` at the front of the pipeline and warns once per process, so nothing downstream of parse ever sees it. Setting both is a validation error rather than a silent preference.
+
+The vocabulary is the same on both sides of the normalize boundary: an authored `rows:` entry becomes a `NormalizedRow`, and `config.rows` stays `config.rows`. Nothing downstream is called a "group" when it might actually be a standalone track. The one place the old word survives is the **rendered DOM** — a standalone row deliberately reuses the `group_<id>` element id and the `.group` / `.group--standalone` classes so the shared visibility and data-binding code needs no special case. That is markup, not vocabulary, and renaming it would be a breaking change for anyone styling or querying the output.
 
 ### Specs are ephemeral
 

@@ -46,10 +46,10 @@ import type {
 /**
  * Minimal config constructor. Keeps each test's input focused on the
  * field under test and avoids the noise of always spelling out
- * `groups: [...]` with a throw-away track.
+ * `rows: [...]` with a throw-away track.
  */
 function cfg(
-  partial: Partial<ProtvistaViewerConfig> & { groups: TopLevelEntry[] }
+  partial: Partial<ProtvistaViewerConfig> & { rows: TopLevelEntry[] }
 ): ProtvistaViewerConfig {
   return partial;
 }
@@ -94,30 +94,30 @@ describe('titleCaseId', () => {
 describe('normalizeConfig — label fallbacks', () => {
   it('title-cases a group id when label is omitted (spec test)', () => {
     const out = normalizeConfig({
-      groups: [{ id: 'MOLECULE_PROCESSING', tracks: [] }],
+      rows: [{ id: 'MOLECULE_PROCESSING', tracks: [] }],
     });
-    expect(out.groups[0].label).toBe('Molecule processing');
+    expect(out.rows[0].label).toBe('Molecule processing');
   });
 
   it('preserves an explicit group label', () => {
     const out = normalizeConfig({
-      groups: [
+      rows: [
         { id: 'MOLECULE_PROCESSING', label: 'Processing', tracks: [] },
       ],
     });
-    expect(out.groups[0].label).toBe('Processing');
+    expect(out.rows[0].label).toBe('Processing');
   });
 
   it('title-cases a track id when label is omitted', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x/{accession}' },
-        groups: [
+        rows: [
           { id: 'C', tracks: [track({ id: 'signal-peptide' })] },
         ],
       })
     );
-    expect(out.groups[0].tracks[0].label).toBe('Signal peptide');
+    expect(out.rows[0].tracks[0].label).toBe('Signal peptide');
   });
 });
 
@@ -129,7 +129,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
   it('wraps a single descriptor in an array', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -142,7 +142,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
         ],
       })
     );
-    const d = out.groups[0].tracks[0].data;
+    const d = out.rows[0].tracks[0].data;
     expect(Array.isArray(d)).toBe(true);
     expect(d).toHaveLength(1);
     expect(d[0].url).toBe('https://x');
@@ -151,7 +151,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
   it('keeps a descriptor array intact (multi-input adapter)', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -167,8 +167,8 @@ describe('normalizeConfig — data shorthand expansion', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].data).toHaveLength(2);
-    expect(out.groups[0].tracks[0].data.map((d) => d.url)).toEqual([
+    expect(out.rows[0].tracks[0].data).toHaveLength(2);
+    expect(out.rows[0].tracks[0].data.map((d) => d.url)).toEqual([
       'https://a',
       'https://b',
     ]);
@@ -178,10 +178,10 @@ describe('normalizeConfig — data shorthand expansion', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://example.com/features/{accession}' },
-        groups: [{ id: 'C', tracks: [track({ id: 't', data: 'features' })] }],
+        rows: [{ id: 'C', tracks: [track({ id: 't', data: 'features' })] }],
       })
     );
-    const d = out.groups[0].tracks[0].data[0];
+    const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('url');
     expect(d.source).toBe('features');
     // Resolution populates `url` alongside `source` so the loader can
@@ -192,12 +192,12 @@ describe('normalizeConfig — data shorthand expansion', () => {
   it('resolves string shorthand starting with http(s):// as a literal URL', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           { id: 'C', tracks: [track({ id: 't', data: 'https://x.test/f' })] },
         ],
       })
     );
-    const d = out.groups[0].tracks[0].data[0];
+    const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('url');
     expect(d.url).toBe('https://x.test/f');
     expect(d.source).toBeUndefined();
@@ -207,12 +207,12 @@ describe('normalizeConfig — data shorthand expansion', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           { id: 'C', tracks: [track({ id: 't', data: 'nonexistent' })] },
         ],
       })
     );
-    const d = out.groups[0].tracks[0].data[0];
+    const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('url');
     expect(d.source).toBe('nonexistent');
     expect(d.url).toBeUndefined();
@@ -221,12 +221,12 @@ describe('normalizeConfig — data shorthand expansion', () => {
   it('resolves a ./x.csv file path to {from: file, url, adapter: features-csv}', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           { id: 'C', tracks: [track({ id: 't', data: './features.csv' })] },
         ],
       })
     );
-    const d = out.groups[0].tracks[0].data[0];
+    const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('file');
     expect(d.url).toBe('./features.csv');
     expect(d.adapter).toBe('features-csv');
@@ -235,12 +235,12 @@ describe('normalizeConfig — data shorthand expansion', () => {
   it('resolves a ./x.tsv file path to {from: file, url, adapter: features-tsv}', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           { id: 'C', tracks: [track({ id: 't', data: '../data/hits.tsv' })] },
         ],
       })
     );
-    const d = out.groups[0].tracks[0].data[0];
+    const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('file');
     expect(d.url).toBe('../data/hits.tsv');
     expect(d.adapter).toBe('features-tsv');
@@ -249,12 +249,12 @@ describe('normalizeConfig — data shorthand expansion', () => {
   it('resolves a ./x.json file path to {from: file, url, adapter: features-json}', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           { id: 'C', tracks: [track({ id: 't', data: './features.json' })] },
         ],
       })
     );
-    const d = out.groups[0].tracks[0].data[0];
+    const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('file');
     expect(d.url).toBe('./features.json');
     expect(d.adapter).toBe('features-json');
@@ -263,12 +263,12 @@ describe('normalizeConfig — data shorthand expansion', () => {
   it('resolves a ./x.bed file path to {from: file, url, adapter: bed}', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           { id: 'C', tracks: [track({ id: 't', data: './regions.bed' })] },
         ],
       })
     );
-    const d = out.groups[0].tracks[0].data[0];
+    const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('file');
     expect(d.url).toBe('./regions.bed');
     expect(d.adapter).toBe('bed');
@@ -277,7 +277,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
   it('lets an explicit adapter win over file-extension inference', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -290,7 +290,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
         ],
       })
     );
-    const d = out.groups[0].tracks[0].data[0];
+    const d = out.rows[0].tracks[0].data[0];
     expect(d.adapter).toBe('my-csv');
   });
 
@@ -300,7 +300,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
     // rather than fed to the kind's JSON adapter.
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -311,7 +311,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
       }),
       { registry: createRegistry() }
     );
-    const d = out.groups[0].tracks[0].data[0];
+    const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('file');
     expect(d.adapter).toBe('features-csv');
   });
@@ -319,12 +319,12 @@ describe('normalizeConfig — data shorthand expansion', () => {
   it('leaves an unrecognised extension (./x.gff) as a best-effort source key', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           { id: 'C', tracks: [track({ id: 't', data: './notes.gff' })] },
         ],
       })
     );
-    const d = out.groups[0].tracks[0].data[0];
+    const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('url');
     expect(d.source).toBe('./notes.gff');
     expect(d.adapter).toBeUndefined();
@@ -341,7 +341,7 @@ describe('normalizeConfig — dataTooltip shorthand expansion', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -355,7 +355,7 @@ describe('normalizeConfig — dataTooltip shorthand expansion', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].dataTooltip).toEqual({
+    expect(out.rows[0].tracks[0].dataTooltip).toEqual({
       kind: 'markdown',
       template: '### {% $name %}',
     });
@@ -369,7 +369,7 @@ describe('normalizeConfig — dataTooltip shorthand expansion', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -383,7 +383,7 @@ describe('normalizeConfig — dataTooltip shorthand expansion', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].dataTooltip).toEqual(fieldsSpec);
+    expect(out.rows[0].tracks[0].dataTooltip).toEqual(fieldsSpec);
   });
 
   it('passes a markdown-form dataTooltip (with variables) through unchanged', () => {
@@ -395,7 +395,7 @@ describe('normalizeConfig — dataTooltip shorthand expansion', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -409,19 +409,19 @@ describe('normalizeConfig — dataTooltip shorthand expansion', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].dataTooltip).toEqual(markdownSpec);
+    expect(out.rows[0].tracks[0].dataTooltip).toEqual(markdownSpec);
   });
 
   it('omits dataTooltip from the normalized track when absent on input', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           { id: 'C', tracks: [track({ id: 't', kind: 'features' })] },
         ],
       })
     );
-    expect(out.groups[0].tracks[0].dataTooltip).toBeUndefined();
+    expect(out.rows[0].tracks[0].dataTooltip).toBeUndefined();
   });
 });
 
@@ -434,7 +434,7 @@ describe('normalizeConfig — from defaulting', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -444,13 +444,13 @@ describe('normalizeConfig — from defaulting', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].data[0].from).toBe('url');
+    expect(out.rows[0].tracks[0].data[0].from).toBe('url');
   });
 
   it("defaults `from` to 'inline' when inlineData is present and `from` is omitted", () => {
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -460,13 +460,13 @@ describe('normalizeConfig — from defaulting', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].data[0].from).toBe('inline');
+    expect(out.rows[0].tracks[0].data[0].from).toBe('inline');
   });
 
   it('respects an explicit `from` even when inlineData is present', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -479,7 +479,7 @@ describe('normalizeConfig — from defaulting', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].data[0].from).toBe('custom');
+    expect(out.rows[0].tracks[0].data[0].from).toBe('custom');
   });
 });
 
@@ -492,7 +492,7 @@ describe('normalizeConfig — adapter inference precedence', () => {
     const registry = createRegistry();
     const out = normalizeConfig(
       cfg({
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -510,7 +510,7 @@ describe('normalizeConfig — adapter inference precedence', () => {
       }),
       { registry }
     );
-    expect(out.groups[0].tracks[0].data[0].adapter).toBe('my-custom-adapter');
+    expect(out.rows[0].tracks[0].data[0].adapter).toBe('my-custom-adapter');
   });
 
   it('prefers the kind canonical adapter for sources-key shorthand', () => {
@@ -518,7 +518,7 @@ describe('normalizeConfig — adapter inference precedence', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://api.example.com/{accession}.json' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [track({ id: 't', kind: 'features', data: 'features' })],
@@ -529,7 +529,7 @@ describe('normalizeConfig — adapter inference precedence', () => {
     );
     // The author explicitly said `kind: features`, so they want the
     // UniProt JSON adapter that the kind resolves to.
-    expect(out.groups[0].tracks[0].data[0].adapter).toBe(
+    expect(out.rows[0].tracks[0].data[0].adapter).toBe(
       'uniprot-features-json'
     );
   });
@@ -539,7 +539,7 @@ describe('normalizeConfig — adapter inference precedence', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://api.example.com/features/{accession}' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [track({ id: 't', kind: 'features', data: 'features' })],
@@ -548,7 +548,7 @@ describe('normalizeConfig — adapter inference precedence', () => {
       }),
       { registry }
     );
-    expect(out.groups[0].tracks[0].data[0].adapter).toBe(
+    expect(out.rows[0].tracks[0].data[0].adapter).toBe(
       'uniprot-features-json'
     );
   });
@@ -565,7 +565,7 @@ describe('normalizeConfig — source → url resolution', () => {
     // this for cache-key equality.
     const out = normalizeConfig({
       sources: { features: 'https://example.com/features/{accession}' },
-      groups: [
+      rows: [
         {
           id: 'SITES',
           tracks: [
@@ -581,7 +581,7 @@ describe('normalizeConfig — source → url resolution', () => {
         },
       ],
     });
-    const urls = out.groups
+    const urls = out.rows
       .flatMap((c) => c.tracks)
       .flatMap((t) => t.data)
       .flatMap((d) => (Array.isArray(d.url) ? d.url : [d.url]))
@@ -593,7 +593,7 @@ describe('normalizeConfig — source → url resolution', () => {
     const out = normalizeConfig(
       cfg({
         sources: { a: 'https://a', b: 'https://b' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -603,7 +603,7 @@ describe('normalizeConfig — source → url resolution', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].data[0].url).toEqual([
+    expect(out.rows[0].tracks[0].data[0].url).toEqual([
       'https://a',
       'https://b',
     ]);
@@ -613,7 +613,7 @@ describe('normalizeConfig — source → url resolution', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://example.com/features' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -626,7 +626,7 @@ describe('normalizeConfig — source → url resolution', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].data[0].url).toBe('https://overridden');
+    expect(out.rows[0].tracks[0].data[0].url).toBe('https://overridden');
   });
 });
 
@@ -642,7 +642,7 @@ describe('normalizeConfig — rendering cascade', () => {
           rendering: { color: 'red', height: 10, layout: 'non-overlapping' },
         },
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             rendering: { color: 'blue' }, // overrides defaults.color
@@ -656,7 +656,7 @@ describe('normalizeConfig — rendering cascade', () => {
         ],
       })
     );
-    const r = out.groups[0].tracks[0].rendering;
+    const r = out.rows[0].tracks[0].rendering;
     expect(r.color).toBe('blue'); // from group
     expect(r.height).toBe(20); // from track
     expect(r.layout).toBe('non-overlapping'); // from defaults
@@ -667,7 +667,7 @@ describe('normalizeConfig — rendering cascade', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             rendering: { color: 'red' }, // would cascade to tracks
@@ -683,7 +683,7 @@ describe('normalizeConfig — rendering cascade', () => {
     // the group's `color: red` is NOT overridden because the kind
     // preset doesn't touch that field. This proves the merge is
     // field-wise, not whole-object.
-    const r = out.groups[0].tracks[0].rendering;
+    const r = out.rows[0].tracks[0].rendering;
     expect(r.color).toBe('red');
     expect(r.colorScale?.theme).toBe('alphafold-ramp');
   });
@@ -693,7 +693,7 @@ describe('normalizeConfig — rendering cascade', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -710,19 +710,19 @@ describe('normalizeConfig — rendering cascade', () => {
       { registry }
     );
     expect(
-      out.groups[0].tracks[0].rendering.colorScale?.theme
+      out.rows[0].tracks[0].rendering.colorScale?.theme
     ).toBe('my-custom');
   });
 
   it('always produces a defined rendering object on each track (even when nothing is set)', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [{ id: 'C', tracks: [track({ id: 't' })] }],
+        rows: [{ id: 'C', tracks: [track({ id: 't' })] }],
       })
     );
-    expect(out.groups[0].tracks[0].rendering).toEqual({});
+    expect(out.rows[0].tracks[0].rendering).toEqual({});
     expect(out.defaults.rendering).toEqual({});
-    expect(out.groups[0].rendering).toEqual({});
+    expect(out.rows[0].rendering).toEqual({});
   });
 });
 
@@ -736,7 +736,7 @@ describe('normalizeConfig — component resolution', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -747,7 +747,7 @@ describe('normalizeConfig — component resolution', () => {
       }),
       { registry }
     );
-    expect(out.groups[0].tracks[0].component).toBe(
+    expect(out.rows[0].tracks[0].component).toBe(
       'nightingale-colored-sequence'
     );
   });
@@ -757,7 +757,7 @@ describe('normalizeConfig — component resolution', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -773,7 +773,7 @@ describe('normalizeConfig — component resolution', () => {
       }),
       { registry }
     );
-    expect(out.groups[0].tracks[0].component).toBe(
+    expect(out.rows[0].tracks[0].component).toBe(
       'nightingale-track-canvas'
     );
   });
@@ -782,7 +782,7 @@ describe('normalizeConfig — component resolution', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             component: 'nightingale-linegraph-track',
@@ -791,7 +791,7 @@ describe('normalizeConfig — component resolution', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].component).toBe(
+    expect(out.rows[0].tracks[0].component).toBe(
       'nightingale-linegraph-track'
     );
   });
@@ -799,10 +799,10 @@ describe('normalizeConfig — component resolution', () => {
   it('defaults to nightingale-track-canvas when nothing else resolves', () => {
     const out = normalizeConfig(
       cfg({
-        groups: [{ id: 'C', tracks: [track({ id: 't' })] }],
+        rows: [{ id: 'C', tracks: [track({ id: 't' })] }],
       })
     );
-    expect(out.groups[0].tracks[0].component).toBe(
+    expect(out.rows[0].tracks[0].component).toBe(
       'nightingale-track-canvas'
     );
   });
@@ -812,7 +812,7 @@ describe('normalizeConfig — component resolution', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [track({ id: 't', kind: 'features', data: 'features' })],
@@ -821,7 +821,7 @@ describe('normalizeConfig — component resolution', () => {
       }),
       { registry }
     );
-    expect(out.groups[0].tracks[0].kind).toBe('features');
+    expect(out.rows[0].tracks[0].kind).toBe('features');
   });
 });
 
@@ -835,7 +835,7 @@ describe('normalizeConfig — group component inference', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -849,7 +849,7 @@ describe('normalizeConfig — group component inference', () => {
     );
     // features → nightingale-track-canvas
     // peptides → nightingale-track-canvas
-    expect(out.groups[0].component).toBe('nightingale-track-canvas');
+    expect(out.rows[0].component).toBe('nightingale-track-canvas');
   });
 
   it('falls back to nightingale-track-canvas for a mixed-component group', () => {
@@ -857,7 +857,7 @@ describe('normalizeConfig — group component inference', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [
@@ -869,7 +869,7 @@ describe('normalizeConfig — group component inference', () => {
       }),
       { registry }
     );
-    expect(out.groups[0].component).toBe('nightingale-track-canvas');
+    expect(out.rows[0].component).toBe('nightingale-track-canvas');
   });
 
   it('preserves an explicit group component even when children disagree', () => {
@@ -877,7 +877,7 @@ describe('normalizeConfig — group component inference', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             component: 'nightingale-linegraph-track',
@@ -890,7 +890,7 @@ describe('normalizeConfig — group component inference', () => {
       }),
       { registry }
     );
-    expect(out.groups[0].component).toBe('nightingale-linegraph-track');
+    expect(out.rows[0].component).toBe('nightingale-linegraph-track');
   });
 
   it('picks a default component for a zero-track group', () => {
@@ -899,10 +899,10 @@ describe('normalizeConfig — group component inference', () => {
     // doesn't crash if it iterates empty groups.
     const out = normalizeConfig(
       cfg({
-        groups: [{ id: 'EMPTY', tracks: [] }],
+        rows: [{ id: 'EMPTY', tracks: [] }],
       })
     );
-    expect(out.groups[0].component).toBe('nightingale-track-canvas');
+    expect(out.rows[0].component).toBe('nightingale-track-canvas');
   });
 });
 
@@ -914,7 +914,7 @@ describe('normalizeConfig — duplicate id detection', () => {
   it('rejects duplicate top-level ids (spec test)', () => {
     expect(() =>
       normalizeConfig({
-        groups: [
+        rows: [
           { id: 'DUPED', tracks: [] },
           { id: 'DUPED', tracks: [] },
         ],
@@ -926,7 +926,7 @@ describe('normalizeConfig — duplicate id detection', () => {
     expect(() =>
       normalizeConfig({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           { id: 'shared', tracks: [] },
           { id: 'shared', kind: 'features', data: 'features' },
         ],
@@ -939,7 +939,7 @@ describe('normalizeConfig — duplicate id detection', () => {
       normalizeConfig(
         cfg({
           sources: { features: 'https://x' },
-          groups: [
+          rows: [
             {
               id: 'C',
               tracks: [track({ id: 't' }), track({ id: 't' })],
@@ -955,7 +955,7 @@ describe('normalizeConfig — duplicate id detection', () => {
       normalizeConfig(
         cfg({
           sources: { features: 'https://x' },
-          groups: [
+          rows: [
             { id: 'A', tracks: [track({ id: 'signal' })] },
             { id: 'B', tracks: [track({ id: 'signal' })] },
           ],
@@ -972,7 +972,7 @@ describe('normalizeConfig — duplicate id detection', () => {
 describe('normalizeConfig — top-level fields', () => {
   it("defaults `version` to '1.0' when omitted", () => {
     const out = normalizeConfig({
-      groups: [{ id: 'C', tracks: [] }],
+      rows: [{ id: 'C', tracks: [] }],
     });
     expect(out.version).toBe('1.0');
   });
@@ -980,21 +980,21 @@ describe('normalizeConfig — top-level fields', () => {
   it('preserves accession when set', () => {
     const out = normalizeConfig({
       accession: 'P05067',
-      groups: [{ id: 'C', tracks: [] }],
+      rows: [{ id: 'C', tracks: [] }],
     });
     expect(out.accession).toBe('P05067');
   });
 
   it('always produces a sources object (empty when omitted)', () => {
     const out = normalizeConfig({
-      groups: [{ id: 'C', tracks: [] }],
+      rows: [{ id: 'C', tracks: [] }],
     });
     expect(out.sources).toEqual({});
   });
 
   it('always produces a defaults object with a rendering sub-object', () => {
     const out = normalizeConfig({
-      groups: [{ id: 'C', tracks: [] }],
+      rows: [{ id: 'C', tracks: [] }],
     });
     expect(out.defaults.rendering).toEqual({});
   });
@@ -1012,7 +1012,7 @@ describe('normalizeConfig — without a registry', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'C',
             tracks: [track({ id: 't', kind: 'features', data: 'features' })],
@@ -1020,12 +1020,12 @@ describe('normalizeConfig — without a registry', () => {
         ],
       })
     );
-    expect(out.groups[0].tracks[0].kind).toBe('features');
+    expect(out.rows[0].tracks[0].kind).toBe('features');
     // Adapter stays undefined because there's no registry to look up
     // the kind's canonical adapter.
-    expect(out.groups[0].tracks[0].data[0].adapter).toBeUndefined();
+    expect(out.rows[0].tracks[0].data[0].adapter).toBeUndefined();
     // Component falls through to the default.
-    expect(out.groups[0].tracks[0].component).toBe(
+    expect(out.rows[0].tracks[0].component).toBe(
       'nightingale-track-canvas'
     );
   });
@@ -1043,7 +1043,7 @@ describe('normalizeConfig — output shape guarantees', () => {
         accession: 'P05067',
         defaults: { rendering: { layout: 'non-overlapping' } },
         sources: { features: 'https://x/{accession}' },
-        groups: [
+        rows: [
           {
             id: 'DOMAINS',
             tracks: [
@@ -1065,7 +1065,7 @@ describe('normalizeConfig — output shape guarantees', () => {
     expect(out.sources.features).toBe('https://x/{accession}');
     expect(out.defaults.rendering.layout).toBe('non-overlapping');
 
-    const c = out.groups[0];
+    const c = out.rows[0];
     expect(c.id).toBe('DOMAINS');
     expect(c.label).toBe('Domains');
     expect(c.component).toBe('nightingale-track-canvas');
@@ -1097,7 +1097,7 @@ describe('normalizeConfig — standalone top-level tracks', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'signal_peptide',
             label: 'Signal peptide',
@@ -1109,8 +1109,8 @@ describe('normalizeConfig — standalone top-level tracks', () => {
       }),
       { registry }
     );
-    expect(out.groups).toHaveLength(1);
-    const g = out.groups[0];
+    expect(out.rows).toHaveLength(1);
+    const g = out.rows[0];
     expect(g.standalone).toBe(true);
     // Wrapper mirrors the wrapped track: same id, label === track.label,
     // same resolved component.
@@ -1126,7 +1126,7 @@ describe('normalizeConfig — standalone top-level tracks', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           {
             id: 'DOMAINS',
             tracks: [track({ id: 'domain', kind: 'features', data: 'features' })],
@@ -1134,14 +1134,14 @@ describe('normalizeConfig — standalone top-level tracks', () => {
         ],
       })
     );
-    expect(out.groups[0].standalone).toBeUndefined();
+    expect(out.rows[0].standalone).toBeUndefined();
   });
 
   it('preserves declaration order across mixed standalone tracks and groups', () => {
     const out = normalizeConfig(
       cfg({
         sources: { features: 'https://x' },
-        groups: [
+        rows: [
           { id: 'signal_peptide', kind: 'features', filter: 'SIGNAL', data: 'features' },
           {
             id: 'DOMAINS',
@@ -1151,12 +1151,12 @@ describe('normalizeConfig — standalone top-level tracks', () => {
         ],
       })
     );
-    expect(out.groups.map((g) => g.id)).toEqual([
+    expect(out.rows.map((g) => g.id)).toEqual([
       'signal_peptide',
       'DOMAINS',
       'confidence',
     ]);
-    expect(out.groups.map((g) => g.standalone)).toEqual([
+    expect(out.rows.map((g) => g.standalone)).toEqual([
       true,
       undefined,
       true,
@@ -1169,20 +1169,20 @@ describe('normalizeConfig — standalone top-level tracks', () => {
       cfg({
         sources: { features: 'https://x' },
         defaults: { rendering: { layout: 'non-overlapping', color: 'red' } },
-        groups: [
+        rows: [
           { id: 'confidence', kind: 'confidence-score', data: 'features' },
         ],
       }),
       { registry }
     );
-    const r = out.groups[0].tracks[0].rendering;
+    const r = out.rows[0].tracks[0].rendering;
     // Inherited straight from defaults (no group layer to intercept),
     // with the confidence-score kind preset layered on top.
     expect(r.layout).toBe('non-overlapping');
     expect(r.color).toBe('red');
     expect(r.colorScale?.theme).toBe('alphafold-ramp');
     // The synthetic wrapper's own rendering is the defaults layer only.
-    expect(out.groups[0].rendering.color).toBe('red');
-    expect(out.groups[0].rendering.colorScale).toBeUndefined();
+    expect(out.rows[0].rendering.color).toBe('red');
+    expect(out.rows[0].rendering.colorScale).toBeUndefined();
   });
 });

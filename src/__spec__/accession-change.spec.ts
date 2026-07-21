@@ -61,7 +61,7 @@ function buildConfig(): NormalizedConfig {
     version: '1.0',
     sources: {},
     defaults: { rendering: {} },
-    groups: [],
+    rows: [],
   };
 }
 

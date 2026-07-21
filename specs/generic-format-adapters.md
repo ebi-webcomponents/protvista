@@ -78,7 +78,7 @@ or behind their own URL. The Quick-look example in the spec promises:
 
 ```yaml
 extends: '<published-uniprot-default-config-url>'
-groups:
+rows:
   - id: MY_LAB
     label: My lab
     tracks:

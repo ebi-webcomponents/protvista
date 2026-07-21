@@ -1,7 +1,7 @@
 /**
  * Top-level-entry discriminator.
  *
- * Each entry under the config's `groups:` array is a discriminated
+ * Each entry under the config's `rows:` array is a discriminated
  * union of `GroupConfig` and `TrackConfig` (a "standalone track"):
  *
  *   - presence of `tracks:` → group
