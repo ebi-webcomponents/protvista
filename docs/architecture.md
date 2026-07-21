@@ -15,6 +15,7 @@ src/
   protvista-uniprot.ts           the custom element (Lit class)
   protvista-uniprot-datatable.ts companion table component
   protvista-uniprot-structure.ts companion 3D-structure component
+  built-in-components.ts         built-in element constructors + registry seeder
   index.ts                       re-exports + customElements.define
   default-config.yaml            the canonical UniProt viewer, in config form
   load-data.ts                   per-track fetch + adapter pipeline
@@ -106,9 +107,13 @@ The validator is non-throwing — it returns a `ValidationResult` with an `issue
 
 Normalize is deliberately non-throwing for unknown names — `validateConfig` is the canonical place for those errors, and running normalize on something already known to fail validation should produce a best-effort output rather than a stack of derived errors.
 
-### 5. Load + render
+### 5. Register + load + render
+
+Once `loadConfig()` returns a `NormalizedConfig`, the element **defines the custom-element tags the config references, from the registry** — component resolution is registry-owned end to end (name → constructor → `customElements.define`), not just name-mapping. The registry's `components` bucket is seeded at element construction with the built-in renderable constructors (`registerBuiltinComponents`, from `src/built-in-components.ts`) and extended by consumers via `registerComponent(name, ctor)`. `_init()` walks every resolved `group.component` / `track.component`, looks each up with `registry.getComponent(name)`, and defines it through the guarded `loadComponent()` helper. So a consumer-defined kind whose component lives outside the built-in set gets its tag registered without the embedder ever calling `customElements.define`. The structural chrome the template always emits (`nightingale-manager`, `-navigation`, `-sequence`, `-filter`, `protvista-uniprot-structure`) is not config-selectable and is registered directly from `STRUCTURAL_COMPONENTS` in `connectedCallback`, so it stays out of the config-facing registry bucket.
 
 `loadProtvistaData()` walks the `NormalizedConfig`, fetches each track's URL(s) (or reads `inlineData`), runs the named adapter, applies the per-item tooltip resolver, and writes the result into a `Record<groupId-trackId, data>` map. The element then sets that map as the `data` property on each Nightingale component in the DOM.
+
+Registering a component defines its tag, but the renderer's `getTrack()` still holds a fixed `switch(component)` (lit-html cannot template dynamic tag names) with cases only for the built-in renderable components. A consumer component is therefore *defined and validated* but not yet *drawn* — dynamic `getTrack` rendering is deferred to the Canvas/WebGL rendering work.
 
 The renderer draws each `NormalizedGroup` as a collapsible header plus its child-track rows. A group flagged `standalone` (the synthetic wrapper around an authored standalone track) is drawn instead as a single row with a plain, non-clickable track label and no collapse affordance — it reuses the same `group_<id>` container and `track-<id>-<id>` element id as a grouped track, so the shared visibility / data-binding code needs no special case. A genuine one-track group keeps its collapse header; the difference is author-controlled (presence of `tracks:`), never auto-collapsed.
 
@@ -130,7 +135,8 @@ The config-as-data engine. Module-by-module:
 | `extends.ts`   | `extends:` chain resolver + merger.                                                                    |
 | `validate.ts`  | Two-pass validator (Ajv + semantic).                                                                   |
 | `normalize.ts` | Shorthand expansion, inheritance cascade, kind resolution, duplicate-id detection.                     |
-| `registry.ts`  | Runtime registry for adapters, semantic kinds, themes. Per-instance, not module-global.                |
+| `registry.ts`  | Runtime registry for adapters, semantic kinds, themes, and components (name → ctor). Per-instance, not module-global. |
+| `components.ts` | Pure-string `RENDERABLE_COMPONENT_NAMES` — the built-in component names the validator recognises, constructor-free so it stays in the schema layer. |
 | `load.ts`      | Orchestrator: `loadConfig(input, opts) → NormalizedConfig`. Throws `ConfigValidationError` on failure. |
 | `index.ts`     | Re-export surface for embedders.                                                                       |
 
@@ -214,6 +220,20 @@ For a **built-in generic adapter** (no EBI API coupling — registry-seeded):
 4. Add a unit test under `src/schema/__spec__/`.
 
 For a **consumer adapter**, no library change is needed: call `registerAdapter(name, fn)` on the element's runtime API. It overrides a built-in of the same name.
+
+### A new component (built-in renderable)
+
+The renderable components an author can select are seeded into the registry from `src/built-in-components.ts` — the single home for the Nightingale constructors (the schema layer never imports them, so `validateConfig` stays runnable standalone). To add one:
+
+1. Add its tag name to `KnownComponentName` in `src/schema/types.ts` and to `RENDERABLE_COMPONENT_NAMES` in `src/schema/components.ts` (align these by hand — the `ReadonlySet<KnownComponentName>` annotation catches an extra/misspelled name but not an omitted union member; a drift-guard test only relates the set to the constructor table).
+2. Add its `[name, ctor]` pair to `RENDERABLE_COMPONENTS` in `src/built-in-components.ts`.
+3. Add a `case` to `getTrack()` in `src/protvista-uniprot.ts` so the renderer can draw it (lit-html cannot template dynamic tag names).
+
+Structural chrome the template always emits (manager, navigation, sequence, filter, structure) is not config-selectable and lives in `STRUCTURAL_COMPONENTS` in the same module, registered directly rather than through the registry.
+
+### A consumer component (runtime)
+
+Register a custom component so a semantic kind (or an explicit `component:`) resolving to its tag gets defined automatically: `element.registerComponent('my-track', MyTrackCtor)`. Then reference it — usually by also registering a kind, `element.registerSemanticKind('my-kind', { component: 'my-track', adapter: 'my-adapter' })`, and writing `kind: my-kind` in the config. When the config loads, the registration walk defines `my-track` for you — no `customElements.define` call needed. Validation catches a kind whose component was never registered before mount (`unknown-component`). Note the current limitation: the tag is *defined and validated* but not yet *rendered*, because `getTrack()` has no case for it (see "Register + load + render").
 
 ### A new colour-scale theme
 

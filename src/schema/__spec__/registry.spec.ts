@@ -183,6 +183,60 @@ describe('Registry — custom registration', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// Components bucket
+// ─────────────────────────────────────────────────────────────
+
+describe('Registry — components bucket', () => {
+  // A stand-in constructor; the registry stores/retrieves it opaquely
+  // and never instantiates it, so a bare function suffices.
+  const stub = () => function () {} as unknown as CustomElementConstructor;
+
+  it('seeds NO components at construction (schema layer stays constructor-free)', () => {
+    const r = createRegistry();
+    expect(r.listComponents()).toEqual([]);
+    expect(r.hasComponent('nightingale-track-canvas')).toBe(false);
+    expect(r.getComponent('nightingale-track-canvas')).toBeUndefined();
+  });
+
+  it('registers, retrieves, and lists a component', () => {
+    const r = createRegistry();
+    const ctor = stub();
+    r.registerComponent('my-track', ctor);
+    expect(r.hasComponent('my-track')).toBe(true);
+    expect(r.getComponent('my-track')).toBe(ctor);
+    expect(r.listComponents()).toEqual(['my-track']);
+  });
+
+  it('throws RegistryCollisionError when registering the same name twice', () => {
+    const r = createRegistry();
+    r.registerComponent('my-track', stub());
+    expect(() => r.registerComponent('my-track', stub())).toThrow(
+      RegistryCollisionError
+    );
+  });
+
+  it('surfaces the component bucket name on the collision error', () => {
+    const r = createRegistry();
+    r.registerComponent('my-track', stub());
+    try {
+      r.registerComponent('my-track', stub());
+      expect.fail('expected registerComponent to throw');
+    } catch (e) {
+      expect(e).toBeInstanceOf(RegistryCollisionError);
+      expect((e as RegistryCollisionError).bucket).toBe('component');
+    }
+  });
+
+  it('keeps component registrations isolated between registries', () => {
+    const a = createRegistry();
+    const b = createRegistry();
+    a.registerComponent('only-on-a', stub());
+    expect(a.hasComponent('only-on-a')).toBe(true);
+    expect(b.hasComponent('only-on-a')).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
 // Collision detection
 // ─────────────────────────────────────────────────────────────
 

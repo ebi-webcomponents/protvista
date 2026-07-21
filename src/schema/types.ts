@@ -666,6 +666,15 @@ export interface ProtvistaRuntimeAPI {
   registerTheme(name: string, stops: ColorStop[]): void;
 
   /**
+   * Register a custom component (a custom-element constructor) so a
+   * semantic kind — or an explicit `component:` — resolving to `name`
+   * gets its tag defined automatically when the config references it,
+   * with no consumer `customElements.define()` call. The name must not
+   * collide with a built-in renderable component.
+   */
+  registerComponent(name: string, ctor: CustomElementConstructor): void;
+
+  /**
    * Provide data directly for a specific track, bypassing URL fetching.
    * Used with `DataSourceDescriptor.from = "custom"`.
    *

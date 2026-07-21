@@ -261,6 +261,119 @@ describe('validateConfig — unknown adapter / kind / component', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// Semantic: registry-driven component resolution
+// ─────────────────────────────────────────────────────────────
+
+describe('validateConfig — registry-driven components', () => {
+  const stubCtor = () =>
+    function () {} as unknown as CustomElementConstructor;
+
+  it('accepts an explicit `component` a consumer has registered', () => {
+    const r = freshRegistry();
+    r.registerComponent('my-track', stubCtor());
+    const cfg: ProtvistaViewerConfig = {
+      groups: [
+        {
+          id: 'X',
+          tracks: [
+            {
+              id: 'y',
+              component: 'my-track',
+              data: { url: 'https://example.org/x', adapter: 'uniprot-features-json' },
+            },
+          ],
+        },
+      ],
+    };
+    expect(
+      issueByCode(validateConfig(cfg, r).issues, 'unknown-component')
+    ).toBeUndefined();
+  });
+
+  it('accepts a consumer kind whose component is registered', () => {
+    const r = freshRegistry();
+    r.registerComponent('my-track', stubCtor());
+    r.registerSemanticKind('my-kind', {
+      component: 'my-track',
+      adapter: 'uniprot-features-json',
+    });
+    const cfg: ProtvistaViewerConfig = {
+      sources: { features: 'https://example.org/features' },
+      groups: [{ id: 'X', tracks: [{ id: 'y', kind: 'my-kind', data: 'features' }] }],
+    };
+    const result = validateConfig(cfg, r);
+    expect(result.valid).toBe(true);
+    expect(result.issues).toEqual([]);
+  });
+
+  it('flags a kind that resolves to an UNregistered component before mount', () => {
+    // The consumer registered the kind but forgot registerComponent().
+    const r = freshRegistry();
+    r.registerSemanticKind('my-kind', {
+      component: 'my-track',
+      adapter: 'uniprot-features-json',
+    });
+    const cfg: ProtvistaViewerConfig = {
+      sources: { features: 'https://example.org/features' },
+      groups: [{ id: 'X', tracks: [{ id: 'y', kind: 'my-kind', data: 'features' }] }],
+    };
+    const issue = issueByCode(
+      validateConfig(cfg, r).issues,
+      'unknown-component'
+    );
+    expect(issue).toBeDefined();
+    expect(issue!.message).toContain("resolves to component 'my-track'");
+    expect(issue!.message).toContain('registerComponent()');
+  });
+
+  it('does not flag the kind-resolved component when an explicit component overrides it', () => {
+    // A known kind whose registered component is itself unregistered,
+    // but the track sets an explicit *registered* `component` that
+    // overrides the kind's component (normalize: `t.component ??
+    // kindDef.component`). The kind's component is never used, so
+    // validation must not reject — regression guard for the spurious
+    // unknown-component the kind-resolved check would otherwise raise.
+    const r = freshRegistry();
+    r.registerComponent('override-track', stubCtor());
+    r.registerSemanticKind('kind-with-unregistered-component', {
+      component: 'never-registered',
+      adapter: 'uniprot-features-json',
+    });
+    const cfg: ProtvistaViewerConfig = {
+      sources: { features: 'https://example.org/features' },
+      groups: [
+        {
+          id: 'X',
+          tracks: [
+            {
+              id: 'y',
+              kind: 'kind-with-unregistered-component',
+              component: 'override-track',
+              data: 'features',
+            },
+          ],
+        },
+      ],
+    };
+    const result = validateConfig(cfg, r);
+    expect(issueByCode(result.issues, 'unknown-component')).toBeUndefined();
+    expect(result.valid).toBe(true);
+  });
+
+  it('does not double-flag: an unknown kind reports only unknown-semantic-kind', () => {
+    // When the kind itself is unknown, the kind-resolved component check
+    // is skipped (nothing to resolve) so only one issue fires.
+    const cfg: ProtvistaViewerConfig = {
+      sources: { features: 'https://example.org/features' },
+      groups: [{ id: 'X', tracks: [{ id: 'y', kind: 'nope', data: 'features' }] }],
+    };
+    const result = validateConfig(cfg, freshRegistry());
+    expect(issueByCode(result.issues, 'unknown-semantic-kind')).toBeDefined();
+    expect(issueByCode(result.issues, 'unknown-component')).toBeUndefined();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
 // Semantic: missing-track-renderer
 // ─────────────────────────────────────────────────────────────
 

@@ -2,7 +2,8 @@
  * ProtVista runtime registry.
  *
  * The registry is the single source of truth for every name referenced
- * from a config: semantic kinds, adapters, and colour-scale themes.
+ * from a config: semantic kinds, adapters, colour-scale themes, and
+ * component tag names (name → custom-element constructor).
  * It is consumed by:
  *
  *   - the runtime validator to close the open-string unions
@@ -11,8 +12,8 @@
  *   - the loader to resolve semantic kinds into concrete
  *     (component, adapter, rendering) tuples at mount time;
  *   - the escape-hatch runtime API (`registerAdapter`,
- *     `registerSemanticKind`, `registerTheme`) exposed on
- *     `<protvista-uniprot>` per `ProtvistaRuntimeAPI`.
+ *     `registerSemanticKind`, `registerTheme`, `registerComponent`)
+ *     exposed on `<protvista-uniprot>` per `ProtvistaRuntimeAPI`.
  *
  * Design notes:
  *
@@ -79,6 +80,12 @@ export interface Registry {
   getTheme(name: string): ColorStop[] | undefined;
   hasTheme(name: string): boolean;
   listThemes(): string[];
+
+  // ── Components ─────────────────────────────────────────────
+  registerComponent(name: string, ctor: CustomElementConstructor): void;
+  getComponent(name: string): CustomElementConstructor | undefined;
+  hasComponent(name: string): boolean;
+  listComponents(): string[];
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -220,7 +227,7 @@ const BUILTIN_THEMES: ReadonlyArray<readonly [string, readonly ColorStop[]]> = [
 
 /**
  * Thrown when the same name is registered twice in the same bucket
- * (semantic kinds, adapters, or themes). The spec's escape-hatch
+ * (semantic kinds, adapters, themes, or components). The spec's escape-hatch
  * docstrings require "unique … must not collide with built-ins"; a
  * silent override would make behaviour order-dependent.
  */
@@ -307,6 +314,13 @@ export function createRegistry(): Registry {
   const semanticKinds = new Map<string, SemanticKindDefinition>();
   const adapters = new Map<string, AdapterFunction>();
   const themes = new Map<string, ColorStop[]>();
+  // Component tag name → custom-element constructor. Left empty at
+  // construction so the schema layer never statically imports the heavy
+  // Nightingale / Mol* constructors (keeping `validateConfig` runnable
+  // standalone). The element seeds the built-ins from
+  // `src/built-in-components.ts` via `registerBuiltinComponents()`, and
+  // consumers extend the bucket through the public `registerComponent()`.
+  const components = new Map<string, CustomElementConstructor>();
 
   // Names seeded by `registerBuiltinAdapters()` below. A consumer may
   // register over any of these once; the name is dropped from the set
@@ -418,6 +432,20 @@ export function createRegistry(): Registry {
     },
     listThemes() {
       return [...themes.keys()].sort();
+    },
+
+    // ── Components ──────────────────────────────────────────
+    registerComponent(name, ctor) {
+      registerInto('component', components, name, ctor);
+    },
+    getComponent(name) {
+      return components.get(name);
+    },
+    hasComponent(name) {
+      return components.has(name);
+    },
+    listComponents() {
+      return [...components.keys()].sort();
     },
   };
 
