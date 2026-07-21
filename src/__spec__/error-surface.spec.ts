@@ -72,12 +72,12 @@ type El = HTMLElement & {
 
 /** A raw (un-normalized) config with a single bad source-key reference. */
 const INVALID_CONFIG = {
-  groups: [{ id: 'FOO', tracks: [{ id: 'bar', kind: 'features', data: 'missingKey' }] }],
+  rows: [{ id: 'FOO', tracks: [{ id: 'bar', kind: 'features', data: 'missingKey' }] }],
 };
 
 /** A raw, valid config with one http-URL feature track. */
 const VALID_CONFIG = {
-  groups: [
+  rows: [
     { id: 'g', tracks: [{ id: 'y', kind: 'features', data: 'https://example.org/x.json' }] },
   ],
 };
@@ -109,7 +109,7 @@ function normConfig(
     sources: {},
     defaults: { rendering: {} },
     ...(opts.strict !== undefined ? { strict: opts.strict } : {}),
-    groups: [
+    rows: [
       {
         id: 'g',
         label: 'G',
@@ -377,7 +377,7 @@ describe('mount panel — focus management', () => {
     const el = mountEl({
       viewerConfig: {
         strict: true,
-        groups: [
+        rows: [
           { id: 'g', tracks: [{ id: 'bad', kind: 'features', data: 'https://example.org/bad.json' }] },
         ],
       },
@@ -432,7 +432,7 @@ describe('mount panel — focus management', () => {
     const el = mountEl({
       viewerConfig: {
         strict: true,
-        groups: [
+        rows: [
           { id: 'g', tracks: [{ id: 'bad', kind: 'features', data: 'https://example.org/bad.json' }] },
         ],
       },
@@ -695,7 +695,7 @@ describe('retry affordance', () => {
       sources: {},
       defaults: { rendering: {} },
 
-      groups: [
+      rows: [
         {
           id: 'g1',
           label: 'G1',
@@ -751,7 +751,7 @@ describe('retry affordance', () => {
       sources: {},
       defaults: { rendering: {} },
 
-      groups: [
+      rows: [
         {
           id: 'g1',
           label: 'G1',
@@ -870,7 +870,7 @@ describe('retry affordance', () => {
       version: '1.0',
       sources: {},
       defaults: { rendering: {} },
-      groups: [
+      rows: [
         {
           id: 'g1',
           label: 'G1',
@@ -1091,7 +1091,7 @@ describe('strict mode', () => {
     const el = mountEl({
       viewerConfig: {
         strict: true,
-        groups: [
+        rows: [
           { id: 'g', tracks: [{ id: 'bad', kind: 'features', data: 'https://example.org/bad.json' }] },
         ],
       },
@@ -1367,7 +1367,7 @@ describe('adapter throw resilience', () => {
       version: '1.0',
       sources: {},
       defaults: { rendering: {} },
-      groups: [
+      rows: [
         {
           id: 'GOOD',
           label: 'Good',

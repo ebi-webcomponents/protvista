@@ -184,7 +184,7 @@ function applyTooltipResolver(
  * pass skips them cleanly.
  */
 function trackUrl(
-  data: NormalizedConfig['groups'][number]['tracks'][number]['data']
+  data: NormalizedConfig['rows'][number]['tracks'][number]['data']
 ): string | string[] {
   const first = data[0];
   if (!first) return '';
@@ -254,7 +254,7 @@ export async function loadProtvistaData(
   // URL shared by two tracks resolves once; if any referencing track needs
   // text, text wins (a delimited body would fail a JSON parse anyway).
   const bodyType: Map<string, 'text' | 'json'> = new Map();
-  for (const group of config.groups) {
+  for (const group of config.rows) {
     for (const track of group.tracks) {
       const key = `${group.id}-${track.id}`;
       if (!isReloading(key)) continue;
@@ -357,7 +357,7 @@ export async function loadProtvistaData(
     return annotated;
   };
 
-  for (const group of config.groups) {
+  for (const group of config.rows) {
     const groupId = group.id;
     // A targeted retry only recomputes groups that own a reloaded track;
     // every other group keeps its existing `data` untouched.

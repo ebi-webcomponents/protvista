@@ -85,7 +85,7 @@ Reactive properties on the `<protvista-uniprot>` element (HTML attribute name in
 - `configSrc` [`config-src`]: `string` — URL or file path to a YAML or JSON config. Fetched and parsed at mount time. See [Configuration](#configuration).
 - `config`: `ProtvistaViewerConfig` — a parsed config object, assigned as a JS property. Alternative to `config-src` when the embedder already has the config in memory.
 - `nostructure` [`nostructure`]: `boolean` (default `false`) — suppresses the PDBe 3D structure group.
-- `notooltip` [`notooltip`]: `boolean` (default `false`) — suppresses the built-in click tooltip. Typically set by embedders rendering their own overlay.
+- `notooltip` [`notooltip`]: `boolean` (default `false`) — suppresses the built-in click tooltip. Typically set by embedders rendering their own overlay. See [React host integration](./docs/react-integration.md) for the consumer-side pattern.
 - `suspend` [`suspend`]: `boolean` (default `false`) — pauses rendering. Useful when the accession is about to change and you want to avoid a flash of intermediate state.
 
 ## Development
@@ -144,7 +144,7 @@ See [`bench/README.md`](./bench/README.md) for scenarios, capture procedure, and
 
 ## Configuration
 
-The viewer is driven by a declarative configuration — a document that lists the sequence-annotation groups to display, the tracks within each group, and where their data comes from. Authors write against a schema of high-level domain concepts (`kind: features`, `kind: variants`, `kind: confidence-score`, …) and never need to name Nightingale components or adapters directly. Two authoring forms are supported:
+The viewer is driven by a declarative configuration — a document that lists the rows to display, the tracks within each row, and where their data comes from. Authors write against a schema of high-level domain concepts (`kind: features`, `kind: variants`, `kind: confidence-score`, …) and never need to name Nightingale components or adapters directly. Two authoring forms are supported:
 
 - **YAML** (recommended) — passed via the `config-src` attribute pointing at a URL or file path.
 - **JSON** — assigned to the `.config` property on the element.
@@ -156,7 +156,7 @@ The viewer is driven by a declarative configuration — a document that lists th
 accession: P05067
 sources:
   features: https://www.ebi.ac.uk/proteins/api/features/{accession}
-groups:
+rows:
   - id: DOMAINS
     tracks:
       - id: domain
@@ -175,10 +175,11 @@ The viewer renders a single collapsible group "Domains" (label title-cased from 
 
 ### Learning more
 
-- **Schema reference.** [`specs/config-approach.md`](./specs/config-approach.md) documents every field (`groups`, `tracks`, `sources`, `defaults`, `extends`, `kind`, `data`, `rendering`, `dataTooltip`) with worked examples and edge-case semantics. This is the normative source.
+- **Schema reference.** [`specs/config-approach.md`](./specs/config-approach.md) documents every field (`rows`, `tracks`, `sources`, `defaults`, `extends`, `kind`, `data`, `rendering`, `dataTooltip`) with worked examples and edge-case semantics. This is the normative source.
 - **Canonical default.** [`src/default-config.yaml`](./src/default-config.yaml) is the UniProt viewer itself, authored in the new schema. Useful as a reference.
 - **Worked examples.** [`examples/`](./examples) is the canonical, CI-validated set of runnable example configs — one per generic-format adapter (CSV/TSV/JSON/BED), inline data, a minimal URL-sourced config, and an `extends:`-based config that layers a custom track on the shipped default. See [`examples/README.md`](./examples/README.md).
 - **Authoring `dataTooltip`.** [`docs/data-tooltip.md`](./docs/data-tooltip.md) covers the three authoring forms (bare string, `kind: fields`, `kind: markdown`) with examples.
+- **React host integration.** [`docs/react-integration.md`](./docs/react-integration.md) shows how a React host owns its own rich tooltips via the `change` event + `notooltip`, with a minimal worked example. The normative contract is [`specs/config-approach.md`](./specs/config-approach.md#react-host-integration).
 
 ## Events
 

@@ -15,7 +15,7 @@
 
 /**
  * One validation problem. `path` uses JSON-Pointer style notation
- * (`/groups/3/tracks/1/data`) when produced by Ajv, and a
+ * (`/rows/3/tracks/1/data`) when produced by Ajv, and a
  * human-readable "group.track" form (`MOLECULE_PROCESSING/signal`)
  * when produced by the semantic checks — whichever makes the message
  * most actionable.
@@ -51,6 +51,8 @@ export type ValidationIssueCode =
   | 'invalid-color-scale'
   | 'unsupported-version'
   | 'missing-accession'
+  /** The config sets both `rows:` and its deprecated `groups:` alias. */
+  | 'rows-alias-conflict'
   // ── Extends resolution ─────────────────────────────────
   /** The `extends` chain forms a cycle (a → b → a). */
   | 'circular-extends'
@@ -114,7 +116,7 @@ export function formatValidationSummary(issues: ValidationIssue[]): string {
  * Format a list of issues as a readable multi-line summary:
  *
  *     Config validation failed (3 issues):
- *       - /groups/0/id: must be string (schema)
+ *       - /rows/0/id: must be string (schema)
  *       - MOLECULE_PROCESSING/signal: Unknown adapter: foo... (unknown-adapter)
  *       - ...
  */

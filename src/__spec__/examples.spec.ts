@@ -172,7 +172,7 @@ function findLocalTracks(
   config: NormalizedConfig
 ): { groupId: string; trackId: string; key: string }[] {
   const found: { groupId: string; trackId: string; key: string }[] = [];
-  for (const group of config.groups) {
+  for (const group of config.rows) {
     for (const track of group.tracks) {
       const from = track.data[0]?.from;
       if (from === 'file' || from === 'inline') {
@@ -212,7 +212,7 @@ describe.each(discoverExamples())('example: $name', ({ dir, configPath }) => {
 
   it('validates against the schema', () => {
     expect(config).toBeDefined();
-    expect(config.groups.length).toBeGreaterThan(0);
+    expect(config.rows.length).toBeGreaterThan(0);
   });
 
   it('produces data through the real adapter map, including every locally-authored track', () => {
@@ -241,7 +241,7 @@ describe.each(discoverExamples())('example: $name', ({ dir, configPath }) => {
       config,
       data: result.data,
       hasData: result.hasData,
-      openGroups: config.groups.map((g) => g.id),
+      openGroups: config.rows.map((g) => g.id),
     });
 
     const target = document.createElement('div');
@@ -322,7 +322,7 @@ describe('extend-default — default-fetcher semantics (no custom extendsFetcher
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith('/src/default-config.yaml');
     // The merge succeeded: the ~15 inherited base groups plus MY_LAB.
-    expect(config.groups.length).toBeGreaterThan(1);
-    expect(config.groups.some((g) => g.id === 'MY_LAB')).toBe(true);
+    expect(config.rows.length).toBeGreaterThan(1);
+    expect(config.rows.some((g) => g.id === 'MY_LAB')).toBe(true);
   });
 });
