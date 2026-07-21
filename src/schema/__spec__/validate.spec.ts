@@ -173,6 +173,20 @@ describe('validateConfig — unknown source key', () => {
     expect(issueByCode(result.issues, 'unknown-source-key')).toBeUndefined();
     expect(result.valid).toBe(true);
   });
+
+  it('accepts a ./x.json file-path shorthand (built-in adapter, no unknown-source-key)', () => {
+    const cfg: ProtvistaViewerConfig = {
+      groups: [
+        {
+          id: 'X',
+          tracks: [{ id: 'y', kind: 'features', data: './features.json' }],
+        },
+      ],
+    };
+    const result = validateConfig(cfg, freshRegistry());
+    expect(issueByCode(result.issues, 'unknown-source-key')).toBeUndefined();
+    expect(result.valid).toBe(true);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────

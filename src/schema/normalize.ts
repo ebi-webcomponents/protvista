@@ -14,7 +14,7 @@
  *   2. Resolves string-shorthand data rules (sources key, http(s) URL,
  *      or a known data-file path like `./x.csv` → `from: file` with the
  *      extension's built-in adapter) per the table in `TrackConfig.data`.
- *      CSV/TSV/BED file shorthands resolve today; JSON is follow-up work.
+ *      CSV/TSV/JSON/BED file shorthands all resolve today.
  *   3. Fills in defaults for `from` (`"url"` when omitted, `"inline"`
  *      when `inlineData` is present).
  *   4. Resolves semantic kinds via the registry into (component,

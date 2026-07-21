@@ -16,10 +16,14 @@ import { loadConfig } from '../schema/load';
 import { createRegistry } from '../schema/registry';
 import { loadProtvistaData, type AdapterMap } from '../load-data';
 import { featuresCsv } from '../schema/adapters/features-csv';
+import { featuresJson } from '../schema/adapters/features-json';
 
 const CSV = 'type,start,end,description\nDOMAIN,10,25,Kinase domain';
 
-const adapters: AdapterMap = { 'features-csv': featuresCsv };
+const adapters: AdapterMap = {
+  'features-csv': featuresCsv,
+  'features-json': featuresJson,
+};
 
 describe('loadProtvistaData — from: file (features-csv)', () => {
   it('fetches the file as text and lands the adapter output on the track slot', async () => {
@@ -149,4 +153,57 @@ describe('loadProtvistaData — from: file (features-csv)', () => {
       expect(fetchOne).toHaveBeenCalledWith('./shared.csv', 'text');
     }
   );
+});
+
+describe('loadProtvistaData — from: file (features-json)', () => {
+  it('fetches the file as json and lands the adapter output on the track slot', async () => {
+    const config = await loadConfig({
+      groups: [
+        {
+          id: 'MY',
+          tracks: [{ id: 'hits', kind: 'features', data: './features.json' }],
+        },
+      ],
+    });
+
+    // A `.json` body is fetched already-parsed (not raw text).
+    const fetchOne = vi.fn(async () => [
+      { type: 'DOMAIN', begin: 10, end: 25, description: 'Kinase domain', score: 0.9 },
+    ]);
+
+    const result = await loadProtvistaData('P05067', config, fetchOne, adapters);
+
+    // Fetched once, as json (not text), at the declared path.
+    expect(fetchOne).toHaveBeenCalledTimes(1);
+    expect(fetchOne).toHaveBeenCalledWith('./features.json', 'json');
+
+    const track = result.data['MY-hits'] as Array<Record<string, unknown>>;
+    expect(track).toHaveLength(1);
+    expect(track[0]).toMatchObject({
+      type: 'DOMAIN',
+      start: 10, // `begin` normalised to `start`
+      end: 25,
+      description: 'Kinase domain',
+      score: 0.9,
+    });
+
+    // A JSON-only viewer must report hasData=true, or the element blanks to
+    // its empty-state panel despite features having parsed. `features-json`
+    // is a json-body adapter, so this pins the generic-format hasData path.
+    expect(result.hasData).toBe(true);
+  });
+
+  it('leaves hasData=false for an empty (no records) JSON file', async () => {
+    const config = await loadConfig({
+      groups: [
+        {
+          id: 'MY',
+          tracks: [{ id: 'hits', kind: 'features', data: './empty.json' }],
+        },
+      ],
+    });
+    const fetchOne = vi.fn(async () => []);
+    const result = await loadProtvistaData('P05067', config, fetchOne, adapters);
+    expect(result.hasData).toBe(false);
+  });
 });

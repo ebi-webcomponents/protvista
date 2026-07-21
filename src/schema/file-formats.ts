@@ -10,11 +10,11 @@
  *   - `load-data.ts` — decides whether to read a track's response as text
  *     (delimited formats) or JSON.
  *
- * To add a format (the follow-up `features-json` ticket): add one row
- * below and register the adapter in `adapters/index.ts` and the runtime
- * `adapters` map in `protvista-uniprot.ts`. Nothing else here needs to
- * change — `body: 'json'` vs `'text'` already distinguishes a JSON
- * payload (`features-json`) from delimited text (`bed`).
+ * To add a format: add one row below and register the adapter in
+ * `adapters/index.ts` and the runtime `adapters` map in
+ * `protvista-uniprot.ts`. Nothing else here needs to change —
+ * `body: 'json'` vs `'text'` already distinguishes a JSON payload
+ * (`features-json`) from delimited text (`bed`).
  */
 
 import type { KnownAdapterName } from './types';
@@ -32,9 +32,8 @@ export interface DataFileFormat {
 export const DATA_FILE_FORMATS: Record<string, DataFileFormat> = {
   '.csv': { ext: '.csv', adapter: 'features-csv', body: 'text' },
   '.tsv': { ext: '.tsv', adapter: 'features-tsv', body: 'text' },
+  '.json': { ext: '.json', adapter: 'features-json', body: 'json' },
   '.bed': { ext: '.bed', adapter: 'bed', body: 'text' },
-  // features-json ticket adds:
-  // '.json': { ext: '.json', adapter: 'features-json', body: 'json' },
 };
 
 /**
@@ -46,6 +45,19 @@ export const TEXT_BODY_ADAPTERS: ReadonlySet<string> = new Set(
   Object.values(DATA_FILE_FORMATS)
     .filter((f) => f.body === 'text')
     .map((f) => f.adapter)
+);
+
+/**
+ * Every built-in generic-format (bring-your-own-file) adapter, regardless
+ * of body type. Derived from {@link DATA_FILE_FORMATS}. Unlike
+ * {@link TEXT_BODY_ADAPTERS} — which drives the fetch-as-text decision and
+ * so must exclude JSON — this set gates the viewer's `hasData` empty-state
+ * check, which cares only that a track produced a non-empty feature array
+ * (see `assignTrackData` in `load-data.ts`). It therefore includes the
+ * JSON-body `features-json` too.
+ */
+export const GENERIC_FILE_ADAPTERS: ReadonlySet<string> = new Set(
+  Object.values(DATA_FILE_FORMATS).map((f) => f.adapter)
 );
 
 /**

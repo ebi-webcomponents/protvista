@@ -33,7 +33,10 @@
  */
 
 import type { NormalizedConfig, NormalizedTrack } from './schema/normalize';
-import { TEXT_BODY_ADAPTERS } from './schema/file-formats';
+import {
+  TEXT_BODY_ADAPTERS,
+  GENERIC_FILE_ADAPTERS,
+} from './schema/file-formats';
 import type { TransformedInterPro } from './adapters/types/interpro';
 import { resolveTooltip } from './tooltips/resolve';
 import { tooltipDefaults } from './tooltips/defaults';
@@ -52,8 +55,9 @@ export type AdapterMap = Record<string, AdapterFn>;
 /**
  * Fetch a single URL. `responseType` tells the fetcher how to read the
  * body: `'json'` for API responses (the default for every UniProt/AlphaFold
- * source), `'text'` for delimited bring-your-own-data files (`features-csv`
- * / `features-tsv` / `bed`) whose adapters parse raw text.
+ * source) and for the JSON-body bring-your-own-data file adapter
+ * (`features-json`), `'text'` for delimited bring-your-own-data files
+ * (`features-csv` / `features-tsv` / `bed`) whose adapters parse raw text.
  */
 type FetchOne = (
   url: string,
@@ -284,13 +288,13 @@ export async function loadProtvistaData(
 
   // `hasData` gates the viewer's empty-state panel. The legacy heuristic
   // only recognises the UniProt JSON shape (`raw.features.length`), which
-  // is invisible to a bring-your-own file track: its raw body is a CSV/TSV
-  // *string* and its adapted output is a bare feature array with no
-  // `.features` wrapper. So a viewer built solely from `./x.csv` tracks
-  // would parse correctly yet blank out. We additionally set the flag when
-  // a delimited-text track yields a non-empty feature array (see
-  // `assignTrackData`) — additive, so the existing raw-shape semantics
-  // (and the tests that pin them) are unchanged.
+  // is invisible to a bring-your-own file track: its adapted output is a
+  // bare feature array with no `.features` wrapper. So a viewer built
+  // solely from `./x.csv` / `./x.json` tracks would parse correctly yet
+  // blank out. We additionally set the flag when a generic-format file
+  // track yields a non-empty feature array (see `assignTrackData`) —
+  // additive, so the existing raw-shape semantics (and the tests that pin
+  // them) are unchanged.
   let hasData = Object.values(rawData).some(
     (d) => !!(d as { features?: unknown[] } | null)?.features?.length
   );
@@ -313,7 +317,7 @@ export async function loadProtvistaData(
     const adapter = track.data[0]?.adapter;
     if (
       adapter !== undefined &&
-      TEXT_BODY_ADAPTERS.has(adapter) &&
+      GENERIC_FILE_ADAPTERS.has(adapter) &&
       Array.isArray(payload) &&
       payload.length > 0
     ) {

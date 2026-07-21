@@ -298,17 +298,18 @@ export interface TrackConfig {
    *   - matches a key in root `sources`  → { from: url,  source: <value> }
    *   - starts with http:// or https://  → { from: url,  url: <value> }
    *   - path to a known data file        → { from: file, url: <value> }
-   *     (`./x.csv`, `./x.tsv`, `./x.bed`)
+   *     (`./x.csv`, `./x.tsv`, `./x.json`, `./x.bed`)
    *
    * Adapter inference (most specific first): an explicit `adapter:`
    * wins; otherwise a known data-file extension on the URL (`./x.csv`
-   * → `features-csv`, `./x.tsv` → `features-tsv`, `./x.bed` → `bed`);
-   * otherwise the track's semantic `kind` selects the canonical adapter.
+   * → `features-csv`, `./x.tsv` → `features-tsv`, `./x.json` →
+   * `features-json`, `./x.bed` → `bed`); otherwise the track's semantic
+   * `kind` selects the canonical adapter.
    *
-   * Generic-format file adapters: CSV, TSV, and BED ship today
-   * (`features-csv` / `features-tsv` / `bed`, pre-registered); the JSON
-   * file shorthand is follow-up work. For a format not yet covered,
-   * register a custom adapter via `registerAdapter()` and pin it with
+   * Generic-format file adapters: CSV, TSV, JSON, and BED all ship today
+   * (`features-csv` / `features-tsv` / `features-json` / `bed`,
+   * pre-registered). For a format not yet covered, register a
+   * custom adapter via `registerAdapter()` and pin it with
    * `adapter: <name>` on the descriptor.
    *
    * The array form is normalized internally; runtime code always sees
@@ -588,9 +589,9 @@ export type ComponentName = KnownComponentName | (string & {});
  *
  * Generic-format adapters for bring-your-own-data files use the
  * `features-<format>` naming (except `bed`, which keeps its well-known
- * format name). `features-csv`, `features-tsv`, and `bed` ship today
- * (point a track at `./x.csv` / `./x.tsv` / `./x.bed`); `features-json`
- * is follow-up work. Authors with a bespoke format still register a
+ * format name). `features-csv`, `features-tsv`, `features-json`, and
+ * `bed` all ship today (point a track at `./x.csv` / `./x.tsv` /
+ * `./x.json` / `./x.bed`). Authors with a bespoke format still register a
  * custom adapter via `registerAdapter()` and pin it with
  * `adapter: <name>` on the descriptor.
  */
@@ -611,6 +612,8 @@ export type KnownAdapterName =
   | 'features-csv'
   /** TSV (tab-separated) with the same columns as `features-csv`. */
   | 'features-tsv'
+  /** JSON array of feature-shaped records with the same fields as `features-csv`. */
+  | 'features-json'
   /** Standard BED (tab-separated). 0-based half-open → shifted to 1-based inclusive. */
   | 'bed';
 

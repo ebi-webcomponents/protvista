@@ -12,13 +12,14 @@
  *
  * The generic-format adapters (`features-json`, `features-csv`,
  * `features-tsv`, `bed`) each land in their own ticket and fill it in
- * one line at a time — `features-csv` / `features-tsv` / `bed` are here
- * today; `features-json` is still follow-up.
+ * one line at a time — `features-csv` / `features-tsv` / `features-json`
+ * / `bed` are all here today.
  */
 
 import type { AdapterFunction, KnownAdapterName } from '../types';
 import { featuresCsv } from './features-csv';
 import { featuresTsv } from './features-tsv';
+import { featuresJson } from './features-json';
 import { bed } from './bed';
 
 export const BUILTIN_ADAPTERS: ReadonlyArray<
@@ -26,6 +27,6 @@ export const BUILTIN_ADAPTERS: ReadonlyArray<
 > = [
   ['features-csv', featuresCsv],
   ['features-tsv', featuresTsv],
+  ['features-json', featuresJson],
   ['bed', bed],
-  // ['features-json', featuresJson],
 ];
