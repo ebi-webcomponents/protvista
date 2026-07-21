@@ -59,6 +59,18 @@ function isConfigObject(v: unknown): v is Record<string, unknown> {
 }
 
 /**
+ * Whether a field was actually set by the author. An empty YAML key
+ * (`groups:` / `rows:` with nothing after it) parses to `null` — a
+ * leftover stub, not a value — so `null` counts as unset alongside
+ * `undefined`. Deciding presence by key existence instead would reject a
+ * blank `groups:` line (common right after a rename) as a both-fields
+ * conflict and fire the deprecation warning for a field carrying nothing.
+ */
+function isSet(v: unknown): boolean {
+  return v !== undefined && v !== null;
+}
+
+/**
  * Non-throwing probe for the both-fields-set case, returning the issue
  * rather than raising it.
  *
@@ -68,7 +80,7 @@ function isConfigObject(v: unknown): v is Record<string, unknown> {
  */
 export function rowsAliasConflict(config: unknown): ValidationIssue | undefined {
   if (!isConfigObject(config)) return undefined;
-  if (config.rows === undefined || config.groups === undefined) return undefined;
+  if (!isSet(config.rows) || !isSet(config.groups)) return undefined;
   return {
     path: '/groups',
     message: ROWS_ALIAS_CONFLICT_MESSAGE,
@@ -79,9 +91,13 @@ export function rowsAliasConflict(config: unknown): ValidationIssue | undefined 
 /**
  * Return `config` with a deprecated `groups:` folded into `rows:`.
  *
- * A config that already uses `rows:` (or that carries neither field) is
- * returned as-is — same reference, no clone, no warning. Only the
- * legacy shape allocates.
+ * A config that already uses `rows:` (or carries no `groups:` key) is
+ * returned as-is — same reference, no clone, no warning. Only a config
+ * that actually carries `groups:` allocates.
+ *
+ * An empty `groups:` stub (`null`) carries nothing to fold: the key is
+ * dropped so it can't trip the schema's one-of, and no warning fires —
+ * there is no real alias use to migrate.
  *
  * @throws `ConfigValidationError` (`rows-alias-conflict`) when both
  *   fields are set. Silently preferring one would hide a real authoring
@@ -90,12 +106,21 @@ export function rowsAliasConflict(config: unknown): ValidationIssue | undefined 
  */
 export function resolveRowsAlias<T>(config: T): T {
   if (!isConfigObject(config)) return config;
-  if (config.groups === undefined) return config;
+  if (!('groups' in config)) return config;
 
   const conflict = rowsAliasConflict(config);
   if (conflict) throw new ConfigValidationError([conflict]);
 
-  warnOnce();
+  // `groups` is present but `rows` is not (the conflict above ruled out
+  // both). The `as T` cast is sound for every real caller: they pass a
+  // `ProtvistaViewerConfig`, where `rows` is the required field the
+  // returned object now carries.
   const { groups, ...rest } = config;
+
+  // Empty stub — drop the dangling key, don't warn, don't fold `null`
+  // into `rows:` (which would later crash `rows.map(...)`).
+  if (!isSet(groups)) return rest as T;
+
+  warnOnce();
   return { ...rest, rows: groups } as T;
 }

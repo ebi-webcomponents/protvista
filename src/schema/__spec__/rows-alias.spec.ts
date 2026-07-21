@@ -149,6 +149,67 @@ describe('resolveRowsAlias', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// 2b. Empty stub — a `groups:` / `rows:` key that parses to `null`
+//     (an author left a blank line after renaming). `null` is not the
+//     author setting the field, so it must never trip the conflict, fold
+//     into `rows: null`, or fire the deprecation warning.
+// ─────────────────────────────────────────────────────────────
+
+describe('empty `groups:` / `rows:` stub', () => {
+  it('drops a lone `groups: null` stub instead of folding it into `rows`', () => {
+    captureWarn();
+    // A blank `groups:` line with nothing under it. Folding it would make
+    // `rows: null`, which later crashes `rows.map(...)`.
+    const out = resolveRowsAlias({ sources, groups: null } as unknown as ProtvistaViewerConfig);
+    expect('groups' in out).toBe(false);
+    expect(out.rows).toBeUndefined();
+  });
+
+  it('keeps `rows:` untouched when `groups:` is only a leftover stub', () => {
+    captureWarn();
+    const out = resolveRowsAlias(
+      { sources, rows: entries(), groups: null } as unknown as ProtvistaViewerConfig
+    );
+    expect(out.rows).toEqual(entries());
+    expect('groups' in out).toBe(false);
+  });
+
+  it('folds `groups:` over an empty `rows:` stub', () => {
+    captureWarn();
+    const out = resolveRowsAlias(
+      { sources, rows: null, groups: entries() } as unknown as ProtvistaViewerConfig
+    );
+    expect(out.rows).toEqual(entries());
+    expect('groups' in out).toBe(false);
+  });
+
+  it('reports no conflict when the other field is only an empty stub', () => {
+    expect(
+      rowsAliasConflict({ sources, rows: entries(), groups: null })
+    ).toBeUndefined();
+    expect(
+      rowsAliasConflict({ sources, rows: null, groups: entries() })
+    ).toBeUndefined();
+  });
+
+  it('never warns for an empty `groups:` stub', async () => {
+    // Fresh graph: prior tests have armed the fire-once flag, which would
+    // make "did not warn" pass vacuously.
+    vi.resetModules();
+    const warn = captureWarn();
+    const { resolveRowsAlias: freshResolve } = await import('../rows-alias');
+
+    freshResolve({ sources, groups: null } as unknown as ProtvistaViewerConfig);
+    expect(warn).not.toHaveBeenCalled();
+
+    // …and the flag was armed the whole time, so the silence is the stub
+    // path's doing and not a spent guard.
+    freshResolve(legacyConfig());
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
 // 3. Conflict — both fields set
 // ─────────────────────────────────────────────────────────────
 

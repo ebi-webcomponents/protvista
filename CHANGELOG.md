@@ -65,8 +65,8 @@ which was meant.
 
 **Not affected:** `tracks:` nested inside a group keeps its name — only
 the top-level field is renamed. The post-load `NormalizedConfig` model
-already exposes `rows` / `NormalizedRow`, so the authoring field and the
-resolved model now agree.
+now exposes `rows` / `NormalizedRow`, so the authoring field and the
+resolved model agree.
 
 ### Breaking — internal CSS classes and DOM ids are now hash-prefixed
 

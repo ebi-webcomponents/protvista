@@ -144,7 +144,7 @@ See [`bench/README.md`](./bench/README.md) for scenarios, capture procedure, and
 
 ## Configuration
 
-The viewer is driven by a declarative configuration — a document that lists the rows to display, the tracks within each group, and where their data comes from. Authors write against a schema of high-level domain concepts (`kind: features`, `kind: variants`, `kind: confidence-score`, …) and never need to name Nightingale components or adapters directly. Two authoring forms are supported:
+The viewer is driven by a declarative configuration — a document that lists the rows to display, the tracks within each row, and where their data comes from. Authors write against a schema of high-level domain concepts (`kind: features`, `kind: variants`, `kind: confidence-score`, …) and never need to name Nightingale components or adapters directly. Two authoring forms are supported:
 
 - **YAML** (recommended) — passed via the `config-src` attribute pointing at a URL or file path.
 - **JSON** — assigned to the `.config` property on the element.

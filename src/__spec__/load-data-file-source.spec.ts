@@ -28,7 +28,7 @@ const adapters: AdapterMap = {
 describe('loadProtvistaData — from: file (features-csv)', () => {
   it('fetches the file as text and lands the adapter output on the track slot', async () => {
     const config = await loadConfig({
-      groups: [
+      rows: [
         {
           id: 'MY',
           tracks: [{ id: 'hits', kind: 'features', data: './features.csv' }],
@@ -62,7 +62,7 @@ describe('loadProtvistaData — from: file (features-csv)', () => {
 
   it('leaves hasData=false for a header-only (empty) CSV file', async () => {
     const config = await loadConfig({
-      groups: [
+      rows: [
         {
           id: 'MY',
           tracks: [{ id: 'hits', kind: 'features', data: './empty.csv' }],
@@ -77,7 +77,7 @@ describe('loadProtvistaData — from: file (features-csv)', () => {
   it('still fetches an ordinary API track as json', async () => {
     const config = await loadConfig({
       sources: { feats: 'https://example.org/feats' },
-      groups: [
+      rows: [
         {
           id: 'API',
           tracks: [{ id: 't', kind: 'features', data: 'feats' }],
@@ -98,7 +98,7 @@ describe('loadProtvistaData — from: file (features-csv)', () => {
     registry.registerAdapter('my-json', () => []);
     const config = await loadConfig(
       {
-        groups: [
+        rows: [
           {
             id: 'API',
             tracks: [
@@ -137,7 +137,7 @@ describe('loadProtvistaData — from: file (features-csv)', () => {
         data: { from: 'url', url: './shared.csv', adapter },
       }));
       const config = await loadConfig(
-        { groups: [{ id: 'G', tracks }] },
+        { rows: [{ id: 'G', tracks }] },
         { registry }
       );
 
@@ -158,7 +158,7 @@ describe('loadProtvistaData — from: file (features-csv)', () => {
 describe('loadProtvistaData — from: file (features-json)', () => {
   it('fetches the file as json and lands the adapter output on the track slot', async () => {
     const config = await loadConfig({
-      groups: [
+      rows: [
         {
           id: 'MY',
           tracks: [{ id: 'hits', kind: 'features', data: './features.json' }],
@@ -195,7 +195,7 @@ describe('loadProtvistaData — from: file (features-json)', () => {
 
   it('leaves hasData=false for an empty (no records) JSON file', async () => {
     const config = await loadConfig({
-      groups: [
+      rows: [
         {
           id: 'MY',
           tracks: [{ id: 'hits', kind: 'features', data: './empty.json' }],
