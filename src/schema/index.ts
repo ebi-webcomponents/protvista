@@ -59,11 +59,26 @@ export { normalizeConfig, titleCaseId } from './normalize';
 export type {
   NormalizedConfig,
   NormalizedDefaults,
-  NormalizedGroup,
+  NormalizedRow,
   NormalizedTrack,
   NormalizedDataSource,
   NormalizeOptions,
 } from './normalize';
+
+import type { NormalizedRow } from './normalize';
+
+/**
+ * @deprecated Renamed to {@link NormalizedRow}, for symmetry with the
+ * authored `rows:` field — a row is not always a group (a standalone
+ * track is one row with no collapse header). Kept for one release so a
+ * programmatic consumer that imported the old name still compiles.
+ *
+ * `NormalizedConfig.groups` was renamed to `rows` in the same change and
+ * deliberately has no alias: it is a field, not a type. Aliasing it
+ * would let stale code keep reading `.groups` and silently get
+ * `undefined` at runtime, where a hard type error is the kinder failure.
+ */
+export type NormalizedGroup = NormalizedRow;
 
 // ── Errors ───────────────────────────────────────────────────
 export { ConfigValidationError } from './errors';

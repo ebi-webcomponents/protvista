@@ -54,7 +54,7 @@ const configWith = (
   version: '1.0',
   sources: {},
   defaults: { rendering: {} },
-  groups: [
+  rows: [
     {
       id: 'G',
       label: 'G',
@@ -119,12 +119,12 @@ describe('component registration — consumer components', () => {
     const normalized = await loadConfig(
       {
         sources: { s: 'https://example.org/x' },
-        groups: [{ id: 'G', tracks: [{ id: 't', kind: 'consumer-kind', data: 's' }] }],
+        rows: [{ id: 'G', tracks: [{ id: 't', kind: 'consumer-kind', data: 's' }] }],
       },
       { registry: element.registry }
     );
     // Sanity: the kind resolved to the consumer component.
-    expect(normalized.groups[0].tracks[0].component).toBe(tag);
+    expect(normalized.rows[0].tracks[0].component).toBe(tag);
 
     element.registerConfigComponents(normalized);
 

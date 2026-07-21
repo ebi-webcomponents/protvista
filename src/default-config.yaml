@@ -50,7 +50,7 @@ sources:
   interproDomains: https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/{accession}?type=domain&page_size=100
   alphafoldPrediction: https://alphafold.ebi.ac.uk/api/prediction/{accession}
 
-groups:
+rows:
   # ───────────────────────────────────────────────────────────
   # 1. Molecule processing — UniProt MOLECULE_PROCESSING features
   # ───────────────────────────────────────────────────────────

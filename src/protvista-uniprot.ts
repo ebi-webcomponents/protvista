@@ -198,7 +198,11 @@ let protvistaInstanceSeq = 0;
 class ProtvistaUniprot extends LitElement {
   private openGroups: string[];
   private nostructure: boolean;
-  /** Opt out of the built-in click tooltip. Consumers rendering a React overlay typically set this. */
+  /**
+   * Opt out of the built-in click tooltip. Consumers rendering a React overlay typically set this.
+   * @see specs/config-approach.md "React host integration" (and docs/react-integration.md) for the
+   * `change`-event listener pattern React hosts pair with this attribute.
+   */
   private notooltip?: boolean;
   private hasData: boolean;
   private loading: boolean;
@@ -212,7 +216,7 @@ class ProtvistaUniprot extends LitElement {
    * Fully-resolved config consumed by the renderer and
    * `loadProtvistaData()`. Populated in `_init()` by running the
    * schema pipeline (`loadConfig`) over one of the three input
-   * sources below. The renderer reads `NormalizedGroup` /
+   * sources below. The renderer reads `NormalizedRow` /
    * `NormalizedTrack` fields (`id`, `description`, `component`,
    * `rendering.*`, `filterUI`, `data[]`) directly — no intermediate
    * adapter is involved.
@@ -453,9 +457,9 @@ class ProtvistaUniprot extends LitElement {
    */
   private registerConfigComponents(config: NormalizedConfig) {
     const names = new Set<string>();
-    for (const group of config.groups) {
-      names.add(group.component);
-      for (const track of group.tracks) names.add(track.component);
+    for (const row of config.rows) {
+      names.add(row.component);
+      for (const track of row.tracks) names.add(track.component);
     }
     for (const name of names) {
       const ctor = this.registry.getComponent(name);
@@ -617,7 +621,7 @@ class ProtvistaUniprot extends LitElement {
     const reloadedKeys =
       only ??
       new Set(
-        this.config.groups.flatMap((g) =>
+        this.config.rows.flatMap((g) =>
           g.tracks.map((t) => `${g.id}-${t.id}`)
         )
       );
@@ -635,7 +639,7 @@ class ProtvistaUniprot extends LitElement {
     // track. Rebuilding from the merged per-track keys is order-independent
     // and self-consistent (and a no-op for a full load). Mirrors the
     // loader's per-component aggregate rule.
-    for (const group of this.config.groups) {
+    for (const group of this.config.rows) {
       const touched = group.tracks.some((t) =>
         reloadedKeys.has(`${group.id}-${t.id}`)
       );
@@ -703,7 +707,7 @@ class ProtvistaUniprot extends LitElement {
       if (element && element.data !== data) {
         element.data = data;
       }
-      const currentGroup = this.config?.groups.find((c) => c.id === id);
+      const currentGroup = this.config?.rows.find((c) => c.id === id);
       if (
         currentGroup &&
         currentGroup.tracks &&
@@ -1117,7 +1121,7 @@ class ProtvistaUniprot extends LitElement {
     // needed here and no validation is possible yet (no config).
     if (!this.config) return;
 
-    const group = this.config.groups.find((c) => c.id === groupId);
+    const group = this.config.rows.find((c) => c.id === groupId);
     const track = group?.tracks.find((t) => t.id === trackId);
     if (!track) {
       this.reportError('set-track-data', {
@@ -1337,7 +1341,7 @@ class ProtvistaUniprot extends LitElement {
     // *missing* — so a 4xx is treated exactly like an empty response: the
     // track simply has no data and is hidden, with no badge, event, or
     // panel. Only `network`, `parse`, and HTTP `5xx` are recorded.
-    for (const group of this.config.groups) {
+    for (const group of this.config.rows) {
       for (const track of group.tracks) {
         const key = `${group.id}-${track.id}`;
         const hit = (trackUrls[key] ?? []).find((u) => fetchErrors.has(u));
@@ -1354,7 +1358,7 @@ class ProtvistaUniprot extends LitElement {
 
     // Recompute the "every track failed" set from the final error map.
     this._groupErrors = new Set();
-    for (const group of this.config.groups) {
+    for (const group of this.config.rows) {
       if (
         group.tracks.length > 0 &&
         group.tracks.every((t) =>
@@ -1532,7 +1536,7 @@ class ProtvistaUniprot extends LitElement {
    * for parity with the grouped path (so the `.${CSS_PREFIX}-group` /
    * `-track-label` / `-track-content` rules apply here too).
    */
-  renderStandaloneTrack(group: NormalizedConfig['groups'][number]) {
+  renderStandaloneTrack(group: NormalizedConfig['rows'][number]) {
     const track = group.tracks[0];
     const trackData = track && this.data[`${group.id}-${track.id}`];
     if (!track || !hasRenderableData(trackData)) {
@@ -1628,7 +1632,7 @@ class ProtvistaUniprot extends LitElement {
             ></nightingale-sequence>
           </div>
         </div>
-        ${this.config.groups.map((group) => {
+        ${this.config.rows.map((group) => {
           const groupHasData = hasRenderableData(this.data[group.id]);
           const groupHasError = this._visibleGroupErrors.has(group.id);
           if (!groupHasData && !groupHasError) return '';
@@ -1855,7 +1859,7 @@ class ProtvistaUniprot extends LitElement {
    * no data to draw: the header label plus a `⚠` badge, no content. Keeps
    * the failure visible even while the group is collapsed.
    */
-  private renderGroupErrorRow(group: NormalizedConfig['groups'][number]) {
+  private renderGroupErrorRow(group: NormalizedConfig['rows'][number]) {
     return html`
       <div class="${CSS_PREFIX}-group" id="${CSS_PREFIX}-group_${group.id}">
         <div
