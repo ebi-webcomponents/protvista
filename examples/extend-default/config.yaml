@@ -1,0 +1,25 @@
+# Inherit the full canonical UniProt viewer, then add one custom
+# group backed by a local CSV file. Nothing else needs to be
+# restated — `sources`, `defaults`, all 15 EBI groups, every built-in
+# colour theme: all pulled in from the base.
+#
+# NOTE on the relative `extends:` path: it resolves correctly under a
+# fetcher that resolves paths relative to *this config file's own
+# location* (which is what src/__spec__/examples.spec.ts supplies,
+# and what a deliberately-configured embedder would supply via
+# `loadConfig`'s `extendsFetcher` option). The *default* loader
+# fetcher (`globalThis.fetch`) resolves relative URLs against the
+# *page's* URL, not the config file's location — this is existing
+# `mergeExtends` fetcher behaviour, not specific to this example. See
+# examples/README.md.
+accession: P05067
+extends: ../../src/default-config.yaml
+
+groups:
+  - id: MY_LAB
+    label: My lab
+    tracks:
+      - id: hotspots
+        kind: features
+        data: ./hotspots.csv
+        description: Hotspot regions identified by our lab's pipeline, layered on top of the canonical UniProt viewer

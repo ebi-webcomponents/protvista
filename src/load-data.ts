@@ -314,10 +314,12 @@ export async function loadProtvistaData(
     if (track.filterUI === 'nightingale-filter') {
       data[`${key}${UNFILTERED_SUFFIX}`] = payload;
     }
-    const adapter = track.data[0]?.adapter;
+    const source = track.data[0];
+    const isGenericFileAdapter =
+      source?.adapter !== undefined && GENERIC_FILE_ADAPTERS.has(source.adapter);
+    const isInline = source?.from === 'inline';
     if (
-      adapter !== undefined &&
-      GENERIC_FILE_ADAPTERS.has(adapter) &&
+      (isGenericFileAdapter || isInline) &&
       Array.isArray(payload) &&
       payload.length > 0
     ) {
@@ -374,6 +376,30 @@ export async function loadProtvistaData(
               return;
             }
             const transformedData: any = customTrackData[trackKey];
+            const filteredData =
+              Array.isArray(transformedData) && filter
+                ? transformedData.filter(
+                    ({ type }: { type?: string }) => type === filter
+                  )
+                : transformedData;
+            if (filteredData == null) return;
+            const spec: TooltipSpec | undefined =
+              dataTooltip ?? (kind ? tooltipDefaults[kind] : undefined);
+            const annotated = applyTooltipResolver(filteredData, spec, {
+              accession,
+              trackId,
+              kind: kind ?? '',
+            });
+            assignTrackData(trackKey, annotated, track);
+            return annotated;
+          }
+
+          // `from: inline` — the payload lives on the descriptor itself
+          // (`inlineData`, populated by the normalizer); no fetch, no
+          // adapter. Filter + tooltip resolution still apply, mirroring
+          // `from: custom` above.
+          if (first.from === 'inline') {
+            const transformedData: any = first.inlineData;
             const filteredData =
               Array.isArray(transformedData) && filter
                 ? transformedData.filter(

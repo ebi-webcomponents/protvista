@@ -1,0 +1,23 @@
+[
+  {
+    "type": "DOMAIN",
+    "begin": 18,
+    "end": 289,
+    "description": "Extracellular domain (custom re-annotation)",
+    "score": 0.95
+  },
+  {
+    "type": "BINDING",
+    "start": 700,
+    "end": 723,
+    "description": "Predicted transmembrane-adjacent binding motif",
+    "score": 0.7
+  },
+  {
+    "type": "REGION",
+    "start": 672,
+    "end": 713,
+    "description": "Custom-called hotspot region",
+    "score": 0.62
+  }
+]

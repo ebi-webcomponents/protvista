@@ -1,0 +1,11 @@
+# Bring-your-own BED file. The `.bed` extension on `data:` infers the
+# `bed` adapter — no explicit `adapter:` needed.
+accession: P05067
+groups:
+  - id: MY_LAB
+    label: My lab
+    tracks:
+      - id: hotspots
+        kind: features
+        data: ./regions.bed
+        description: Hotspot regions identified by our lab's pipeline
