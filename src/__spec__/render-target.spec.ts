@@ -126,7 +126,24 @@ describe('getTrack() per component — config → nightingale attribute mapping'
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const result = el.getTrack('not-a-real-component' as KnownComponentName);
     expect(result).toBeUndefined();
-    expect(warn).toHaveBeenCalledWith('No Matching ProtvistaTrack Found.');
+    // The warning has to name the component: a consumer component that
+    // is registered and validates clean lands here, and this is the
+    // author's only signal that the row rendered empty.
+    expect(warn).toHaveBeenCalledOnce();
+    expect(warn.mock.calls[0][0]).toContain("'not-a-real-component'");
+    warn.mockRestore();
+  });
+
+  it('names the row id too, when the caller supplies one', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    el.getTrack(
+      'not-a-real-component' as KnownComponentName,
+      '',
+      '',
+      '',
+      'GROUP-track'
+    );
+    expect(warn.mock.calls[0][0]).toContain("'GROUP-track'");
     warn.mockRestore();
   });
 });

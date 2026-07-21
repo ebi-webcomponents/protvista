@@ -48,6 +48,7 @@ import type {
 } from './types';
 import { isGroupConfig } from './discriminate';
 import type { Registry } from './registry';
+import { RENDERABLE_COMPONENT_NAMES } from './components';
 import { resolveRowsAlias, rowsAliasConflict } from './rows-alias';
 import { dataFileFormatForPath } from './file-formats';
 import type {
@@ -293,23 +294,38 @@ function descriptorIncludes(
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Known Nightingale component tag names. Kept inline rather than
- * read from a registry because components are fixed at build time
- * (they ship as custom elements bundled with the library) and
- * exposing a `Registry.listComponents()` would misleadingly suggest
- * users can register new ones at runtime — they cannot; custom
- * element registration happens via the DOM, not this registry.
+ * Whether `name` is a component the viewer can resolve — either a
+ * built-in renderable component (the fixed `RENDERABLE_COMPONENT_NAMES`
+ * set) or one a consumer has registered at runtime via
+ * `registerComponent()` (present in the registry's `components` bucket).
  *
- * The set also matches `KnownComponentName` in `types.ts`. If that
- * list grows, this set grows with it.
+ * The built-in half is checked against the pure-string set rather than
+ * the registry so a bare `createRegistry()` — as used by editor tooling
+ * and CI, which never seed the heavy constructors — still validates
+ * configs that reference the shipped components. Consumer components are
+ * only known through the registry, which the element seeds and extends.
  */
-const KNOWN_COMPONENTS = new Set<string>([
-  'nightingale-track-canvas',
-  'nightingale-colored-sequence',
-  'nightingale-variation-canvas',
-  'nightingale-linegraph-track',
-  'nightingale-sequence-heatmap',
-]);
+function componentKnown(name: string, registry: Registry): boolean {
+  return (
+    (RENDERABLE_COMPONENT_NAMES as ReadonlySet<string>).has(name) ||
+    registry.hasComponent(name)
+  );
+}
+
+/**
+ * Valid component names, for error messages. Sorted so the text is
+ * stable regardless of whether the registry has consumer components
+ * seeded (the element's) or none (a bare `createRegistry()`) — adopters
+ * grep these messages, and insertion order would otherwise leak the
+ * registry's provenance into them.
+ */
+function knownComponentList(registry: Registry): string {
+  return listQuoted(
+    new Set<string>(
+      [...RENDERABLE_COMPONENT_NAMES, ...registry.listComponents()].sort()
+    )
+  );
+}
 
 function checkRows(
   c: ProtvistaViewerConfig,
@@ -326,10 +342,10 @@ function checkRows(
       continue;
     }
     const group = entry;
-    if (group.component && !KNOWN_COMPONENTS.has(group.component)) {
+    if (group.component && !componentKnown(group.component, registry)) {
       issues.push({
         path: `${group.id}`,
-        message: `Unknown component: '${group.component}' on group ${group.id}. Valid components: ${listQuoted(KNOWN_COMPONENTS)}.`,
+        message: `Unknown component: '${group.component}' on group ${group.id}. Valid components: ${knownComponentList(registry)}. Register custom components with registerComponent().`,
         code: 'unknown-component',
       });
     }
@@ -351,10 +367,10 @@ function checkTrack(
   const trackPath = group ? `${group.id}/${track.id}` : track.id;
 
   // Unknown component on track.
-  if (track.component && !KNOWN_COMPONENTS.has(track.component)) {
+  if (track.component && !componentKnown(track.component, registry)) {
     issues.push({
       path: trackPath,
-      message: `Unknown component: '${track.component}' in track ${trackPath}. Valid components: ${listQuoted(KNOWN_COMPONENTS)}.`,
+      message: `Unknown component: '${track.component}' in track ${trackPath}. Valid components: ${knownComponentList(registry)}. Register custom components with registerComponent().`,
       code: 'unknown-component',
     });
   }
@@ -366,6 +382,28 @@ function checkTrack(
       message: `Unknown semantic kind: '${track.kind}' in track ${trackPath}. Valid values: ${listQuoted(registry.listSemanticKinds())}. Register custom kinds with registerSemanticKind().`,
       code: 'unknown-semantic-kind',
     });
+  } else if (track.kind !== undefined && !track.component) {
+    // Known kind, no explicit component override: the component the kind
+    // resolves to must itself be registered. A consumer kind whose
+    // component was never `registerComponent()`'d would otherwise fail
+    // late, at `customElements.define()` time (or silently render
+    // nothing) — catch it here, before mount. Built-in kinds always
+    // resolve to a renderable component, so this only bites forgotten
+    // consumer registrations.
+    //
+    // Skipped when `track.component` is set: an explicit component
+    // overrides the kind's component in normalize
+    // (`t.component ?? kindDef?.component ?? …`), so the kind's component
+    // is never actually used, and the explicit one is already validated
+    // by the `track.component` branch above.
+    const resolved = registry.getSemanticKind(track.kind)?.component;
+    if (resolved && !componentKnown(resolved, registry)) {
+      issues.push({
+        path: trackPath,
+        message: `Semantic kind '${track.kind}' in track ${trackPath} resolves to component '${resolved}', which is not registered. Register it with registerComponent().`,
+        code: 'unknown-component',
+      });
+    }
   }
 
   // Track has no rendering path: no `kind`, no track-level
