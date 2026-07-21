@@ -1190,7 +1190,7 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 
 ## Acceptance Criteria
 
-- [x] A JSON Schema file (`protvista-config.schema.json`) is published that validates all examples in this spec.
+- [x] A JSON Schema file (`src/schema/schema.json`) is published that validates all examples in this spec.
 - [x] The existing hardcoded `config.ts` default configuration can be losslessly represented as a YAML/JSON file conforming to the new schema (round-trip fidelity).
 - [x] `version`, group `label`, and group `component` are all optional; a config that omits them validates and renders. Group `label` falls back to a title-cased `id`; group `component` is inferred from child tracks' `kind`s.
 - [x] The four `data` forms all work: `data: "<sources-key>"`, `data: "./file.json"` (relative path), `data: { ... }` (single object), `data: [ ... ]` (array for multi-URL adapters).
@@ -1224,7 +1224,7 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 ```typescript
 import { describe, it, expect } from 'vitest';
 import Ajv from 'ajv';
-import schema from '../protvista-config.schema.json';
+import schema from '../src/schema/schema.json';
 import defaultConfig from '../src/default-config.yaml'; // migrated from config.ts
 import { normalize, mergeExtends } from '../src/runtime';
 

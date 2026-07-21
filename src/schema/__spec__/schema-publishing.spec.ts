@@ -55,34 +55,55 @@ describe('JSON Schema — hosting invariants', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// Repo-wide placeholder scan. Deliberately excludes this file's own
-// directory (`__spec__`) since this file's source mentions the
-// placeholder-shaped strings above only as historical documentation,
-// and standard build/dependency output dirs already covered by
-// `.gitignore`.
+// Repo-wide placeholder scan. Walks the whole repository tree from the
+// root (so root-level files like `index.html` and `package.json` are
+// covered, not just a hand-picked set of directories), skipping VCS /
+// dependency / build-output dirs. `__spec__` / `__snapshots__` are
+// excluded because test fixtures deliberately avoid the canonical URL
+// and this file's own source mentions the placeholder-shaped strings
+// above only as historical documentation.
 // ─────────────────────────────────────────────────────────────
 
-const SCAN_ROOTS = ['src', 'public', 'docs', 'specs', 'README.md'];
-const SCAN_EXTENSIONS = new Set(['.ts', '.json', '.yaml', '.yml', '.md']);
+const SCAN_EXTENSIONS = new Set([
+  '.ts',
+  '.tsx',
+  '.js',
+  '.mjs',
+  '.cjs',
+  '.json',
+  '.yaml',
+  '.yml',
+  '.md',
+  '.html',
+]);
 const IGNORE_DIR_NAMES = new Set([
   'node_modules',
   'dist',
   'demo',
   'coverage',
+  'build',
+  '.git',
+  '.yalc',
+  '.lighthouseci',
+  '.vscode',
+  '.idea',
   '__spec__',
   '__snapshots__',
 ]);
 const PLACEHOLDER_MARKERS = [
   'TODO-PUBLISH-BEFORE-V5-RELEASE',
   'ebi.ac.uk/protvista/config.schema.json',
+  // Any `.invalid` TLD used as a schema URL — catches a future placeholder
+  // even if it isn't the exact `TODO-PUBLISH-…` string. Scoped to
+  // `/protvista` so the legitimate `example.invalid` fetch-failure fixture
+  // in src/__spec__/ doesn't trip it.
+  '.invalid/protvista',
 ];
 
 function findPlaceholderReferences(): string[] {
   const root = process.cwd();
   const offenders: string[] = [];
-  for (const entry of SCAN_ROOTS) {
-    scanPath(join(root, entry), root, offenders);
-  }
+  scanPath(root, root, offenders);
   return offenders;
 }
 
