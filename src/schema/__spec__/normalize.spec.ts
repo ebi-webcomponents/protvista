@@ -16,7 +16,6 @@
  *     with the kind preset layered between group and track so
  *     canonical ramps win over group colour but lose to explicit
  *     track overrides;
- *   - labelUrl / helpPage inheritance per the spec's precedence table;
  *   - group `component` inference from child-track components
  *     (all-same / mixed / empty);
  *   - `titleCaseId` fallback for both group and track labels;
@@ -217,6 +216,118 @@ describe('normalizeConfig — data shorthand expansion', () => {
     expect(d.from).toBe('url');
     expect(d.source).toBe('nonexistent');
     expect(d.url).toBeUndefined();
+  });
+
+  it('resolves a ./x.csv file path to {from: file, url, adapter: features-csv}', () => {
+    const out = normalizeConfig(
+      cfg({
+        rows: [
+          { id: 'C', tracks: [track({ id: 't', data: './features.csv' })] },
+        ],
+      })
+    );
+    const d = out.rows[0].tracks[0].data[0];
+    expect(d.from).toBe('file');
+    expect(d.url).toBe('./features.csv');
+    expect(d.adapter).toBe('features-csv');
+  });
+
+  it('resolves a ./x.tsv file path to {from: file, url, adapter: features-tsv}', () => {
+    const out = normalizeConfig(
+      cfg({
+        rows: [
+          { id: 'C', tracks: [track({ id: 't', data: '../data/hits.tsv' })] },
+        ],
+      })
+    );
+    const d = out.rows[0].tracks[0].data[0];
+    expect(d.from).toBe('file');
+    expect(d.url).toBe('../data/hits.tsv');
+    expect(d.adapter).toBe('features-tsv');
+  });
+
+  it('resolves a ./x.json file path to {from: file, url, adapter: features-json}', () => {
+    const out = normalizeConfig(
+      cfg({
+        rows: [
+          { id: 'C', tracks: [track({ id: 't', data: './features.json' })] },
+        ],
+      })
+    );
+    const d = out.rows[0].tracks[0].data[0];
+    expect(d.from).toBe('file');
+    expect(d.url).toBe('./features.json');
+    expect(d.adapter).toBe('features-json');
+  });
+
+  it('resolves a ./x.bed file path to {from: file, url, adapter: bed}', () => {
+    const out = normalizeConfig(
+      cfg({
+        rows: [
+          { id: 'C', tracks: [track({ id: 't', data: './regions.bed' })] },
+        ],
+      })
+    );
+    const d = out.rows[0].tracks[0].data[0];
+    expect(d.from).toBe('file');
+    expect(d.url).toBe('./regions.bed');
+    expect(d.adapter).toBe('bed');
+  });
+
+  it('lets an explicit adapter win over file-extension inference', () => {
+    const out = normalizeConfig(
+      cfg({
+        rows: [
+          {
+            id: 'C',
+            tracks: [
+              track({
+                id: 't',
+                data: { from: 'file', url: './features.csv', adapter: 'my-csv' },
+              }),
+            ],
+          },
+        ],
+      })
+    );
+    const d = out.rows[0].tracks[0].data[0];
+    expect(d.adapter).toBe('my-csv');
+  });
+
+  it('infers the extension adapter over the kind adapter (ext beats kind)', () => {
+    // With a registry present, `kind: features` resolves to a canonical
+    // adapter; a `.csv` url must still win, so the file is parsed as CSV
+    // rather than fed to the kind's JSON adapter.
+    const out = normalizeConfig(
+      cfg({
+        rows: [
+          {
+            id: 'C',
+            tracks: [
+              track({ id: 't', kind: 'features', data: './features.csv' }),
+            ],
+          },
+        ],
+      }),
+      { registry: createRegistry() }
+    );
+    const d = out.rows[0].tracks[0].data[0];
+    expect(d.from).toBe('file');
+    expect(d.adapter).toBe('features-csv');
+  });
+
+  it('leaves an unrecognised extension (./x.gff) as a best-effort source key', () => {
+    const out = normalizeConfig(
+      cfg({
+        rows: [
+          { id: 'C', tracks: [track({ id: 't', data: './notes.gff' })] },
+        ],
+      })
+    );
+    const d = out.rows[0].tracks[0].data[0];
+    expect(d.from).toBe('url');
+    expect(d.source).toBe('./notes.gff');
+    expect(d.adapter).toBeUndefined();
   });
 
 });
@@ -616,64 +727,6 @@ describe('normalizeConfig — rendering cascade', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// labelUrl / helpPage inheritance
-// ─────────────────────────────────────────────────────────────
-
-describe('normalizeConfig — labelUrl / helpPage inheritance', () => {
-  it('inherits labelUrl from defaults to every track without its own', () => {
-    const out = normalizeConfig(
-      cfg({
-        defaults: { labelUrl: 'https://uniprot.org/{accession}' },
-        sources: { features: 'https://x' },
-        rows: [
-          {
-            id: 'C',
-            tracks: [
-              track({ id: 't1' }),
-              track({ id: 't2', labelUrl: 'https://custom/{id}' }),
-            ],
-          },
-        ],
-      })
-    );
-    expect(out.rows[0].tracks[0].labelUrl).toBe(
-      'https://uniprot.org/{accession}'
-    );
-    expect(out.rows[0].tracks[1].labelUrl).toBe('https://custom/{id}');
-  });
-
-  it('inherits helpPage: track > group > defaults', () => {
-    const out = normalizeConfig(
-      cfg({
-        defaults: { helpPage: 'default-help' },
-        sources: { features: 'https://x' },
-        rows: [
-          {
-            id: 'GROUP1',
-            helpPage: 'group1-help',
-            tracks: [
-              track({ id: 't1' }),
-              track({ id: 't2', helpPage: 'track-help' }),
-            ],
-          },
-          {
-            id: 'GROUP2',
-            tracks: [track({ id: 't3' })],
-          },
-        ],
-      })
-    );
-    expect(out.rows[0].tracks[0].helpPage).toBe('group1-help');
-    expect(out.rows[0].tracks[1].helpPage).toBe('track-help');
-    expect(out.rows[1].tracks[0].helpPage).toBe('default-help');
-    // Group helpPage resolution: GROUP1 uses its own; GROUP2 inherits
-    // from defaults.
-    expect(out.rows[0].helpPage).toBe('group1-help');
-    expect(out.rows[1].helpPage).toBe('default-help');
-  });
-});
-
-// ─────────────────────────────────────────────────────────────
 // Component resolution
 // ─────────────────────────────────────────────────────────────
 
@@ -944,8 +997,6 @@ describe('normalizeConfig — top-level fields', () => {
       rows: [{ id: 'C', tracks: [] }],
     });
     expect(out.defaults.rendering).toEqual({});
-    expect(out.defaults.labelUrl).toBeUndefined();
-    expect(out.defaults.helpPage).toBeUndefined();
   });
 });
 

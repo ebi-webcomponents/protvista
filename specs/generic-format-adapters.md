@@ -219,33 +219,49 @@ adapter supplied a non-empty value). Adapters that produce additional
 fields are fine — they pass through to the tooltip resolver and are
 addressable from `dataTooltip` `path` values.
 
-### 4.3 `features-json` (`src/schema/adapters/features-json.ts`)
+### 4.3 `features-json` (`src/schema/adapters/features-json.ts`) — shipped
 
-The simplest of the four. The fetch already produced parsed JSON; the
-adapter validates it's an array of objects and lets it through:
+The simplest of the four: the fetch already produced parsed JSON, so
+there is no tokenizer — just structural validation. As shipped (issue
+#189) it follows the same **strict, throw-with-index** convention as
+`features-csv` / `features-tsv` rather than the lenient filter-and-warn
+originally sketched here:
+
+- A body that is not an array → `console.warn` + return `[]` (the
+  defensive wrong-container guard, mirroring the delimited adapters'
+  non-string guard).
+- Each element is validated and pared down to the canonical
+  `FeatureRecord` shape. The start coordinate is read from `start` **or**
+  `begin` (UniProt convention) and normalised to `start`; `start` wins
+  when both are present. `description` / `score` are optional.
+- Any malformed record **throws** an `Error` naming the 0-based array
+  index and the field, e.g.
+  `features-json: record 2, field "start": expected a number, got "abc"`.
+  Coordinates and score must be genuine finite JSON numbers — a string
+  coordinate (`"10"`) is a type error and is rejected, not coerced. The
+  loader's per-track try/catch turns the throw into an empty track plus a
+  console warning, so one bad file never crashes the viewer.
 
 ```ts
 import type { AdapterFunction } from '../types';
+import type { FeatureRecord } from './dsv';
 
 export const featuresJson: AdapterFunction = (raw) => {
   if (!Array.isArray(raw)) {
     console.warn(
-      "[protvista] features-json adapter: expected an array; got " +
+      '[protvista] features-json adapter: expected an array; got ' +
         typeof raw +
-        ". Treating as empty."
+        '. Treating as empty.'
     );
     return [];
   }
-  // Filter rows that don't carry the required fields. We don't throw —
-  // a malformed row shouldn't take the whole track down.
-  return raw.filter(
-    (r): r is Record<string, unknown> =>
-      r != null &&
-      typeof r === 'object' &&
-      typeof (r as { type: unknown }).type === 'string' &&
-      Number.isFinite((r as { start: unknown }).start) &&
-      Number.isFinite((r as { end: unknown }).end)
-  );
+  const records: FeatureRecord[] = [];
+  raw.forEach((item, i) => {
+    // …validate item; throw `features-json: record ${i}, field "…": …`
+    // on any violation; push a clean { type, start, end, description?,
+    // score? } record. See the source for the full checks.
+  });
+  return records;
 };
 ```
 
@@ -304,6 +320,29 @@ exporting `featuresCsv` / `featuresTsv` from the same module.
 
 ### 4.6 `bed` (`src/schema/adapters/bed.ts`)
 
+> **Implemented** — the shipped adapter diverges from the illustrative
+> sample below on two points, decided during implementation:
+> 1. **Malformed lines throw** (fewer than 3 columns, or a non-numeric
+>    coordinate/score) with a descriptive, line-named error — matching the
+>    strict `features-csv` / `features-tsv` siblings — rather than the
+>    warn-and-skip shown here. Blank lines and `track`/`browser`/`#`
+>    comment lines are still skipped silently (they are legal BED, not
+>    malformed).
+> 2. **`score` is passed through verbatim** (no 0–1000 → 0–1 renormalise).
+>    The BED spec nominally defines score as 0–1000, but real-world files
+>    routinely carry out-of-range values (peak-caller `-10log10(q)`,
+>    p-values, signal) and the standard tooling (`bedtools`, `pybedtools`)
+>    preserves the column unchanged, so dividing by 1000 would silently
+>    corrupt those files.
+> 3. **Coordinate edge cases are handled**, which the naive `start = n+1,
+>    end = m` shift is not: a zero-length feature (`chromStart == chromEnd`,
+>    a legal insertion point) becomes a single-base point (`start == end`)
+>    instead of an inverted range, and a genuinely inverted
+>    `chromEnd < chromStart` line throws the standard malformed-row error.
+>
+> The code block below is retained as design context; `src/schema/adapters/bed.ts`
+> is the source of truth.
+
 Standard BED parser. BED is tab-delimited but **headerless** — columns
 are positional. Spec: <https://samtools.github.io/hts-specs/BEDv1.pdf>.
 
@@ -318,7 +357,7 @@ fields:
 | `chromStart` | `start` (note: BED is 0-indexed half-open, ProtVista is 1-indexed inclusive — adapter shifts) |
 | `chromEnd` | `end` (same shift) |
 | `name` | `description` |
-| `score` | `score` (BED's 0–1000 range; renormalise to 0–1) |
+| `score` | `score` (passed through verbatim — see the note above) |
 | `chrom`, `strand`, the rest | dropped |
 
 The `type` field doesn't exist in BED. Synthesise it: every record
@@ -384,31 +423,37 @@ export const bed: AdapterFunction = (raw) => {
 
 ### 4.7 Registry wiring (`src/schema/registry.ts`)
 
-A new `registerBuiltinAdapters(registry)` helper alongside the
-existing `createRegistry()` factory:
+**Already implemented** (issue #188) — this section is retained for
+context; no registry work is left for the adapter tickets.
+
+`registerBuiltinAdapters(registry)` lives alongside the `createRegistry()`
+factory and walks a `BUILTIN_ADAPTERS` table in `src/schema/adapters/`:
 
 ```ts
-import { featuresJson } from './adapters/features-json';
-import { featuresCsv } from './adapters/features-csv';
-import { featuresTsv } from './adapters/features-tsv';
-import { bed } from './adapters/bed';
-
-/**
- * Seed the four generic-format adapters into the registry.
- * Called once by the loader at element init alongside the
- * UniProt-API-specific adapter wiring.
- */
 export function registerBuiltinAdapters(registry: Registry): void {
-  registry.registerAdapter('features-json', featuresJson);
-  registry.registerAdapter('features-csv', featuresCsv);
-  registry.registerAdapter('features-tsv', featuresTsv);
-  registry.registerAdapter('bed', bed);
+  for (const [name, fn] of BUILTIN_ADAPTERS) {
+    registry.registerAdapter(name, fn);
+  }
 }
 ```
 
-The `<protvista-uniprot>` element calls this in `_init()` before the
-first `_loadData()`, after the existing UniProt-API adapters have
-been wired into the local adapter map.
+`createRegistry()` calls it once at construction, so the built-ins are
+present on every registry before any config loads — not at element
+`_init()` as originally sketched here. Each adapter ticket therefore
+adds its module plus **one line** to `BUILTIN_ADAPTERS`:
+
+```ts
+export const BUILTIN_ADAPTERS: ReadonlyArray<
+  readonly [KnownAdapterName, AdapterFunction]
+> = [
+  ['features-json', featuresJson],  // ← one line per ticket
+];
+```
+
+Precedence: built-ins register first through the same public
+`registerAdapter()` path consumers use, and a consumer registering the
+same name later overrides the built-in (once). So an adopter whose CSV
+has a different column layout can replace `features-csv` with their own.
 
 ### 4.8 Normalizer (`src/schema/normalize.ts`)
 
@@ -512,14 +557,18 @@ The fifth re-adds extension-inference cases that the strip removed.
 Same fixtures as CSV, with tabs as the delimiter. Confirms shared
 parser core and the delimiter switch.
 
-### 5.4 `src/schema/__spec__/adapters/bed.spec.ts`
+### 5.4 `src/schema/__spec__/bed.spec.ts`
+
+(Lives in the flat `__spec__/` directory alongside `features-dsv.spec.ts`,
+not a nested `__spec__/adapters/`.)
 
 - BED3, BED4 (`name`), BED5 (`name`, `score`), BED6 (with `strand` — dropped).
-- Coordinate shift: BED 0-indexed half-open → ProtVista 1-indexed inclusive. Pin both edges with explicit fixtures.
-- Score normalisation: a BED `500` becomes `0.5`.
+- Coordinate shift: BED 0-indexed half-open → ProtVista 1-indexed inclusive. Pin both edges with explicit fixtures (`100 200` → `start: 101, end: 200`; `0` start → `1`).
+- Zero-length feature (`chromStart == chromEnd`, a legal insertion point) → single-base point `start == end` (not an inverted range); a genuinely inverted `chromEnd < chromStart` line throws a line-named error.
+- Score passed through verbatim: a BED `500` stays `500`.
 - Skip lines: `track …`, `browser …`, `# comment`, blank lines.
-- Sub-3-column rows skipped with a warning.
-- Non-numeric coords on a row skipped with a warning.
+- Sub-3-column rows throw a line-named error.
+- Non-numeric coords / score throw a line-named error.
 
 ### 5.5 Re-add to existing files
 
@@ -549,7 +598,7 @@ The strip pulled the following passages. Restore them on land:
 One PR.
 
 1. Create `src/schema/adapters/features-json.ts`, `features-csv.ts`, `features-tsv.ts`, `bed.ts` with the parsers in §4.3–§4.6.
-2. Add `registerBuiltinAdapters(registry)` to `src/schema/registry.ts` and call it from the `<protvista-uniprot>` element's `_init()` before the first `_loadData()`.
+2. ~~Add `registerBuiltinAdapters(registry)` to `src/schema/registry.ts`~~ — **done in issue #188**; it exists and `createRegistry()` calls it. Each adapter only adds one line to `BUILTIN_ADAPTERS` in `src/schema/adapters/index.ts`.
 3. Restore the four `KnownAdapterName` entries in `src/schema/types.ts` (under the existing `Generic format adapters` comment block).
 4. Restore `inferAdapterFromExtension` and its three call sites in `src/schema/normalize.ts`.
 5. Restore `KNOWN_EXTENSIONS`, `hasKnownExtension`, `extensionOf`, and the `cannot-infer-adapter` branch in `src/schema/validate.ts`.

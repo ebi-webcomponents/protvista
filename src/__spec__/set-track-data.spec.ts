@@ -16,10 +16,12 @@
  *      decorates injected items with `tooltipContent`.
  *
  *   4. When a track declares `from: custom` but no data has been
- *      injected, the loader emits the a console.info message
- *      and leaves the slot unset —  nothing under `data[trackKey]`,
- *      and the track contributes an `undefined` to the group
- *      aggregate (matching how the URL branch handles missing data).
+ *      injected, the loader emits the a console.info message and leaves
+ *      the slot unset — nothing under `data[trackKey]`. For a multi-track
+ *      (canvas) group the missing track's `undefined` is filtered out of
+ *      the flattened aggregate (a clean `[]`); for a graph group
+ *      (linegraph / colored-sequence) the `groupData[0]` aggregate stays
+ *      `undefined`. Either way the renderer reads it as "no data".
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -187,12 +189,39 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       `Track GROUP/mine is 'from: custom' but no data was provided via setTrackData().`
     );
     expect('GROUP-mine' in data).toBe(false);
-    // Group aggregate is `.flat()` of the per-track return values.
-    // The missing-data branch `return`s with no value, so the track
-    // contributes `undefined` to the aggregate — matching how the URL
-    // branch handles a missing payload (parity with legacy behaviour).
-    expect(data.GROUP).toEqual([undefined]);
+    // Group aggregate is `.flat()` of the per-track return values, with the
+    // `undefined` slots a missing/failed track leaves behind filtered out.
+    // So a group whose only track produced no data is a clean empty array,
+    // not `[undefined]` — no hole reaches the renderer or Nightingale.
+    expect(data.GROUP).toEqual([]);
     expect(fetchOne).not.toHaveBeenCalled();
+  });
+
+  it('a graph group (linegraph) keeps its aggregate undefined when its only track has no data', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+
+    // Graph groups (linegraph / colored-sequence) take `groupData[0]` as the
+    // aggregate rather than `.flat().filter()`, so a track that produces no
+    // data must leave `data[groupId]` as `undefined` (the renderer reads
+    // that as "no data" and shows the error row) — NOT coerced to `[]`.
+    const config = makeConfig({
+      id: 'mine',
+      label: 'mine',
+      component: 'nightingale-linegraph-track',
+      rendering: {},
+      data: [{ from: 'custom' }],
+    });
+
+    const { data } = await loadProtvistaData(
+      ACCESSION,
+      config,
+      fetchOne,
+      noopAdapters,
+      {} // no customTrackData → track early-returns undefined
+    );
+
+    expect('GROUP-mine' in data).toBe(false);
+    expect(data.GROUP).toBeUndefined();
   });
 
   it('picks up pre-populated customTrackData on the very first load (pre-mount write semantics)', async () => {

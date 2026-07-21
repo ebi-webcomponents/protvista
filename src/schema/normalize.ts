@@ -11,22 +11,20 @@
  *   1. Expands the `data` shorthand forms (string, single descriptor,
  *      array) into a `NormalizedDataSource[]`. Runtime code never has
  *      to branch on "is this a string / object / array?" again.
- *   2. Resolves string-shorthand data rules (sources key, http(s) URL)
- *      per the table in `TrackConfig.data`. Generic-format adapters
- *      for bring-your-own-data files (file-path shorthand and
- *      extension-based adapter inference) is left as future work.
+ *   2. Resolves string-shorthand data rules (sources key, http(s) URL,
+ *      or a known data-file path like `./x.csv` → `from: file` with the
+ *      extension's built-in adapter) per the table in `TrackConfig.data`.
+ *      CSV/TSV/JSON/BED file shorthands all resolve today.
  *   3. Fills in defaults for `from` (`"url"` when omitted, `"inline"`
  *      when `inlineData` is present).
  *   4. Resolves semantic kinds via the registry into (component,
  *      adapter, rendering preset) and folds the preset into the
  *      track's rendering chain.
- *   5. Cascades rendering / labelUrl / helpPage inheritance so the
- *      loader sees fully-resolved per-track blocks (no walking of
+ *   5. Cascades rendering inheritance so the loader sees
+ *      fully-resolved per-track blocks (no walking of
  *      defaults → group → track at render time):
  *
  *         track.rendering > group.rendering > defaults.rendering
- *         track.labelUrl  > defaults.labelUrl
- *         track.helpPage  > group.helpPage  > defaults.helpPage
  *
  *   6. Infers group `component` from child-track `component`s when
  *      omitted (all-same → that component; mixed →
@@ -74,6 +72,7 @@ import type {
 import { isGroupConfig } from './discriminate';
 import type { Registry } from './registry';
 import { resolveRowsAlias } from './rows-alias';
+import { dataFileFormatForPath } from './file-formats';
 
 // ─────────────────────────────────────────────────────────────
 // Output types — the canonical shape the loader consumes
@@ -82,22 +81,21 @@ import { resolveRowsAlias } from './rows-alias';
 /**
  * Fully-resolved config. The only fields kept optional are those that
  * are semantically optional at runtime (e.g. `accession` — absent in
- * configs not yet bound to a specific protein; `helpPage` — absent
- * when no help link is wanted).
+ * configs not yet bound to a specific protein).
  */
 export interface NormalizedConfig {
   version: '1.0';
   accession?: string;
   sources: Record<string, string>;
   defaults: NormalizedDefaults;
+  /** Author-set: promote warnings to a mount-level failure. See `ProtvistaViewerConfig.strict`. */
+  strict?: boolean;
   rows: NormalizedRow[];
 }
 
 export interface NormalizedDefaults {
   /** Always present (at minimum: `{}`). Renderers can spread it safely. */
   rendering: RenderingOptions;
-  labelUrl?: string;
-  helpPage?: string;
 }
 
 /**
@@ -116,7 +114,6 @@ export interface NormalizedRow {
   component: ComponentName;
   /** Resolved cascade: defaults → group. */
   rendering: RenderingOptions;
-  helpPage?: string;
   tracks: NormalizedTrack[];
   /**
    * Set only on the synthetic single-track row that wraps an authored
@@ -133,7 +130,6 @@ export interface NormalizedRow {
 export interface NormalizedTrack {
   id: string;
   label: string;
-  labelUrl?: string;
   /** Preserved verbatim so the validator + loader can use it. */
   kind?: string;
   /** Resolved: track.component > kind.component > parent.component > canvas. */
@@ -152,7 +148,6 @@ export interface NormalizedTrack {
   filterUI?: 'nightingale-filter';
   /** Resolved cascade: defaults → group → kind preset → track. */
   rendering: RenderingOptions;
-  helpPage?: string;
 }
 
 /**
@@ -207,12 +202,6 @@ export function normalizeConfig(
 
   const defaults: NormalizedDefaults = {
     rendering: { ...(config.defaults?.rendering ?? {}) },
-    ...(config.defaults?.labelUrl !== undefined
-      ? { labelUrl: config.defaults.labelUrl }
-      : {}),
-    ...(config.defaults?.helpPage !== undefined
-      ? { helpPage: config.defaults.helpPage }
-      : {}),
   };
 
   // Duplicate top-level-id detection BEFORE we recurse so errors refer
@@ -240,6 +229,7 @@ export function normalizeConfig(
     ...(config.accession !== undefined ? { accession: config.accession } : {}),
     sources,
     defaults,
+    ...(config.strict !== undefined ? { strict: config.strict } : {}),
     rows,
   };
 }
@@ -292,15 +282,12 @@ function normalizeGroup(
     component = 'nightingale-track-canvas';
   }
 
-  const helpPage = c.helpPage ?? defaults.helpPage;
-
   return {
     id: c.id,
     label: c.label ?? titleCaseId(c.id),
     ...(c.description !== undefined ? { description: c.description } : {}),
     component,
     rendering: groupRendering,
-    ...(helpPage !== undefined ? { helpPage } : {}),
     tracks,
   };
 }
@@ -325,8 +312,8 @@ function normalizeGroup(
  * The wrapper mirrors the resolved track: same `id`, `label`
  * (`label === track.label`), and `component`. The renderer reads the
  * `standalone` flag to render a single row with no collapse header;
- * the track's own `label` / `labelUrl` / `description` / `helpPage`
- * drive that row's label affordances.
+ * the track's own `label` / `description` drive that row's label
+ * affordances.
  */
 function normalizeStandalone(
   t: TrackConfig,
@@ -348,7 +335,6 @@ function normalizeStandalone(
     label: track.label,
     component: track.component,
     rendering: { ...defaults.rendering },
-    ...(track.helpPage !== undefined ? { helpPage: track.helpPage } : {}),
     tracks: [track],
     standalone: true,
   };
@@ -401,13 +387,9 @@ function normalizeTrack(
 
   const data = expandData(t, kindDef?.adapter, sources);
 
-  const labelUrl = t.labelUrl ?? defaults.labelUrl;
-  const helpPage = t.helpPage ?? parent?.helpPage ?? defaults.helpPage;
-
   return {
     id: t.id,
     label: t.label ?? titleCaseId(t.id),
-    ...(labelUrl !== undefined ? { labelUrl } : {}),
     ...(t.kind !== undefined ? { kind: t.kind } : {}),
     component,
     data,
@@ -418,7 +400,6 @@ function normalizeTrack(
     ...(t.filter !== undefined ? { filter: t.filter } : {}),
     ...(t.filterUI !== undefined ? { filterUI: t.filterUI } : {}),
     rendering,
-    ...(helpPage !== undefined ? { helpPage } : {}),
   };
 }
 
@@ -500,16 +481,18 @@ function resolveStringShorthand(
   if (/^https?:\/\//i.test(value)) {
     return { from: 'url', url: value };
   }
-  // 3. Fell off the end. Best-effort: assume the author intended a
+  // 3. A path to a known data file (`./hits.csv`, `../x.tsv`, `/data.csv`)
+  //    → from: file. The adapter is inferred from the extension in
+  //    `expandDescriptor`. The value is kept on `url` so the loader
+  //    fetches it through the same path as a URL source.
+  if (dataFileFormatForPath(value)) {
+    return { from: 'file', url: value };
+  }
+  // 4. Fell off the end. Best-effort: assume the author intended a
   //    sources-key reference. The validator surfaces
   //    "Unknown source key: '<value>' in track <groupId>/<trackId>.
   //    Known sources: ..." with the registered keys listed — a far
   //    better error than any the engine could produce here.
-  //
-  //    Generic-format adapters for bring-your-own-data files
-  //    (`./hits.csv` etc.) is left as future work. Today, authors
-  //    with their own data files use the object form with an explicit
-  //    `from: 'file'` and a `registerAdapter()`-supplied `adapter:`.
   return { from: 'url', source: value };
 }
 
@@ -523,12 +506,16 @@ function expandDescriptor(
   const from: NormalizedDataSource['from'] =
     d.from ?? (d.inlineData !== undefined ? 'inline' : 'url');
 
-  // Adapter inference: explicit `adapter:` wins; otherwise fall back
-  // to the kind's canonical adapter (e.g. a `kind: confidence-score`
-  // track pointed at a raw API URL gets `alphafold-prediction-json`).
-  // File-extension inference (`./x.csv` → `features-csv` etc.) is
-  // left as future work.
-  const adapter = d.adapter ?? kindAdapter;
+  // Adapter inference, most specific first: an explicit `adapter:` wins;
+  // otherwise a known data-file extension on the URL (`./x.csv` →
+  // `features-csv`); otherwise the kind's canonical adapter (e.g. a
+  // `kind: confidence-score` track pointed at a raw API URL gets
+  // `alphafold-prediction-json`).
+  const inferredFromExt =
+    typeof d.url === 'string'
+      ? dataFileFormatForPath(d.url)?.adapter
+      : undefined;
+  const adapter = d.adapter ?? inferredFromExt ?? kindAdapter;
 
   // Resolve `source:` to concrete URL(s) via the sources map. Both
   // fields stay on the descriptor so the validator can still produce

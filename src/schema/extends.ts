@@ -22,9 +22,8 @@
  *                    same rules as rows
  *   - `rendering`  — field-wise (at every level); `colorScale`
  *                    nested sub-object also field-wise
- *   - Scalar fields (`accession`, `version`, `$schema`, `labelUrl`,
- *     `helpPage`, `label`, `component`, `kind`, `data`, …) — child
- *     wins.
+ *   - Scalar fields (`accession`, `version`, `$schema`, `label`,
+ *     `component`, `kind`, `data`, …) — child wins.
  *
  *
  * ## Resolver strategy — namespace-decision friendly

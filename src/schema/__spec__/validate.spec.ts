@@ -162,6 +162,34 @@ describe('validateConfig — unknown source key', () => {
     expect(issue).toBeDefined();
     expect(issue!.message).toContain("Unknown source key: 'notInMap'");
   });
+
+  it('accepts a ./x.csv file-path shorthand (built-in adapter, no unknown-source-key)', () => {
+    const cfg: ProtvistaViewerConfig = {
+      rows: [
+        {
+          id: 'X',
+          tracks: [{ id: 'y', kind: 'features', data: './features.csv' }],
+        },
+      ],
+    };
+    const result = validateConfig(cfg, freshRegistry());
+    expect(issueByCode(result.issues, 'unknown-source-key')).toBeUndefined();
+    expect(result.valid).toBe(true);
+  });
+
+  it('accepts a ./x.json file-path shorthand (built-in adapter, no unknown-source-key)', () => {
+    const cfg: ProtvistaViewerConfig = {
+      rows: [
+        {
+          id: 'X',
+          tracks: [{ id: 'y', kind: 'features', data: './features.json' }],
+        },
+      ],
+    };
+    const result = validateConfig(cfg, freshRegistry());
+    expect(issueByCode(result.issues, 'unknown-source-key')).toBeUndefined();
+    expect(result.valid).toBe(true);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -453,27 +481,6 @@ describe('validateConfig — accession placeholders', () => {
     expect(issue!.message).toContain('{accession}');
   });
 
-  it('finds {accession} in track labelUrl', () => {
-    const cfg: ProtvistaViewerConfig = {
-      sources: { features: 'https://example.org/features' },
-      rows: [
-        {
-          id: 'X',
-          tracks: [
-            {
-              id: 'y',
-              kind: 'features',
-              data: 'features',
-              labelUrl: 'https://example.org/{accession}/help',
-            },
-          ],
-        },
-      ],
-    };
-    const result = validateConfig(cfg, freshRegistry());
-    expect(issueByCode(result.issues, 'missing-accession')).toBeDefined();
-  });
-
   it('finds {accession} in a descriptor url', () => {
     const cfg: ProtvistaViewerConfig = {
       rows: [
@@ -486,6 +493,46 @@ describe('validateConfig — accession placeholders', () => {
               data: { url: 'https://example.org/{accession}/features' },
             },
           ],
+        },
+      ],
+    };
+    const result = validateConfig(cfg, freshRegistry());
+    expect(issueByCode(result.issues, 'missing-accession')).toBeDefined();
+  });
+
+  // `label` is a Markdoc source string with `{accession}` interpolated
+  // before render, so the placeholder scan must cover it — this replaces
+  // the removed `labelUrl` accession check and guards validate.ts's
+  // group/track label branches.
+  it('finds {accession} in a track label', () => {
+    const cfg: ProtvistaViewerConfig = {
+      sources: { features: 'https://example.org/features' },
+      rows: [
+        {
+          id: 'X',
+          tracks: [
+            {
+              id: 'y',
+              kind: 'features',
+              data: 'features',
+              label: '[AlphaFold](https://example.org/{accession})',
+            },
+          ],
+        },
+      ],
+    };
+    const result = validateConfig(cfg, freshRegistry());
+    expect(issueByCode(result.issues, 'missing-accession')).toBeDefined();
+  });
+
+  it('finds {accession} in a group label', () => {
+    const cfg: ProtvistaViewerConfig = {
+      sources: { features: 'https://example.org/features' },
+      rows: [
+        {
+          id: 'X',
+          label: 'Entry {accession}',
+          tracks: [{ id: 'y', kind: 'features', data: 'features' }],
         },
       ],
     };

@@ -139,9 +139,9 @@ describe('getTrack() per component — config → nightingale attribute mapping'
  * dragging in the full 15-group, 65-track real config.
  *
  * Each group exercises a distinct branch of the render template:
- * aggregate track vs. expanded tracks; filter component vs. label-url
- * vs. help-page; color/shape inherited from group vs. overridden on
- * the track.
+ * aggregate track vs. expanded tracks; filter component vs. Markdoc
+ * label (a `{% help %}` span or an inline link); color/shape inherited
+ * from group vs. overridden on the track.
  *
  * The fixture is hand-built as the canonical `NormalizedConfig` the
  * renderer consumes — `rendering.*` is structured (not flat
@@ -173,14 +173,13 @@ const testConfig: NormalizedConfig = {
   rows: [
     {
       id: 'GROUP_CANVAS',
-      label: 'Canvas group',
+      label: '{% help slug="canvas_help" %}Canvas group{% /help %}',
       component: 'nightingale-track-canvas',
       rendering: GROUP_CANVAS_RENDERING,
-      helpPage: 'canvas_help',
       tracks: [
         {
           id: 'canvas_track_A',
-          label: 'Canvas Track A',
+          label: '{% help slug="canvas_A_help" %}Canvas Track A{% /help %}',
           component: 'nightingale-track-canvas',
           description: 'Canvas track tooltip',
           // Rendering is already cascaded: group rendering lives on
@@ -193,7 +192,6 @@ const testConfig: NormalizedConfig = {
               adapter: 'uniprot-features-json',
             },
           ],
-          helpPage: 'canvas_A_help',
         },
         {
           id: 'canvas_track_B',
@@ -264,8 +262,8 @@ const testConfig: NormalizedConfig = {
       tracks: [
         {
           id: 'colored_seq_track',
-          label: 'Colored Sequence Track',
-          labelUrl: 'https://example.com/{accession}',
+          label:
+            '[Colored Sequence Track](https://example.com/{accession})',
           component: 'nightingale-colored-sequence',
           description: 'Colored sequence tooltip',
           rendering: { ...GROUP_COLORED_SEQ_RENDERING },
@@ -550,6 +548,62 @@ describe('full render — standalone top-level tracks', () => {
     expect(group!.querySelector(`.${CSS_PREFIX}-group-label`)).not.toBeNull();
     // openGroups is empty, so no expanded child track rows for the group.
     expect(target.querySelector(`#${CSS_PREFIX}-track_domain`)).toBeNull();
+  });
+});
+
+// -------------------- Group collapse / expand interaction --------------------
+
+describe('handleGroupClick — group collapse / expand toggle', () => {
+  // A Markdoc-rendered group label can nest inline markup (a `{% help %}`
+  // span, an inline link), so a click can land on a descendant of the
+  // toggle host. handleGroupClick must climb via
+  // `closest('[data-group-toggle]')` rather than a single parentElement hop.
+  function toggleHost(id: string) {
+    const host = document.createElement('div');
+    host.setAttribute('data-group-toggle', id);
+    const inner = document.createElement('span');
+    inner.textContent = 'Label';
+    host.append(inner);
+    return { host, inner };
+  }
+
+  it('expands then collapses when a nested descendant of the label is clicked', () => {
+    const el = buildInstance();
+    const { host, inner } = toggleHost('GROUP_CANVAS');
+
+    // First click — target is the nested span; the handler climbs to the
+    // toggle host and expands the group.
+    el.handleGroupClick({ target: inner } as unknown as MouseEvent);
+    expect(el.openGroups).toContain('GROUP_CANVAS');
+    expect(host.classList.contains('open')).toBe(true);
+
+    // Second click on the same host collapses it again.
+    el.handleGroupClick({ target: inner } as unknown as MouseEvent);
+    expect(el.openGroups).not.toContain('GROUP_CANVAS');
+    expect(host.classList.contains('open')).toBe(false);
+  });
+
+  it('ignores clicks that are not inside a group-toggle host', () => {
+    const el = buildInstance();
+    el.openGroups = ['GROUP_CANVAS'];
+    const orphan = document.createElement('div');
+    el.handleGroupClick({ target: orphan } as unknown as MouseEvent);
+    // No toggle host in the ancestry → early return, openGroups untouched.
+    expect(el.openGroups).toEqual(['GROUP_CANVAS']);
+  });
+
+  it('does not toggle the group when a link inside the label is clicked', () => {
+    // A Markdoc label can contain an inline link; clicking it should
+    // navigate only, not also collapse/expand the group.
+    const el = buildInstance();
+    const host = toggleHost('GROUP_CANVAS').host;
+    const link = document.createElement('a');
+    link.setAttribute('href', 'https://example.org');
+    link.textContent = 'Docs';
+    host.append(link);
+    el.handleGroupClick({ target: link } as unknown as MouseEvent);
+    expect(el.openGroups).not.toContain('GROUP_CANVAS');
+    expect(host.classList.contains('open')).toBe(false);
   });
 });
 

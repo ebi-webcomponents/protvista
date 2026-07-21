@@ -16,20 +16,27 @@
  *
  * Design notes:
  *
- *   - Built-ins are seeded at construction, not through the public
- *     `register*` methods. User code attempting to register over a
- *     built-in (or a previously-registered custom name) throws — the
- *     spec's escape-hatch docstrings say "must not collide with
- *     built-ins" and silent overrides would make the viewer's
- *     behaviour depend on call order.
- *   - Adapter *function bodies* are intentionally not seeded here —
- *     adapters are registered by the loader when it boots. This keeps
- *     this file dependency-free and trivially unit-testable.
- *   - The 12 built-in semantic kinds reference adapter names that are
- *     not yet registered. That is fine: `resolveSemanticKind()` returns
+ *   - Built-in semantic kinds and themes are seeded at construction,
+ *     not through the public `register*` methods. User code attempting
+ *     to register over one throws — the spec's escape-hatch docstrings
+ *     say "must not collide with built-ins" and silent overrides would
+ *     make the viewer's behaviour depend on call order.
+ *   - Built-in *adapters* are the one exception, because they name a
+ *     data format rather than a viewer behaviour: an adopter whose CSV
+ *     has a different column layout needs to swap our `features-csv`
+ *     for theirs. `createRegistry()` seeds them first (via
+ *     `registerBuiltinAdapters()`, through the same public
+ *     `registerAdapter()` path consumers use, so both share one
+ *     namespace), and a consumer registering the same name afterwards
+ *     overrides. That override is allowed once: registering a name
+ *     that is not a built-in twice still throws, so a consumer
+ *     colliding with their own adapter is caught as before. To add a
+ *     built-in adapter, see `BUILTIN_ADAPTERS` in `./adapters`.
+ *   - The 12 built-in semantic kinds reference adapter names that no
+ *     built-in supplies. That is fine: `resolveSemanticKind()` returns
  *     the adapter *name* (a string), and the loader looks up the
- *     adapter function in the registry at fetch time — by then the
- *     loader has also called `registerBuiltinAdapters()`.
+ *     function at fetch time — the UniProt-API adapters reach it
+ *     through the element's own adapter map rather than this registry.
  *   - `createRegistry()` is a factory (not a module-level singleton)
  *     so tests and downstream embedders can instantiate isolated
  *     registries. The `<protvista-uniprot>` element will hold one
@@ -40,6 +47,7 @@
  * BUILTIN_TRANSFORM_OPERATORS) is left as future work.
  */
 
+import { BUILTIN_ADAPTERS } from './adapters';
 import type {
   SemanticKindDefinition,
   AdapterFunction,
@@ -78,8 +86,8 @@ export interface Registry {
 //
 // Each built-in maps a SemanticKind to (component, adapter) plus an
 // optional rendering preset. Adapter names follow the spec's
-// `<source>-<format>` convention; these names are registered with
-// their function bodies by `registerBuiltinAdapters()` at loader init.
+// `<source>-<format>` convention; the loader resolves them to a
+// function at fetch time.
 // ─────────────────────────────────────────────────────────────
 
 type BuiltinSemanticKindEntry = readonly [
@@ -221,7 +229,9 @@ export class RegistryCollisionError extends Error {
   public readonly registeredName: string;
   constructor(bucket: string, name: string) {
     super(
-      `Cannot register ${bucket} '${name}': a ${bucket} with this name is already registered.`
+      `Cannot register ${bucket} '${name}': ${
+        /^[aeiou]/i.test(bucket) ? 'an' : 'a'
+      } ${bucket} with this name is already registered.`
     );
     this.name = 'RegistryCollisionError';
     this.bucket = bucket;
@@ -230,6 +240,54 @@ export class RegistryCollisionError extends Error {
     // `error instanceof RegistryCollisionError` works for consumers
     // that down-level this package to ES5.
     Object.setPrototypeOf(this, RegistryCollisionError.prototype);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Built-in adapters
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Register every built-in adapter onto `registry`.
+ *
+ * Called by `createRegistry()` so the built-ins are present before any
+ * config loads. Registration goes through the public
+ * `registerAdapter()` — built-ins and consumer adapters share one
+ * namespace, and a consumer registering the same name afterwards
+ * overrides the built-in.
+ *
+ * To add a built-in adapter, add a line to `BUILTIN_ADAPTERS` in
+ * `./adapters`; this function needs no change.
+ *
+ * Not idempotent: calling it twice on the same registry re-registers
+ * each name, which the second time around burns the built-in's
+ * one permitted override.
+ *
+ * @throws if `BUILTIN_ADAPTERS` names an adapter twice — a library
+ *   defect, not a consumer error. See the dedup guard below.
+ */
+export function registerBuiltinAdapters(registry: Registry): void {
+  // Guard the table against itself. Without this, a duplicated row
+  // surfaces as a RegistryCollisionError thrown from inside
+  // `createRegistry()` — and since every element mount and every test
+  // builds a registry, that reads as "the library is broken" rather
+  // than "the table has a duplicate line". The table is edited one
+  // line at a time by separate adapter tickets, so a copy-paste
+  // duplicate is a realistic mistake worth naming precisely.
+  const seen = new Set<string>();
+  for (const [name] of BUILTIN_ADAPTERS) {
+    if (seen.has(name)) {
+      throw new Error(
+        `BUILTIN_ADAPTERS (src/schema/adapters) registers '${name}' more than ` +
+          `once. Each built-in adapter must appear exactly once — remove the ` +
+          `duplicate entry.`
+      );
+    }
+    seen.add(name);
+  }
+
+  for (const [name, fn] of BUILTIN_ADAPTERS) {
+    registry.registerAdapter(name, fn);
   }
 }
 
@@ -249,6 +307,12 @@ export function createRegistry(): Registry {
   const semanticKinds = new Map<string, SemanticKindDefinition>();
   const adapters = new Map<string, AdapterFunction>();
   const themes = new Map<string, ColorStop[]>();
+
+  // Names seeded by `registerBuiltinAdapters()` below. A consumer may
+  // register over any of these once; the name is dropped from the set
+  // on override so a second registration collides like any other.
+  const builtinAdapterNames = new Set<string>();
+  let seedingBuiltinAdapters = false;
 
   // Seed built-in semantic kinds. Rendering presets are copied
   // (shallow) so callers mutating the returned def do not mutate the
@@ -289,7 +353,7 @@ export function createRegistry(): Registry {
     map.set(name, value);
   }
 
-  return {
+  const registry: Registry = {
     // ── Semantic kinds ──────────────────────────────────────
     registerSemanticKind(name, def) {
       registerInto('semantic kind', semanticKinds, name, def);
@@ -306,6 +370,20 @@ export function createRegistry(): Registry {
 
     // ── Adapters ────────────────────────────────────────────
     registerAdapter(name, fn) {
+      if (seedingBuiltinAdapters) {
+        registerInto('adapter', adapters, name, fn);
+        builtinAdapterNames.add(name);
+        return;
+      }
+      if (builtinAdapterNames.has(name)) {
+        // Consumer override of a built-in: allowed, and allowed once.
+        // Forgetting the built-in status here means a second
+        // registration of the same name collides like any other
+        // consumer duplicate.
+        builtinAdapterNames.delete(name);
+        adapters.set(name, fn);
+        return;
+      }
       registerInto('adapter', adapters, name, fn);
     },
     getAdapter(name) {
@@ -342,6 +420,19 @@ export function createRegistry(): Registry {
       return [...themes.keys()].sort();
     },
   };
+
+  // Seed built-in adapters through the public path, exactly once, so a
+  // config that names one loads without consumer-side registration.
+  // The flag marks the names as overridable; it is safe because
+  // `registerBuiltinAdapters` is synchronous.
+  seedingBuiltinAdapters = true;
+  try {
+    registerBuiltinAdapters(registry);
+  } finally {
+    seedingBuiltinAdapters = false;
+  }
+
+  return registry;
 }
 
 // ─────────────────────────────────────────────────────────────

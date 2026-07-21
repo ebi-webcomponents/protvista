@@ -27,6 +27,14 @@
       <!-- NOTE: for all of the following with no config-src → falls back to bundled src/default-config.yaml -->
       <!-- Accession is read from ?accession= (default P05067). Used by the
            bench/ workflow to swap scenarios without duplicating HTML. -->
+      <!-- A track whose data is *broken* — unreachable (blocked / offline /
+           DNS / CORS), an HTTP 5xx, or an unparseable body — shows a ⚠
+           badge (with a Retry for the recoverable ones). A track whose
+           data is merely *missing* — an HTTP 4xx such as a 404 "no data
+           for this accession" — is hidden like an empty response. All
+           broken failures also fire a bubbling `protvista-error` event.
+           Add `strict` in config to promote them to the mount-level
+           error panel. -->
       <protvista-uniprot id="pv"></protvista-uniprot>
       <script>
         const params = new URLSearchParams(location.search);

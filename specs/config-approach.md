@@ -36,7 +36,7 @@ rows:
 
 A bench scientist writes only domain-level concepts (`kind: features`, the `my_hotspots` source-key) — never Nightingale component names, adapter names, or JavaScript. See [Example 4](#example-4-extending-the-ebi-default--one-line-one-new-track) for the full behaviour.
 
-> **Note.** Generic-format adapters that would let an author point at a local file with a `data: ./hotspots.csv` shorthand (CSV / TSV / JSON / BED) are a planned addition — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md). Until those land, the BYO-data path goes through a hosted URL (as in the example above) or a `registerAdapter()`-supplied custom adapter pinned with `adapter: <name>` on the descriptor.
+> **Note.** Generic-format adapters let an author point a track at a local file with a `data: ./hotspots.csv` shorthand. **CSV, TSV, JSON, and BED all ship today** (`features-csv` / `features-tsv` / `features-json` / `bed`, pre-registered out of the box) — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md). BED is 0-based half-open per its spec; the `bed` adapter shifts coordinates to the viewer's 1-based inclusive convention (`start = bedStart + 1`, `end = bedEnd`). For a format not yet covered, the BYO-data path goes through a hosted URL or a `registerAdapter()`-supplied custom adapter pinned with `adapter: <name>` on the descriptor.
 
 ## Non-Goals
 
@@ -119,7 +119,7 @@ interface ProtvistaViewerConfig {
    * The primary accession or identifier for this viewer instance.
    *
    * Used to interpolate `{accession}` placeholders in `sources`
-   * URLs, `labelUrl`, and any other template string in the config.
+   * URLs, group/track `label`, and any other template string in the config.
    * Only characters matching `[A-Za-z0-9_-]{1,32}` are substituted;
    * all other values substitute to an empty string. This prevents
    * path traversal and URL-smuggling payloads from user input.
@@ -171,8 +171,6 @@ interface ProtvistaViewerConfig {
    *
    * Precedence (highest first):
    *   track.rendering > group.rendering > defaults.rendering
-   *   track.labelUrl  > defaults.labelUrl
-   *   track.helpPage  > group.helpPage > defaults.helpPage
    */
   defaults?: ConfigDefaults;
 
@@ -198,15 +196,6 @@ interface ProtvistaViewerConfig {
 interface ConfigDefaults {
   /** Default rendering options inherited by every track. */
   rendering?: RenderingOptions;
-
-  /**
-   * Default `labelUrl` template for every track that does not set
-   * its own. Supports `{accession}` and `{id}` placeholders.
-   */
-  labelUrl?: string;
-
-  /** Default help-page slug. */
-  helpPage?: string;
 }
 
 interface GroupConfig {
@@ -214,9 +203,12 @@ interface GroupConfig {
   id: string;
 
   /**
-   * Human-readable label shown in the UI. Optional — if omitted,
-   * falls back to a title-cased form of `id`
-   * (e.g. "MOLECULE_PROCESSING" → "Molecule processing").
+   * Human-readable label shown in the UI. A Markdoc inline source
+   * string — Markdown (emphasis, code, links) plus the
+   * `{% help slug="…" %}…{% /help %}` tag; `{accession}` is
+   * interpolated before rendering. Block-level markup is not
+   * supported. Optional — if omitted, falls back to a title-cased form
+   * of `id` (e.g. "MOLECULE_PROCESSING" → "Molecule processing").
    */
   label?: string;
 
@@ -242,20 +234,20 @@ interface GroupConfig {
 
   /** Group-level rendering defaults; individual tracks inherit these. */
   rendering?: RenderingOptions;
-
-  /** Optional URL slug for the help-page link on the group label. */
-  helpPage?: string;
 }
 
 interface TrackConfig {
   /** Unique identifier within its parent group (e.g. "signal"). */
   id: string;
 
-  /** Human-readable label. Falls back to a title-cased form of `id` if omitted. */
+  /**
+   * Human-readable label. A Markdoc inline source string — Markdown
+   * (emphasis, code, links) plus the `{% help slug="…" %}…{% /help %}`
+   * tag; `{accession}` is interpolated before rendering. Block-level
+   * markup is not supported. Falls back to a title-cased form of `id`
+   * if omitted.
+   */
   label?: string;
-
-  /** URL for the label to link to. Supports `{accession}` and `{id}` interpolation. */
-  labelUrl?: string;
 
   /**
    * Semantic track kind — describes WHAT the track displays.
@@ -297,12 +289,14 @@ interface TrackConfig {
    * Adapter inference: the track's semantic `kind` selects the
    * canonical adapter.
    *
-   * File-path shorthand against generic-format adapters (CSV / TSV /
-   * JSON / BED via `data: ./hits.csv`-style values) is a planned
-   * addition — see `specs/generic-format-adapters.md`. Until those
-   * adapters ship, authors with their own data files use the object
-   * form with an explicit `from: 'file'` plus a `registerAdapter()`-
-   * supplied `adapter:` they pin themselves.
+   * File-path shorthand against generic-format adapters resolves the
+   * adapter from the extension: `./hits.csv → features-csv`,
+   * `./hits.tsv → features-tsv`, `./hits.json → features-json` (all
+   * pre-registered and shipping today; `.bed → bed` is a planned
+   * addition — see `specs/generic-format-adapters.md`). For a format
+   * not yet covered, authors use the object form with an explicit
+   * `from: 'file'` plus a `registerAdapter()`-supplied `adapter:` they
+   * pin themselves.
    *
    * The array form is normalized internally; runtime code always
    * sees `DataSourceDescriptor[]`.
@@ -376,9 +370,6 @@ interface TrackConfig {
 
   /** Track-level rendering overrides; merged on top of group defaults. */
   rendering?: RenderingOptions;
-
-  /** Optional URL slug for the help-page link on the track label. */
-  helpPage?: string;
 }
 
 /**
@@ -630,9 +621,10 @@ type ComponentName = KnownComponentName | (string & {});
  * visible only when overriding the default or registering a
  * custom one at runtime.
  *
- * Generic-format adapters for bring-your-own-data files (CSV / TSV /
- * JSON / BED) are a planned addition — see
- * `specs/generic-format-adapters.md` for the design.
+ * Generic-format adapters for bring-your-own-data files ship today for
+ * CSV / TSV / JSON (`features-csv` / `features-tsv` / `features-json`);
+ * BED is a planned addition — see `specs/generic-format-adapters.md`
+ * for the design.
  */
 type KnownAdapterName =
   // ── Source-specific (coupled to a particular API output) ──
@@ -755,6 +747,110 @@ interface SemanticKindDefinition {
 type AdapterFunction = (...rawResponses: any[]) => unknown | Promise<unknown>;
 ```
 
+### Error events (`protvista-error`)
+
+Every error that the viewer surfaces to a user is *also* dispatched as a
+bubbling `CustomEvent('protvista-error', …)` on the `<protvista-uniprot>`
+element, so an embedder (the UniProt website, a host page) can route it
+into its own toast / modal / analytics with a single listener alongside
+`on()`. This is additive: the existing developer-facing `console.warn` /
+`console.error` output is unchanged. The event fires for every *broken*
+failure the viewer classifies (see below) — a track that is merely
+*missing* (an HTTP 4xx) is treated as "no data" and fires nothing.
+
+```typescript
+type ProtvistaErrorPhase =
+  | 'config'              // config validation / parse failure (mount panel)
+  | 'sequence'            // no usable sequence for the accession (mount panel)
+  | 'track-fetch'         // a track's URL failed (network / HTTP 5xx / unparseable)
+  | 'set-track-data'      // misuse of the setTrackData() escape hatch
+  | 'transform-calculate' // a `calculate` expression threw (see transform-engine.md)
+  | 'tooltip-field-miss'; // a dataTooltip template referenced a missing field
+
+interface ProtvistaErrorDetail {
+  phase: ProtvistaErrorPhase;
+  /** Populated for `config`; the full ConfigValidationError.issues[]. */
+  issues: ValidationIssue[];
+  /** Whatever is relevant to the phase. `accession` is always present when set. */
+  context: {
+    groupId?: string;
+    trackId?: string;
+    accession?: string;
+    url?: string;
+    status?: number;                            // http failures only
+    errorKind?: 'network' | 'http' | 'parse';   // track-fetch: how it failed
+  };
+}
+
+// Embedder usage — one listener for every flavour:
+element.addEventListener('protvista-error', (e: CustomEvent<ProtvistaErrorDetail>) => {
+  switch (e.detail.phase) {
+    case 'config':      showValidationModal(e.detail.issues); break;
+    case 'track-fetch': analytics.trackFailure(e.detail.context); break;
+    // …
+  }
+});
+```
+
+The `phase` vocabulary intentionally aligns with the
+`ValidationIssueCode` taxonomy where the two overlap, so consumers switch
+on one stable set of strings. `transform-calculate` and
+`tooltip-field-miss` are reserved for the transform engine and the
+tooltip field-miss warning respectively; when those features land they
+emit through the same event seam.
+
+A track's data fetch can fail three ways. The viewer draws one line —
+**broken** (surface it) vs **missing** (hide it) — because the goal is to
+let people know when things are *broken*, not when data is simply absent:
+
+- **`network`** — the request never got a response (blocked, offline,
+  DNS, CORS, timeout). **Broken → surfaced** as a `⚠` badge (with a Retry
+  button), because it signals the environment/integration is broken.
+- **`http` 5xx** — server error. **Broken → surfaced** for the same
+  reason (with a Retry button).
+- **`parse`** — a 2xx response whose body failed to parse. **Broken →
+  surfaced** (no Retry — re-fetching an unparseable body is deterministic).
+- **`http` 4xx** — **missing → hidden.** For a per-entity endpoint a 4xx
+  (a 404 is the common case) just means "no data for this accession", so
+  it is treated exactly like an empty 2xx response: the track has no data
+  and is hidden, with no badge, **no `protvista-error` event**, and no
+  panel. This is deliberate and not configurable — surfacing "missing"
+  would be noise.
+
+Surfacing broken failures is unconditional — there is no opt-in flag. One
+knob tunes the *mount panel* promotion (the developer `console.*` channel
+and the `protvista-error` event are unaffected):
+
+- **`strict?: boolean`** — when `true`, every broken warning (empty
+  sequence, per-track fetch failure, `setTrackData` misuse) is promoted to
+  a mount-level failure shown in the error panel, so silent hides fail
+  loudly while a config is being authored. Default `false`. (A 4xx is
+  "missing", not a warning, so `strict` does not promote it.)
+
+Config-validation and sequence failures always render a visible
+`role="alert"` panel (summary + collapsible issue list), replacing the
+previous silent blank render, and move focus to the panel. Because these
+failures leave nothing to fall back to, the panel offers no dismiss
+control; a warning promoted to the panel under `strict` (where a working
+viewer exists underneath) is dismissible and restores focus on close.
+
+The **sequence** fetch (the top-level `loadEntry` call that establishes the
+protein length) applies the same broken-vs-missing distinction as the
+per-track fetches — because the mount can't hide itself, both still render
+a panel, but the wording and affordance differ:
+
+- **Broken sequence** (`network` / HTTP `5xx` / unparseable body) — the
+  data service is unreachable or failing, so the accession may be perfectly
+  valid. The panel reads _"Couldn't load 'X' — the UniProt data service is
+  unreachable or failing. This is usually temporary."_ and offers a
+  **Retry** button that re-runs the mount (re-fetching the sequence and all
+  tracks in place, no page reload). The `protvista-error` `sequence` event
+  carries `context.errorKind` (and `status` for HTTP).
+- **Missing sequence** (HTTP `4xx`, or a `2xx` body with no `sequence`
+  field) — this accession has no entry. The panel reads _"No UniProt entry
+  found for 'X'. Check that the accession is correct."_ and offers no Retry
+  (a 404 is deterministic). The event still fires so embedders can react.
+
 ## Relationship to 3D viewers (MolStar & SVS)
 
 Deep integration with structural viewers like MolStar, and with the emerging [SeqViewSpec (SVS)](https://molstar.org/mol-view-spec) standard being drafted by the Mol\* team, is an explicit non-goal for this grant. Following discussion with the Mol\*/SVS developers, ProtVista will not reshape its configuration schema, event model, or runtime around SVS at this time. SVS is a moving upstream specification, and committing to a preemptive shape during the grant would risk churn with no proportionate user benefit. Broader cross-viewer alignment remains a worthwhile long-term goal and will be revisited post-grant, on whatever the then-current SVS draft recommends.
@@ -778,10 +874,53 @@ Accessibility is a grant-level commitment (see the OMP) and is baked into the sc
 
 - **Colour-blind-safe defaults.** The built-in colour themes referenced from `colorScale.theme` — `alphafold-ramp` (pLDDT confidence) and `alphamissense-ramp` (pathogenicity) — are published as accessibility-reviewed palettes. Authors who rely on semantic kinds (`confidence-score`, `pathogenicity-score`) or name a built-in theme get WCAG-compliant colouring for free. Explicit `stops:` escape-hatch gradients remain authorable, but shift the accessibility responsibility to the author and should be used only when no built-in theme fits.
 - **Keyboard-accessible legends.** Colour-scale legends rendered from `ColorScaleConfig` are keyboard-focusable and announce their `label` via `aria-label`. The `label` field on `ColorStop` is the accessible name — authors who register custom themes via `registerTheme()` should supply labels for every stop, not only for legend clarity but for screen-reader output.
-- **Tooltip semantics.** Track- and group-level `description` fields render as plain-text native HTML `title` attributes — no Markdown, no HTML — so screen readers pick them up via the browser's default a11y path. Per-datapoint `dataTooltip` content flows through `@markdoc/markdoc` to produce HTML preserving the Markdown's semantic structure (headings, emphasis, lists) rather than flattening to a styled `<div>`. Field interpolations are HTML-escaped at the boundary so those semantic tags stay intact for screen readers. Per-datapoint tooltips are displayed as click-triggered popovers (not hover-triggered) with `role="tooltip"` and `tabindex="-1"`. Focus moves into the popover on open and is restored to the previously-focused element on close (Escape key, outside click, or scroll). The popover is dismissed by Escape, outside-click, or any document scroll.
+- **Tooltip semantics.** Track- and group-level `description` fields render as plain-text native HTML `title` attributes — no Markdown, no HTML — so screen readers pick them up via the browser's default a11y path. Track- and group-level `label` fields render through `@markdoc/markdoc` restricted to an inline surface (emphasis, code, links, and the `{% help %}` help-popover tag); block-level markup is rejected so a label stays a single semantic line, and link `href`s pass the same URL allowlist as tooltip content. Per-datapoint `dataTooltip` content flows through `@markdoc/markdoc` to produce HTML preserving the Markdown's semantic structure (headings, emphasis, lists) rather than flattening to a styled `<div>`. Field interpolations are HTML-escaped at the boundary so those semantic tags stay intact for screen readers. Per-datapoint tooltips are displayed as click-triggered popovers (not hover-triggered) with `role="tooltip"` and `tabindex="-1"`. Focus moves into the popover on open and is restored to the previously-focused element on close (Escape key, outside click, or scroll). The popover is dismissed by Escape, outside-click, or any document scroll.
 - **Library defaults are compact.** The built-in `tooltipDefaults` registry ships small declarative specs per `SemanticKind`, while the no-spec fallback now surfaces a little more of the adapted payload. Product-specific rich rendering (evidence icons, taxonomy lookups, React overlays, …) still lives in consumer code via the Nightingale `change`-event pattern paired with `notooltip` on the element.
 - **Sensible out-of-the-box fallback.** Tooltip precedence is: non-empty `item.tooltipContent` supplied by an adapter, then `track.dataTooltip`, then `tooltipDefaults[kind]`, then auto-fallback. When the auto-fallback runs, it renders through Markdoc and emits at most ten rows in this order: `type`, `description`, position (`start | begin` plus `end`, collapsed to `Position` when equal), variant sequence (`wildType` plus `alternativeSequence | variant`), `consequenceType`, `clinicalSignificances`, `score`, `xrefs`, `evidences`, then remaining top-level scalar fields such as values added by `calculate` transforms. Missing fields drop out; an item carrying none of them stays empty. Xrefs become links only when the entry carries a URL that passes the tooltip URL allowlist (`http:`, `https:`, `mailto:`, or relative URL forms).
 - **No colour-only encoding.** `RenderingOptions.shape` exists partly so tracks can encode distinctions redundantly (e.g. shape _and_ colour) rather than colour alone. Config authors building custom tracks are encouraged to use shape or label text as a secondary channel alongside colour.
+
+## React host integration
+
+Rich, stateful, product-specific tooltips (evidence icons, taxonomy lookups, cross-links into an app's own routing, React components) are not a config concern. The library offers exactly two paths for the per-datapoint tooltip surface, and there is no in-between — no programmatic per-`kind` override registry ships:
+
+1. **Declarative tooltips (library-owned).** Authored in YAML as `dataTooltip` (`kind: fields` or `kind: markdown`, or the bare-string shorthand) and rendered by the library's built-in Floating-UI click popover. See [`docs/data-tooltip.md`](../docs/data-tooltip.md).
+2. **Consumer-owned tooltips (host-owned).** The React host sets `notooltip` on the element, listens for the Nightingale `change` event, and renders its own overlay at the reported coordinates. This is the canonical path for React adopters and the contract is normative below.
+
+A tutorial-flavoured walkthrough with a copy-pasteable minimal example lives at [`docs/react-integration.md`](../docs/react-integration.md); this section is the normative contract.
+
+### The `notooltip` attribute
+
+`notooltip` (boolean attribute, JS property `notooltip`, default `false`) disables the built-in popover's DOM mount — the library's click-tooltip controller stays quiet and never appends its `<div role="tooltip">` to the light DOM. A React host that renders its own overlay always wants `notooltip` set, so the two tooltip surfaces don't both appear on a click.
+
+`notooltip` does **not** suppress `feature.tooltipContent` resolution. The tooltip-content pipeline runs during data loading regardless of the attribute, so the pre-rendered declarative HTML string is still attached to each item and is still readable off the `change` event (`detail.feature.tooltipContent`). A consumer that wants the library's declarative string — but rendered inside its own overlay chrome — can set `notooltip` and read `tooltipContent` straight off the event.
+
+### The `change` event contract
+
+Attach a `change` listener to the `<protvista-uniprot>` element. Its `detail` carries:
+
+- **`eventType`** — one of `'click'`, `'mouseover'`, `'mouseout'`, `'reset'`, emitted by the underlying Nightingale track (`@nightingale-elements`) and re-exposed on the viewer's `change` event. This vocabulary is load-bearing:
+  - `'click'` — the user clicked a feature. Open (or replace) your tooltip.
+  - `'mouseover'` / `'mouseout'` — hover enter/leave over a feature. Drive host hover state if you want hover tooltips; ignore otherwise.
+  - `'reset'` — Nightingale emits this when the user scrolls or zooms the view, meaning "stop showing any per-feature tooltip." Treat it as a dismissal.
+
+  uniprot-website encodes the dismissal set as `hideTooltipEvents = new Set([undefined, 'reset', 'click'])` — a bare event with no `eventType` (`undefined`), a `reset`, and a fresh `click` all dismiss the current overlay (the `click` then re-opens for the newly clicked feature). Everything else is a hover signal.
+- **`feature`** — the full adapter-output item for the interacted datapoint, including any `tooltipContent` the library pre-computed.
+- **`coords`** — an `[x, y]` tuple in **page coordinates** (`pageX`/`pageY` — viewport-relative *plus* the current scroll offset). To position against the viewport (what Floating UI and `position: fixed` expect), subtract `window.scrollX` / `window.scrollY`, exactly as the built-in popover does. If you instead render into an absolutely-positioned container that already lives in page-coordinate space, use `[x, y]` unchanged.
+
+The `change` payload (`eventType`, `feature`, `coords`) is part of the viewer's stable compatibility surface — see [`docs/architecture-audit.md`](../docs/architecture-audit.md).
+
+### Rendering the overlay
+
+The host owns the overlay entirely — JSX, lifecycle, and styling. Render it into a portal or a Floating-UI-positioned `<div>` anchored at `coords`, show it on `click`, and hide it on the `{undefined, 'reset', 'click'}` dismissal set above. The library contributes only the event and the (optional) pre-rendered `tooltipContent`.
+
+Two interaction edge cases worth knowing:
+
+- **Collapsed group aggregates.** A click on a collapsed group's aggregate track opens a tooltip *without* a highlight state change — distinct from a click on an expanded detail track, which also toggles the highlight. Hosts that key any behaviour off the highlight should not assume every tooltip-opening click carries one.
+- **Bring-your-own-data kinds.** Consumers pairing generic semantic kinds (e.g. `linegraph`) with a React host are a primary audience for this pattern — the event contract is identical regardless of `kind`.
+
+### React 19 note
+
+The mount/unmount of the `change` listener is naturally expressed as a single ref callback that returns its cleanup function (React 19). Prefer that shape over the older split-`useEffect` mount/unmount pair; new adopters should not copy the split form as canonical. The worked example in [`docs/react-integration.md`](../docs/react-integration.md) shows both.
 
 ## Security and trust model
 
@@ -872,14 +1011,11 @@ rows:
 
 The viewer renders a "My custom annotations" group with a "Predicted binding sites" track. No HTTP requests are made; the two features from `inlineData` are rendered directly as red diamonds on the canvas track. `data` is accepted as a single object (no `[ ... ]` wrapper needed) and `from: inline` explicitly signals that no network fetch should happen.
 
-### Example 3: Full UniProt-equivalent config (excerpt showing inheritance, multi-URL adapter, filter UI)
+### Example 3: Full UniProt-equivalent config (excerpt showing rich labels, multi-URL adapter, filter UI)
 
 **Input:**
 
 ```yaml
-defaults:
-  labelUrl: 'https://www.uniprot.org/uniprot/{accession}' # every track inherits this
-
 sources:
   features: https://www.ebi.ac.uk/proteins/api/features/{accession}
   variation: https://www.ebi.ac.uk/proteins/api/variation/{accession}
@@ -888,12 +1024,12 @@ sources:
 
 rows:
   - id: ALPHAFOLD_CONFIDENCE
-    label: AlphaFold
-    helpPage: structure_section#alphafold-structural-models
+    # `{% help %}` renders <span data-article-id="…"> for the in-page help popover
+    label: '{% help slug="structure_section#alphafold-structural-models" %}AlphaFold{% /help %}'
     tracks:
       - id: alphafold_confidence
-        label: AlphaFold Confidence
-        labelUrl: https://alphafold.ebi.ac.uk/entry/{accession} # overrides defaults.labelUrl
+        # Markdown link in the label — external links open in a new tab
+        label: '[AlphaFold Confidence](https://alphafold.ebi.ac.uk/entry/{accession})'
         kind: confidence-score
         data:
           source: [alphafoldPrediction, proteins] # two-URL adapter
@@ -906,8 +1042,7 @@ rows:
           Scores above `90` indicate high expected accuracy.
 
   - id: VARIATION
-    label: Variants
-    helpPage: variant_viewer
+    label: '{% help slug="variant_viewer" %}Variants{% /help %}'
     tracks:
       - id: variation_graph
         label: Counts
@@ -924,7 +1059,7 @@ rows:
 
 **Expected output (viewer behaviour):**
 
-The AlphaFold group has no `rendering` block because `kind: "confidence-score"` carries the AlphaFold colour ramp as a default preset — authors get the canonical appearance for free. The adapter (resolved from the semantic kind) receives two raw responses (from `alphafoldPrediction` and `proteins`) and produces a coloured-sequence string. The Variation group is similarly terse: `data: variation` is string shorthand that resolves via `sources`; `filterUI: nightingale-filter` attaches the variant filter widget. Every track inherits `defaults.labelUrl` unless it overrides (the AlphaFold track points at alphafold.ebi.ac.uk). Authors only write domain language (`"variants"`, `"confidence-score"`) — never Nightingale component names or adapter names.
+The AlphaFold group has no `rendering` block because `kind: "confidence-score"` carries the AlphaFold colour ramp as a default preset — authors get the canonical appearance for free. The adapter (resolved from the semantic kind) receives two raw responses (from `alphafoldPrediction` and `proteins`) and produces a coloured-sequence string. The Variation group is similarly terse: `data: variation` is string shorthand that resolves via `sources`; `filterUI: nightingale-filter` attaches the variant filter widget. Labels carry their own rich rendering: the AlphaFold track label is a Markdown link (`{accession}` interpolated, opens alphafold.ebi.ac.uk in a new tab) and the group labels use the `{% help %}` tag to drive the in-page help popover. Authors only write domain language (`"variants"`, `"confidence-score"`) — never Nightingale component names or adapter names.
 
 ### Example 4: Extending the EBI default — one line, one new track
 
@@ -955,15 +1090,42 @@ rows:
 
 At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, merges its `sources`, `defaults`, and 15 groups underneath this config, then appends the `MY_LAB` group at the end of the top-level `rows` list. The user sees the full canonical UniProt viewer with their one extra track tacked on — authored in a handful of lines of YAML. Overriding a specific EBI track is equally cheap: declare a group with the same `id` as one in the base and the merge rules fold it in field-wise. The `extends:` value can equally be a relative file path (`./uniprot-default.yaml`) if the adopter hosts their own copy of the base config.
 
-> **Note.** Generic-format adapters that would let the author point at a local file with a `data: ./hotspots.csv` shorthand instead of a hosted URL are a planned addition — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md).
+**Bring-your-own file — point the track at a spreadsheet:**
+
+Instead of a hosted `sources` URL, the same track can point straight at a local delimited file. The `.csv` / `.tsv` / `.bed` extension infers the pre-registered `features-csv` / `features-tsv` / `bed` adapter, so no `adapter:` and no `registerAdapter()` glue is needed:
+
+```yaml
+rows:
+  - id: MY_LAB
+    label: My lab
+    tracks:
+      - id: hotspots
+        kind: features
+        data: ./hotspots.csv # header: type,start,end,description[,score]
+```
+
+At load time the loader recognises `./hotspots.csv` as a file source, fetches it as **text** (not JSON), runs `features-csv` to turn the rows into feature records, and renders them on `nightingale-track-canvas` exactly as a URL-sourced `kind: features` track would. A `.tsv` file behaves identically via `features-tsv`. The header row must be `type,start,end,description[,score]`; `start`/`end`/`score` are coerced to numbers.
+
+A `.json` file behaves the same via `features-json`, except the body is fetched as **JSON** (not text): the file must be an array of feature objects — `[{ "type": "DOMAIN", "start": 10, "end": 25, "description": "…", "score": 0.9 }, …]`. The start coordinate may be given as either `start` or `begin` (normalised to `start`); `description` and `score` are optional. A malformed record throws a descriptive, record-and-field-named error (e.g. `features-json: record 2, field "start": expected a number, got string`), which the loader turns into an empty track plus a console warning rather than crashing the viewer.
+
+A `.bed` file behaves the same way via the `bed` adapter, with two format-specific differences: BED is **headerless** (columns are positional — BED3 `chrom,start,end` at minimum, up to BED6 `name,score,strand`), and its coordinates are **0-based half-open**. The adapter shifts them to the viewer's 1-based inclusive convention on the way in (`start = bedStart + 1`, `end = bedEnd`), so a BED interval `100  200` renders as `start: 101, end: 200`. `name` maps to `description`, `score` is passed through verbatim, `strand` and `chrom` are dropped, and every record gets a synthesised `type: BED` so the `filter:` shortcut stays predictable.
+
+> **Note.** CSV, TSV, JSON, and BED all ship today — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md).
 
 ## Edge Cases & Error Handling
 
 | Scenario                                                                                                                          | Expected Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A `url` data source returns HTTP 4xx/5xx                                                                                          | The track is silently hidden (consistent with current behaviour). A `console.warn` is emitted. The rest of the viewer renders normally. The group is hidden if _all_ its tracks have no data.                                                                                                                                                                                                                                                                                           |
+| A `url` data source is **broken** (network error, HTTP 5xx, or unparseable 2xx body)                                              | A `console.warn` is emitted and a bubbling `protvista-error` event (`phase: 'track-fetch'`, with `context.errorKind`) fires. The track shows a `⚠` badge. A collapsed group with any broken track shows a summary badge on its header (all-failed vs partial wording); expanding it reveals the per-track badges. A **Retry** button (re-fetching only the affected track) is offered **only for recoverable failures** — `network` and HTTP `5xx`; a `parse` failure is deterministic, so its badge carries no Retry. `strict: true` promotes the failure to the mount-level error panel. The rest of the viewer renders normally. Surfacing is unconditional — there is no opt-in flag. See _Error events_ under the escape-hatch API. |
+| A `url` data source is **missing** (HTTP `4xx`, e.g. a 404 "no data for this accession")                                          | Treated exactly like an empty 2xx response: the track has no data and is hidden. The developer `console.warn` (`HTTP error status: 404 at …`) still fires (that channel is unchanged), but there is **no** user-facing surface — **no** badge, **no** `protvista-error` event, and **no** panel, even under `strict`. The distinction is broken (surface) vs missing (hide); we flag things that are broken, not absent.                                                                    |
+| The top-level **sequence** fetch is **broken** (network error, HTTP 5xx, or unparseable body)                                     | The whole viewer can't mount (no protein length), so a `role="alert"` panel shows _"Couldn't load '<accession>' — the UniProt data service is unreachable or failing. This is usually temporary."_ with a **Retry** button that re-runs the mount in place (re-fetching the sequence and all tracks — no page reload). A `protvista-error` `phase: 'sequence'` event fires with `context.errorKind` (+ `status` for HTTP). Same broken-vs-missing distinction as the per-track fetches.        |
+| The top-level **sequence** is **missing** (HTTP `4xx`, or a `2xx` body with no `sequence` field — the accession has no entry)      | A `role="alert"` panel shows _"No UniProt entry found for '<accession>'. Check that the accession is correct."_ — no Retry (a 404 is deterministic). The `protvista-error` `phase: 'sequence'` event still fires. Unlike a *missing track* (which hides silently), the mount can't hide itself, so a panel is always shown here.                                                                                                                                                            |
 | A `source` (or bare `url`) value is not a URL, not a file path, and does not match any key in `sources`                           | Config validation fails at load time: `"Unknown source key: '<value>' in track <groupId>/<trackId>. Known sources: ..."`. Viewer does not mount.                                                                                                                                                                                                                                                                                                                                        |
 | `adapter` name does not match any built-in or registered adapter                                                                  | Config validation fails: `"Unknown adapter: <name> in track <groupId>/<trackId>. Did you forget to call registerAdapter()?"`.                                                                                                                                                                                                                                                                                                                                                           |
+| A bring-your-own **CSV/TSV** file has a malformed header or row (a missing/duplicate required column, a non-numeric coordinate, or a ragged row) | The `features-csv` / `features-tsv` adapter throws a descriptive error naming the offending row (by 1-based line number, header = line 1) and — where meaningful — the column: e.g. `features-csv: row 3, column "start": expected a number, got "abc"`, `features-csv: missing required header column "end"`, or `features-csv: row 4 is ragged — expected 4 columns, got 3`. The loader's per-track `try/catch` catches the throw, emits a developer `console.warn` (so the author can find and fix the file), and renders **that one track empty**; the rest of the viewer renders normally. Because a semantically-malformed file still fetches as valid *text*, this does **not** currently raise the fetch-level ⚠ badge / `protvista-error` surface — promoting adapter throws to track errors is a follow-up. |
+| A bring-your-own **JSON** file has a malformed record (not an array, an element that isn't an object, a missing/non-string `type`, a non-numeric `start`/`begin`/`end`, or a present-but-wrong-typed `description`/`score`) | The `features-json` adapter throws a descriptive error naming the offending 0-based array index and — where meaningful — the field: e.g. `features-json: record 2, field "start": expected a number, got string`, `features-json: record 0, field "type": expected a string, got number`, or `features-json: record 1 is not an object (got string)`. A top-level body that isn't an array is treated more leniently — a `console.warn` and an empty track, not a throw. Otherwise the same per-track `try/catch` / `console.warn` / empty-track / no-⚠-badge behavior as CSV/TSV applies. |
+| A bring-your-own **BED** file has a malformed line (fewer than 3 tab-separated columns, a non-numeric coordinate/score, or an inverted `chromEnd < chromStart` interval) | The `bed` adapter throws a descriptive error naming the offending line by 1-based physical line number and the BED column: e.g. `bed: line 3: non-numeric start coordinate "abc" (BED column 2).`, `bed: line 1: expected at least 3 tab-separated columns (chrom, start, end), got 2.`, or `bed: line 1: end (4) is before start (5) (BED columns 2–3).`. Blank lines and `track` / `browser` / `#` comment lines are skipped, not errors; a legal **zero-length** feature (`chromStart == chromEnd`, an insertion point) is kept and rendered as a single-base point (`start == end`) rather than treated as inverted. Handled exactly like the CSV/TSV case above: the loader's per-track `try/catch` logs a `console.warn` and renders **that one track empty** while the rest of the viewer renders normally; it does not (yet) raise the fetch-level ⚠ badge / `protvista-error` surface. |
+| A `data:` string shorthand is a file path with an **unrecognised extension** (e.g. `./notes.gff`)                                   | Not a known generic format, so it falls through to the sources-key rule: config validation fails with `"Unknown source key: './notes.gff' in track <groupId>/<trackId>. Known sources: ..."`. Use a hosted URL, a supported extension (`.csv` / `.tsv` / `.json` / `.bed`), or the object form with an explicit `adapter:`.                                                                                                                                                                                    |
 | `kind` (semantic) value is not in the semantic-kind vocabulary and is not registered                                              | Config validation fails: `"Unknown semantic kind: '<value>' in track <groupId>/<trackId>. Valid values: .... Register custom kinds with registerSemanticKind()."`.                                                                                                                                                                                                                                                                                                                      |
 | A track has no `kind`, no `component`, and the parent group has no `component`                                                    | Config validation fails: `"Track <groupId>/<trackId> has no 'kind' or 'component'. Set a semantic 'kind' (e.g. 'features') or provide 'component' explicitly."`.                                                                                                                                                                                                                                                                                                                        |
 | A `dataTooltip` template references a field that does not exist on the adapter's output                                           | That placeholder renders as an empty string. The viewer does not fail.                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -1049,7 +1211,7 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 - [x] `registerAdapter()`, `registerSemanticKind()`, and `registerTheme()` each allow a user-defined name to be referenced from config and function correctly.
 - [x] Track-level `filter: "<value>"` shortcut narrows a track's items to those whose `type` field equals the given value.
 - [x] `extends` resolves one or more base configs (URL or file path), merges per the documented rules (sources by key, rows by id, rendering field-wise, child wins). Cycles are detected and fail validation.
-- [x] `defaults.rendering`, `defaults.labelUrl`, and `defaults.helpPage` inherit to every group/track and are overridden at the group and track level per the documented precedence chain.
+- [x] `defaults.rendering` inherits to every group/track and is overridden at the group and track level per the documented precedence chain.
 - [x] Track rendering options (`color`, `shape`, `height`, `layout`, `colorScale`) correctly inherit from `defaults` → group → track, with track winning on conflict.
 - [x] Config validation produces clear, actionable error messages for all edge cases listed above.
 - [x] The schema file declares a stable `$id` URI and data files reference it via `$schema`, so that editors (VS Code, etc.) can resolve the schema and provide autocomplete and inline validation once the URL is hosted. A placeholder `.invalid` URL is used in `default-config.yaml` until the schema is published at release time.
@@ -1064,6 +1226,9 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 - [x] Built-in themes `alphafold-ramp` and `alphamissense-ramp` are defined once, used by default in `confidence-score` / `pathogenicity-score` semantic kinds, and available to any track via `colorScale.theme`.
 - [x] An external-lab adopter can write a ten-line config using `extends:` pointing at a URL or local file path to a base config and add one extra track, with the base viewer inherited intact.
 - [x] `accession` can be supplied via config, HTML attribute, or `setConfig()`. The HTML attribute takes precedence over the config value. A config with `{accession}` placeholders but no accession from any source fails validation with a clear message.
+- [x] Generic-format adapters `features-csv`, `features-tsv`, `features-json`, and `bed` are pre-registered on every fresh registry. A track that points at `./x.csv` / `./x.tsv` / `./x.json` / `./x.bed` loads end to end — inferring the adapter from the extension, fetching the file as text (CSV/TSV/BED) or JSON, and rendering on `nightingale-track-canvas` — without consumer-side adapter registration.
+- [x] File-extension shorthand (`./hits.csv` → `features-csv`, `./hits.tsv` → `features-tsv`, `./hits.json` → `features-json`, `./regions.bed` → `bed`) maps to the matching pre-registered adapter; a malformed file makes the adapter throw a descriptive error naming the offending row/record/line (and, where applicable, the column/field), which the loader logs while rendering that track empty.
+- [x] BED coordinates are converted from 0-based half-open to the viewer's 1-based inclusive convention (`start = bedStart + 1`, `end = bedEnd`) — a BED interval `100 200` renders as `start: 101, end: 200`.
 
 ## Tests
 
@@ -1140,7 +1305,6 @@ describe('ProtVista Viewer Config Schema — JSON Schema layer', () => {
       extends: './base-config.yaml',
       defaults: {
         rendering: { layout: 'non-overlapping' },
-        labelUrl: 'https://x/{id}',
       },
       sources: { my_features: 'https://example.org/my-features/{accession}' },
       rows: [

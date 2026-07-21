@@ -23,13 +23,20 @@
  *      `.flat()` for most components, or `groupData[0]` for
  *      linegraph / colored-sequence groups.
  *
- * Intentionally kept side-effect-free: no `this`, no DOM, no
- * `transformedVariants`. That legacy side-effect is preserved in the
- * component's wrapper by reading `data['VARIATION-variation']` after the
- * call.
+ * Intentionally kept side-effect-free: no `this`, no DOM. Tracks that
+ * opt into a filter UI (`filterUI: 'nightingale-filter'`) get their
+ * adapted payload mirrored under a second key,
+ * `${groupId}-${trackId}${UNFILTERED_SUFFIX}`, so the component's filter
+ * handler has a pristine baseline to re-filter against without a
+ * separate class field. Consumers reading `data` directly must treat
+ * `__unfiltered` keys as inert baselines, not live renderer payload.
  */
 
-import type { NormalizedConfig } from './schema/normalize';
+import type { NormalizedConfig, NormalizedTrack } from './schema/normalize';
+import {
+  TEXT_BODY_ADAPTERS,
+  GENERIC_FILE_ADAPTERS,
+} from './schema/file-formats';
 import type { TransformedInterPro } from './adapters/types/interpro';
 import { resolveTooltip } from './tooltips/resolve';
 import { tooltipDefaults } from './tooltips/defaults';
@@ -45,7 +52,17 @@ type AdapterFn = (...rawArgs: any[]) => unknown | Promise<unknown>;
 
 export type AdapterMap = Record<string, AdapterFn>;
 
-type FetchOne = (url: string) => Promise<unknown>;
+/**
+ * Fetch a single URL. `responseType` tells the fetcher how to read the
+ * body: `'json'` for API responses (the default for every UniProt/AlphaFold
+ * source) and for the JSON-body bring-your-own-data file adapter
+ * (`features-json`), `'text'` for delimited bring-your-own-data files
+ * (`features-csv` / `features-tsv` / `bed`) whose adapters parse raw text.
+ */
+type FetchOne = (
+  url: string,
+  responseType: 'text' | 'json'
+) => Promise<unknown>;
 
 /**
  * Map of `${groupId}-${trackId}` → pre-shaped data for `from: custom`
@@ -60,15 +77,40 @@ type FetchOne = (url: string) => Promise<unknown>;
  */
 export type CustomTrackData = Record<string, unknown>;
 
+/**
+ * Sentinel suffix for the pristine, unfiltered baseline copy of a
+ * filterable track's payload. For a track keyed `${groupId}-${trackId}`
+ * whose config sets `filterUI: 'nightingale-filter'`, the loader mirrors
+ * the adapted payload at `${groupId}-${trackId}${UNFILTERED_SUFFIX}`. The
+ * component's filter handler reads the baseline from this key and writes
+ * the filtered result back to the primary key, so successive filter
+ * interactions never compound. Keys carrying this suffix are inert
+ * baselines — not live renderer payload.
+ */
+export const UNFILTERED_SUFFIX = '__unfiltered';
+
 type LoadResult = {
   /** Keyed by the *template* URL (pre-substitution), matching the legacy
    *  `this.rawData` shape the renderer reads. */
   rawData: Record<string, unknown>;
-  /** Keyed by `${groupId}-${trackId}` and `${groupId}`. */
+  /**
+   * Keyed by `${groupId}-${trackId}` and `${groupId}`. Tracks with
+   * `filterUI: 'nightingale-filter'` additionally get a pristine baseline
+   * copy at `${groupId}-${trackId}${UNFILTERED_SUFFIX}` for the filter
+   * handler to read from.
+   */
   data: Record<string, unknown>;
   /** True iff any raw response has `features.length > 0`. Mirrors the
    *  legacy `this.hasData` gate for rendering empty-state markup. */
   hasData: boolean;
+  /**
+   * The *substituted* URL(s) each track fetched, keyed by
+   * `${groupId}-${trackId}`. Tracks with no URL source (inline / custom /
+   * file) are omitted. This is the authoritative record of what the
+   * loader fetched — the component correlates its per-URL HTTP failures
+   * against it instead of re-deriving the substitution.
+   */
+  trackUrls: Record<string, string[]>;
 };
 
 /**
@@ -136,9 +178,10 @@ function applyTooltipResolver(
 
 /**
  * Extract the URL (`string | string[]`) from a `NormalizedDataSource`.
- * Only `from: url` sources have a usable URL — other sources (inline,
- * file, custom) yield an empty string so the dedupe pass skips them
- * cleanly, matching legacy behaviour.
+ * `from: url` and `from: file` sources both carry a usable `url` (a file
+ * shorthand like `./x.csv` is normalised onto `url`); `inline` and
+ * `custom` sources have none and yield an empty string so the dedupe
+ * pass skips them cleanly.
  */
 function trackUrl(
   data: NormalizedConfig['rows'][number]['tracks'][number]['data']
@@ -164,7 +207,14 @@ function trackUrl(
  */
 const ACCESSION_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
 
-function safeSubstituteAccession(template: string, accession: string): string {
+/**
+ * Interpolate a single `{accession}` placeholder in a URL template,
+ * gating the substituted value through {@link ACCESSION_PATTERN}. The
+ * loader is the single source of truth for this substitution; it exposes
+ * the resulting per-track URLs via `LoadResult.trackUrls` so callers
+ * never re-derive them.
+ */
+function substituteAccession(template: string, accession: string): string {
   const safe = ACCESSION_PATTERN.test(accession) ? accession : '';
   return template.replace('{accession}', safe);
 }
@@ -174,38 +224,114 @@ export async function loadProtvistaData(
   config: NormalizedConfig,
   fetchOne: FetchOne,
   adapters: AdapterMap,
-  customTrackData: CustomTrackData = {}
+  customTrackData: CustomTrackData = {},
+  /**
+   * Targeted-retry scope. When present, only `only`'s
+   * `${groupId}-${trackId}` keys are (re)fetched and only their (and
+   * their groups') `data` is recomputed; sibling tracks in a touched
+   * group reuse `previousData` so the group aggregate stays complete. The
+   * two fields are bundled so a caller can't pass one without the other.
+   * Omit for the normal full load.
+   */
+  reload?: { only: Set<string>; previousData: Record<string, unknown> }
 ): Promise<LoadResult> {
-  // Collect unique URL templates across all tracks. Dedup is a documented
-  // performance requirement in the spec — identical URLs referenced by
-  // multiple tracks must be fetched exactly once. `trackUrl()` yields an
-  // empty string for `from: inline | file | custom`, so those descriptors
-  // are naturally excluded from the fetch set.
-  const urls = [
-    ...new Set(
-      config.rows.flatMap(({ tracks }) =>
-        tracks.flatMap((t) => trackUrl(t.data))
-      )
-    ),
-  ].filter((u) => u !== '');
+  const only = reload?.only;
+  const previousData = reload?.previousData ?? {};
+  const isReloading = (key: string): boolean => !only || only.has(key);
+
+  // Single pass over the (re)loading tracks builds both the deduped set of
+  // URL *templates* to fetch (identical URLs referenced by multiple tracks
+  // must be fetched exactly once — a spec performance requirement) and the
+  // authoritative per-track map of the *substituted* URL(s) each track
+  // fetched (callers correlate per-URL HTTP failures against it instead of
+  // re-deriving the substitution). `trackUrl()` yields an empty string for
+  // `from: inline | custom`, so those are excluded; `from: file` sources
+  // carry their path on `url`, so they are fetched here like any URL.
+  const templates = new Set<string>();
+  const trackUrls: Record<string, string[]> = {};
+  // Per-template body type: `text` for the delimited generic-format
+  // adapters, `json` (default) for everything else. Keyed by template so a
+  // URL shared by two tracks resolves once; if any referencing track needs
+  // text, text wins (a delimited body would fail a JSON parse anyway).
+  const bodyType: Map<string, 'text' | 'json'> = new Map();
+  for (const group of config.rows) {
+    for (const track of group.tracks) {
+      const key = `${group.id}-${track.id}`;
+      if (!isReloading(key)) continue;
+      const raw = trackUrl(track.data);
+      const list = (Array.isArray(raw) ? raw : [raw]).filter((u) => u !== '');
+      const adapter = track.data[0]?.adapter;
+      const wantsText = adapter !== undefined && TEXT_BODY_ADAPTERS.has(adapter);
+      for (const t of list) {
+        templates.add(t);
+        if (wantsText) bodyType.set(t, 'text');
+        else if (!bodyType.has(t)) bodyType.set(t, 'json');
+      }
+      if (list.length > 0) {
+        trackUrls[key] = list.map((u) => substituteAccession(u, accession));
+      }
+    }
+  }
+  const urls = [...templates];
 
   const rawData: Record<string, unknown> = Object.fromEntries(
     await Promise.all(
       urls.map(async (url) => [
         url,
-        await fetchOne(safeSubstituteAccession(url as string, accession)),
+        await fetchOne(
+          substituteAccession(url as string, accession),
+          bodyType.get(url) ?? 'json'
+        ),
       ])
     )
   );
 
-  const hasData = Object.values(rawData).some(
+  // `hasData` gates the viewer's empty-state panel. The legacy heuristic
+  // only recognises the UniProt JSON shape (`raw.features.length`), which
+  // is invisible to a bring-your-own file track: its adapted output is a
+  // bare feature array with no `.features` wrapper. So a viewer built
+  // solely from `./x.csv` / `./x.json` tracks would parse correctly yet
+  // blank out. We additionally set the flag when a generic-format file
+  // track yields a non-empty feature array (see `assignTrackData`) —
+  // additive, so the existing raw-shape semantics (and the tests that pin
+  // them) are unchanged.
+  let hasData = Object.values(rawData).some(
     (d) => !!(d as { features?: unknown[] } | null)?.features?.length
   );
 
   const data: Record<string, unknown> = {};
 
+  // Write a track's adapted payload to its primary key, plus a pristine
+  // `__unfiltered` baseline when the track opts into a filter UI. Both
+  // assignment sites (`from: custom` and url/inline) route through here
+  // so the baseline opt-in rule lives in exactly one place.
+  const assignTrackData = (
+    key: string,
+    payload: unknown,
+    track: NormalizedTrack
+  ) => {
+    data[key] = payload;
+    if (track.filterUI === 'nightingale-filter') {
+      data[`${key}${UNFILTERED_SUFFIX}`] = payload;
+    }
+    const adapter = track.data[0]?.adapter;
+    if (
+      adapter !== undefined &&
+      GENERIC_FILE_ADAPTERS.has(adapter) &&
+      Array.isArray(payload) &&
+      payload.length > 0
+    ) {
+      hasData = true;
+    }
+  };
+
   for (const group of config.rows) {
     const groupId = group.id;
+    // A targeted retry only recomputes groups that own a reloaded track;
+    // every other group keeps its existing `data` untouched.
+    if (only && !group.tracks.some((t) => only.has(`${groupId}-${t.id}`))) {
+      continue;
+    }
     const groupData = await Promise.all(
       group.tracks.map(async (track) => {
         const {
@@ -215,33 +341,113 @@ export async function loadProtvistaData(
           kind,
           dataTooltip,
         } = track;
+        const trackKey = `${groupId}-${trackId}`;
+        // Sibling in a touched group that isn't itself being retried:
+        // reuse its previous per-track data so the group aggregate below
+        // stays complete, without rewriting `data[trackKey]`.
+        if (!isReloading(trackKey)) {
+          return previousData[trackKey];
+        }
         const first = dataConfig[0];
         if (!first) return;
-        const trackKey = `${groupId}-${trackId}`;
         const url = first.url;
         const adapter = first.adapter;
 
-        // `from: custom` — consumer-supplied data bypasses fetch + adapter
-        // entirely. If the descriptor declares `custom` but no data
-        // was injected via `setTrackData()`, emit a `console.info`
-        // and leave the slot empty. Injected data still flows through
-        // the downstream `filter:` sugar and tooltip resolver so behaviour
-        // is symmetric with URL-sourced tracks.
-        if (first.from === 'custom') {
-          if (!(trackKey in customTrackData)) {
-            console.info(
-              `Track ${groupId}/${trackId} is 'from: custom' but no data was provided via setTrackData().`
-            );
+        // Isolate the per-track pipeline: an adapter (or filter/tooltip
+        // step) that throws on an unexpected payload — e.g. the empty
+        // body left by a blocked/failed fetch — must degrade *this* track
+        // to no-data, not reject the whole `Promise.all` batch. A reject
+        // here would abort the entire load, skipping the caller's
+        // error-correlation pass so no failure gets surfaced at all.
+        try {
+          // `from: custom` — consumer-supplied data bypasses fetch + adapter
+          // entirely. If the descriptor declares `custom` but no data
+          // was injected via `setTrackData()`, emit a `console.info`
+          // and leave the slot empty. Injected data still flows through
+          // the downstream `filter:` sugar and tooltip resolver so behaviour
+          // is symmetric with URL-sourced tracks.
+          if (first.from === 'custom') {
+            if (!(trackKey in customTrackData)) {
+              console.info(
+                `Track ${groupId}/${trackId} is 'from: custom' but no data was provided via setTrackData().`
+              );
+              return;
+            }
+            const transformedData: any = customTrackData[trackKey];
+            const filteredData =
+              Array.isArray(transformedData) && filter
+                ? transformedData.filter(
+                    ({ type }: { type?: string }) => type === filter
+                  )
+                : transformedData;
+            if (filteredData == null) return;
+            const spec: TooltipSpec | undefined =
+              dataTooltip ?? (kind ? tooltipDefaults[kind] : undefined);
+            const annotated = applyTooltipResolver(filteredData, spec, {
+              accession,
+              trackId,
+              kind: kind ?? '',
+            });
+            assignTrackData(trackKey, annotated, track);
+            return annotated;
+          }
+
+          const trackData = (Array.isArray(url) ? url : [url ?? '']).map(
+            (u) => rawData[u as string] || []
+          );
+
+          // variation-adapter refuses to run against an empty payload
+          // (behaviour preserved from the legacy loader).
+          if (
+            adapter === 'uniprot-variation-json' &&
+            (trackData[0] as unknown[]).length === 0
+          ) {
             return;
           }
-          const transformedData: any = customTrackData[trackKey];
+
+          // 1. Convert data
+          let transformedData: any = adapter
+            ? await adapters[adapter].apply(null, trackData)
+            : trackData;
+
+          if (adapter === 'interpro-entries-json') {
+            const representativeDomains: any[] = [];
+            (transformedData as TransformedInterPro | undefined)?.forEach(
+              (feature) => {
+                feature.locations?.forEach((location) => {
+                  if (location.representative) {
+                    location.fragments?.forEach((fragment) => {
+                      representativeDomains.push({
+                        ...feature,
+                        type: 'InterPro Representative Domain',
+                        start: fragment.start,
+                        end: fragment.end,
+                      });
+                    });
+                  }
+                });
+              }
+            );
+            transformedData = representativeDomains;
+          }
+
+          // 2. Filter raw data if filter is specified
           const filteredData =
             Array.isArray(transformedData) && filter
               ? transformedData.filter(
                   ({ type }: { type?: string }) => type === filter
                 )
               : transformedData;
-          if (filteredData == null) return;
+          if (!filteredData) {
+            return;
+          }
+
+          // 3. Resolve per-item tooltips. Existing `tooltipContent`
+          //    wins, then track-level `dataTooltip`, then the per-kind
+          //    built-in default, then the compact auto-fallback. Graph
+          //    tracks (linegraph, colored-sequence, heatmap) have no
+          //    per-item hover, so the resolver returns `''` and no field
+          //    is written.
           const spec: TooltipSpec | undefined =
             dataTooltip ?? (kind ? tooltipDefaults[kind] : undefined);
           const annotated = applyTooltipResolver(filteredData, spec, {
@@ -249,86 +455,34 @@ export async function loadProtvistaData(
             trackId,
             kind: kind ?? '',
           });
-          data[trackKey] = annotated;
+          // 4. Assign track data (+ a pristine baseline for filter tracks)
+          assignTrackData(trackKey, annotated, track);
           return annotated;
-        }
-
-        const trackData = (Array.isArray(url) ? url : [url ?? '']).map(
-          (u) => rawData[u as string] || []
-        );
-
-        // variation-adapter refuses to run against an empty payload
-        // (behaviour preserved from the legacy loader).
-        if (
-          adapter === 'uniprot-variation-json' &&
-          (trackData[0] as unknown[]).length === 0
-        ) {
-          return;
-        }
-
-        // 1. Convert data
-        let transformedData: any = adapter
-          ? await adapters[adapter].apply(null, trackData)
-          : trackData;
-
-        if (adapter === 'interpro-entries-json') {
-          const representativeDomains: any[] = [];
-          (transformedData as TransformedInterPro | undefined)?.forEach(
-            (feature) => {
-              feature.locations?.forEach((location) => {
-                if (location.representative) {
-                  location.fragments?.forEach((fragment) => {
-                    representativeDomains.push({
-                      ...feature,
-                      type: 'InterPro Representative Domain',
-                      start: fragment.start,
-                      end: fragment.end,
-                    });
-                  });
-                }
-              });
-            }
+        } catch (err) {
+          console.warn(
+            `[protvista-uniprot] track ${groupId}/${trackId} failed to process; rendering it empty.`,
+            err
           );
-          transformedData = representativeDomains;
+          return undefined;
         }
-
-        // 2. Filter raw data if filter is specified
-        const filteredData =
-          Array.isArray(transformedData) && filter
-            ? transformedData.filter(
-                ({ type }: { type?: string }) => type === filter
-              )
-            : transformedData;
-        if (!filteredData) {
-          return;
-        }
-
-        // 3. Resolve per-item tooltips. Existing `tooltipContent`
-        //    wins, then track-level `dataTooltip`, then the per-kind
-        //    built-in default, then the compact auto-fallback. Graph
-        //    tracks (linegraph, colored-sequence, heatmap) have no
-        //    per-item hover, so the resolver returns `''` and no field
-        //    is written.
-        const spec: TooltipSpec | undefined =
-          dataTooltip ?? (kind ? tooltipDefaults[kind] : undefined);
-        const annotated = applyTooltipResolver(filteredData, spec, {
-          accession,
-          trackId,
-          kind: kind ?? '',
-        });
-
-        // 4. Assign track data
-        data[`${groupId}-${trackId}`] = annotated;
-        return annotated;
       })
     );
 
     data[groupId] =
       group.component === 'nightingale-linegraph-track' ||
       group.component === 'nightingale-colored-sequence'
-        ? groupData[0]
-        : groupData.flat();
+        ? // Graph groups render only their first track, so a failed
+          // first track legitimately leaves the aggregate `undefined`
+          // (the component reads that as "no data" and shows the error
+          // row). Keep it as-is.
+          groupData[0]
+        : // Flattened multi-track aggregate: drop the `undefined` slots a
+          // failed (or empty) track leaves behind. Without this the array
+          // is truthy-but-holey — the holes reach Nightingale's `.data`
+          // setter, and an all-failed group reads as "has data" instead of
+          // routing to the error row.
+          groupData.flat().filter((entry) => entry != null);
   }
 
-  return { rawData, data, hasData };
+  return { rawData, data, hasData, trackUrls };
 }

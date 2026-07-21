@@ -19,30 +19,45 @@
  * Strategy
  *   • `fetchOne` is stubbed to return a distinct canned payload per URL,
  *     so URL substitution, dedup, and raw-data routing are all visible.
- *   • Each adapter is stubbed to return a deterministic array covering
- *     every filter type used by the config — filtered tracks collapse
- *     to a single entry (the matching type), unfiltered tracks retain
- *     the full list, cleanly surfacing filter wiring.
- *   • `interpro-adapter` is stubbed to return `locations[].representative`
- *     so the special-case flattening in `loadProtvistaData` actually
- *     runs.
- *
- * Adapter INTERNALS are covered by their own unit tests and are
- * deliberately not characterised here.
- *
- * READING THE SNAPSHOT
- *   Because every adapter shares the same uniform mock, the data under
- *   `ALPHAFOLD_CONFIDENCE`, `ALPHAMISSENSE_PATHOGENICITY`, and other
- *   colored-sequence / linegraph groups will look identical in shape to
- *   the feature-shaped groups (`DOMAINS`, `SITES`, …) — rows like
- *   `{ _adapter: "alphafold-prediction-json", type: "MOTIF" }` under
- *   `ALPHAFOLD_CONFIDENCE` are a mock artefact, NOT a loader bug. The
- *   real AlphaFold adapter would produce a coloured-sequence string,
- *   the real variant-counts adapter would produce a linegraph-point
- *   array, etc. The snapshot characterises *which slot each adapter's
- *   output lands in*, not *what shape the real adapter output has*.
- *   (Follow-on: replace with shape-correct per-adapter mocks —
- *   tracked as a next-branch issue.)
+ *   • Adapters are stubbed with shape-correct, per-adapter-family mocks
+ *     (not a single uniform mock), so the snapshot is an accurate
+ *     characterization of what each group's data actually looks like:
+ *       - Feature-shaped groups (`uniprot-features-json`,
+ *         `uniprot-proteomics-json`, `uniprot-proteomics-ptm-json`,
+ *         `uniprot-proteins-pdb-json`) use `makeSimpleAdapter`, returning
+ *         one sentinel entry per filter type used by the config — filtered
+ *         tracks collapse to a single matching entry, unfiltered tracks
+ *         retain the full list, cleanly surfacing filter wiring.
+ *       - `interpro-entries-json` uses `makeInterproAdapter`, returning
+ *         `locations[].representative` fragments that exercise both the
+ *         emitted and the dropped branch of the special-case flattening.
+ *       - `alphafold-prediction-json` / `alphamissense-average-csv` use
+ *         `makeColoredSequenceAdapter`, each returning a plain joined
+ *         string of per-residue category codes — the shape
+ *         `nightingale-colored-sequence` actually consumes.
+ *       - `alphamissense-full-csv` uses `makeHeatmapAdapter`, returning
+ *         an array of `{ xValue, yValue, score }` rows — the shape
+ *         `nightingale-sequence-heatmap` actually consumes.
+ *       - `uniprot-variation-json` / `uniprot-rna-editing-json` use
+ *         `makeVariationShapedAdapter`, each returning a
+ *         `{ sequence, variants }` object — the shape
+ *         `nightingale-variation-canvas` actually consumes for both
+ *         groups (RNA editing resolves to the same component, not
+ *         track-canvas — see `src/schema/registry.ts`). Kept as two
+ *         distinct fixtures so the groups stay visually distinguishable
+ *         in the snapshot despite sharing a shape.
+ *       - `uniprot-variation-counts-json` / `uniprot-rna-editing-counts-json`
+ *         use `makeLinegraphAdapter`, each returning an array of series
+ *         descriptors (`{ name, range, color, values }`) — the shape
+ *         `nightingale-linegraph-track` actually consumes. The variation
+ *         fixture has 2 series (variant / disease causing variant); the
+ *         RNA-editing fixture has 1 (missense), matching the real
+ *         adapters' output.
+ *   • All adapter mocks ignore their input args and return canned,
+ *     shape-correct output — they characterize `load-data.ts`'s
+ *     routing/aggregation logic, not adapter internals (covered by each
+ *     adapter's own unit tests), so fixtures don't need to mimic
+ *     realistic raw API payloads.
  */
 
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
@@ -52,7 +67,11 @@ import { dirname, resolve } from 'node:path';
 
 import { loadConfig } from '../schema/load';
 import type { NormalizedConfig } from '../schema/normalize';
-import { loadProtvistaData, type AdapterMap } from '../load-data';
+import {
+  loadProtvistaData,
+  UNFILTERED_SUFFIX,
+  type AdapterMap,
+} from '../load-data';
 
 const REFERENCE_ACCESSION = 'P05067';
 
@@ -105,6 +124,104 @@ const FILTER_TYPES_USED = [
   'unique',
 ] as const;
 
+/** `nightingale-colored-sequence` fixtures: a plain joined string of
+ *  per-residue category codes, matching `alphafold-confidence-adapter.ts`
+ *  / `alphamissense-pathogenicity-adapter.ts` real output. Each adapter
+ *  draws from its OWN code alphabet (the two are NOT interchangeable):
+ *    - AlphaFold confidence: `{H, M, L, D}` — the four pLDDT bands of the
+ *      `alphafold-ramp` scale (`H:90,M:70,L:50,D:0`), confirmed against a
+ *      real `-confidence.json` payload.
+ *    - AlphaMissense pathogenicity: `{H, V, L, A, l, h, p, P}` — the
+ *      `alphamissense-ramp` scale codes.
+ *  Distinct strings keep the two colored-sequence groups visually
+ *  distinguishable in the snapshot. */
+const ALPHAFOLD_CONFIDENCE_FIXTURE = 'HHMLD';
+const ALPHAMISSENSE_AVERAGE_FIXTURE = 'HHhpP';
+
+/** `nightingale-sequence-heatmap` fixture, matching
+ *  `alphamissense-heatmap-adapter.ts` real output shape and the
+ *  component's own `HeatmapData` interface. */
+const ALPHAMISSENSE_HEATMAP_FIXTURE = [
+  { xValue: 1, yValue: 'A', score: 0.12 },
+  { xValue: 1, yValue: 'C', score: 0.87 },
+  { xValue: 2, yValue: 'D', score: 0.45 },
+];
+
+/**
+ * `nightingale-variation-canvas` fixtures: `{ sequence, variants }`,
+ * matching `variation-adapter.ts` / `rna-editing-adapter.ts` real output.
+ * Field names (`wildType`, `alternativeSequence`, `consequenceType`,
+ * `begin` / `variantType.wildType`, `variantType.mutatedType`, `start`)
+ * are the exact paths `tooltipDefaults.variants` / `tooltipDefaults['rna-editing']`
+ * (`src/tooltips/defaults.ts`) read, so the loader's tooltip resolver
+ * actually populates `tooltipContent` on each variant, matching real
+ * runtime behavior.
+ */
+const VARIATION_FIXTURE = {
+  sequence: 'MKVLA',
+  variants: [
+    {
+      accession: 'VAR-STUB-1',
+      variant: 'R',
+      wildType: 'M',
+      alternativeSequence: 'R',
+      begin: 1,
+      start: 1,
+      end: 1,
+      consequenceType: 'missense',
+      xrefNames: ['uniprot'],
+    },
+  ],
+};
+
+const RNA_EDITING_FIXTURE = {
+  sequence: 'MKVLA',
+  variants: [
+    {
+      accession: 'RNA-STUB-1',
+      variant: 'V',
+      variantType: {
+        wildType: 'K',
+        mutatedType: 'V',
+        consequenceType: 'missense',
+      },
+      consequenceType: 'missense',
+      start: 2,
+      end: 2,
+    },
+  ],
+};
+
+/** `nightingale-linegraph-track` fixtures: an array of series descriptors
+ *  (`{ name, range, color, values }`), matching `variation-graph-adapter.ts`
+ *  (2 series) / `rna-editing-graph-adapter.ts` (1 series) real output. */
+const VARIATION_COUNTS_FIXTURE = [
+  {
+    name: 'variant',
+    range: [0, 3] as [number, number],
+    color: 'darkgrey',
+    values: [
+      { position: 1, value: 2 },
+      { position: 3, value: 1 },
+    ],
+  },
+  {
+    name: 'disease causing variant',
+    range: [0, 3] as [number, number],
+    color: 'red',
+    values: [{ position: 1, value: 1 }],
+  },
+];
+
+const RNA_EDITING_COUNTS_FIXTURE = [
+  {
+    name: 'missense',
+    range: [0, 2] as [number, number],
+    color: 'darkgrey',
+    values: [{ position: 2, value: 2 }],
+  },
+];
+
 /**
  * Stub adapter: returns one sentinel entry per known filter type.
  * Filtered tracks collapse to a single-element array; unfiltered tracks
@@ -152,6 +269,43 @@ function makeInterproAdapter() {
   ]);
 }
 
+/** Stub adapter for `nightingale-colored-sequence` tracks: returns a
+ *  plain string, ignoring input args. */
+function makeColoredSequenceAdapter(sequence: string) {
+  return vi.fn(() => sequence);
+}
+
+/** Stub adapter for `nightingale-sequence-heatmap` tracks: returns an
+ *  array of `{ xValue, yValue, score }` rows, ignoring input args. */
+function makeHeatmapAdapter(
+  rows: Array<{ xValue: number; yValue: string; score: number }>
+) {
+  return vi.fn(() => rows);
+}
+
+/** Stub adapter for `nightingale-variation-canvas` tracks (both the
+ *  variation and RNA-editing detail tracks resolve to this component):
+ *  returns `{ sequence, variants }`, ignoring input args. */
+function makeVariationShapedAdapter(payload: {
+  sequence: string;
+  variants: Array<Record<string, unknown>>;
+}) {
+  return vi.fn(() => payload);
+}
+
+/** Stub adapter for `nightingale-linegraph-track` tracks: returns an
+ *  array of series descriptors, ignoring input args. */
+function makeLinegraphAdapter(
+  series: Array<{
+    name: string;
+    range: [number, number];
+    color: string;
+    values: Array<{ position: number; value: number }>;
+  }>
+) {
+  return vi.fn(() => series);
+}
+
 function buildMockAdapters(): AdapterMap {
   return {
     'uniprot-features-json': makeSimpleAdapter('uniprot-features-json'),
@@ -160,24 +314,28 @@ function buildMockAdapters(): AdapterMap {
     'uniprot-proteins-pdb-json': makeSimpleAdapter(
       'uniprot-proteins-pdb-json'
     ),
-    'uniprot-variation-json': makeSimpleAdapter('uniprot-variation-json'),
-    'uniprot-variation-counts-json': makeSimpleAdapter(
-      'uniprot-variation-counts-json'
+    'uniprot-variation-json': makeVariationShapedAdapter(VARIATION_FIXTURE),
+    'uniprot-variation-counts-json': makeLinegraphAdapter(
+      VARIATION_COUNTS_FIXTURE
     ),
-    'uniprot-rna-editing-json': makeSimpleAdapter('uniprot-rna-editing-json'),
-    'uniprot-rna-editing-counts-json': makeSimpleAdapter(
-      'uniprot-rna-editing-counts-json'
+    'uniprot-rna-editing-json': makeVariationShapedAdapter(
+      RNA_EDITING_FIXTURE
+    ),
+    'uniprot-rna-editing-counts-json': makeLinegraphAdapter(
+      RNA_EDITING_COUNTS_FIXTURE
     ),
     'uniprot-proteomics-ptm-json': makeSimpleAdapter(
       'uniprot-proteomics-ptm-json'
     ),
-    'alphafold-prediction-json': makeSimpleAdapter(
-      'alphafold-prediction-json'
+    'alphafold-prediction-json': makeColoredSequenceAdapter(
+      ALPHAFOLD_CONFIDENCE_FIXTURE
     ),
-    'alphamissense-average-csv': makeSimpleAdapter(
-      'alphamissense-average-csv'
+    'alphamissense-average-csv': makeColoredSequenceAdapter(
+      ALPHAMISSENSE_AVERAGE_FIXTURE
     ),
-    'alphamissense-full-csv': makeSimpleAdapter('alphamissense-full-csv'),
+    'alphamissense-full-csv': makeHeatmapAdapter(
+      ALPHAMISSENSE_HEATMAP_FIXTURE
+    ),
   };
 }
 
@@ -284,6 +442,29 @@ describe('loadProtvistaData baseline (schema-driven default config)', () => {
     ] as ReturnType<typeof vi.fn>;
     expect(variationAdapter).not.toHaveBeenCalled();
     expect(result.data).not.toHaveProperty('VARIATION-variation');
+  });
+
+  it('mirrors a filterUI track under an __unfiltered baseline key', async () => {
+    // The default config's variation track sets
+    // `filterUI: nightingale-filter`, so the loader mirrors its adapted
+    // payload under `${trackKey}${UNFILTERED_SUFFIX}` — the pristine
+    // baseline the component's filter handler re-filters against without
+    // compounding. The opt-in is `filterUI`, NOT a hardcoded track id.
+    const result = await loadProtvistaData(
+      REFERENCE_ACCESSION,
+      config,
+      cannedFetch,
+      mockAdapters
+    );
+    const baselineKey = `VARIATION-variation${UNFILTERED_SUFFIX}`;
+    // Same reference as the live slot at load time.
+    expect(result.data[baselineKey]).toBe(result.data['VARIATION-variation']);
+    // ...and it is the ONLY baseline: tracks without `filterUI` get no
+    // `__unfiltered` copy, proving no id is special-cased.
+    const unfilteredKeys = Object.keys(result.data).filter((k) =>
+      k.endsWith(UNFILTERED_SUFFIX)
+    );
+    expect(unfilteredKeys).toEqual([baselineKey]);
   });
 
   it('rewrites InterPro representative fragments with the expected synthetic type', async () => {

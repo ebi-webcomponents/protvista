@@ -111,7 +111,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
   it('Example 3: inheritance, multi-URL adapter, filter UI', () => {
     const config: ProtvistaViewerConfig = {
       defaults: {
-        labelUrl: 'https://www.uniprot.org/uniprot/{accession}',
+        rendering: { color: '#3f51b5' },
       },
       sources: {
         features: 'https://www.ebi.ac.uk/proteins/api/features/{accession}',
@@ -123,13 +123,13 @@ describe('ProtvistaViewerConfig — type contract', () => {
       rows: [
         {
           id: 'ALPHAFOLD_CONFIDENCE',
-          label: 'AlphaFold',
-          helpPage: 'structure_section#alphafold-structural-models',
+          label:
+            '{% help slug="structure_section#alphafold-structural-models" %}AlphaFold{% /help %}',
           tracks: [
             {
               id: 'alphafold_confidence',
-              label: 'AlphaFold Confidence',
-              labelUrl: 'https://alphafold.ebi.ac.uk/entry/{accession}',
+              label:
+                '[AlphaFold Confidence](https://alphafold.ebi.ac.uk/entry/{accession})',
               kind: 'confidence-score',
               data: { source: ['alphafoldPrediction', 'proteins'] },
               description: 'AlphaFold prediction confidence',
@@ -140,8 +140,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
         },
         {
           id: 'VARIATION',
-          label: 'Variants',
-          helpPage: 'variant_viewer',
+          label: '{% help slug="variant_viewer" %}Variants{% /help %}',
           tracks: [
             {
               id: 'variation_graph',

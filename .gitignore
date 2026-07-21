@@ -13,6 +13,10 @@ demo/
 bench/results/
 .lighthouseci/
 
+# Python bytecode caches (scripts/)
+__pycache__/
+*.py[cod]
+
 # Security: prevent accidental commit of secrets and credentials
 .env
 .env.*

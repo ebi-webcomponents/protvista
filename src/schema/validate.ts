@@ -49,6 +49,7 @@ import type {
 import { isGroupConfig } from './discriminate';
 import type { Registry } from './registry';
 import { resolveRowsAlias, rowsAliasConflict } from './rows-alias';
+import { dataFileFormatForPath } from './file-formats';
 import type {
   ValidationIssue,
   ValidationResult,
@@ -208,12 +209,13 @@ function checkVersion(
  * `{accession}` placeholders. If any appear and no `accession` is
  * set, fail with a stable message naming the missing accession.
  *
- * Fields that support the placeholder: `sources` values, track
- * `labelUrl`, and any `url:` inside a `DataSourceDescriptor` (both
- * the scalar and array forms). We do not search `dataTooltip`
- * because it is rendered per-item at display time with a different
- * interpolation routine (Markdoc's own variable expansion), and
- * `description` is plain text that does not accept placeholders.
+ * Fields that support the placeholder: `sources` values, group/track
+ * `label` (interpolated before the label's Markdoc render), and any
+ * `url:` inside a `DataSourceDescriptor` (both the scalar and array
+ * forms). We do not search `dataTooltip` because it is rendered
+ * per-item at display time with a different interpolation routine
+ * (Markdoc's own variable expansion), and `description` is plain text
+ * that does not accept placeholders.
  */
 function checkAccessionPlaceholders(
   c: ProtvistaViewerConfig,
@@ -241,15 +243,17 @@ function containsAccessionPlaceholder(c: ProtvistaViewerConfig): boolean {
       }
     }
   }
-  // Check `defaults.labelUrl`.
-  if (c.defaults?.labelUrl?.includes(ACCESSION_PLACEHOLDER)) return true;
-  // Walk every row → its track(s) → data descriptors. A
-  // standalone-track row is a single track; a group expands to its
-  // child tracks.
+  // Walk every row → its track(s) → data descriptors. A standalone-track
+  // row is a single track; a group expands to its child tracks. Group and
+  // track `label` accept `{accession}` (it is interpolated before the
+  // label's Markdoc render), so both are searched.
   for (const entry of c.rows) {
+    if (isGroupConfig(entry) && entry.label?.includes(ACCESSION_PLACEHOLDER)) {
+      return true;
+    }
     const tracks = isGroupConfig(entry) ? entry.tracks : [entry];
     for (const track of tracks) {
-      if (track.labelUrl?.includes(ACCESSION_PLACEHOLDER)) return true;
+      if (track.label?.includes(ACCESSION_PLACEHOLDER)) return true;
       if (stringFieldIncludes(track.data, ACCESSION_PLACEHOLDER)) return true;
     }
   }
@@ -461,18 +465,17 @@ function checkDescriptor(
 
 /**
  * Apply the string-shorthand resolution rules from
- * `TrackConfig.data`. For this validator we only need to detect two
- * failure cases:
+ * `TrackConfig.data`. For this validator we only need to detect the
+ * one failure case:
  *
- *   - the value is not a URL and not a known sources key →
- *     "Unknown source key".
+ *   - the value is not a URL, not a known data-file path, and not a
+ *     known sources key → "Unknown source key".
  *
- * Generic-format adapters for bring-your-own-data files (CSV / TSV /
- * JSON / BED via `./hits.csv`-style shorthand) is left as future
- * work. Today, file-path values fall through to the
- * unknown-sources-key error; authors with their own data files use
- * the object form with an explicit `from: 'file'` plus a
- * `registerAdapter()`-supplied `adapter:` they pin themselves.
+ * A `./hits.csv`-style path to a known generic format (see
+ * `dataFileFormatForPath`) is accepted here; normalize.ts resolves it
+ * to `from: 'file'` with the extension's built-in adapter. An
+ * unrecognised extension (`./x.gff`) still falls through to the
+ * unknown-source-key error.
  *
  * The rest of the expansion is normalize.ts's job.
  */
@@ -488,7 +491,12 @@ function checkStringShorthand(
   // Rule 2: http(s) URL is OK without any adapter/kind inference.
   if (/^https?:\/\//i.test(value)) return;
 
-  // Rule 3 fell through: treat as sources-key reference, surface
+  // Rule 3: a path to a known data file (`./hits.csv`, `../x.tsv`) is OK
+  // — normalize.ts resolves it to `from: file` with the extension's
+  // built-in adapter, so it will load without an "Unknown adapter" error.
+  if (dataFileFormatForPath(value)) return;
+
+  // Rule 4 fell through: treat as sources-key reference, surface
   // "Unknown source key" with the registered keys list.
   issues.push({
     path: trackPath,

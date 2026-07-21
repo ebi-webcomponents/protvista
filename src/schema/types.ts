@@ -147,7 +147,7 @@ export interface ProtvistaViewerConfig {
   /**
    * The primary accession or identifier for this viewer instance.
    * Used to interpolate `{accession}` placeholders in `sources`,
-   * `labelUrl`, and any other template string in the config.
+   * group/track `label`, and any other template string in the config.
    *
    * If no accession is supplied (attribute, setConfig, or config file)
    * and the config contains `{accession}` placeholders, validation
@@ -168,10 +168,18 @@ export interface ProtvistaViewerConfig {
    *
    * Precedence (highest first):
    *   track.rendering > group.rendering > defaults.rendering
-   *   track.labelUrl  > defaults.labelUrl
-   *   track.helpPage  > group.helpPage > defaults.helpPage
    */
   defaults?: ConfigDefaults;
+
+  /**
+   * Authoring-time strictness. When `true`, every error that would
+   * normally be a non-fatal warning (an empty sequence, a per-track
+   * fetch failure, `setTrackData()` misuse) is promoted to a
+   * mount-level failure and shown in the viewer's error panel, so
+   * silent hides fail loudly while a config is being written. Off by
+   * default — production embeds keep the graceful-degradation posture.
+   */
+  strict?: boolean;
 
   /**
    * Ordered list of rows displayed in the viewer — the viewer's
@@ -215,15 +223,6 @@ export type TopLevelEntry = GroupConfig | TrackConfig;
 export interface ConfigDefaults {
   /** Default rendering options inherited by every track. */
   rendering?: RenderingOptions;
-
-  /**
-   * Default `labelUrl` template for every track that does not set
-   * its own. Supports `{accession}` and `{id}` placeholders.
-   */
-  labelUrl?: string;
-
-  /** Default help-page slug. */
-  helpPage?: string;
 }
 
 export interface GroupConfig {
@@ -231,9 +230,12 @@ export interface GroupConfig {
   id: string;
 
   /**
-   * Human-readable label shown in the UI. Optional — if omitted,
-   * falls back to a title-cased form of `id`
-   * (e.g. `"MOLECULE_PROCESSING"` → `"Molecule processing"`).
+   * Human-readable label shown in the UI. A Markdoc inline source
+   * string — Markdown (emphasis, code, links) plus the
+   * `{% help slug="…" %}…{% /help %}` tag; `{accession}` is
+   * interpolated before rendering. Block-level markup is not
+   * supported. Optional — if omitted, falls back to a title-cased form
+   * of `id` (e.g. `"MOLECULE_PROCESSING"` → `"Molecule processing"`).
    */
   label?: string;
 
@@ -258,20 +260,19 @@ export interface GroupConfig {
 
   /** Group-level rendering defaults; individual tracks inherit these. */
   rendering?: RenderingOptions;
-
-  /** Optional URL slug for the help-page link on the group label. */
-  helpPage?: string;
 }
 
 export interface TrackConfig {
   /** Unique identifier within its parent group (e.g. `"signal"`). */
   id: string;
 
-  /** Human-readable label. Falls back to a title-cased form of `id`. */
+  /**
+   * Human-readable label. A Markdoc inline source string — Markdown
+   * (emphasis, code, links) plus the `{% help slug="…" %}…{% /help %}`
+   * tag; `{accession}` is interpolated before rendering. Block-level
+   * markup is not supported. Falls back to a title-cased form of `id`.
+   */
   label?: string;
-
-  /** URL for the label to link to. Supports `{accession}` and `{id}`. */
-  labelUrl?: string;
 
   /**
    * Semantic track kind — describes WHAT the track displays.
@@ -306,14 +307,19 @@ export interface TrackConfig {
    *
    *   - matches a key in root `sources`  → { from: url,  source: <value> }
    *   - starts with http:// or https://  → { from: url,  url: <value> }
+   *   - path to a known data file        → { from: file, url: <value> }
+   *     (`./x.csv`, `./x.tsv`, `./x.json`, `./x.bed`)
    *
-   * Adapter inference: the track's semantic `kind` selects the
-   * canonical adapter for each `from: url` source.
+   * Adapter inference (most specific first): an explicit `adapter:`
+   * wins; otherwise a known data-file extension on the URL (`./x.csv`
+   * → `features-csv`, `./x.tsv` → `features-tsv`, `./x.json` →
+   * `features-json`, `./x.bed` → `bed`); otherwise the track's semantic
+   * `kind` selects the canonical adapter.
    *
-   * Generic-format adapters for bring-your-own-data files (CSV / TSV /
-   * JSON / BED via file-path shorthand) is left as future work.
-   * Today, authors with their own data files register a custom
-   * adapter via `registerAdapter()` and pin it explicitly with
+   * Generic-format file adapters: CSV, TSV, JSON, and BED all ship today
+   * (`features-csv` / `features-tsv` / `features-json` / `bed`,
+   * pre-registered). For a format not yet covered, register a
+   * custom adapter via `registerAdapter()` and pin it with
    * `adapter: <name>` on the descriptor.
    *
    * The array form is normalized internally; runtime code always sees
@@ -380,9 +386,6 @@ export interface TrackConfig {
 
   /** Track-level rendering overrides; merged on top of group defaults. */
   rendering?: RenderingOptions;
-
-  /** Optional URL slug for the help-page link on the track label. */
-  helpPage?: string;
 }
 
 /**
@@ -594,10 +597,13 @@ export type ComponentName = KnownComponentName | (string & {});
  * Most authors never name an adapter directly — the semantic `kind`
  * field resolves to one automatically.
  *
- * Generic-format adapters for bring-your-own-data files (CSV / TSV /
- * JSON / BED) is left as future work. Today, authors with their own
- * data formats register a custom adapter via `registerAdapter()` and
- * pin it with `adapter: <name>` on the descriptor.
+ * Generic-format adapters for bring-your-own-data files use the
+ * `features-<format>` naming (except `bed`, which keeps its well-known
+ * format name). `features-csv`, `features-tsv`, `features-json`, and
+ * `bed` all ship today (point a track at `./x.csv` / `./x.tsv` /
+ * `./x.json` / `./x.bed`). Authors with a bespoke format still register a
+ * custom adapter via `registerAdapter()` and pin it with
+ * `adapter: <name>` on the descriptor.
  */
 export type KnownAdapterName =
   | 'uniprot-features-json'
@@ -611,7 +617,15 @@ export type KnownAdapterName =
   | 'interpro-entries-json'
   | 'alphafold-prediction-json'
   | 'alphamissense-average-csv'
-  | 'alphamissense-full-csv';
+  | 'alphamissense-full-csv'
+  /** CSV with columns: `type,start,end,description[,score]`. */
+  | 'features-csv'
+  /** TSV (tab-separated) with the same columns as `features-csv`. */
+  | 'features-tsv'
+  /** JSON array of feature-shaped records with the same fields as `features-csv`. */
+  | 'features-json'
+  /** Standard BED (tab-separated). 0-based half-open → shifted to 1-based inclusive. */
+  | 'bed';
 
 /** Open-ended `AdapterName`. Adapters registered via `registerAdapter()` also type-check. */
 export type AdapterName = KnownAdapterName | (string & {});

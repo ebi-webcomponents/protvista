@@ -149,7 +149,7 @@ describe('JSON Schema — accepts representative authored configs', () => {
   it('Example 3: inheritance, multi-URL adapter, filterUI', () => {
     expectValid({
       defaults: {
-        labelUrl: 'https://www.uniprot.org/uniprot/{accession}',
+        rendering: { color: '#3f51b5' },
       },
       sources: {
         features:
@@ -164,13 +164,13 @@ describe('JSON Schema — accepts representative authored configs', () => {
       rows: [
         {
           id: 'ALPHAFOLD_CONFIDENCE',
-          label: 'AlphaFold',
-          helpPage: 'structure_section#alphafold-structural-models',
+          label:
+            '{% help slug="structure_section#alphafold-structural-models" %}AlphaFold{% /help %}',
           tracks: [
             {
               id: 'alphafold_confidence',
-              label: 'AlphaFold Confidence',
-              labelUrl: 'https://alphafold.ebi.ac.uk/entry/{accession}',
+              label:
+                '[AlphaFold Confidence](https://alphafold.ebi.ac.uk/entry/{accession})',
               kind: 'confidence-score',
               data: { source: ['alphafoldPrediction', 'proteins'] },
               description: 'AlphaFold prediction confidence',
@@ -181,8 +181,7 @@ describe('JSON Schema — accepts representative authored configs', () => {
         },
         {
           id: 'VARIATION',
-          label: 'Variants',
-          helpPage: 'variant_viewer',
+          label: '{% help slug="variant_viewer" %}Variants{% /help %}',
           tracks: [
             {
               id: 'variation_graph',
@@ -328,6 +327,29 @@ describe('JSON Schema — fine-grained acceptance', () => {
                   ],
                 },
               },
+            },
+          ],
+        },
+      ],
+      sources: { x: 'https://x' },
+    });
+  });
+
+  it('accepts a Markdoc `label` carrying a help tag and an inline link', () => {
+    // `label` is `type: string` in the schema — any Markdoc source
+    // (the `{% help %}` tag, inline links, emphasis) is accepted at the
+    // schema layer; rendering is exercised in the tooltip resolver tests.
+    expectValid({
+      groups: [
+        {
+          id: 'ALPHAFOLD',
+          label: '{% help slug="alphafold#models" %}AlphaFold{% /help %}',
+          tracks: [
+            {
+              id: 't',
+              label: '[AlphaFold](https://alphafold.ebi.ac.uk/entry/{accession})',
+              kind: 'features',
+              data: 'x',
             },
           ],
         },
