@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ebi-webcomponents.github.io/protvista-uniprot/schema/v1/config.schema.json",
+  "$id": "https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json",
   "title": "ProtvistaViewerConfig",
   "description": "Declarative configuration for a ProtVista viewer instance (v1). Source-of-truth JSON Schema, authored in lockstep with src/schema/types.ts.",
 

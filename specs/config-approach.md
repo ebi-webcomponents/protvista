@@ -1203,7 +1203,7 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 - [x] `defaults.rendering` inherits to every group/track and is overridden at the group and track level per the documented precedence chain.
 - [x] Track rendering options (`color`, `shape`, `height`, `layout`, `colorScale`) correctly inherit from `defaults` → group → track, with track winning on conflict.
 - [x] Config validation produces clear, actionable error messages for all edge cases listed above.
-- [x] The schema file declares a stable `$id` URI (`https://ebi-webcomponents.github.io/protvista-uniprot/schema/v1/config.schema.json`) and `default-config.yaml` references it via `$schema`, so editors (VS Code, etc.) resolve the schema and provide autocomplete and inline validation.
+- [x] The schema file declares a stable `$id` URI (`https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json`) and `default-config.yaml` references it via `$schema`, so editors (VS Code, etc.) can resolve the schema and provide autocomplete and inline validation once the Pages deploy on `next` has published it.
 - [x] All 15 existing UniProt groups render correctly when driven by the new config format (parity test against the hardcoded `config.ts`).
 - [x] Every track in the published default config uses the semantic `kind` field (no raw `component` + `adapter` pairs at the track level).
 - [x] Semantic kinds `confidence-score` and `pathogenicity-score` apply the canonical AlphaFold / AlphaMissense colour ramps automatically when `rendering.colorScale` is not specified.

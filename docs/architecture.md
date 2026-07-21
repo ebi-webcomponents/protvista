@@ -136,7 +136,7 @@ The config-as-data engine. Module-by-module:
 
 `types.ts` and `schema.json` must stay in lockstep — change one, change the other. The compile-time test in `src/schema/__spec__/types.spec.ts` and the schema-shape tests in `src/schema/__spec__/schema.spec.ts` are what catch drift.
 
-**Stability.** `schema.json` is hosted at `https://ebi-webcomponents.github.io/protvista-uniprot/schema/v1/config.schema.json` via a committed copy at `public/schema/v1/config.schema.json`, which `src/schema/__spec__/schema-publishing.spec.ts` keeps byte-identical to the source. The `v1` path is mutable pre-GA and **must be frozen (no further edits to `public/schema/v1/`) once v5.0.0 ships** — a breaking schema change after that point requires a new `public/schema/v2/` path, never an edit to `v1`.
+**Stability.** `schema.json` is published to `https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json` by the GitHub Pages deploy on `next` (see `.github/workflows/test-and-deploy.yml`), served from a committed copy at `public/schema/v1/config.schema.json` that `src/schema/__spec__/schema-publishing.spec.ts` keeps byte-identical to the source. Editors resolve the URL for autocomplete/inline validation once that deploy has run. Regenerate the copy after editing the source with `yarn schema:sync`. The `v1` path can still change while v5 is in development and **must be frozen (no further edits to `public/schema/v1/`) once v5.0.0 ships** — a breaking schema change after that point requires a new `public/schema/v2/` path, never an edit to `v1`.
 
 ### `src/tooltips/`
 

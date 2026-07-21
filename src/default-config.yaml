@@ -27,9 +27,9 @@
 version: '1.0'
 # Published JSON Schema for editor autocomplete / inline validation
 # (VS Code YAML/JSON extensions resolve $schema automatically). v1 is
-# an immutable path once frozen at v5.0.0 GA — see docs/architecture.md's
-# src/schema/ table.
-$schema: https://ebi-webcomponents.github.io/protvista-uniprot/schema/v1/config.schema.json
+# an immutable path once the v5.0.0 release freezes it — see the
+# Stability note in docs/architecture.md's src/schema/ section.
+$schema: https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json
 
 # ─────────────────────────────────────────────────────────────
 # Named URL templates. `{accession}` is interpolated at mount

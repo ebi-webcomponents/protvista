@@ -7,17 +7,22 @@
  * source, `default-config.yaml` must reference the same canonical URL,
  * and the retired `.invalid` placeholder must never reappear anywhere
  * in the repo (e.g. via a bad cherry-pick from `main` — see
- * docs/sync-from-main.md, which already forbids `main`'s
- * `src/schema/*` from landing on `next`).
+ * docs/sync-from-main.md, which flags `main`'s `src/schema/*` as a path
+ * that must never be taken from `main` via `git checkout --theirs`).
  */
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, join, extname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseConfigText } from '../parse';
 
+// Canonical GitHub Pages URL. The path segment is the *repo* name
+// (`protvista`, already renamed from `protvista-uniprot` — the npm
+// package keeps the old name, but Pages URLs are keyed on the repo),
+// so this must never revert to the `protvista-uniprot` segment.
 const CANONICAL_SCHEMA_URL =
-  'https://ebi-webcomponents.github.io/protvista-uniprot/schema/v1/config.schema.json';
+  'https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json';
 
 const schemaPath = resolve(process.cwd(), 'src/schema/schema.json');
 const schema = JSON.parse(readFileSync(schemaPath, 'utf8')) as {
@@ -35,7 +40,10 @@ describe('JSON Schema — hosting invariants', () => {
       resolve(process.cwd(), 'public/schema/v1/config.schema.json'),
       'utf8'
     );
-    expect(publicCopy).toBe(source);
+    expect(
+      publicCopy,
+      'public/schema/v1/config.schema.json drifted from src/schema/schema.json — run `yarn schema:sync` to regenerate it'
+    ).toBe(source);
   });
 
   it('default-config.yaml references the canonical schema URL', async () => {
@@ -58,11 +66,14 @@ describe('JSON Schema — hosting invariants', () => {
 // Repo-wide placeholder scan. Walks the whole repository tree from the
 // root (so root-level files like `index.html` and `package.json` are
 // covered, not just a hand-picked set of directories), skipping VCS /
-// dependency / build-output dirs. `__spec__` / `__snapshots__` are
-// excluded because test fixtures deliberately avoid the canonical URL
-// and this file's own source mentions the placeholder-shaped strings
-// above only as historical documentation.
+// dependency / build-output dirs. Test fixtures and snapshots are NOT
+// excluded — a placeholder hiding in a config fixture is exactly the
+// kind of regression this guards against. Only this spec file is
+// skipped, since it necessarily names the placeholder-shaped strings
+// below as the very markers it scans for.
 // ─────────────────────────────────────────────────────────────
+
+const SELF_PATH = fileURLToPath(import.meta.url);
 
 const SCAN_EXTENSIONS = new Set([
   '.ts',
@@ -87,17 +98,16 @@ const IGNORE_DIR_NAMES = new Set([
   '.lighthouseci',
   '.vscode',
   '.idea',
-  '__spec__',
-  '__snapshots__',
 ]);
-const PLACEHOLDER_MARKERS = [
+const PLACEHOLDER_MARKERS: Array<string | RegExp> = [
   'TODO-PUBLISH-BEFORE-V5-RELEASE',
   'ebi.ac.uk/protvista/config.schema.json',
   // Any `.invalid` TLD used as a schema URL — catches a future placeholder
-  // even if it isn't the exact `TODO-PUBLISH-…` string. Scoped to
-  // `/protvista` so the legitimate `example.invalid` fetch-failure fixture
-  // in src/__spec__/ doesn't trip it.
-  '.invalid/protvista',
+  // even if it isn't the exact `TODO-PUBLISH-…` string, including variants
+  // like `.invalid/protvista-uniprot`. Requires `protvista` in the path so
+  // the legitimate `example.invalid` fetch-failure fixture in src/__spec__/
+  // doesn't trip it.
+  /\.invalid\/[\w-]*protvista/,
 ];
 
 function findPlaceholderReferences(): string[] {
@@ -108,6 +118,7 @@ function findPlaceholderReferences(): string[] {
 }
 
 function scanPath(path: string, root: string, offenders: string[]): void {
+  if (path === SELF_PATH) return; // this file names the markers as data
   const stat = statOrNull(path);
   if (!stat) return; // e.g. an optional root entry that doesn't exist
   if (stat.isDirectory()) {
@@ -119,7 +130,10 @@ function scanPath(path: string, root: string, offenders: string[]): void {
   }
   if (!SCAN_EXTENSIONS.has(extname(path))) return;
   const content = readFileSync(path, 'utf8');
-  if (PLACEHOLDER_MARKERS.some((marker) => content.includes(marker))) {
+  const hit = PLACEHOLDER_MARKERS.some((marker) =>
+    typeof marker === 'string' ? content.includes(marker) : marker.test(content)
+  );
+  if (hit) {
     offenders.push(path.replace(`${root}/`, ''));
   }
 }

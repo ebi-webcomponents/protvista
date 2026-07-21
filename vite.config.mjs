@@ -25,6 +25,12 @@ export default defineConfig({
   build: {
     target: 'ES2021',
     sourcemap: true,
+    // The lib build must not copy `public/` (the hosted JSON Schema) into
+    // `dist/`: the schema is served from GitHub Pages, its authored source
+    // already ships via the `src` entry in package.json `files`, and a
+    // `dist/schema/...` path would not match the schema's `$id`. The demo
+    // build (vite.demo.config.mjs) still copies it into `demo/` for Pages.
+    copyPublicDir: false,
     lib: {
       entry: 'src/index.ts',
       formats: ['es'],
