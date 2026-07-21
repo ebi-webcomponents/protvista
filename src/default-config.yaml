@@ -25,11 +25,11 @@
 #     `titleCaseId()` would not reproduce.
 
 version: '1.0'
-# TODO(v5-release): replace with the real hosted schema URL once it's
-# published. The `.invalid` TLD (RFC 2606) is guaranteed never to
-# resolve, so editors surface an obvious fetch failure rather than
-# silently falling back to no validation against a 404'd URL.
-$schema: https://TODO-PUBLISH-BEFORE-V5-RELEASE.invalid/protvista/config.schema.json
+# Published JSON Schema for editor autocomplete / inline validation
+# (VS Code YAML/JSON extensions resolve $schema automatically). v1 is
+# an immutable path once frozen at v5.0.0 GA — see docs/architecture.md's
+# src/schema/ table.
+$schema: https://ebi-webcomponents.github.io/protvista-uniprot/schema/v1/config.schema.json
 
 # ─────────────────────────────────────────────────────────────
 # Named URL templates. `{accession}` is interpolated at mount

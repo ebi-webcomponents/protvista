@@ -136,6 +136,8 @@ The config-as-data engine. Module-by-module:
 
 `types.ts` and `schema.json` must stay in lockstep — change one, change the other. The compile-time test in `src/schema/__spec__/types.spec.ts` and the schema-shape tests in `src/schema/__spec__/schema.spec.ts` are what catch drift.
 
+**Stability.** `schema.json` is hosted at `https://ebi-webcomponents.github.io/protvista-uniprot/schema/v1/config.schema.json` via a committed copy at `public/schema/v1/config.schema.json`, which `src/schema/__spec__/schema-publishing.spec.ts` keeps byte-identical to the source. The `v1` path is mutable pre-GA and **must be frozen (no further edits to `public/schema/v1/`) once v5.0.0 ships** — a breaking schema change after that point requires a new `public/schema/v2/` path, never an edit to `v1`.
+
 ### `src/tooltips/`
 
 The declarative tooltip resolver. Two `kind` variants are supported:
