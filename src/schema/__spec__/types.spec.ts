@@ -286,6 +286,7 @@ describe('Escape-hatch API signatures', () => {
       registerAdapter: noop,
       registerSemanticKind: noop,
       registerTheme: noop,
+      registerComponent: noop,
       setTrackData: noop,
       setConfig: noop,
       on: noop,

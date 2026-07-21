@@ -32,7 +32,7 @@ describe('built-in-components — table shape', () => {
   });
 
   it('has disjoint renderable and structural name sets', () => {
-    const renderable = new Set(RENDERABLE_COMPONENTS.map(([n]) => n));
+    const renderable = new Set<string>(RENDERABLE_COMPONENTS.map(([n]) => n));
     const structural = STRUCTURAL_COMPONENTS.map(([n]) => n);
     for (const name of structural) {
       expect(renderable.has(name)).toBe(false);
