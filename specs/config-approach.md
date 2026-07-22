@@ -1201,7 +1201,7 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 
 ## Acceptance Criteria
 
-- [x] A JSON Schema file (`protvista-config.schema.json`) is published that validates all examples in this spec.
+- [x] A JSON Schema file (`src/schema/schema.json`) is published that validates all examples in this spec.
 - [x] The existing hardcoded `config.ts` default configuration can be losslessly represented as a YAML/JSON file conforming to the new schema (round-trip fidelity).
 - [x] `version`, group `label`, and group `component` are all optional; a config that omits them validates and renders. Group `label` falls back to a title-cased `id`; group `component` is inferred from child tracks' `kind`s.
 - [x] The four `data` forms all work: `data: "<sources-key>"`, `data: "./file.json"` (relative path), `data: { ... }` (single object), `data: [ ... ]` (array for multi-URL adapters).
@@ -1214,7 +1214,7 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 - [x] `defaults.rendering` inherits to every group/track and is overridden at the group and track level per the documented precedence chain.
 - [x] Track rendering options (`color`, `shape`, `height`, `layout`, `colorScale`) correctly inherit from `defaults` → group → track, with track winning on conflict.
 - [x] Config validation produces clear, actionable error messages for all edge cases listed above.
-- [x] The schema file declares a stable `$id` URI and data files reference it via `$schema`, so that editors (VS Code, etc.) can resolve the schema and provide autocomplete and inline validation once the URL is hosted. A placeholder `.invalid` URL is used in `default-config.yaml` until the schema is published at release time.
+- [x] The schema file declares a stable `$id` URI (`https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json`) and `default-config.yaml` references it via `$schema`, so editors (VS Code, etc.) can resolve the schema and provide autocomplete and inline validation once the Pages deploy on `next` has published it.
 - [x] All 15 existing UniProt groups render correctly when driven by the new config format (parity test against the hardcoded `config.ts`).
 - [x] Every track in the published default config uses the semantic `kind` field (no raw `component` + `adapter` pairs at the track level).
 - [x] Semantic kinds `confidence-score` and `pathogenicity-score` apply the canonical AlphaFold / AlphaMissense colour ramps automatically when `rendering.colorScale` is not specified.
@@ -1235,7 +1235,7 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 ```typescript
 import { describe, it, expect } from 'vitest';
 import Ajv from 'ajv';
-import schema from '../protvista-config.schema.json';
+import schema from '../src/schema/schema.json';
 import defaultConfig from '../src/default-config.yaml'; // migrated from config.ts
 import { normalize, mergeExtends } from '../src/runtime';
 

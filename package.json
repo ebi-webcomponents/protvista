@@ -10,6 +10,7 @@
     "build:es": "tsc --emitDeclarationOnly",
     "build": "vite build",
     "build:demo": "vite build --config vite.demo.config.mjs",
+    "schema:sync": "node scripts/sync-schema.mjs",
     "start": "vite",
     "test:lint": "eslint 'src/**/*.ts' 'bench/**/*.{mjs,cjs}'",
     "test:types": "tsc",
