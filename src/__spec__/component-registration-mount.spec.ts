@@ -29,29 +29,27 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 // Registers <protvista-uniprot> only — the Nightingale tags are defined
 // by the element at runtime, which is exactly what's under test here.
 import '../protvista-uniprot';
-import type { Registry } from '../schema/registry';
 import type { NormalizedConfig } from '../schema/normalize';
 import type { SemanticKindDefinition } from '../schema/types';
 
-// jsdom here ships without `CSS.escape`, which the component's
-// `findById()` relies on during the mount lifecycle (real browsers all
-// have it). Mirrors the polyfill in `error-surface.spec.ts`.
-if (typeof (globalThis as { CSS?: unknown }).CSS === 'undefined') {
-  (globalThis as { CSS?: { escape(s: string): string } }).CSS = {
-    escape: (s: string) => String(s).replace(/([^\w-])/g, '\\$1'),
-  };
-}
+// `CSS.escape` (missing from this jsdom, needed by the mount lifecycle) is
+// polyfilled globally in `setup.ts`.
 
 type El = HTMLElement & {
   config?: NormalizedConfig;
   viewerConfig?: unknown;
   accession?: string;
-  registry: Registry;
   registerComponent(name: string, ctor: CustomElementConstructor): void;
   registerSemanticKind(name: string, def: SemanticKindDefinition): void;
-  _init(): Promise<void>;
 };
 
+// The four `nightingale-*` tags have no self-registering path, so they are
+// undefined until `registerStructuralComponents()` runs. `protvista-uniprot-
+// structure` is different: its real module self-registers via `@customElement`
+// at import time, so it is only undefined-on-import (and thus able to detect
+// the deletion) because `nightingale-mocks.ts` stubs that module with a
+// decorator-free class. If that stub changes, the guard below would break and
+// the structural mutation would go undetected for this one tag.
 const STRUCTURAL_TAGS = [
   'nightingale-manager',
   'nightingale-navigation',
@@ -98,9 +96,13 @@ afterEach(() => {
 });
 
 describe('connectedCallback defines the structural chrome', () => {
+  // A specificity guard, not a mutation-killer: it asserts nothing defined
+  // these tags *before* a connect. It relies on running before the connect
+  // test below — jsdom cannot un-define a tag, so once that test connects an
+  // element the tags stay defined for the rest of the file. Vitest runs tests
+  // in declaration order by default; do not enable `sequence.shuffle` for this
+  // file, and keep this test first.
   it('leaves the chrome tags undefined until an element connects', () => {
-    // Guards the assertion below against passing vacuously: importing
-    // the element must not have defined these.
     for (const tag of STRUCTURAL_TAGS) {
       expect(customElements.get(tag)).toBeUndefined();
     }
@@ -175,9 +177,10 @@ describe('_init defines the components the config references', () => {
   });
 
   it('leaves an unreferenced renderable built-in undefined after mount', async () => {
-    // The walk is config-driven, not a blanket "define everything":
-    // a component no entry resolves to stays undefined. This is the
-    // behavioural difference from the old `registerWebComponents()`.
+    // A specificity guard, not a mutation-killer: it does not fail on either
+    // deletion. It proves the walk is config-driven, not a blanket "define
+    // everything" — a component no entry resolves to stays undefined. This is
+    // the behavioural difference from the old `registerWebComponents()`.
     stubFetch();
 
     const el = makeEl();
@@ -188,8 +191,13 @@ describe('_init defines the components the config references', () => {
     };
     connect(el);
 
+    // Anchor on the referenced tag being defined — this proves the walk has
+    // actually run, so the assertion below can't observe a half-completed
+    // registration (as a bare `el.config` set would allow).
     await vi.waitFor(() => {
-      if (!el.config) throw new Error('config not resolved yet');
+      if (!customElements.get('nightingale-track-canvas')) {
+        throw new Error('registration walk has not run yet');
+      }
     });
 
     expect(customElements.get('nightingale-sequence-heatmap')).toBeUndefined();
