@@ -2,10 +2,11 @@
 
 Design for the four generic-format data adapters that let authors point a
 ProtVista track at a CSV / TSV / JSON / BED file without writing
-JavaScript. Not currently implemented; the schema, types, and inference
-plumbing have all been deliberately left out of v1 so the library
-doesn't promise authoring surfaces it can't honour. When built, this
-doc is the implementation brief.
+JavaScript. **Implemented and shipped** — `src/schema/adapters/{features-csv,features-tsv,features-json,bed}.ts`,
+pre-registered by `registerBuiltinAdapters()`, with worked examples
+under [`examples/`](../examples). This doc remains the implementation
+brief / design record; sections describing scope, contracts, and
+column conventions below are still normative.
 
 The four adapters under design:
 
@@ -78,7 +79,7 @@ or behind their own URL. The Quick-look example in the spec promises:
 
 ```yaml
 extends: '<published-uniprot-default-config-url>'
-groups:
+rows:
   - id: MY_LAB
     label: My lab
     tracks:

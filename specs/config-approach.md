@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Make ProtVista a **low-friction tool** that external labs, bioinformaticians, and non-EBI integrators can point at their own data and view it — ideally without writing JavaScript. To that end, this spec defines a JSON configuration schema that fully describes a ProtVista viewer instance: the groups it displays, the tracks within each group, where data comes from, and how tracks are rendered. The viewer is assembled declaratively from a single configuration file instead of hardcoded logic. The schema cleanly separates **Intent** (what the viewer should show and how) from **Representation** (the data payloads that tracks consume), and it preserves escape hatches for advanced programmatic customisation when the declarative path is not enough.
+Make ProtVista a **low-friction tool** that external labs, bioinformaticians, and non-EBI integrators can point at their own data and view it — ideally without writing JavaScript. To that end, this spec defines a JSON configuration schema that fully describes a ProtVista viewer instance: the rows it displays, the tracks within each group, where data comes from, and how tracks are rendered. The viewer is assembled declaratively from a single configuration file instead of hardcoded logic. The schema cleanly separates **Intent** (what the viewer should show and how) from **Representation** (the data payloads that tracks consume), and it preserves escape hatches for advanced programmatic customisation when the declarative path is not enough.
 
 The bring-your-own-data path is a first-class use case, not an afterthought.
 
@@ -25,7 +25,7 @@ extends: '<published-uniprot-default-config-url>'
 sources:
   my_hotspots: 'https://my-lab.example.org/protvista/hotspots/{accession}'
 
-groups:
+rows:
   - id: MY_LAB
     label: My lab
     tracks:
@@ -91,10 +91,10 @@ interface ProtvistaViewerConfig {
    * Merge semantics:
    *   - `sources`            merged by key (child wins)
    *   - `defaults`           merged field-wise (child wins)
-   *   - `groups`         merged by `id`; a child group with a
+   *   - `rows`               merged by `id`; a child row with a
    *                          known id extends the base; a new id is
    *                          appended at the end
-   *   - `tracks` within a    merged by `id`; same rules as groups
+   *   - `tracks` within a    merged by `id`; same rules as rows
    *     merged group
    *   - `rendering` blocks   merged field-wise
    *
@@ -106,7 +106,7 @@ interface ProtvistaViewerConfig {
    *   extends: "<published-uniprot-default-config-url>"
    *   sources:
    *     my_hotspots: "https://my-lab.example.org/hotspots/{accession}"
-   *   groups:
+   *   rows:
    *     - id: MY_TRACKS
    *       tracks:
    *         - id: hotspots
@@ -174,8 +174,19 @@ interface ProtvistaViewerConfig {
    */
   defaults?: ConfigDefaults;
 
-  /** Ordered list of groups displayed in the viewer. */
-  groups: GroupConfig[];
+  /**
+   * Ordered list of rows displayed in the viewer. Each entry is either
+   * a `GroupConfig` (a collapsible cluster of tracks — has `tracks:`)
+   * or a standalone `TrackConfig` (one row on its own — has `data:`).
+   */
+  rows: TopLevelEntry[];
+
+  /**
+   * @deprecated Renamed to `rows`. Folded into `rows` on load, with a
+   * one-time console warning; removed before the v5 schema is
+   * published. Setting both is a validation error.
+   */
+  groups?: TopLevelEntry[];
 }
 
 /**
@@ -934,7 +945,7 @@ accession: P05067 # self-contained; HTML attribute overrides if present
 sources:
   features: https://www.ebi.ac.uk/proteins/api/features/{accession}
 
-groups:
+rows:
   - id: DOMAINS # label defaults to "Domains"
     tracks:
       - id: domain
@@ -952,7 +963,7 @@ groups:
   "sources": {
     "features": "https://www.ebi.ac.uk/proteins/api/features/{accession}"
   },
-  "groups": [
+  "rows": [
     {
       "id": "DOMAINS",
       "tracks": [
@@ -978,7 +989,7 @@ The viewer renders a single collapsible group "Domains" (label title-cased from 
 **Input:**
 
 ```yaml
-groups:
+rows:
   - id: MY_ANNOTATIONS
     label: My custom annotations
     tracks:
@@ -1011,7 +1022,7 @@ sources:
   proteins: https://www.ebi.ac.uk/proteins/api/proteins/{accession}
   alphafoldPrediction: https://alphafold.ebi.ac.uk/api/prediction/{accession}
 
-groups:
+rows:
   - id: ALPHAFOLD_CONFIDENCE
     # `{% help %}` renders <span data-article-id="…"> for the in-page help popover
     label: '{% help slug="structure_section#alphafold-structural-models" %}AlphaFold{% /help %}'
@@ -1066,7 +1077,7 @@ extends: '<published-uniprot-default-config-url>'
 sources:
   my_hotspots: 'https://my-lab.example.org/protvista/hotspots/{accession}'
 
-groups:
+rows:
   - id: MY_LAB
     label: My lab
     tracks:
@@ -1077,14 +1088,14 @@ groups:
 
 **Expected output (viewer behaviour):**
 
-At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, merges its `sources`, `defaults`, and 15 groups underneath this config, then appends the `MY_LAB` group at the end of the group list. The user sees the full canonical UniProt viewer with their one extra track tacked on — authored in a handful of lines of YAML. Overriding a specific EBI track is equally cheap: declare a group with the same `id` as one in the base and the merge rules fold it in field-wise. The `extends:` value can equally be a relative file path (`./uniprot-default.yaml`) if the adopter hosts their own copy of the base config.
+At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, merges its `sources`, `defaults`, and 15 groups underneath this config, then appends the `MY_LAB` group at the end of the top-level `rows` list. The user sees the full canonical UniProt viewer with their one extra track tacked on — authored in a handful of lines of YAML. Overriding a specific EBI track is equally cheap: declare a group with the same `id` as one in the base and the merge rules fold it in field-wise. The `extends:` value can equally be a relative file path (`./uniprot-default.yaml`) if the adopter hosts their own copy of the base config.
 
 **Bring-your-own file — point the track at a spreadsheet:**
 
 Instead of a hosted `sources` URL, the same track can point straight at a local delimited file. The `.csv` / `.tsv` / `.bed` extension infers the pre-registered `features-csv` / `features-tsv` / `bed` adapter, so no `adapter:` and no `registerAdapter()` glue is needed:
 
 ```yaml
-groups:
+rows:
   - id: MY_LAB
     label: My lab
     tracks:
@@ -1190,7 +1201,7 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 
 ## Acceptance Criteria
 
-- [x] A JSON Schema file (`protvista-config.schema.json`) is published that validates all examples in this spec.
+- [x] A JSON Schema file (`src/schema/schema.json`) is published that validates all examples in this spec.
 - [x] The existing hardcoded `config.ts` default configuration can be losslessly represented as a YAML/JSON file conforming to the new schema (round-trip fidelity).
 - [x] `version`, group `label`, and group `component` are all optional; a config that omits them validates and renders. Group `label` falls back to a title-cased `id`; group `component` is inferred from child tracks' `kind`s.
 - [x] The four `data` forms all work: `data: "<sources-key>"`, `data: "./file.json"` (relative path), `data: { ... }` (single object), `data: [ ... ]` (array for multi-URL adapters).
@@ -1199,11 +1210,11 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 - [x] `from: custom` data sources are renderable via the `setTrackData()` escape-hatch API.
 - [x] `registerAdapter()`, `registerSemanticKind()`, and `registerTheme()` each allow a user-defined name to be referenced from config and function correctly.
 - [x] Track-level `filter: "<value>"` shortcut narrows a track's items to those whose `type` field equals the given value.
-- [x] `extends` resolves one or more base configs (URL or file path), merges per the documented rules (sources by key, groups by id, rendering field-wise, child wins). Cycles are detected and fail validation.
+- [x] `extends` resolves one or more base configs (URL or file path), merges per the documented rules (sources by key, rows by id, rendering field-wise, child wins). Cycles are detected and fail validation.
 - [x] `defaults.rendering` inherits to every group/track and is overridden at the group and track level per the documented precedence chain.
 - [x] Track rendering options (`color`, `shape`, `height`, `layout`, `colorScale`) correctly inherit from `defaults` → group → track, with track winning on conflict.
 - [x] Config validation produces clear, actionable error messages for all edge cases listed above.
-- [x] The schema file declares a stable `$id` URI and data files reference it via `$schema`, so that editors (VS Code, etc.) can resolve the schema and provide autocomplete and inline validation once the URL is hosted. A placeholder `.invalid` URL is used in `default-config.yaml` until the schema is published at release time.
+- [x] The schema file declares a stable `$id` URI (`https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json`) and `default-config.yaml` references it via `$schema`, so editors (VS Code, etc.) can resolve the schema and provide autocomplete and inline validation once the Pages deploy on `next` has published it.
 - [x] All 15 existing UniProt groups render correctly when driven by the new config format (parity test against the hardcoded `config.ts`).
 - [x] Every track in the published default config uses the semantic `kind` field (no raw `component` + `adapter` pairs at the track level).
 - [x] Semantic kinds `confidence-score` and `pathogenicity-score` apply the canonical AlphaFold / AlphaMissense colour ramps automatically when `rendering.colorScale` is not specified.
@@ -1224,7 +1235,7 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 ```typescript
 import { describe, it, expect } from 'vitest';
 import Ajv from 'ajv';
-import schema from '../protvista-config.schema.json';
+import schema from '../src/schema/schema.json';
 import defaultConfig from '../src/default-config.yaml'; // migrated from config.ts
 import { normalize, mergeExtends } from '../src/runtime';
 
@@ -1239,7 +1250,7 @@ describe('ProtVista Viewer Config Schema — JSON Schema layer', () => {
 
   it('accepts a minimal config with no version, no label, no component', () => {
     const config = {
-      groups: [
+      rows: [
         {
           id: 'DOMAINS',
           tracks: [
@@ -1265,7 +1276,7 @@ describe('ProtVista Viewer Config Schema — JSON Schema layer', () => {
     ];
     for (const s of shapes) {
       const config = {
-        groups: [{ id: 'C', tracks: [{ id: 't', kind: 'features', ...s }] }],
+        rows: [{ id: 'C', tracks: [{ id: 't', kind: 'features', ...s }] }],
         sources: {
           features: 'https://x/{accession}',
           a: 'https://a',
@@ -1278,7 +1289,7 @@ describe('ProtVista Viewer Config Schema — JSON Schema layer', () => {
 
   it('rejects inline data source with missing inlineData', () => {
     const config = {
-      groups: [
+      rows: [
         {
           id: 'C',
           tracks: [{ id: 't', kind: 'features', data: { from: 'inline' } }],
@@ -1296,7 +1307,7 @@ describe('ProtVista Viewer Config Schema — JSON Schema layer', () => {
         rendering: { layout: 'non-overlapping' },
       },
       sources: { my_features: 'https://example.org/my-features/{accession}' },
-      groups: [
+      rows: [
         { id: 'MY', tracks: [{ id: 't', kind: 'features', data: 'my_features' }] },
       ],
     };
@@ -1307,36 +1318,36 @@ describe('ProtVista Viewer Config Schema — JSON Schema layer', () => {
 describe('ProtVista Viewer Config Schema — runtime layer', () => {
   it('title-cases group id when label is omitted', () => {
     const cfg = normalize({
-      groups: [{ id: 'MOLECULE_PROCESSING', tracks: [] }],
+      rows: [{ id: 'MOLECULE_PROCESSING', tracks: [] }],
     });
-    expect(cfg.groups[0].label).toBe('Molecule processing');
+    expect(cfg.rows[0].label).toBe('Molecule processing');
   });
 
   it('merges an extends chain per documented rules', async () => {
     const base = {
       sources: { features: 'https://base/{accession}' },
-      groups: [
+      rows: [
         { id: 'A', tracks: [{ id: 't1', kind: 'features', data: 'features' }] },
       ],
     };
     const child = {
       extends: 'base',
-      groups: [
+      rows: [
         { id: 'A', tracks: [{ id: 't2', kind: 'features', data: 'features' }] },
         { id: 'B', tracks: [{ id: 't3', kind: 'features', data: 'features' }] },
       ],
     };
     const merged = await mergeExtends(child, { base });
     // Group A has both tracks; Group B is appended at the end
-    expect(merged.groups.map((c) => c.id)).toEqual(['A', 'B']);
-    expect(merged.groups[0].tracks.map((t) => t.id)).toEqual(['t1', 't2']);
+    expect(merged.rows.map((c) => c.id)).toEqual(['A', 'B']);
+    expect(merged.rows[0].tracks.map((t) => t.id)).toEqual(['t1', 't2']);
     expect(merged.sources.features).toBe('https://base/{accession}');
   });
 
   it('rejects duplicate group ids within a single config', () => {
     expect(() =>
       normalize({
-        groups: [
+        rows: [
           { id: 'DUPED', tracks: [] },
           { id: 'DUPED', tracks: [] },
         ],
@@ -1345,15 +1356,15 @@ describe('ProtVista Viewer Config Schema — runtime layer', () => {
   });
 
   it('detects circular extends chains', async () => {
-    const a = { extends: 'b', groups: [] };
-    const b = { extends: 'a', groups: [] };
+    const a = { extends: 'b', rows: [] };
+    const b = { extends: 'a', rows: [] };
     await expect(mergeExtends(a, { a, b })).rejects.toThrow(/Circular extends/);
   });
 
   it('deduplicates URLs across tracks sharing the same source key', () => {
     const config = normalize({
       sources: { features: 'https://example.com/features/{accession}' },
-      groups: [
+      rows: [
         {
           id: 'SITES',
           tracks: [
@@ -1374,7 +1385,7 @@ describe('ProtVista Viewer Config Schema — runtime layer', () => {
         },
       ],
     });
-    const urls = config.groups
+    const urls = config.rows
       .flatMap((c) => c.tracks)
       .flatMap((t) => t.data)
       .flatMap((d: any) => (Array.isArray(d.url) ? d.url : [d.url]))

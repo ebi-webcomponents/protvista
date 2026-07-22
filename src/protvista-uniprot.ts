@@ -3,18 +3,15 @@ import { customElement } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { frame } from 'timing-functions';
 
-// Nightingale
-import NightingaleManager from '@nightingale-elements/nightingale-manager';
-import NightingaleNavigation from '@nightingale-elements/nightingale-navigation';
-import NightingaleSequence from '@nightingale-elements/nightingale-sequence';
-import NightingaleColoredSequence from '@nightingale-elements/nightingale-colored-sequence';
-import NightingaleTrackCanvas from '@nightingale-elements/nightingale-track-canvas';
-import NightingaleVariationCanvas from '@nightingale-elements/nightingale-variation-canvas';
-import NightingaleLinegraphTrack from '@nightingale-elements/nightingale-linegraph-track';
-import NightingaleSequenceHeatmap from '@nightingale-elements/nightingale-sequence-heatmap';
-import NightingaleFilter, {
-  Filter,
-} from '@nightingale-elements/nightingale-filter';
+// Nightingale — type-only imports for the components this file
+// queries/narrows against. The constructors are no longer imported
+// here: they live in `src/built-in-components.ts` and are defined via
+// the registry-driven registration walk (see `_init` / `connectedCallback`).
+import type NightingaleTrackCanvas from '@nightingale-elements/nightingale-track-canvas';
+import type NightingaleVariationCanvas from '@nightingale-elements/nightingale-variation-canvas';
+import type NightingaleSequenceHeatmap from '@nightingale-elements/nightingale-sequence-heatmap';
+import type NightingaleFilter from '@nightingale-elements/nightingale-filter';
+import type { Filter } from '@nightingale-elements/nightingale-filter';
 import { amColorScale } from '@nightingale-elements/nightingale-structure';
 
 // adapters
@@ -37,9 +34,11 @@ import { featuresTsv } from './schema/adapters/features-tsv';
 import { featuresJson } from './schema/adapters/features-json';
 import { bed } from './schema/adapters/bed';
 
-import ProtvistaUniprotStructure from './protvista-uniprot-structure';
-
 import { loadComponent } from './utils';
+import {
+  STRUCTURAL_COMPONENTS,
+  registerBuiltinComponents,
+} from './built-in-components';
 import {
   loadProtvistaData,
   UNFILTERED_SUFFIX,
@@ -58,7 +57,14 @@ import filterConfig, { colorConfig } from './filter-config';
 // who pass a parsed `viewerConfig` object never pull in the parser.
 import defaultConfigYaml from './default-config.yaml?raw';
 import { loadConfig } from './schema/load';
-import type { KnownComponentName, ProtvistaViewerConfig } from './schema/types';
+import { type Registry, createRegistry } from './schema/registry';
+import type {
+  KnownComponentName,
+  ProtvistaViewerConfig,
+  AdapterFunction,
+  SemanticKindDefinition,
+  ColorStop,
+} from './schema/types';
 import type { NormalizedConfig, NormalizedTrack } from './schema/normalize';
 import { renderingToAttrs } from './renderer/render-helpers';
 
@@ -210,7 +216,7 @@ class ProtvistaUniprot extends LitElement {
    * Fully-resolved config consumed by the renderer and
    * `loadProtvistaData()`. Populated in `_init()` by running the
    * schema pipeline (`loadConfig`) over one of the three input
-   * sources below. The renderer reads `NormalizedGroup` /
+   * sources below. The renderer reads `NormalizedRow` /
    * `NormalizedTrack` fields (`id`, `description`, `component`,
    * `rendering.*`, `filterUI`, `data[]`) directly — no intermediate
    * adapter is involved.
@@ -341,8 +347,23 @@ class ProtvistaUniprot extends LitElement {
    */
   private _panelWasOpen = false;
 
+  /**
+   * Per-instance runtime registry. Seeded with the built-in renderable
+   * components (adapters / kinds / themes are seeded by
+   * `createRegistry()` itself); consumers extend it through the public
+   * `registerComponent` / `registerSemanticKind` / `registerAdapter` /
+   * `registerTheme` methods. Passed to `loadConfig` so validation and
+   * kind resolution see the consumer's registrations, and read by the
+   * registration walk to resolve component names to constructors.
+   *
+   * One registry per element so custom registrations on one viewer never
+   * leak into another on the same page.
+   */
+  private readonly registry: Registry = createRegistry();
+
   constructor() {
     super();
+    registerBuiltinComponents(this.registry);
     this.openGroups = [];
     this.nostructure = false;
     this.hasData = false;
@@ -351,6 +372,35 @@ class ProtvistaUniprot extends LitElement {
     this.rawData = {};
     this.displayCoordinates = {};
     this.addStyles();
+  }
+
+  // ── Runtime extension API (ProtvistaRuntimeAPI) ─────────────
+  // Thin delegates onto this element's registry. Call these before the
+  // config loads (e.g. right after creating the element) so custom
+  // names are known when `loadConfig` validates and normalizes.
+
+  /** Register a custom adapter so config can reference it by name. */
+  registerAdapter(name: string, fn: AdapterFunction): void {
+    this.registry.registerAdapter(name, fn);
+  }
+
+  /** Register a custom semantic kind (component + adapter + rendering). */
+  registerSemanticKind(name: string, def: SemanticKindDefinition): void {
+    this.registry.registerSemanticKind(name, def);
+  }
+
+  /** Register a custom colour-scale theme. */
+  registerTheme(name: string, stops: ColorStop[]): void {
+    this.registry.registerTheme(name, stops);
+  }
+
+  /**
+   * Register a custom component so a semantic kind (or explicit
+   * `component:`) resolving to `name` gets its tag defined by the
+   * registration walk — no consumer `customElements.define()` needed.
+   */
+  registerComponent(name: string, ctor: CustomElementConstructor): void {
+    this.registry.registerComponent(name, ctor);
   }
 
   static get properties() {
@@ -384,17 +434,41 @@ class ProtvistaUniprot extends LitElement {
     injectStyleOnce('error', errorStyles.toString());
   }
 
-  registerWebComponents() {
-    loadComponent('nightingale-navigation', NightingaleNavigation);
-    loadComponent('nightingale-track-canvas', NightingaleTrackCanvas);
-    loadComponent('nightingale-colored-sequence', NightingaleColoredSequence);
-    loadComponent('nightingale-sequence', NightingaleSequence);
-    loadComponent('nightingale-variation-canvas', NightingaleVariationCanvas);
-    loadComponent('nightingale-linegraph-track', NightingaleLinegraphTrack);
-    loadComponent('nightingale-filter', NightingaleFilter);
-    loadComponent('nightingale-manager', NightingaleManager);
-    loadComponent('protvista-uniprot-structure', ProtvistaUniprotStructure);
-    loadComponent('nightingale-sequence-heatmap', NightingaleSequenceHeatmap);
+  /**
+   * Define the structural chrome tags the template always emits
+   * (`nightingale-manager`, `-navigation`, `-sequence`, `-filter`, and
+   * the structure viewer). These are not config-selectable, so they are
+   * registered directly from `STRUCTURAL_COMPONENTS` rather than via the
+   * registry walk. `loadComponent` skips any tag already defined.
+   */
+  private registerStructuralComponents() {
+    for (const [name, ctor] of STRUCTURAL_COMPONENTS) {
+      loadComponent(name, ctor);
+    }
+  }
+
+  /**
+   * Define the components the resolved config actually references. Walks
+   * every group's and track's resolved `component`, looks the
+   * constructor up in the registry, and defines the tag via
+   * `loadComponent` (which no-ops for already-defined tags). This is the
+   * seam that lets a consumer-registered component reach
+   * `customElements.define()` without the embedder calling it directly.
+   */
+  private registerConfigComponents(config: NormalizedConfig) {
+    const names = new Set<string>();
+    for (const row of config.rows) {
+      names.add(row.component);
+      for (const track of row.tracks) names.add(track.component);
+    }
+    for (const name of names) {
+      const ctor = this.registry.getComponent(name);
+      if (ctor) loadComponent(name, ctor);
+      // A missing ctor means a config referenced a component name with no
+      // registered constructor. Validation (unknown-component) catches
+      // this before mount, so reaching here is unexpected — leave the tag
+      // undefined rather than throwing mid-render.
+    }
   }
 
   /**
@@ -547,7 +621,7 @@ class ProtvistaUniprot extends LitElement {
     const reloadedKeys =
       only ??
       new Set(
-        this.config.groups.flatMap((g) =>
+        this.config.rows.flatMap((g) =>
           g.tracks.map((t) => `${g.id}-${t.id}`)
         )
       );
@@ -565,7 +639,7 @@ class ProtvistaUniprot extends LitElement {
     // track. Rebuilding from the merged per-track keys is order-independent
     // and self-consistent (and a no-op for a full load). Mirrors the
     // loader's per-component aggregate rule.
-    for (const group of this.config.groups) {
+    for (const group of this.config.rows) {
       const touched = group.tracks.some((t) =>
         reloadedKeys.has(`${group.id}-${t.id}`)
       );
@@ -633,7 +707,7 @@ class ProtvistaUniprot extends LitElement {
       if (element && element.data !== data) {
         element.data = data;
       }
-      const currentGroup = this.config?.groups.find((c) => c.id === id);
+      const currentGroup = this.config?.rows.find((c) => c.id === id);
       if (
         currentGroup &&
         currentGroup.tracks &&
@@ -852,6 +926,12 @@ class ProtvistaUniprot extends LitElement {
           this.accession = normalized.accession;
         }
         this.config = normalized;
+        // Define the components this config references (built-in or
+        // consumer-registered) now that the resolved set is known. Runs
+        // once per fresh config; re-inits (accession change / retry)
+        // re-enter with `config` already set and skip this block —
+        // `loadComponent` would no-op anyway.
+        this.registerConfigComponents(normalized);
         // A now-valid config clears a stale config-error panel from a
         // previous attempt.
         if (this._mountError?.phase === 'config') {
@@ -956,7 +1036,7 @@ class ProtvistaUniprot extends LitElement {
    * the config already declares its own accession.
    */
   private async resolveViewerConfig(): Promise<NormalizedConfig> {
-    const loadOpts = { accession: this.accession };
+    const loadOpts = { accession: this.accession, registry: this.registry };
     if (this.viewerConfig !== undefined) {
       return loadConfig(this.viewerConfig, loadOpts);
     }
@@ -1041,7 +1121,7 @@ class ProtvistaUniprot extends LitElement {
     // needed here and no validation is possible yet (no config).
     if (!this.config) return;
 
-    const group = this.config.groups.find((c) => c.id === groupId);
+    const group = this.config.rows.find((c) => c.id === groupId);
     const track = group?.tracks.find((t) => t.id === trackId);
     if (!track) {
       this.reportError('set-track-data', {
@@ -1261,7 +1341,7 @@ class ProtvistaUniprot extends LitElement {
     // *missing* — so a 4xx is treated exactly like an empty response: the
     // track simply has no data and is hidden, with no badge, event, or
     // panel. Only `network`, `parse`, and HTTP `5xx` are recorded.
-    for (const group of this.config.groups) {
+    for (const group of this.config.rows) {
       for (const track of group.tracks) {
         const key = `${group.id}-${track.id}`;
         const hit = (trackUrls[key] ?? []).find((u) => fetchErrors.has(u));
@@ -1278,7 +1358,7 @@ class ProtvistaUniprot extends LitElement {
 
     // Recompute the "every track failed" set from the final error map.
     this._groupErrors = new Set();
-    for (const group of this.config.groups) {
+    for (const group of this.config.rows) {
       if (
         group.tracks.length > 0 &&
         group.tracks.every((t) =>
@@ -1367,7 +1447,7 @@ class ProtvistaUniprot extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     markOnce('protvista:script-start');
-    this.registerWebComponents();
+    this.registerStructuralComponents();
 
     if (!this.suspend) this._init();
 
@@ -1456,7 +1536,7 @@ class ProtvistaUniprot extends LitElement {
    * for parity with the grouped path (so the `.${CSS_PREFIX}-group` /
    * `-track-label` / `-track-content` rules apply here too).
    */
-  renderStandaloneTrack(group: NormalizedConfig['groups'][number]) {
+  renderStandaloneTrack(group: NormalizedConfig['rows'][number]) {
     const track = group.tracks[0];
     const trackData = track && this.data[`${group.id}-${track.id}`];
     if (!track || !hasRenderableData(trackData)) {
@@ -1552,7 +1632,7 @@ class ProtvistaUniprot extends LitElement {
             ></nightingale-sequence>
           </div>
         </div>
-        ${this.config.groups.map((group) => {
+        ${this.config.rows.map((group) => {
           const groupHasData = hasRenderableData(this.data[group.id]);
           const groupHasError = this._visibleGroupErrors.has(group.id);
           if (!groupHasData && !groupHasError) return '';
@@ -1779,7 +1859,7 @@ class ProtvistaUniprot extends LitElement {
    * no data to draw: the header label plus a `⚠` badge, no content. Keeps
    * the failure visible even while the group is collapsed.
    */
-  private renderGroupErrorRow(group: NormalizedConfig['groups'][number]) {
+  private renderGroupErrorRow(group: NormalizedConfig['rows'][number]) {
     return html`
       <div class="${CSS_PREFIX}-group" id="${CSS_PREFIX}-group_${group.id}">
         <div
@@ -2113,7 +2193,17 @@ class ProtvistaUniprot extends LitElement {
           </nightingale-sequence-heatmap>
         `;
       default:
-        console.warn('No Matching ProtvistaTrack Found.');
+        // Reached when a component is registered and validated but has
+        // no `case` here — the current gap for consumer components (see
+        // "Register + load + render" in docs/architecture.md). Name the
+        // component and the row: validation deliberately accepts these
+        // now, so this warning is the only signal the author gets that
+        // the row rendered empty.
+        console.warn(
+          `[protvista-uniprot] No renderer for component '${component}'` +
+            `${id ? ` (row '${id}')` : ''}. Custom components are defined ` +
+            `and validated but not yet drawn — the row renders empty.`
+        );
         break;
     }
   }

@@ -52,11 +52,11 @@ jobs:
         run: yarn build
 
       - name: Build demo
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/next' && github.event_name == 'push'
         run: yarn build:demo
 
       - name: Upload Pages artifact
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/next' && github.event_name == 'push'
         uses: actions/upload-pages-artifact@v4
         with:
           path: demo/
@@ -65,7 +65,7 @@ jobs:
     name: Deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/next' && github.event_name == 'push'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

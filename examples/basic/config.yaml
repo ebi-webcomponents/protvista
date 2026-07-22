@@ -1,0 +1,15 @@
+# Minimal, URL-sourced config — one group, one track.
+#
+# See examples/README.md for how this directory is structured and
+# validated.
+accession: P05067
+sources:
+  features: https://www.ebi.ac.uk/proteins/api/features/{accession}
+groups:
+  - id: DOMAINS
+    tracks:
+      - id: domain
+        kind: features
+        filter: DOMAIN
+        data: features
+        description: Specific combination of secondary structures organized into a characteristic 3D fold

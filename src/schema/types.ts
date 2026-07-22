@@ -94,7 +94,7 @@ export type AuthoredTooltipSpec =
  *
  * A valid JSON (or YAML-parsed-to-object) value conforming to this
  * interface is sufficient to mount a fully functional viewer. All
- * fields other than `groups` are optional; every field has a
+ * fields other than `rows` are optional; every field has a
  * documented default or fallback in the spec's Behavior / Edge Cases
  * sections.
  *
@@ -128,7 +128,7 @@ export interface ProtvistaViewerConfig {
    *
    *   - `sources`              — merged by key (child wins)
    *   - `defaults`             — merged field-wise (child wins)
-   *   - `groups`               — merged by `id` (one shared namespace
+   *   - `rows`                 — merged by `id` (one shared namespace
    *                              across groups and standalone tracks);
    *                              a child entry with a known id extends
    *                              the base; a new id is appended at the
@@ -136,7 +136,7 @@ export interface ProtvistaViewerConfig {
    *                              (group↔standalone track) replaces the
    *                              base entry wholesale — child wins, no
    *                              field merge.
-   *   - `tracks` within a      — merged by `id`; same rules as groups
+   *   - `tracks` within a      — merged by `id`; same rules as rows
    *     merged group
    *   - `rendering` blocks     — merged field-wise
    *
@@ -182,25 +182,35 @@ export interface ProtvistaViewerConfig {
   strict?: boolean;
 
   /**
-   * Ordered list of top-level entries displayed in the viewer.
+   * Ordered list of rows displayed in the viewer — the viewer's
+   * vertical lanes, top to bottom.
    *
    * Each entry is either a `GroupConfig` (a cluster of tracks under a
-   * collapsible header) or a standalone `TrackConfig` (a single row,
-   * no group wrapper). The two shapes are discriminated by the
-   * presence of `tracks:` — present → group, absent → standalone
-   * track — and may be mixed freely in the same config; declaration
-   * order is preserved across both.
+   * collapsible header — an expandable lane) or a standalone
+   * `TrackConfig` (a single row, no group wrapper). The two shapes are
+   * discriminated by the presence of `tracks:` — present → group,
+   * absent → standalone track — and may be mixed freely in the same
+   * config; declaration order is preserved across both.
    *
    * Standalone tracks and groups share one top-level `id` namespace:
    * a standalone track's `id` may not collide with a group `id` (or
-   * another standalone track's). The field keeps its `groups:` name
-   * for back-compat even though it now also accepts non-groups.
+   * another standalone track's).
    */
-  groups: TopLevelEntry[];
+  rows: TopLevelEntry[];
+
+  /**
+   * @deprecated Renamed to {@link rows}. `groups:` misnamed the list
+   * once it started holding standalone tracks alongside real groups.
+   * Still accepted — it is folded into `rows:` on load, with a
+   * one-time console warning — but it will be removed before the v5
+   * schema is published. Setting both `rows:` and `groups:` is a
+   * validation error.
+   */
+  groups?: TopLevelEntry[];
 }
 
 /**
- * One entry under the config's top-level `groups:` array — either a
+ * One entry under the config's top-level `rows:` array — either a
  * group of tracks or a standalone track. Discriminated by the
  * presence of `tracks:` (see `isGroupConfig` in `discriminate.ts`).
  */
@@ -664,6 +674,15 @@ export interface ProtvistaRuntimeAPI {
    * Register a custom colour-scale theme (see `ColorScaleConfig.theme`).
    */
   registerTheme(name: string, stops: ColorStop[]): void;
+
+  /**
+   * Register a custom component (a custom-element constructor) so a
+   * semantic kind — or an explicit `component:` — resolving to `name`
+   * gets its tag defined automatically when the config references it,
+   * with no consumer `customElements.define()` call. The name must not
+   * collide with a built-in renderable component.
+   */
+  registerComponent(name: string, ctor: CustomElementConstructor): void;
 
   /**
    * Provide data directly for a specific track, bypassing URL fetching.
