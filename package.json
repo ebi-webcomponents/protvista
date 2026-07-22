@@ -58,6 +58,10 @@
     "timing-functions": "2.0.1"
   },
   "devDependencies": {
+    "@codemirror/lang-json": "6.0.2",
+    "@codemirror/lang-yaml": "6.1.2",
+    "@codemirror/lint": "6.8.5",
+    "@codemirror/state": "6.5.2",
     "@eslint/js": "10.0.1",
     "@lhci/cli": "0.15.1",
     "@originjs/vite-plugin-commonjs": "1.0.3",
@@ -67,6 +71,7 @@
     "@typescript-eslint/eslint-plugin": "8.59.1",
     "@typescript-eslint/parser": "8.59.1",
     "@vitest/coverage-v8": "4.1.5",
+    "codemirror": "6.0.2",
     "eslint": "10.2.1",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-no-unsanitized": "4.1.5",
