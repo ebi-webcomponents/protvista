@@ -56,6 +56,9 @@ const editorHost = $<HTMLElement>('editor');
 
 /** Id of the preset currently loaded; used to keep shared links short. */
 let activePresetId = DEFAULT_PRESET_ID;
+// Declared here so the pipeline functions below can reference it; assigned
+// exactly once in the bootstrap at the end of the file (hence `let`).
+// eslint-disable-next-line prefer-const
 let editor: PlaygroundEditor;
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 /** Monotonic stamp so a slow async run can't apply over a newer one. */
@@ -153,9 +156,8 @@ async function computeSafe(
   }
 }
 
-type ValidateResult =
-  | { superseded: true }
-  | { superseded: false; text: string; accession: string; valid: boolean };
+/** The validated snapshot, or `null` when a newer run superseded this one. */
+type ValidateResult = { text: string; accession: string; valid: boolean } | null;
 
 /**
  * Shared validation step for both pipeline entry points: cancel any
@@ -175,12 +177,12 @@ async function validateCurrent(): Promise<ValidateResult> {
   syncPicker(text);
 
   const diagnostics = await computeSafe(text, accession);
-  if (seq !== updateSeq) return { superseded: true };
+  if (seq !== updateSeq) return null;
 
   editor.setDiagnostics(diagnostics);
   const valid = diagnosticsView.showConfig(diagnostics);
   writeHash(currentState());
-  return { superseded: false, text, accession, valid };
+  return { text, accession, valid };
 }
 
 /**
@@ -190,7 +192,7 @@ async function validateCurrent(): Promise<ValidateResult> {
  */
 async function refreshDiagnostics(): Promise<void> {
   const result = await validateCurrent();
-  if (result.superseded) return;
+  if (!result) return;
   setStale(
     !lastRendered ||
       result.text !== lastRendered.text ||
@@ -204,7 +206,7 @@ async function refreshDiagnostics(): Promise<void> {
  */
 async function run(): Promise<void> {
   const result = await validateCurrent();
-  if (result.superseded) return;
+  if (!result) return;
   if (result.valid) {
     renderPreview(result.text, result.accession);
     lastRendered = { text: result.text, accession: result.accession };
