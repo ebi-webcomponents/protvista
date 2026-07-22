@@ -34,11 +34,15 @@
         color: var(--ink);
         background: var(--bg);
         margin: 0;
-        /* Column layout so `main` fills the space left by the header
-           however tall it wraps — no fixed magic-number height. */
+        /* Fill the viewport with a definite height (flex column handles a
+           wrapped header, no magic number) and hide page overflow, so each
+           pane scrolls internally and independently rather than the whole
+           page growing with the config. */
         display: flex;
         flex-direction: column;
-        min-height: 100vh;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
       }
       header.bar {
         flex: none;
@@ -120,6 +124,9 @@
         display: flex;
         flex-direction: column;
         min-width: 0;
+        /* Grid items default to min-height:auto; 0 lets the pane shrink so
+           its editor/preview child owns the scroll. */
+        min-height: 0;
         overflow: hidden;
       }
       .pane h2 {
@@ -165,22 +172,26 @@
         display: none;
       }
       .errors {
+        /* Fixed footer of the config pane — always visible at the bottom,
+           regardless of how far the editor above is scrolled. */
+        flex: none;
         border-top: 1px solid var(--line);
         background: #fff;
-        max-height: 12rem;
-        overflow: auto;
         padding: 0.5rem 1rem;
       }
       #error-summary {
         font-size: 0.85rem;
         font-weight: 700;
-        margin: 0 0 0.35rem;
+        margin: 0;
       }
       #errors {
-        margin: 0;
+        margin: 0.35rem 0 0;
         padding-left: 1.1rem;
         font-size: 0.85rem;
         color: var(--err);
+        /* Only the list scrolls; the summary line stays pinned above it. */
+        max-height: 9rem;
+        overflow: auto;
       }
       #errors:empty {
         display: none;
@@ -193,9 +204,13 @@
         color: var(--muted);
       }
       @media (max-width: 760px) {
+        /* Stack the panes and let the page scroll normally. */
+        body {
+          height: auto;
+          overflow: visible;
+        }
         main {
           grid-template-columns: 1fr;
-          height: auto;
         }
         section.pane {
           overflow: visible;
