@@ -32,8 +32,8 @@ import {
 } from './url-state';
 
 const DEBOUNCE_MS = 400;
-/** Default of `--protvista-color-accent` (see docs/theming.md). */
-const DEFAULT_ACCENT = '#0053d6';
+/** Default of `--protvista-group-label-bg` (see docs/theming.md). */
+const DEFAULT_LABEL_BG = '#b2f5ff';
 
 /** Minimal structural view of the preview element's writable inputs. */
 type PreviewElement = HTMLElement & {
@@ -50,8 +50,8 @@ const $ = <T extends HTMLElement>(id: string): T => {
 const presetSelect = $<HTMLSelectElement>('preset');
 const accessionInput = $<HTMLInputElement>('accession');
 const runButton = $<HTMLButtonElement>('run');
-const themeAccent = $<HTMLInputElement>('theme-accent');
-const themeReset = $<HTMLButtonElement>('theme-reset');
+const labelColor = $<HTMLInputElement>('label-color');
+const labelReset = $<HTMLButtonElement>('label-reset');
 const errorSummary = $<HTMLElement>('error-summary');
 const errorList = $<HTMLUListElement>('errors');
 const previewHost = $<HTMLElement>('preview');
@@ -254,17 +254,41 @@ presetSelect.addEventListener('change', () => {
 // Accession changes fire once on blur/enter → render once.
 accessionInput.addEventListener('change', () => void run());
 
-// ── Theme ─────────────────────────────────────────────────────
-// The accent is a CSS display token (docs/theming.md), NOT config. It is
-// set live on the (stable) preview host so it survives preview re-mounts,
-// and is intentionally left out of the shareable config/URL.
-function applyTheme(): void {
-  previewHost.style.setProperty('--protvista-color-accent', themeAccent.value);
+// ── Row-label panel colour ────────────────────────────────────
+// Recolours the left side panel (group + track labels) via the
+// `--protvista-*-label-bg` CSS design tokens (docs/theming.md) — a display
+// concern, NOT config. The picked colour is the group-label background;
+// the track labels get a slightly lighter tint of it, mirroring the
+// default hierarchy (#b2f5ff group / #d9faff track). Tokens are set on the
+// (stable) preview host, so they apply live (custom properties inherit)
+// and survive preview re-mounts; they are intentionally left out of the
+// shareable config/URL.
+const LABEL_TOKENS = [
+  '--protvista-group-label-bg',
+  '--protvista-track-label-bg',
+];
+
+/** Mix a `#rrggbb` colour toward white by `amount` (0..1). */
+function tint(hex: string, amount: number): string {
+  const value = Number.parseInt(hex.slice(1), 16);
+  const channel = (shift: number): number => {
+    const c = (value >> shift) & 0xff;
+    return Math.round(c + (255 - c) * amount);
+  };
+  const mixed = (channel(16) << 16) | (channel(8) << 8) | channel(0);
+  return `#${mixed.toString(16).padStart(6, '0')}`;
 }
-themeAccent.addEventListener('input', applyTheme);
-themeReset.addEventListener('click', () => {
-  themeAccent.value = DEFAULT_ACCENT;
-  previewHost.style.removeProperty('--protvista-color-accent');
+
+function applyLabelColor(): void {
+  const color = labelColor.value;
+  const { style } = previewHost;
+  style.setProperty('--protvista-group-label-bg', color);
+  style.setProperty('--protvista-track-label-bg', tint(color, 0.35));
+}
+labelColor.addEventListener('input', applyLabelColor);
+labelReset.addEventListener('click', () => {
+  labelColor.value = DEFAULT_LABEL_BG;
+  for (const token of LABEL_TOKENS) previewHost.style.removeProperty(token);
 });
 
 // ── Bootstrap ─────────────────────────────────────────────────
@@ -297,8 +321,8 @@ editor = createEditor({
   ariaLabel: 'ProtVista configuration editor (YAML or JSON)',
   onChange: scheduleRefresh,
 });
-// Render the initial preview once on load, with the accent applied.
-applyTheme();
+// Render the initial preview once on load (the label colour keeps the
+// viewer's default until the user changes the picker).
 void run();
 
 // Make the divider between the editor and preview panes draggable.
