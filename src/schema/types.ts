@@ -197,16 +197,6 @@ export interface ProtvistaViewerConfig {
    * another standalone track's).
    */
   rows: TopLevelEntry[];
-
-  /**
-   * @deprecated Renamed to {@link rows}. `groups:` misnamed the list
-   * once it started holding standalone tracks alongside real groups.
-   * Still accepted — it is folded into `rows:` on load, with a
-   * one-time console warning — but it will be removed before the v5
-   * schema is published. Setting both `rows:` and `groups:` is a
-   * validation error.
-   */
-  groups?: TopLevelEntry[];
 }
 
 /**

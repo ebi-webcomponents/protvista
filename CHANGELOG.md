@@ -35,14 +35,15 @@ renderer). The `data-article-id` DOM your help-article controller listens for is
 unchanged. If you strip or fail to register the tag, help spans stop rendering
 and the popovers break — that is the one visible DOM regression to watch for.
 
-### Deprecated — the top-level `groups:` config field is now `rows:`
+### Removed (breaking) — the top-level `groups:` config field is now `rows:`
 
-The top-level entry list is renamed from `groups:` to `rows:`. That array
-has held two kinds of entry since standalone single-row tracks landed — a
-group (a collapsible cluster, has `tracks:`) and a standalone track (one
-row on its own, has `data:`) — so `groups:` named it dishonestly. Every
-top-level entry is one vertical lane; a group is simply an expandable
-lane.
+The top-level entry list is `rows:`, and the deprecated `groups:` alias is
+**removed** (no fold, no warning — a leftover `groups:` is now an unknown
+property and fails validation). That array has held two kinds of entry
+since standalone single-row tracks landed — a group (a collapsible
+cluster, has `tracks:`) and a standalone track (one row on its own, has
+`data:`) — so `groups:` named it dishonestly. Every top-level entry is one
+vertical lane; a group is simply an expandable lane.
 
 **Migration.** Rename the field. Nothing else about the entries changes:
 
@@ -53,20 +54,10 @@ groups:                      rows:
     tracks: [...]                tracks: [...]
 ```
 
-`groups:` still works and is treated as an exact alias for `rows:`, but
-loading a config that uses it now emits a one-time `console.warn`. The
-alias will be **removed before the v5 schema is published** — one release
-cycle from now.
-
-Setting both `rows:` and `groups:` is a validation error
-(`rows-alias-conflict`) rather than a silent preference for one: the two
-lists would render very differently and the config gives no way to tell
-which was meant.
-
 **Not affected:** `tracks:` nested inside a group keeps its name — only
 the top-level field is renamed. The post-load `NormalizedConfig` model
-now exposes `rows` / `NormalizedRow`, so the authoring field and the
-resolved model agree.
+exposes `rows` / `NormalizedRow`, so the authoring field and the resolved
+model agree.
 
 ### Breaking — internal CSS classes and DOM ids are now hash-prefixed
 

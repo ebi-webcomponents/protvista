@@ -81,13 +81,11 @@ describe('validateConfig — happy paths', () => {
 // ─────────────────────────────────────────────────────────────
 
 describe('validateConfig — structural errors', () => {
-  it('rejects a config carrying neither `rows` nor `groups`', () => {
+  it('rejects a config with no `rows`', () => {
     const result = validateConfig({}, freshRegistry());
     expect(result.valid).toBe(false);
     expect(result.issues[0].code).toBe('schema');
-    // The root `oneOf` requires exactly one of the two spellings, so a
-    // config with neither fails both branches. `rows` is the canonical
-    // one and the only one an author should be reaching for.
+    // `rows` is required at the root.
     expect(result.issues.some((i) => i.message.includes("'rows'"))).toBe(true);
   });
 

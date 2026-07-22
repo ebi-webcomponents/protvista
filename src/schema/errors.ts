@@ -51,8 +51,6 @@ export type ValidationIssueCode =
   | 'invalid-color-scale'
   | 'unsupported-version'
   | 'missing-accession'
-  /** The config sets both `rows:` and its deprecated `groups:` alias. */
-  | 'rows-alias-conflict'
   // ── Extends resolution ─────────────────────────────────
   /** The `extends` chain forms a cycle (a → b → a). */
   | 'circular-extends'

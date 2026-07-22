@@ -340,7 +340,7 @@ describe('JSON Schema — fine-grained acceptance', () => {
     // (the `{% help %}` tag, inline links, emphasis) is accepted at the
     // schema layer; rendering is exercised in the tooltip resolver tests.
     expectValid({
-      groups: [
+      rows: [
         {
           id: 'ALPHAFOLD',
           label: '{% help slug="alphafold#models" %}AlphaFold{% /help %}',
@@ -512,34 +512,20 @@ describe('JSON Schema — rejection cases', () => {
     );
   });
 
-  it('rejects a config with neither `rows` nor `groups`', () => {
+  it('requires `rows`', () => {
     expectInvalid({}, /rows/);
   });
 
-  // The deprecated `groups:` spelling stays in the schema for one cycle
-  // so an editor validating a legacy config against the published
-  // schema does not light it up red. The loader folds it into `rows:`
-  // and warns; see rows-alias.spec.ts.
-  it('still accepts the deprecated `groups:` spelling', () => {
-    expectValid({
-      sources: { features: 'https://example.org/features' },
-      groups: [
-        { id: 'C', tracks: [{ id: 't', kind: 'features', data: 'features' }] },
-      ],
-    });
-  });
-
-  it('rejects a config setting both `rows` and `groups`', () => {
-    // `oneOf` (not `anyOf`) is what makes both-at-once a failure. The
-    // runtime resolver catches this earlier with a clearer message, but
-    // the schema must reject it too — it is the contract editors and
-    // external tools validate against.
+  // `groups:` was the old name for `rows:`; it is removed in v5 (no alias).
+  // A leftover `groups:` is now just an unknown property (additionalProperties: false).
+  it('rejects the removed `groups:` field', () => {
     expectInvalid({
       sources: { features: 'https://example.org/features' },
       rows: [{ id: 'a', kind: 'features', data: 'features' }],
       groups: [{ id: 'b', kind: 'features', data: 'features' }],
     });
   });
+
 
   it('rejects typos via additionalProperties: false', () => {
     expectInvalid(

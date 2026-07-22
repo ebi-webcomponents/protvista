@@ -71,7 +71,6 @@ import type {
 } from './types';
 import { isGroupConfig } from './discriminate';
 import type { Registry } from './registry';
-import { resolveRowsAlias } from './rows-alias';
 import { dataFileFormatForPath } from './file-formats';
 
 // ─────────────────────────────────────────────────────────────
@@ -193,11 +192,7 @@ export function normalizeConfig(
   opts: NormalizeOptions = {}
 ): NormalizedConfig {
   const { registry } = opts;
-  // Defensive: `loadConfig` has already folded any `groups:` alias into
-  // `rows:`, but `normalizeConfig` is exported and an embedder may call
-  // it directly on an authored config. Re-resolving an alias-free
-  // config is a no-op.
-  const config = resolveRowsAlias(rawConfig);
+  const config = rawConfig;
   const sources = config.sources ?? {};
 
   const defaults: NormalizedDefaults = {

@@ -109,7 +109,6 @@ import type {
 import { isGroupConfig } from './discriminate';
 import { ConfigValidationError } from './errors';
 import { parseConfigText } from './parse';
-import { resolveRowsAlias } from './rows-alias';
 
 // ─────────────────────────────────────────────────────────────
 // Public surface
@@ -258,13 +257,7 @@ async function resolveAndMerge(
   ctx: InternalCtx,
   chain: string[]
 ): Promise<ProtvistaViewerConfig> {
-  // Every config in the chain funnels through here exactly once — the
-  // root handed to `mergeExtends` and each parent `resolveParent`
-  // produces — so this is the single point the alias needs resolving.
-  // It is what lets a base authored with `groups:` merge with a child
-  // authored with `rows:` (or the reverse): both reach `merge` below in
-  // canonical form, matched against one `rows` list.
-  const cfg = resolveRowsAlias(rawCfg);
+  const cfg = rawCfg;
 
   // The output never carries an `extends` field — it has already
   // been consumed by the time we return.
