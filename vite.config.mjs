@@ -83,6 +83,13 @@ export default defineConfig({
         'src/adapters/config/**',
         // Style template strings.
         'src/styles/**',
+        // Playground DOM / CodeMirror wiring — integration-level, not
+        // unit-tested. The unit-testable logic is factored into the
+        // sibling modules (format, url-state, presets, lint,
+        // diagnostics-view), which ARE covered by __spec__.
+        'src/playground/index.ts',
+        'src/playground/editor.ts',
+        'src/playground/splitter.ts',
       ],
     },
   },
