@@ -1,26 +1,26 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import envCompatible from 'vite-plugin-env-compatible';
-import { createHtmlPlugin } from 'vite-plugin-html';
 import { viteCommonjs } from '@originjs/vite-plugin-commonjs';
 import svg from 'vite-plugin-svgo';
 
 const entry = (file) => fileURLToPath(new URL(file, import.meta.url));
 
-export default defineConfig({
-  plugins: [
-    viteCommonjs(),
-    envCompatible(),
-    createHtmlPlugin({
-      inject: {
-        data: {
-          title: 'protvista-uniprot',
-        },
-      },
-    }),
-    svg(),
-  ],
-  base: './',
+// Multi-page GitHub Pages site (hub + playground + demo + bench).
+//
+// Unlike vite.config.mjs (the single-entry *library* build), this config
+// serves/builds several root HTML pages. Two deliberate differences make
+// the multi-page site work in `vite`'s dev server, not just the build:
+//   - `vite-plugin-html`'s `createHtmlPlugin` is NOT used. In its
+//     single-page mode it is built around one `index.html` and makes the
+//     dev server fall back to it for every other page; the pages carry
+//     literal <title>s, so nothing needs injecting anyway.
+//   - `base` is relative only for the built site (served from a project
+//     Pages subpath). The dev server needs an absolute base to resolve
+//     `/playground.html`, `/demo.html`, … as their own pages.
+export default defineConfig(({ command }) => ({
+  plugins: [viteCommonjs(), envCompatible(), svg()],
+  base: command === 'build' ? './' : '/',
   build: {
     target: 'ES2021',
     outDir: 'demo',
@@ -38,4 +38,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));
