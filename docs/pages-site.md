@@ -15,7 +15,7 @@ The demo build also copies `public/` into `demo/` (Vite's default `copyPublicDir
 | Page | Role | Status |
 | --- | --- | --- |
 | `index.html` | Landing hub. Intro + links to every other part (playground, demo, docs, Starter Kit, source). The connective tissue for the deliverables below. | Done |
-| `playground.html` | Interactive configuration playground (#210): edit a YAML/JSON config, validate live, see a live `<protvista-uniprot>` preview, share via URL. | Done |
+| `playground.html` | Interactive configuration playground (#210): edit a YAML/JSON config, validate live, render a `<protvista-uniprot>` preview on Run, share via URL. | Done |
 | `demo.html` | Human-facing accession demo. Reads `?accession=` (default P05067) and renders the default viewer. Carries the commented gallery of test accessions. Free to evolve. | Done |
 | `bench.html` | Minimal, **stable** Lighthouse harness for `bench/lighthouserc.cjs`. Deliberately bare (no fonts/chrome) so baseline numbers stay comparable. Do not add demo content here — that perturbs the measurement and invalidates `bench/baselines/`. | Done |
 
@@ -30,7 +30,7 @@ All playground code lives under `src/playground/`. The modules are deliberately 
 - `presets.ts` — the seed configs offered by the picker, loaded verbatim from the canonical `examples/` directory and `src/default-config.yaml` (see below).
 - `lint.ts` — runs editor text through the shipped `parseConfigText` + `validateConfig` (the one source of truth — no schema is re-declared) and maps the result to diagnostics. Uses a local `Diagnostic`-shaped type so it depends on no CodeMirror package; covered by `__spec__/lint.spec.ts`.
 - `editor.ts` — the only CodeMirror 6 module (editor construction, YAML/JSON language, lint gutter, `aria-label`).
-- `index.ts` — page controller. Debounces edits, pushes diagnostics to the gutter and to an `aria-live` error list, and — when the config is valid — renders the preview by **recreating** the `<protvista-uniprot>` element. Recreation is required because the component intentionally does not re-run its pipeline on a `viewerConfig` change (see the `updated()` gate in `src/protvista-uniprot.ts`).
+- `index.ts` — page controller. Two separate paths, deliberately decoupled: **typing** debounces into `refreshDiagnostics()` (gutter markers + `aria-live` error list + shareable URL + a "preview out of date" flag) and never touches the preview; **Run** (the button, Ctrl/Cmd+Enter, a preset selection, or an accession change) calls `run()`, the *only* path that mounts the preview. `run()` renders by **recreating** the `<protvista-uniprot>` element (the component intentionally does not re-run its pipeline on a `viewerConfig` change — see the `updated()` gate in `src/protvista-uniprot.ts`). Mounting is gated behind Run because `<protvista-uniprot>` is heavy (Nightingale/Mol*); re-mounting it on every keystroke exhausts memory.
 
 ### CodeMirror prerequisite
 

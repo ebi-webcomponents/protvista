@@ -83,6 +83,16 @@
       input#accession {
         width: 7rem;
       }
+      button#run {
+        cursor: pointer;
+        font-weight: 700;
+        color: #fff;
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      button#run:hover {
+        filter: brightness(1.08);
+      }
       button#share {
         cursor: pointer;
         border-color: var(--accent);
@@ -218,6 +228,9 @@
         />
       </div>
 
+      <button id="run" type="button" title="Update the preview (Ctrl/Cmd+Enter)">
+        ▶ Run
+      </button>
       <button id="share" type="button">Copy shareable link</button>
       <span id="share-status" role="status" aria-live="polite"></span>
       <a class="home" href="./index.html">← Home</a>
@@ -241,8 +254,8 @@
       <section class="pane" aria-label="Live preview">
         <h2>Preview</h2>
         <p id="preview-stale" role="status" hidden>
-          ⚠ Fix the errors listed on the left — the preview below is out of
-          date.
+          ▶ Preview is out of date — press <strong>Run</strong> (Ctrl/Cmd+Enter)
+          to update it. Fix any errors listed on the left first.
         </p>
         <div id="preview"></div>
       </section>

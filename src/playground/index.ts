@@ -44,6 +44,7 @@ const $ = <T extends HTMLElement>(id: string): T => {
 
 const presetSelect = $<HTMLSelectElement>('preset');
 const accessionInput = $<HTMLInputElement>('accession');
+const runButton = $<HTMLButtonElement>('run');
 const shareButton = $<HTMLButtonElement>('share');
 const shareStatus = $<HTMLElement>('share-status');
 const errorSummary = $<HTMLElement>('error-summary');
@@ -56,8 +57,10 @@ const editorHost = $<HTMLElement>('editor');
 let activePresetId = DEFAULT_PRESET_ID;
 let editor: PlaygroundEditor;
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
-/** Monotonic stamp so a slow async update() can't apply over a newer one. */
+/** Monotonic stamp so a slow async run can't apply over a newer one. */
 let updateSeq = 0;
+/** Snapshot of what the preview currently shows, to detect staleness. */
+let lastRendered: { text: string; accession: string } | null = null;
 
 // ── Preset picker ─────────────────────────────────────────────
 const CUSTOM_OPTION = 'custom';
@@ -134,8 +137,12 @@ previewHost.addEventListener('protvista-error', (event) => {
 });
 
 // ── Update pipeline ───────────────────────────────────────────
+function accessionValue(): string {
+  return accessionInput.value.trim() || DEFAULT_ACCESSION;
+}
+
 function currentState(): PlaygroundState {
-  const accession = accessionInput.value.trim() || DEFAULT_ACCESSION;
+  const accession = accessionValue();
   const text = editor.getText();
   const preset = getPreset(activePresetId);
   return preset && text === preset.config
@@ -143,33 +150,29 @@ function currentState(): PlaygroundState {
     : { config: text, accession };
 }
 
-async function update(): Promise<void> {
-  // A direct update() supersedes any pending debounced one (e.g. the
-  // preset picker calls setText — which arms the debounce — then update()
-  // synchronously): cancel it so we don't mount/fetch the preview twice.
-  if (debounceTimer) {
-    clearTimeout(debounceTimer);
-    debounceTimer = undefined;
-  }
-  // Stamp this run. `computeDiagnostics` is async (YAML awaits the js-yaml
-  // chunk), so an older run could otherwise resume after a newer one and
-  // apply stale results over it.
-  const seq = ++updateSeq;
-  const text = editor.getText();
-  const accession = accessionInput.value.trim() || DEFAULT_ACCESSION;
+/** Toggle the "preview is out of date, press Run" indicator. */
+function setStale(stale: boolean): void {
+  previewStale.hidden = !stale;
+  previewHost.classList.toggle('stale', stale);
+}
 
-  // Reflect edited/pristine state in the picker.
+/** Reflect edited/pristine state in the preset picker. */
+function syncPicker(text: string): void {
   const preset = getPreset(activePresetId);
   presetSelect.value =
     preset && text === preset.config ? activePresetId : CUSTOM_OPTION;
+}
 
-  let diagnostics: PlaygroundDiagnostic[];
+async function computeSafe(
+  text: string,
+  accession: string
+): Promise<PlaygroundDiagnostic[]> {
   try {
-    diagnostics = await computeDiagnostics(text, accession);
+    return await computeDiagnostics(text, accession);
   } catch (error) {
     // Validation is not supposed to throw, but never let an unexpected
     // failure silently freeze the pipeline — surface it as an error.
-    diagnostics = [
+    return [
       {
         from: 0,
         to: 0,
@@ -179,40 +182,101 @@ async function update(): Promise<void> {
       },
     ];
   }
-  if (seq !== updateSeq) return; // a newer update() has superseded this one
+}
+
+/**
+ * Live validation only — gutter markers, error list, shareable URL, and
+ * the staleness flag. Deliberately does NOT touch the preview: mounting
+ * `<protvista-uniprot>` is heavy (Nightingale/Mol*), so re-mounting on
+ * every keystroke can exhaust memory. The preview updates only in `run()`.
+ */
+async function refreshDiagnostics(): Promise<void> {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = undefined;
+  }
+  const seq = ++updateSeq;
+  const text = editor.getText();
+  const accession = accessionValue();
+  syncPicker(text);
+
+  const diagnostics = await computeSafe(text, accession);
+  if (seq !== updateSeq) return; // superseded by a newer edit
+
+  editor.setDiagnostics(diagnostics);
+  renderErrors(diagnostics);
+  setStale(
+    !lastRendered ||
+      text !== lastRendered.text ||
+      accession !== lastRendered.accession
+  );
+  writeHash(currentState());
+}
+
+/**
+ * Explicit "Run": validate, then (re)mount the preview when the config is
+ * valid. This is the ONLY path that mounts `<protvista-uniprot>`.
+ */
+async function run(): Promise<void> {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = undefined;
+  }
+  const seq = ++updateSeq;
+  const text = editor.getText();
+  const accession = accessionValue();
+  syncPicker(text);
+
+  const diagnostics = await computeSafe(text, accession);
+  if (seq !== updateSeq) return;
 
   editor.setDiagnostics(diagnostics);
   const valid = renderErrors(diagnostics);
   if (valid) {
     renderPreview(text, accession);
-    previewStale.hidden = true;
-    previewHost.classList.remove('stale');
+    lastRendered = { text, accession };
+    setStale(false);
   } else {
-    // Keep the last valid preview mounted, but flag it as out of date so a
-    // broken edit can't look like it rendered successfully.
-    previewStale.hidden = false;
-    previewHost.classList.add('stale');
+    // Keep the last valid preview mounted but flagged out of date.
+    setStale(true);
   }
-
   writeHash(currentState());
 }
 
-function scheduleUpdate(): void {
+function scheduleRefresh(): void {
   if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => void update(), DEBOUNCE_MS);
+  debounceTimer = setTimeout(() => void refreshDiagnostics(), DEBOUNCE_MS);
 }
 
 // ── Controls ──────────────────────────────────────────────────
+// Typing only re-validates (cheap). The preview is mounted by `run()`.
+runButton.addEventListener('click', () => void run());
+
+// Cmd/Ctrl+Enter runs, like most editors/playgrounds. A capture-phase
+// listener so it fires even while the CodeMirror editor has focus.
+document.addEventListener(
+  'keydown',
+  (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+      event.preventDefault();
+      void run();
+    }
+  },
+  true
+);
+
+// Selecting a preset is a deliberate "show me this" → render once.
 presetSelect.addEventListener('change', () => {
   const preset = getPreset(presetSelect.value);
   if (!preset) return; // "Custom" is not selectable directly.
   activePresetId = preset.id;
   accessionInput.value = preset.accession;
   editor.setText(preset.config);
-  void update();
+  void run();
 });
 
-accessionInput.addEventListener('change', () => void update());
+// Accession changes fire once on blur/enter → render once.
+accessionInput.addEventListener('change', () => void run());
 
 shareButton.addEventListener('click', async () => {
   writeHash(currentState());
@@ -252,6 +316,7 @@ editor = createEditor({
   parent: editorHost,
   doc: start.text,
   ariaLabel: 'ProtVista configuration editor (YAML or JSON)',
-  onChange: scheduleUpdate,
+  onChange: scheduleRefresh,
 });
-void update();
+// Render the initial preview once on load.
+void run();
