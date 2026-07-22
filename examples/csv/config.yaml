@@ -1,0 +1,11 @@
+# Bring-your-own CSV file. The `.csv` extension on `data:` infers the
+# `features-csv` adapter — no explicit `adapter:` needed.
+accession: P05067
+groups:
+  - id: MY_LAB
+    label: My lab
+    tracks:
+      - id: hotspots
+        kind: features
+        data: ./hotspots.csv
+        description: Hotspot regions identified by our lab's pipeline

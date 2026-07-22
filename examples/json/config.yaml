@@ -1,0 +1,11 @@
+# Bring-your-own JSON file. The `.json` extension on `data:` infers the
+# `features-json` adapter — no explicit `adapter:` needed.
+accession: P05067
+groups:
+  - id: MY_LAB
+    label: My lab
+    tracks:
+      - id: hotspots
+        kind: features
+        data: ./hotspots.json
+        description: Hotspot regions identified by our lab's pipeline

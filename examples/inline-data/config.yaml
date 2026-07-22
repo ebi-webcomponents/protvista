@@ -1,0 +1,21 @@
+# Fully inline data — no `sources`, no file, no network for the track
+# itself. `accession` is still required: the element's top-level
+# sequence fetch is gated on it regardless of where track data comes
+# from. See examples/README.md.
+accession: P05067
+groups:
+  - id: MY_ANNOTATIONS
+    label: My custom annotations
+    tracks:
+      - id: binding_sites
+        label: Predicted binding sites
+        kind: features
+        data:
+          from: inline
+          inlineData:
+            - { type: BINDING, start: 45, end: 52, description: ATP binding }
+            - { type: BINDING, start: 120, end: 128, description: Mg2+ binding }
+        description: Binding sites predicted by my pipeline
+        rendering:
+          color: '#e74c3c'
+          shape: diamond

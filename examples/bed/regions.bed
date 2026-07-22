@@ -1,0 +1,5 @@
+# ProtVista example BED file — BED6, 0-based half-open coordinates.
+# chrom is informational only for this single-sequence viewer.
+P05067	17	289	extracellular_domain	800	+
+P05067	344	501	kunitz_domain	650	+
+P05067	699	722	transmembrane_region	500	+
