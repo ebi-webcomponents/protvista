@@ -112,9 +112,16 @@ function offsetFromParseError(error: unknown, text: string): number {
  * input yields no diagnostics (a blank editor is not an error). A
  * syntax error yields a single diagnostic; otherwise every validation
  * issue is surfaced.
+ *
+ * `accession` is the accession the preview will render with. It is
+ * injected before validation (mirroring `<protvista-uniprot>`'s loader)
+ * so a config that uses `{accession}` placeholders but declares no
+ * `accession:` of its own — e.g. the canonical default config — does
+ * not spuriously fail the `missing-accession` rule.
  */
 export async function computeDiagnostics(
-  text: string
+  text: string,
+  accession?: string
 ): Promise<PlaygroundDiagnostic[]> {
   if (text.trim() === '') return [];
 
@@ -132,6 +139,18 @@ export async function computeDiagnostics(
         message: (error as Error).message || 'Could not parse config',
       },
     ];
+  }
+
+  // Only when the config declares no accession itself — an authored
+  // `accession:` takes precedence, exactly as the element treats it.
+  if (
+    accession &&
+    parsed !== null &&
+    typeof parsed === 'object' &&
+    !Array.isArray(parsed) &&
+    (parsed as { accession?: unknown }).accession == null
+  ) {
+    parsed = { ...(parsed as object), accession };
   }
 
   const result = validateConfig(parsed, createRegistry());

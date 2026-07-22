@@ -84,4 +84,23 @@ rows:
       expect(diagnostic.to).toBeLessThanOrEqual(bad.length);
     }
   });
+
+  it('injects the supplied accession so a {accession}-only config validates', async () => {
+    // A config that uses {accession} placeholders but declares no
+    // accession of its own (like the canonical default config).
+    const text = `sources:
+  features: https://example.org/features/{accession}
+rows:
+  - id: DOMAINS
+    tracks:
+      - id: domain
+        kind: features
+        data: features
+`;
+    // No accession → the missing-accession rule fires.
+    const without = await computeDiagnostics(text);
+    expect(without.map((d) => d.code)).toContain('missing-accession');
+    // With the playground's accession injected → clean.
+    expect(await computeDiagnostics(text, 'P05067')).toEqual([]);
+  });
 });

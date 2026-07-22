@@ -165,7 +165,7 @@ async function update(): Promise<void> {
 
   let diagnostics: PlaygroundDiagnostic[];
   try {
-    diagnostics = await computeDiagnostics(text);
+    diagnostics = await computeDiagnostics(text, accession);
   } catch (error) {
     // Validation is not supposed to throw, but never let an unexpected
     // failure silently freeze the pipeline — surface it as an error.
