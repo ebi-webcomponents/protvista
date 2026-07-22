@@ -1,11 +1,12 @@
-# Bring-your-own CSV file. The `.csv` extension on `data:` infers the
-# `features-csv` adapter — no explicit `adapter:` needed.
+# Bring-your-own CSV file as a SINGLE STANDALONE TRACK — one row, no
+# group wrapper. A `rows:` entry that has `data:` (and no `tracks:`) is a
+# standalone track, so a single-track viewer needs no group at all. The
+# `.csv` extension on `data:` infers the `features-csv` adapter — no
+# explicit `adapter:` needed.
 accession: P05067
-groups:
-  - id: MY_LAB
-    label: My lab
-    tracks:
-      - id: hotspots
-        kind: features
-        data: ./hotspots.csv
-        description: Hotspot regions identified by our lab's pipeline
+rows:
+  - id: hotspots
+    label: Hotspots
+    kind: features
+    data: ./hotspots.csv
+    description: Hotspot regions identified by our lab's pipeline

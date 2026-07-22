@@ -3,7 +3,7 @@
 # sequence fetch is gated on it regardless of where track data comes
 # from. See examples/README.md.
 accession: P05067
-groups:
+rows:
   - id: MY_ANNOTATIONS
     label: My custom annotations
     tracks:

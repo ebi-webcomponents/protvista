@@ -19,10 +19,10 @@ rather than each maintaining their own divergent samples.
 | Directory | Demonstrates |
 | --- | --- |
 | [`basic/`](./basic) | Minimal config: one group, one URL-sourced track against the real UniProt API |
-| [`inline-data/`](./inline-data) | `from: inline` — no network fetch for track data |
-| [`csv/`](./csv) | Bring-your-own CSV file — `features-csv` adapter, inferred from the `.csv` extension |
+| [`inline-data/`](./inline-data) | `from: inline` — no network fetch for track data — plus a `theme:` block recolouring the row-label panel (no-code theming) |
+| [`csv/`](./csv) | Bring-your-own CSV file as a **single standalone track** (one `rows:` entry, no group wrapper) — `features-csv` adapter, inferred from the `.csv` extension |
 | [`tsv/`](./tsv) | Bring-your-own TSV file — `features-tsv` adapter, inferred from the `.tsv` extension |
-| [`json/`](./json) | Bring-your-own JSON file — `features-json` adapter, inferred from the `.json` extension (the adapter accepts either `start` or `begin` per record; this example uses `start` throughout) |
+| [`json/`](./json) | A live **UniProt** API track next to a bring-your-own JSON file — `features-json` adapter, inferred from the `.json` extension |
 | [`bed/`](./bed) | Bring-your-own BED file — `bed` adapter, inferred from the `.bed` extension |
 | [`extend-default/`](./extend-default) | `extends:` the shipped canonical UniProt config and layers one custom CSV-backed track on top |
 

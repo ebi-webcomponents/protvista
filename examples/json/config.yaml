@@ -1,7 +1,19 @@
-# Bring-your-own JSON file. The `.json` extension on `data:` infers the
-# `features-json` adapter — no explicit `adapter:` needed.
+# UniProt data NEXT TO your own data. The first row is sourced live from
+# the EBI Proteins API (UniProt domain features, narrowed by type); the
+# second is a bring-your-own JSON file (the `.json` extension infers the
+# `features-json` adapter). Both render as sibling rows.
 accession: P05067
-groups:
+sources:
+  features: https://www.ebi.ac.uk/proteins/api/features/{accession}
+rows:
+  - id: UNIPROT_DOMAINS
+    label: UniProt domains
+    tracks:
+      - id: domain
+        kind: features
+        filter: DOMAIN
+        data: features
+        description: Domain features from UniProt for {accession}
   - id: MY_LAB
     label: My lab
     tracks:

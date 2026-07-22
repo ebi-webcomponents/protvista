@@ -5,7 +5,7 @@
 accession: P05067
 sources:
   features: https://www.ebi.ac.uk/proteins/api/features/{accession}
-groups:
+rows:
   - id: DOMAINS
     tracks:
       - id: domain
