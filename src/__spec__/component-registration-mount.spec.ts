@@ -1,0 +1,197 @@
+/**
+ * Registry-driven registration — the *wiring* (audit B18).
+ *
+ * `component-registration.spec.ts` drives the registration methods
+ * directly and proves they do the right thing. This file proves the
+ * element actually calls them, over the real
+ * `connectedCallback → _init()` lifecycle:
+ *
+ *   - `connectedCallback` → `registerStructuralComponents()`
+ *   - `_init()`           → `registerConfigComponents(normalized)`
+ *
+ * Without these, deleting either call site leaves the whole suite green
+ * — the unit-level file would still pass, because it never asks who
+ * calls the methods.
+ *
+ * Why a separate file: `customElements` is global and cannot un-define a
+ * tag, so "was this tag defined by the mount?" is only answerable in a
+ * registry no other test has already populated. Vitest gives each spec
+ * file its own jsdom environment, so the assertions here are
+ * order-independent — which they would not be if they shared a file with
+ * tests that define the same tags directly.
+ *
+ * The `@nightingale-elements/*` constructors are stubbed globally via
+ * `nightingale-mocks.ts` (setupFiles).
+ */
+
+import { describe, it, expect, afterEach, vi } from 'vitest';
+
+// Registers <protvista-uniprot> only — the Nightingale tags are defined
+// by the element at runtime, which is exactly what's under test here.
+import '../protvista-uniprot';
+import type { Registry } from '../schema/registry';
+import type { NormalizedConfig } from '../schema/normalize';
+import type { SemanticKindDefinition } from '../schema/types';
+
+// jsdom here ships without `CSS.escape`, which the component's
+// `findById()` relies on during the mount lifecycle (real browsers all
+// have it). Mirrors the polyfill in `error-surface.spec.ts`.
+if (typeof (globalThis as { CSS?: unknown }).CSS === 'undefined') {
+  (globalThis as { CSS?: { escape(s: string): string } }).CSS = {
+    escape: (s: string) => String(s).replace(/([^\w-])/g, '\\$1'),
+  };
+}
+
+type El = HTMLElement & {
+  config?: NormalizedConfig;
+  viewerConfig?: unknown;
+  accession?: string;
+  registry: Registry;
+  registerComponent(name: string, ctor: CustomElementConstructor): void;
+  registerSemanticKind(name: string, def: SemanticKindDefinition): void;
+  _init(): Promise<void>;
+};
+
+const STRUCTURAL_TAGS = [
+  'nightingale-manager',
+  'nightingale-navigation',
+  'nightingale-sequence',
+  'nightingale-filter',
+  'protvista-uniprot-structure',
+];
+
+/** Enough of the UniProt Proteins API for `_init()` to get past the fetch. */
+function stubFetch() {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      async () =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            sequence: { sequence: 'MSEQENCE' },
+            features: [],
+          }),
+        }) as unknown as Response
+    )
+  );
+}
+
+const appended: HTMLElement[] = [];
+
+/** Create (but do not connect) an element, so registrations can land first. */
+function makeEl(): El {
+  return document.createElement('protvista-uniprot') as unknown as El;
+}
+
+function connect(el: El): El {
+  document.body.append(el);
+  appended.push(el);
+  return el;
+}
+
+afterEach(() => {
+  for (const el of appended.splice(0)) el.remove();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+describe('connectedCallback defines the structural chrome', () => {
+  it('leaves the chrome tags undefined until an element connects', () => {
+    // Guards the assertion below against passing vacuously: importing
+    // the element must not have defined these.
+    for (const tag of STRUCTURAL_TAGS) {
+      expect(customElements.get(tag)).toBeUndefined();
+    }
+  });
+
+  it('defines every chrome tag once connected', () => {
+    stubFetch();
+    connect(makeEl());
+
+    for (const tag of STRUCTURAL_TAGS) {
+      expect(customElements.get(tag)).toBeTypeOf('function');
+    }
+  });
+});
+
+describe('_init defines the components the config references', () => {
+  it('defines a consumer component reached through a semantic kind', async () => {
+    stubFetch();
+
+    const tag = 'mount-consumer-track';
+    const el = makeEl();
+    // Registration has to happen before the element connects — the
+    // lifecycle kicks off `_init()` synchronously from
+    // `connectedCallback`.
+    el.registerComponent(tag, class extends HTMLElement {});
+    el.registerSemanticKind('mount-consumer-kind', {
+      component: tag,
+      adapter: 'features-json',
+    });
+    el.accession = 'P05067';
+    el.viewerConfig = {
+      sources: { s: 'https://example.org/x' },
+      rows: [
+        { id: 'G', tracks: [{ id: 't', kind: 'mount-consumer-kind', data: 's' }] },
+      ],
+    };
+
+    expect(customElements.get(tag)).toBeUndefined();
+
+    connect(el);
+
+    // The tag is defined by the registration walk in `_init`, after
+    // `loadConfig` resolves the kind to `tag`.
+    await vi.waitFor(() => {
+      if (!customElements.get(tag)) throw new Error('tag not defined yet');
+    });
+
+    // Sanity: it really was the kind that resolved to this component,
+    // so the walk read a normalized config rather than a literal.
+    expect(el.config?.rows[0].tracks[0].component).toBe(tag);
+  });
+
+  it('defines the built-in renderable component a config references', async () => {
+    stubFetch();
+
+    const el = makeEl();
+    el.accession = 'P05067';
+    el.viewerConfig = {
+      sources: { s: 'https://example.org/x' },
+      rows: [{ id: 'G', tracks: [{ id: 't', kind: 'features', data: 's' }] }],
+    };
+
+    expect(customElements.get('nightingale-track-canvas')).toBeUndefined();
+
+    connect(el);
+
+    await vi.waitFor(() => {
+      if (!customElements.get('nightingale-track-canvas')) {
+        throw new Error('tag not defined yet');
+      }
+    });
+  });
+
+  it('leaves an unreferenced renderable built-in undefined after mount', async () => {
+    // The walk is config-driven, not a blanket "define everything":
+    // a component no entry resolves to stays undefined. This is the
+    // behavioural difference from the old `registerWebComponents()`.
+    stubFetch();
+
+    const el = makeEl();
+    el.accession = 'P05067';
+    el.viewerConfig = {
+      sources: { s: 'https://example.org/x' },
+      rows: [{ id: 'G', tracks: [{ id: 't', kind: 'features', data: 's' }] }],
+    };
+    connect(el);
+
+    await vi.waitFor(() => {
+      if (!el.config) throw new Error('config not resolved yet');
+    });
+
+    expect(customElements.get('nightingale-sequence-heatmap')).toBeUndefined();
+  });
+});
