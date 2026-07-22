@@ -24,4 +24,14 @@ describe('presets', () => {
       ).resolves.toBeDefined();
     }
   );
+
+  it('file-backed presets point at the served sample data, not a bare page-relative file', () => {
+    for (const id of ['csv', 'json']) {
+      const preset = getPreset(id);
+      expect(preset).toBeDefined();
+      // Repointed so the file actually loads next to playground.html.
+      expect(preset!.config).toContain('./sample-data/hotspots.');
+      expect(preset!.config).not.toMatch(/data:\s*\.\/hotspots\./);
+    }
+  });
 });

@@ -44,7 +44,7 @@ The editor depends on CodeMirror 6, listed in `devDependencies` (`codemirror`, `
 Which examples are surfaced is curated for a single hosted page (the rationale is in the `presets.ts` header):
 
 - `basic` and `inline-data` render fully standalone.
-- `csv` and `json` are bring-your-own-file. On the deployed one-page playground their `data: ./hotspots.*` path resolves against the page, not the config's directory (see the path-resolution caveat in `examples/README.md`), so the file 404s and the track is hidden — the config still validates and the group renders. They demonstrate the file shape; actually hosting the data alongside the page is what the Starter Kit is for.
+- `csv` and `json` are bring-your-own-file. The examples reference `data: ./hotspots.*`, which the loader resolves against the *page*, not the config's directory (see the path-resolution caveat in `examples/README.md`). So `presets.ts` repoints them at `./sample-data/hotspots.*` — sample copies served with the site from `public/sample-data/` (copied into `demo/` by the demo build; served at `/sample-data/` in dev). That single edit is what makes the file-backed presets actually render here; it demonstrates the "config + a hosted data file" round-trip that the Starter Kit packages for real projects.
 - `extend-default` is omitted: it `extends: /src/default-config.yaml`, which the built `demo/` bundle does not serve, so it can only load under the dev server. `tsv` (same shape as `csv`) and `bed` (niche) are omitted for brevity — add them to `PRESETS` if wanted.
 
 ## Deliverables still to build

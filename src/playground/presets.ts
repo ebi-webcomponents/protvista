@@ -11,12 +11,13 @@
  * Which examples are surfaced here is deliberately curated for a single
  * hosted page:
  *   - `basic` / `inline-data` render fully standalone.
- *   - `csv` / `json` are bring-your-own-file: on the deployed one-page
- *     playground their `data: ./hotspots.*` path resolves against the
- *     page (not the config's directory) and 404s, so the track is
- *     simply hidden — the config still validates and the group renders.
- *     They demonstrate the file shape; the Starter Kit is where you
- *     actually host the data alongside the page.
+ *   - `csv` / `json` are bring-your-own-file. The examples reference
+ *     `data: ./hotspots.*`, which the loader resolves against the *page*,
+ *     not the config's directory — so for the playground we repoint them
+ *     at `./sample-data/hotspots.*`, sample copies served with the site
+ *     from `public/` (copied into `demo/` by the demo build; served at
+ *     `/sample-data/` in dev). That is the only edit from verbatim, and
+ *     it makes the file-backed presets actually render here.
  *   - `extend-default` / `tsv` / `bed` are intentionally omitted:
  *     `extend-default` extends `/src/default-config.yaml`, which the
  *     built `demo/` bundle does not serve (see the note in that example
@@ -32,6 +33,12 @@ import inlineDataConfig from '../../examples/inline-data/config.yaml?raw';
 import csvConfig from '../../examples/csv/config.yaml?raw';
 import jsonConfig from '../../examples/json/config.yaml?raw';
 import { DEFAULT_ACCESSION } from './url-state';
+
+// Repoint a file-backed example's page-relative data path at the sample
+// data served with the playground (public/sample-data/*, copied into the
+// build). Keeps the rest of the example config verbatim.
+const withServedData = (config: string): string =>
+  config.replace(/data:\s*\.\/(hotspots\.\w+)/, 'data: ./sample-data/$1');
 
 export interface Preset {
   /** Stable id used in shareable links (`#preset=<id>`). */
@@ -66,13 +73,13 @@ export const PRESETS: readonly Preset[] = [
   {
     id: 'csv',
     label: 'Bring your own data (CSV file)',
-    config: csvConfig,
+    config: withServedData(csvConfig),
     accession: DEFAULT_ACCESSION,
   },
   {
     id: 'json',
     label: 'Bring your own data (JSON file)',
-    config: jsonConfig,
+    config: withServedData(jsonConfig),
     accession: DEFAULT_ACCESSION,
   },
 ];
