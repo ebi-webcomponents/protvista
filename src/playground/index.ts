@@ -18,7 +18,9 @@
  * is the guarantee.
  */
 import '../protvista-uniprot';
+import type { ValidationIssue } from '../schema';
 import { createEditor, type PlaygroundEditor } from './editor';
+import { createDiagnosticsView } from './diagnostics-view';
 import { computeDiagnostics, type PlaygroundDiagnostic } from './lint';
 import { initSplitter } from './splitter';
 import { PRESETS, DEFAULT_PRESET_ID, getPreset } from './presets';
@@ -77,24 +79,8 @@ customOption.textContent = 'Custom (edited)';
 customOption.hidden = true;
 presetSelect.append(customOption);
 
-// ── Diagnostics list ──────────────────────────────────────────
-function renderErrors(
-  diagnostics: readonly { message: string; code?: string }[]
-): boolean {
-  errorSummary.textContent =
-    diagnostics.length === 0
-      ? 'No problems — config is valid.'
-      : `${diagnostics.length} problem${diagnostics.length === 1 ? '' : 's'} found:`;
-  errorList.replaceChildren(
-    ...diagnostics.map((diagnostic) => {
-      const item = document.createElement('li');
-      item.textContent = diagnostic.message;
-      if (diagnostic.code) item.dataset.code = diagnostic.code;
-      return item;
-    })
-  );
-  return diagnostics.length === 0;
-}
+// ── Diagnostics footer (owns the summary line + error list) ───
+const diagnosticsView = createDiagnosticsView(errorSummary, errorList);
 
 // ── Live preview ──────────────────────────────────────────────
 function renderPreview(configText: string, accession: string): void {
@@ -111,30 +97,14 @@ function renderPreview(configText: string, accession: string): void {
 
 // Runtime/data failures (bad URL, unreachable service) bubble here as
 // `protvista-error` with detail `{ phase, issues, context }` (see
-// `reportError` in protvista-uniprot.ts). Surface the real issue messages
-// alongside config diagnostics, and reflect them in the summary — they can
-// arrive after a config that itself validated cleanly.
+// `reportError` in protvista-uniprot.ts). Surface them alongside config
+// diagnostics — they can arrive after a config that itself validated cleanly.
 previewHost.addEventListener('protvista-error', (event) => {
-  const detail = (
-    event as CustomEvent<{
-      phase?: string;
-      issues?: { message: string; code?: string }[];
-    }>
-  ).detail;
-  const issues =
-    detail?.issues && detail.issues.length > 0
-      ? detail.issues
-      : [{ message: 'A track failed to load its data.', code: 'runtime' }];
-  for (const issue of issues) {
-    const item = document.createElement('li');
-    item.dataset.code = issue.code ?? 'runtime';
-    item.textContent = detail?.phase
-      ? `[${detail.phase}] ${issue.message}`
-      : issue.message;
-    errorList.append(item);
-  }
-  const count = errorList.childElementCount;
-  errorSummary.textContent = `${count} problem${count === 1 ? '' : 's'} found:`;
+  const { detail } = event as CustomEvent<{
+    phase?: string;
+    issues?: ValidationIssue[];
+  }>;
+  diagnosticsView.appendRuntime(detail?.issues, detail?.phase);
 });
 
 // ── Update pipeline ───────────────────────────────────────────
@@ -185,13 +155,18 @@ async function computeSafe(
   }
 }
 
+type ValidateResult =
+  | { superseded: true }
+  | { superseded: false; text: string; accession: string; valid: boolean };
+
 /**
- * Live validation only — gutter markers, error list, shareable URL, and
- * the staleness flag. Deliberately does NOT touch the preview: mounting
- * `<protvista-uniprot>` is heavy (Nightingale/Mol*), so re-mounting on
- * every keystroke can exhaust memory. The preview updates only in `run()`.
+ * Shared validation step for both pipeline entry points: cancel any
+ * pending debounced run, stamp a generation, validate the current text,
+ * bail if a newer run superseded us, then push gutter markers, the error
+ * list, and the shareable URL. Never touches the preview — that is the
+ * caller's decision (only `run()` mounts it).
  */
-async function refreshDiagnostics(): Promise<void> {
+async function validateCurrent(): Promise<ValidateResult> {
   if (debounceTimer) {
     clearTimeout(debounceTimer);
     debounceTimer = undefined;
@@ -202,16 +177,27 @@ async function refreshDiagnostics(): Promise<void> {
   syncPicker(text);
 
   const diagnostics = await computeSafe(text, accession);
-  if (seq !== updateSeq) return; // superseded by a newer edit
+  if (seq !== updateSeq) return { superseded: true };
 
   editor.setDiagnostics(diagnostics);
-  renderErrors(diagnostics);
+  const valid = diagnosticsView.showConfig(diagnostics);
+  writeHash(currentState());
+  return { superseded: false, text, accession, valid };
+}
+
+/**
+ * Live validation only. Deliberately does NOT touch the preview: mounting
+ * `<protvista-uniprot>` is heavy (Nightingale/Mol*), so re-mounting on
+ * every keystroke can exhaust memory. The preview updates only in `run()`.
+ */
+async function refreshDiagnostics(): Promise<void> {
+  const result = await validateCurrent();
+  if (result.superseded) return;
   setStale(
     !lastRendered ||
-      text !== lastRendered.text ||
-      accession !== lastRendered.accession
+      result.text !== lastRendered.text ||
+      result.accession !== lastRendered.accession
   );
-  writeHash(currentState());
 }
 
 /**
@@ -219,29 +205,16 @@ async function refreshDiagnostics(): Promise<void> {
  * valid. This is the ONLY path that mounts `<protvista-uniprot>`.
  */
 async function run(): Promise<void> {
-  if (debounceTimer) {
-    clearTimeout(debounceTimer);
-    debounceTimer = undefined;
-  }
-  const seq = ++updateSeq;
-  const text = editor.getText();
-  const accession = accessionValue();
-  syncPicker(text);
-
-  const diagnostics = await computeSafe(text, accession);
-  if (seq !== updateSeq) return;
-
-  editor.setDiagnostics(diagnostics);
-  const valid = renderErrors(diagnostics);
-  if (valid) {
-    renderPreview(text, accession);
-    lastRendered = { text, accession };
+  const result = await validateCurrent();
+  if (result.superseded) return;
+  if (result.valid) {
+    renderPreview(result.text, result.accession);
+    lastRendered = { text: result.text, accession: result.accession };
     setStale(false);
   } else {
     // Keep the last valid preview mounted but flagged out of date.
     setStale(true);
   }
-  writeHash(currentState());
 }
 
 function scheduleRefresh(): void {

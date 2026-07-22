@@ -14,10 +14,10 @@
  *   - `csv` / `json` are bring-your-own-file. The examples reference
  *     `data: ./hotspots.*`, which the loader resolves against the *page*,
  *     not the config's directory — so for the playground we repoint them
- *     at `./sample-data/hotspots.*`, sample copies served with the site
- *     from `public/` (copied into `demo/` by the demo build; served at
- *     `/sample-data/` in dev). That is the only edit from verbatim, and
- *     it makes the file-backed presets actually render here.
+ *     at `./sample-data/hotspots.*`. The demo config (vite.demo.config.mjs)
+ *     serves/emits those from the canonical `examples/` files (no committed
+ *     copy — single source of truth). That is the only edit from verbatim,
+ *     and it makes the file-backed presets actually render here.
  *   - `extend-default` / `tsv` / `bed` are intentionally omitted:
  *     `extend-default` extends `/src/default-config.yaml`, which the
  *     built `demo/` bundle does not serve (see the note in that example

@@ -1,8 +1,7 @@
 <!DOCTYPE html>
-<html class="no-js" lang="en">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="x-ua-compatible" content="ie=edge" />
     <title>ProtVista configuration playground</title>
     <meta
       name="description"
@@ -108,7 +107,7 @@
         color: #fff;
       }
       :focus-visible {
-        outline: 3px solid rgba(11, 107, 203, 0.4);
+        outline: 3px solid var(--accent);
         outline-offset: 1px;
       }
       main {
@@ -263,7 +262,7 @@
       </div>
 
       <button id="run" type="button" title="Update the preview (Ctrl/Cmd+Enter)">
-        ▶ Run
+        <span aria-hidden="true">▶</span> Run
       </button>
       <button id="share" type="button">Copy shareable link</button>
       <span id="share-status" role="status" aria-live="polite"></span>
@@ -300,8 +299,9 @@
       <section class="pane" aria-label="Live preview">
         <h2>Preview</h2>
         <p id="preview-stale" role="status" hidden>
-          ▶ Preview is out of date — press <strong>Run</strong> (Ctrl/Cmd+Enter)
-          to update it. Fix any errors listed on the left first.
+          <span aria-hidden="true">▶</span> Preview is out of date — press
+          <strong>Run</strong> (Ctrl/Cmd+Enter) to update it. Fix any errors
+          listed on the left first.
         </p>
         <div id="preview"></div>
       </section>

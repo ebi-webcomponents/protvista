@@ -4,8 +4,8 @@
  * Mirrors the (private) heuristic in `src/schema/parse.ts`: any string
  * whose first non-whitespace character is `{` or `[` is treated as
  * JSON, everything else as YAML. Duplicated here (a one-liner) rather
- * than exported from the schema module so the playground's editor and
- * linter can pick a language without reaching into schema internals.
+ * than exported from the schema module so the editor can pick a
+ * highlighting language without reaching into schema internals.
  */
 export function detectFormat(text: string): 'json' | 'yaml' {
   const first = text.trimStart().charAt(0);

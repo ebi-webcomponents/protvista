@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import envCompatible from 'vite-plugin-env-compatible';
@@ -5,6 +6,38 @@ import { viteCommonjs } from '@originjs/vite-plugin-commonjs';
 import svg from 'vite-plugin-svgo';
 
 const entry = (file) => fileURLToPath(new URL(file, import.meta.url));
+
+// Sample data for the bring-your-own-file playground presets (csv/json).
+// The presets reference `./sample-data/hotspots.*` (resolved page-relative
+// next to playground.html). Rather than commit a copy, this plugin serves
+// and emits the *canonical* files straight from `examples/`, so those data
+// files have a single source of truth and cannot drift.
+const SAMPLE_DATA = [
+  ['sample-data/hotspots.csv', 'examples/csv/hotspots.csv', 'text/csv'],
+  ['sample-data/hotspots.json', 'examples/json/hotspots.json', 'application/json'],
+];
+
+function playgroundSampleData() {
+  return {
+    name: 'playground-sample-data',
+    // Build: emit each example file into the bundle at `sample-data/*`.
+    generateBundle() {
+      for (const [fileName, source] of SAMPLE_DATA) {
+        this.emitFile({ type: 'asset', fileName, source: readFileSync(entry(source), 'utf8') });
+      }
+    },
+    // Dev: serve `/sample-data/*` directly from `examples/`.
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const path = (req.url ?? '').split('?')[0];
+        const match = SAMPLE_DATA.find(([fileName]) => path === `/${fileName}`);
+        if (!match) return next();
+        res.setHeader('Content-Type', match[2]);
+        res.end(readFileSync(entry(match[1]), 'utf8'));
+      });
+    },
+  };
+}
 
 // Multi-page GitHub Pages site (hub + playground + demo + bench).
 //
@@ -19,7 +52,7 @@ const entry = (file) => fileURLToPath(new URL(file, import.meta.url));
 //     Pages subpath). The dev server needs an absolute base to resolve
 //     `/playground.html`, `/demo.html`, … as their own pages.
 export default defineConfig(({ command }) => ({
-  plugins: [viteCommonjs(), envCompatible(), svg()],
+  plugins: [viteCommonjs(), envCompatible(), svg(), playgroundSampleData()],
   base: command === 'build' ? './' : '/',
   build: {
     target: 'ES2021',
