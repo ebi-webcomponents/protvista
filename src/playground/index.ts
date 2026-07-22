@@ -48,8 +48,6 @@ const $ = <T extends HTMLElement>(id: string): T => {
 const presetSelect = $<HTMLSelectElement>('preset');
 const accessionInput = $<HTMLInputElement>('accession');
 const runButton = $<HTMLButtonElement>('run');
-const shareButton = $<HTMLButtonElement>('share');
-const shareStatus = $<HTMLElement>('share-status');
 const errorSummary = $<HTMLElement>('error-summary');
 const errorList = $<HTMLUListElement>('errors');
 const previewHost = $<HTMLElement>('preview');
@@ -251,16 +249,6 @@ presetSelect.addEventListener('change', () => {
 
 // Accession changes fire once on blur/enter → render once.
 accessionInput.addEventListener('change', () => void run());
-
-shareButton.addEventListener('click', async () => {
-  writeHash(currentState());
-  try {
-    await navigator.clipboard.writeText(window.location.href);
-    shareStatus.textContent = 'Link copied to clipboard.';
-  } catch {
-    shareStatus.textContent = 'Copy failed — the shareable link is in the address bar.';
-  }
-});
 
 // ── Bootstrap ─────────────────────────────────────────────────
 function initialState(): { text: string; accession: string; presetId: string } {

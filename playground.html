@@ -96,16 +96,6 @@
       button#run:hover {
         filter: brightness(1.08);
       }
-      button#share {
-        cursor: pointer;
-        border-color: var(--accent);
-        color: var(--accent);
-        font-weight: 700;
-      }
-      button#share:hover {
-        background: var(--accent);
-        color: #fff;
-      }
       :focus-visible {
         outline: 3px solid var(--accent);
         outline-offset: 1px;
@@ -214,10 +204,6 @@
       #errors li {
         margin: 0.15rem 0;
       }
-      #share-status {
-        font-size: 0.82rem;
-        color: var(--muted);
-      }
       @media (max-width: 760px) {
         /* Stack the panes and let the page scroll normally. */
         body {
@@ -264,8 +250,6 @@
       <button id="run" type="button" title="Update the preview (Ctrl/Cmd+Enter)">
         <span aria-hidden="true">▶</span> Run
       </button>
-      <button id="share" type="button">Copy shareable link</button>
-      <span id="share-status" role="status" aria-live="polite"></span>
       <a class="home" href="./index.html">← Home</a>
     </header>
 
