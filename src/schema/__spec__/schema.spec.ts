@@ -526,6 +526,20 @@ describe('JSON Schema — rejection cases', () => {
     });
   });
 
+  it('accepts a top-level `theme` of colour strings', () => {
+    expectValid({
+      rows: [{ id: 't', kind: 'features', data: 'x' }],
+      theme: { labelColor: '#e8f5e9', accentColor: 'green' },
+    });
+  });
+
+  it('rejects an unknown `theme` property', () => {
+    expectInvalid({
+      rows: [{ id: 't', kind: 'features', data: 'x' }],
+      theme: { bogus: 'x' },
+    });
+  });
+
 
   it('rejects typos via additionalProperties: false', () => {
     expectInvalid(

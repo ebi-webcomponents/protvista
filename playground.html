@@ -86,16 +86,6 @@
       input#accession {
         width: 7rem;
       }
-      input#label-color {
-        width: 2.4rem;
-        padding: 0.1rem;
-        cursor: pointer;
-      }
-      button#label-reset {
-        cursor: pointer;
-        color: var(--muted);
-        font-size: 0.82rem;
-      }
       button#run {
         cursor: pointer;
         font-weight: 700;
@@ -255,19 +245,6 @@
           spellcheck="false"
           autocomplete="off"
         />
-      </div>
-
-      <div class="field">
-        <label for="label-color">Labels</label>
-        <input
-          id="label-color"
-          type="color"
-          value="#b2f5ff"
-          title="Colour of the row-label side panel (a display token, not part of the config)"
-        />
-        <button id="label-reset" type="button" title="Reset the label colour">
-          Reset
-        </button>
       </div>
 
       <button id="run" type="button" title="Update the preview (Ctrl/Cmd+Enter)">

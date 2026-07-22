@@ -448,6 +448,25 @@ class ProtvistaUniprot extends LitElement {
   }
 
   /**
+   * Apply author-set chrome colours from `config.theme` as inline
+   * `--protvista-*` custom properties on the host. Setting them inline on
+   * this element beats the `:where(:root)` token defaults but still yields
+   * to a consumer's own CSS override (see src/styles/inject.ts). A no-code
+   * theming shortcut — the same tokens are documented in docs/theming.md.
+   */
+  private applyTheme(theme: NormalizedConfig['theme']) {
+    if (!theme) return;
+    if (theme.labelColor) {
+      // The row-label side panel: group + track label backgrounds.
+      this.style.setProperty('--protvista-group-label-bg', theme.labelColor);
+      this.style.setProperty('--protvista-track-label-bg', theme.labelColor);
+    }
+    if (theme.accentColor) {
+      this.style.setProperty('--protvista-color-accent', theme.accentColor);
+    }
+  }
+
+  /**
    * Define the components the resolved config actually references. Walks
    * every group's and track's resolved `component`, looks the
    * constructor up in the registry, and defines the tag via
@@ -926,6 +945,7 @@ class ProtvistaUniprot extends LitElement {
           this.accession = normalized.accession;
         }
         this.config = normalized;
+        this.applyTheme(normalized.theme);
         // Define the components this config references (built-in or
         // consumer-registered) now that the resolved set is known. Runs
         // once per fresh config; re-inits (accession change / retry)

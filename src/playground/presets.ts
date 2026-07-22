@@ -10,14 +10,16 @@
  *
  * Which examples are surfaced here is deliberately curated for a single
  * hosted page:
- *   - `basic` / `inline-data` render fully standalone.
- *   - `csv` / `json` are bring-your-own-file. The examples reference
- *     `data: ./hotspots.*`, which the loader resolves against the *page*,
- *     not the config's directory — so for the playground we repoint them
- *     at `./sample-data/hotspots.*`. The demo config (vite.demo.config.mjs)
- *     serves/emits those from the canonical `examples/` files (no committed
- *     copy — single source of truth). That is the only edit from verbatim,
- *     and it makes the file-backed presets actually render here.
+ *   - `basic` / `inline-data` render fully standalone (`inline-data` also
+ *     carries a `theme:` block — no-code config theming).
+ *   - `csv` (a single standalone track — one row, no group) and `json` (a
+ *     live UniProt API track next to the BYO file) are bring-your-own-file.
+ *     The examples reference `data: ./hotspots.*`, which the loader resolves
+ *     against the *page*, not the config's directory — so for the playground
+ *     we repoint them at `./sample-data/hotspots.*`. The demo config
+ *     (vite.demo.config.mjs) serves/emits those from the canonical
+ *     `examples/` files (no committed copy — single source of truth). That
+ *     is the only edit from verbatim, and it makes the presets render here.
  *   - `extend-default` / `tsv` / `bed` are intentionally omitted:
  *     `extend-default` extends `/src/default-config.yaml`, which the
  *     built `demo/` bundle does not serve (see the note in that example
@@ -66,19 +68,19 @@ export const PRESETS: readonly Preset[] = [
   },
   {
     id: 'inline-data',
-    label: 'Inline data (no server)',
+    label: 'Inline data + theme colour',
     config: inlineDataConfig,
     accession: DEFAULT_ACCESSION,
   },
   {
     id: 'csv',
-    label: 'Bring your own data (CSV file)',
+    label: 'Your own data (CSV, single track)',
     config: withServedData(csvConfig),
     accession: DEFAULT_ACCESSION,
   },
   {
     id: 'json',
-    label: 'Bring your own data (JSON file)',
+    label: 'UniProt + your own data (JSON)',
     config: withServedData(jsonConfig),
     accession: DEFAULT_ACCESSION,
   },

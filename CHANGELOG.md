@@ -59,6 +59,15 @@ the top-level field is renamed. The post-load `NormalizedConfig` model
 exposes `rows` / `NormalizedRow`, so the authoring field and the resolved
 model agree.
 
+### Added — no-code theming via the config `theme:` field
+
+A new optional top-level `theme: { labelColor?, accentColor? }` recolours
+the viewer chrome from the config — no CSS required. `labelColor` sets the
+row-label side panel; `accentColor` sets focus rings and the datatable
+active-row marker. Each maps to a `--protvista-*` design token the
+component sets inline on the host at mount (beating the token defaults,
+yielding to a consumer's own CSS). See `docs/theming.md`.
+
 ### Breaking — internal CSS classes and DOM ids are now hash-prefixed
 
 `<protvista-uniprot>` renders in light DOM (required by Mol*), so its

@@ -39,6 +39,7 @@
       "description": "Promote every non-fatal warning (empty sequence, per-track fetch failure, setTrackData misuse) to a mount-level failure shown in the viewer's error panel. Default false.",
       "type": "boolean"
     },
+    "theme": { "$ref": "#/$defs/ThemeConfig" },
     "rows": {
       "description": "Ordered list of rows: each is either a group of tracks (has `tracks`) or a standalone track (has `data`, no `tracks`). Mixed freely; declaration order preserved.",
       "type": "array",
@@ -64,6 +65,23 @@
       }
     },
 
+    "ThemeConfig": {
+      "description": "Viewer-wide chrome colours, applied as --protvista-* custom properties on the host. A no-code way to recolour the viewer from the config (see docs/theming.md for the underlying tokens).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "labelColor": {
+          "description": "Background of the row-label side panel (group + track labels).",
+          "type": "string",
+          "minLength": 1
+        },
+        "accentColor": {
+          "description": "Primary accent — focus rings and the datatable active-row marker.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
 
     "GroupConfig": {
       "type": "object",

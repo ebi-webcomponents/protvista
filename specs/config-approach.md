@@ -180,6 +180,9 @@ interface ProtvistaViewerConfig {
    * or a standalone `TrackConfig` (one row on its own — has `data:`).
    */
   rows: TopLevelEntry[];
+
+  /** Optional viewer-wide chrome colours (no-code theming). */
+  theme?: { labelColor?: string; accentColor?: string };
 }
 
 /**

@@ -197,6 +197,12 @@ export interface ProtvistaViewerConfig {
    * another standalone track's).
    */
   rows: TopLevelEntry[];
+
+  /**
+   * Optional viewer-wide chrome colours (a no-code theming shortcut).
+   * @see {@link ThemeConfig}
+   */
+  theme?: ThemeConfig;
 }
 
 /**
@@ -213,6 +219,28 @@ export type TopLevelEntry = GroupConfig | TrackConfig;
 export interface ConfigDefaults {
   /** Default rendering options inherited by every track. */
   rendering?: RenderingOptions;
+}
+
+/**
+ * Viewer-wide chrome colours — a no-code way to recolour the viewer from
+ * the config, for authors who don't want to write CSS. Each field maps to
+ * a `--protvista-*` design token that the component sets inline on the
+ * host at mount (so it beats the token defaults but still yields to a
+ * consumer's own CSS override). See `docs/theming.md` for the full token
+ * surface. Distinct from `ColorScaleConfig.theme`, which is a per-track
+ * data-encoding ramp, not viewer chrome.
+ */
+export interface ThemeConfig {
+  /**
+   * Background of the row-label side panel (group + track labels).
+   * → `--protvista-group-label-bg` / `--protvista-track-label-bg`.
+   */
+  labelColor?: string;
+  /**
+   * Primary accent — focus rings and the datatable active-row marker.
+   * → `--protvista-color-accent`.
+   */
+  accentColor?: string;
 }
 
 export interface GroupConfig {

@@ -52,6 +52,25 @@ Because tokens are ordinary custom properties, they are also settable at
 runtime — `element.style.setProperty('--protvista-color-accent', …)` —
 which is how an interactive controls panel can drive live theming.
 
+## No-code theming from the config
+
+For authors who don't write CSS, a subset of the chrome colours can be set
+directly in the viewer config via the optional top-level `theme:` block:
+
+```yaml
+theme:
+  labelColor: '#e8f5e9' # row-label side panel (group + track labels)
+  accentColor: '#0053d6' # focus rings + datatable active-row marker
+```
+
+The component applies each as the matching `--protvista-*` custom property
+inline on the element at mount — so it overrides the token defaults but
+still yields to any CSS override a host page sets (the precedence above).
+`theme.labelColor` maps to `--protvista-group-label-bg` /
+`--protvista-track-label-bg`; `theme.accentColor` maps to
+`--protvista-color-accent`. For anything beyond these, use the CSS tokens
+directly.
+
 ## Design tokens
 
 Every token has a sensible default (shown below), so a viewer with no

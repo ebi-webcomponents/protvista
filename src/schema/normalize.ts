@@ -68,6 +68,7 @@ import type {
   ComponentName,
   AdapterName,
   AuthoredTooltipSpec,
+  ThemeConfig,
 } from './types';
 import { isGroupConfig } from './discriminate';
 import type { Registry } from './registry';
@@ -89,6 +90,8 @@ export interface NormalizedConfig {
   defaults: NormalizedDefaults;
   /** Author-set: promote warnings to a mount-level failure. See `ProtvistaViewerConfig.strict`. */
   strict?: boolean;
+  /** Author-set viewer-wide chrome colours. See `ProtvistaViewerConfig.theme`. */
+  theme?: ThemeConfig;
   rows: NormalizedRow[];
 }
 
@@ -225,6 +228,7 @@ export function normalizeConfig(
     sources,
     defaults,
     ...(config.strict !== undefined ? { strict: config.strict } : {}),
+    ...(config.theme !== undefined ? { theme: config.theme } : {}),
     rows,
   };
 }
