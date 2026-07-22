@@ -124,13 +124,26 @@ export function validateConfig(
   if (conflict) return { valid: false, issues: [conflict] };
   const resolved = resolveRowsAlias(config);
 
+  // ── Entry-shape probe ─────────────────────────────────────
+  // Run before Ajv so the entries it explains can have their `oneOf`
+  // fallout dropped below. See `checkEntryShapes`.
+  const shape = checkEntryShapes(resolved);
+
   // ── Structural pass ───────────────────────────────────────
   const structural = getStructuralValidator();
   const ok = structural(resolved);
-  if (!ok) {
+  if (!ok || shape.issues.length > 0) {
     for (const err of structural.errors ?? []) {
+      // Suppress every Ajv error belonging to an entry the probe already
+      // explained: for those, Ajv can only produce the contradictory
+      // "needs `tracks`" / "needs `data`" pair plus the `oneOf` dump, and
+      // the targeted issue says the same thing once, in the author's
+      // vocabulary. Errors elsewhere in the config are untouched, so a
+      // malformed entry never hides an unrelated problem.
+      if (isUnderFlaggedEntry(err.instancePath, shape.flagged)) continue;
       issues.push(ajvErrorToIssue(err));
     }
+    issues.push(...shape.issues);
     // Semantic checks would walk into `undefined` fields, producing
     // spurious errors. Stop here and let the caller fix structural
     // problems first.
@@ -175,6 +188,103 @@ function formatAjvMessage(err: ErrorObject): string {
       : (err.message ?? 'missing required property');
   }
   return err.message ?? 'schema violation';
+}
+
+// ─────────────────────────────────────────────────────────────
+// Entry-shape probe
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * A top-level entry is a group (`tracks:`) or a standalone track
+ * (`data:`) — never neither, never both. The schema says this with a
+ * `oneOf` over `GroupConfig` / `TrackConfig`, which is correct but
+ * un-actionable when an entry matches no branch: Ajv flattens the two
+ * failed branches into a contradictory pair. For `{ id: 'orphan', kind:
+ * 'features' }` an author is told, at once, to add `tracks` AND to add
+ * `data` AND that the config "must match exactly one schema in oneOf" —
+ * and for the both-keys case, neither field is named at all.
+ *
+ * These configs are authored by non-coders in a playground, so this
+ * function detects the two ambiguous shapes directly and emits one
+ * message per offending entry naming the entry and the two fields.
+ * `validateConfig` then drops the Ajv errors under those entries, so the
+ * targeted message stands alone rather than being buried under the dump
+ * it replaces.
+ *
+ * Runs before the structural pass because that pass returns early on any
+ * Ajv failure — a check downstream of it would never execute for exactly
+ * the configs it exists to explain.
+ */
+function checkEntryShapes(config: unknown): {
+  issues: ValidationIssue[];
+  /** JSON-Pointer paths of the entries explained here. */
+  flagged: string[];
+} {
+  const issues: ValidationIssue[] = [];
+  const flagged: string[] = [];
+
+  if (!isPlainObject(config)) return { issues, flagged };
+  const rows = (config as { rows?: unknown }).rows;
+  // A missing or non-array `rows:` is the schema's problem, not ours.
+  if (!Array.isArray(rows)) return { issues, flagged };
+
+  rows.forEach((entry, index) => {
+    // A non-object entry (a bare string, a number) isn't an ambiguous
+    // shape — it isn't an entry at all. Ajv's "must be object" is
+    // already the right message, so leave it alone.
+    if (!isPlainObject(entry)) return;
+
+    const hasTracks = isSet(entry.tracks);
+    const hasData = isSet(entry.data);
+    // Exactly one present is a well-formed entry — nothing to say.
+    if (hasTracks !== hasData) return;
+
+    flagged.push(`/rows/${index}`);
+    issues.push({
+      path: `/rows/${index}`,
+      message: hasTracks
+        ? `Top-level entry ${describeEntry(entry, index)} has both 'tracks:' and 'data:' — a group has 'tracks:', a single track has 'data:', not both.`
+        : `Top-level entry ${describeEntry(entry, index)} is neither a group nor a track — a group needs 'tracks:', a single track needs 'data:'. Add one.`,
+      code: 'invalid-entry-shape',
+    });
+  });
+
+  return { issues, flagged };
+}
+
+/**
+ * Whether an Ajv error belongs to an entry the shape probe explained —
+ * the entry itself or anything nested inside it.
+ *
+ * The `/` in the descendant test is load-bearing: a bare `startsWith`
+ * would let a flagged `/rows/1` swallow every error under `/rows/10`.
+ */
+function isUnderFlaggedEntry(instancePath: string, flagged: string[]): boolean {
+  return flagged.some(
+    (p) => instancePath === p || instancePath.startsWith(`${p}/`)
+  );
+}
+
+/** `'my-id'` when the entry has a usable id, else `at index N`. */
+function describeEntry(entry: Record<string, unknown>, index: number): string {
+  const { id } = entry;
+  return typeof id === 'string' && id.length > 0 ? `'${id}'` : `at index ${index}`;
+}
+
+/** A plain (non-null, non-array) object — the only shape an entry can be. */
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return v !== null && typeof v === 'object' && !Array.isArray(v);
+}
+
+/**
+ * Whether a field was actually set by the author. An empty YAML key
+ * (`tracks:` with nothing after it) parses to `null` — a leftover stub,
+ * not a value — so `null` counts as unset alongside `undefined`. Matches
+ * `rows-alias.ts`, which treats an empty `rows:` / `groups:` stub the
+ * same way: one notion of "set" across the schema layer.
+ */
+function isSet(v: unknown): boolean {
+  return v !== undefined && v !== null;
 }
 
 // ─────────────────────────────────────────────────────────────
