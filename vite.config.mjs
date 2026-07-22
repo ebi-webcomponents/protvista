@@ -84,6 +84,17 @@ export default defineConfig({
         // Style template strings.
         'src/styles/**',
       ],
+      // Coverage ratchet (#162): a fixed floor, seeded ~1% below the
+      // measured baseline. CI runs `yarn test:coverage`, so a PR that
+      // drops coverage below these numbers fails. This is a manual
+      // ratchet — bump these up as coverage improves; never lower them
+      // without a justification in the PR.
+      thresholds: {
+        statements: 74,
+        branches: 70,
+        functions: 72,
+        lines: 75,
+      },
     },
   },
 });
