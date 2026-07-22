@@ -191,13 +191,15 @@ describe('_init defines the components the config references', () => {
     };
     connect(el);
 
-    // Anchor on the referenced tag being defined — this proves the walk has
-    // actually run, so the assertion below can't observe a half-completed
-    // registration (as a bare `el.config` set would allow).
+    // `el.config` is a sufficient anchor: `_init` assigns it and runs the
+    // registration walk in the same synchronous block (no `await` between
+    // `this.config = normalized` and `registerConfigComponents`), so once
+    // config is observable the walk has already completed. Anchoring on a
+    // specific defined tag instead would couple this guard to the walk's
+    // output and make it fail-by-timeout on a deleted call site — which is
+    // the mutation-killers' job, not this guard's.
     await vi.waitFor(() => {
-      if (!customElements.get('nightingale-track-canvas')) {
-        throw new Error('registration walk has not run yet');
-      }
+      if (!el.config) throw new Error('config not resolved yet');
     });
 
     expect(customElements.get('nightingale-sequence-heatmap')).toBeUndefined();
