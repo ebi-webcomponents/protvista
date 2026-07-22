@@ -20,6 +20,7 @@
 import '../protvista-uniprot';
 import { createEditor, type PlaygroundEditor } from './editor';
 import { computeDiagnostics, type PlaygroundDiagnostic } from './lint';
+import { initSplitter } from './splitter';
 import { PRESETS, DEFAULT_PRESET_ID, getPreset } from './presets';
 import {
   readHash,
@@ -320,3 +321,6 @@ editor = createEditor({
 });
 // Render the initial preview once on load.
 void run();
+
+// Make the divider between the editor and preview panes draggable.
+initSplitter($<HTMLElement>('panels'), $<HTMLElement>('splitter'));

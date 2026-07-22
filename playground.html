@@ -115,9 +115,25 @@
         flex: 1 1 auto;
         min-height: 0;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: 1px;
+        /* Left pane | draggable splitter | right pane. The fr weights are
+           set by splitter.ts; default to an even split. */
+        grid-template-columns: var(--left, 1fr) 8px var(--right, 1fr);
+        background: var(--bg);
+      }
+      main.dragging {
+        cursor: col-resize;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .splitter {
         background: var(--line);
+        cursor: col-resize;
+        touch-action: none;
+      }
+      .splitter:hover,
+      .splitter:focus-visible {
+        background: var(--accent);
+        outline: none;
       }
       section.pane {
         background: var(--bg);
@@ -212,6 +228,9 @@
         main {
           grid-template-columns: 1fr;
         }
+        .splitter {
+          display: none;
+        }
         section.pane {
           overflow: visible;
         }
@@ -251,7 +270,7 @@
       <a class="home" href="./index.html">← Home</a>
     </header>
 
-    <main>
+    <main id="panels">
       <section class="pane" aria-label="Config editor">
         <h2>Config (YAML or JSON)</h2>
         <div id="editor"></div>
@@ -265,6 +284,18 @@
           <ul id="errors"></ul>
         </div>
       </section>
+
+      <div
+        class="splitter"
+        id="splitter"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize panels"
+        aria-valuemin="15"
+        aria-valuemax="85"
+        aria-valuenow="50"
+        tabindex="0"
+      ></div>
 
       <section class="pane" aria-label="Live preview">
         <h2>Preview</h2>
