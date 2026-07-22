@@ -449,10 +449,14 @@ class ProtvistaUniprot extends LitElement {
 
   /**
    * Apply author-set chrome colours from `config.theme` as inline
-   * `--protvista-*` custom properties on the host. Setting them inline on
-   * this element beats the `:where(:root)` token defaults but still yields
-   * to a consumer's own CSS override (see src/styles/inject.ts). A no-code
-   * theming shortcut — the same tokens are documented in docs/theming.md.
+   * `--protvista-*` custom properties on the host. Because they are set
+   * *inline on this element*, a config `theme` takes precedence over the
+   * `:where(:root)` token defaults AND ordinary page CSS — an inherited
+   * `:root` value or an element-selector rule both lose to an inline
+   * declaration (see the precedence note in src/styles/inject.ts). A host
+   * that must override a config theme uses `!important` (or sets the token
+   * inline itself). A no-code theming shortcut — the tokens are documented
+   * in docs/theming.md.
    */
   private applyTheme(theme: NormalizedConfig['theme']) {
     if (!theme) return;

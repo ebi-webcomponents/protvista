@@ -116,6 +116,23 @@ describe('mergeExtends — basic merge', () => {
     expect(out.defaults?.rendering?.layout).toBe('non-overlapping');
   });
 
+  it('child theme merges field-wise over base theme', async () => {
+    const withBaseTheme: ProtvistaViewerConfig = {
+      ...base(),
+      theme: { labelColor: '#eeeeee', accentColor: '#0053d6' },
+    };
+    const child: ProtvistaViewerConfig = {
+      extends: '@base',
+      theme: { accentColor: '#7b2d8e' },
+      rows: [],
+    };
+    const out = await mergeExtends(child, {
+      resolver: { '@base': withBaseTheme },
+    });
+    // The child tweaks only the accent; the base labelColor survives.
+    expect(out.theme).toEqual({ labelColor: '#eeeeee', accentColor: '#7b2d8e' });
+  });
+
   it('rows with known id are extended in place', async () => {
     const child: ProtvistaViewerConfig = {
       extends: '@base',

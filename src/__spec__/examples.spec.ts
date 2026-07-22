@@ -251,14 +251,14 @@ describe.each(discoverExamples())('example: $name', ({ dir, configPath }) => {
     // the real template (see `hasRenderableData` gating in
     // `protvista-uniprot.ts`), so this doesn't assert every declared
     // group renders — just that the example's own data produced at
-    // least one real, populated row. `.pv-group` covers both a group and
-    // a standalone-track row (which renders `.pv-group--standalone`);
-    // `.pv-track-content` is the data lane both shapes emit.
+    // least one real, populated track row. `.pv-group__track` is an
+    // expanded grouped track; `.pv-group--standalone` is a standalone
+    // track row. (Deliberately NOT `.pv-track-content`, which the
+    // always-present navigation lane also emits.)
     expect(
-      target.querySelectorAll(`.${CSS_PREFIX}-group`).length
-    ).toBeGreaterThan(0);
-    expect(
-      target.querySelectorAll(`.${CSS_PREFIX}-track-content`).length
+      target.querySelectorAll(
+        `.${CSS_PREFIX}-group__track, .${CSS_PREFIX}-group--standalone`
+      ).length
     ).toBeGreaterThan(0);
 
     // And, specifically, every track the example authored itself —

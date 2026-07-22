@@ -64,12 +64,16 @@ theme:
 ```
 
 The component applies each as the matching `--protvista-*` custom property
-inline on the element at mount — so it overrides the token defaults but
-still yields to any CSS override a host page sets (the precedence above).
-`theme.labelColor` maps to `--protvista-group-label-bg` /
-`--protvista-track-label-bg`; `theme.accentColor` maps to
-`--protvista-color-accent`. For anything beyond these, use the CSS tokens
-directly.
+**inline on the host element** at mount. Because an inline declaration
+beats both the `:where(:root)` default and ordinary page CSS (an inherited
+`:root` value or an element-selector rule), a config `theme` **takes
+precedence over page CSS**: a host that needs to override a config-supplied
+theme must use `!important` (e.g. `protvista-uniprot { --protvista-color-accent: #7b2d8e !important }`)
+or set the token inline on the element itself. `theme.labelColor` maps to
+`--protvista-group-label-bg` / `--protvista-track-label-bg`;
+`theme.accentColor` maps to `--protvista-color-accent`. For anything beyond
+these — or when the *page* should win over the config — use the CSS tokens
+directly and don't set `theme` in the config.
 
 ## Design tokens
 

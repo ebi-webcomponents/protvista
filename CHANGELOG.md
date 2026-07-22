@@ -65,8 +65,9 @@ A new optional top-level `theme: { labelColor?, accentColor? }` recolours
 the viewer chrome from the config — no CSS required. `labelColor` sets the
 row-label side panel; `accentColor` sets focus rings and the datatable
 active-row marker. Each maps to a `--protvista-*` design token the
-component sets inline on the host at mount (beating the token defaults,
-yielding to a consumer's own CSS). See `docs/theming.md`.
+component sets inline on the host at mount, so a config `theme` takes
+precedence over the token defaults and ordinary page CSS (a host overrides
+it only with `!important`). See `docs/theming.md`.
 
 ### Breaking — internal CSS classes and DOM ids are now hash-prefixed
 

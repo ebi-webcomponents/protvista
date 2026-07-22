@@ -393,6 +393,13 @@ function merge(
     out.defaults = mergeDefaults(base.defaults, child.defaults);
   }
 
+  // `theme` is a flat object of colour fields; merge field-wise (child
+  // wins per key) so a child can tweak one colour without dropping the
+  // base's others — matching the `defaults`/`sources` merge semantics.
+  if (base.theme !== undefined || child.theme !== undefined) {
+    out.theme = { ...base.theme, ...child.theme };
+  }
+
   // `rows` is an ordered list keyed by `id` (one namespace across
   // groups and standalone tracks). `{ ...base, ...child }` above
   // clobbers base.rows with child.rows, so we always recompute here.

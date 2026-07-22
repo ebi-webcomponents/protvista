@@ -239,7 +239,7 @@ Register a custom component so a semantic kind (or an explicit `component:`) res
 
 ### A new colour-scale theme
 
-"Theme" here means a named colour ramp for `colorScale` rendering (e.g. `alphafold-ramp`, `alphamissense-ramp`) — a value referenced from `ColorScaleConfig.theme` in the config. It is **not** a CSS theme for the overall component look-and-feel. CSS theming for the element as a whole is a separate concern handled via the component's stylesheet (`src/styles/protvista-styles.ts`) and any CSS variables it exposes.
+"Theme" here means a named colour ramp for `colorScale` rendering (e.g. `alphafold-ramp`, `alphamissense-ramp`) — a value referenced from `ColorScaleConfig.theme` in the config. It is **not** a CSS theme for the overall component look-and-feel. Chrome look-and-feel is themed either via the component's CSS variables directly (`src/styles/protvista-styles.ts` / `tokens.ts`), or, for a no-code subset, via the top-level config `theme:` block (`ThemeConfig` — `labelColor` / `accentColor`), which the component applies as inline `--protvista-*` tokens on the host at mount (see `docs/theming.md`).
 
 For built-in colour ramps: add to `BUILTIN_THEMES` in `src/schema/registry.ts`. For consumer-defined ramps: `element.registerTheme(name, stops)` at runtime. `stops` requires at least two `{ value, color, label? }` entries; values are the numeric thresholds at which each colour applies, in monotonically increasing order.
 
