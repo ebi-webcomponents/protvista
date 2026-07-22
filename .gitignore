@@ -13,6 +13,10 @@ demo/
 bench/results/
 .lighthouseci/
 
+# Vitest browser-mode artifacts (failure screenshots / attachments)
+.vitest-attachments/
+**/__screenshots__/
+
 # Python bytecode caches (scripts/)
 __pycache__/
 *.py[cod]

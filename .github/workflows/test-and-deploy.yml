@@ -33,6 +33,15 @@ jobs:
       - name: Unit tests
         run: yarn test:unit
 
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser tests (a11y + interaction)
+        run: yarn test:browser
+
+      - name: Coverage (enforces thresholds)
+        run: yarn test:coverage
+
   build:
     name: Build
     needs: test

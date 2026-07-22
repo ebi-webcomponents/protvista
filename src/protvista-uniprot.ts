@@ -1670,8 +1670,12 @@ class ProtvistaUniprot extends LitElement {
               <div
                 class="${CSS_PREFIX}-group-label"
                 data-group-toggle="${group.id}"
+                role="button"
+                tabindex="0"
+                aria-expanded="${this.openGroups.includes(group.id)}"
                 title="${group.description ?? ''}"
                 @click="${this.handleGroupClick}"
+                @keydown="${this.handleGroupKeydown}"
               >
                 ${unsafeHTML(
                   renderLabel(group.label, this.accession)
@@ -2002,14 +2006,35 @@ class ProtvistaUniprot extends LitElement {
   }
 
   handleGroupClick(e: MouseEvent) {
+    this._toggleGroupFromEvent(e);
+  }
+
+  /**
+   * Keyboard operability for the group-collapse toggle. The label carries
+   * `role="button"` + `tabindex="0"`, so it must activate on Enter and
+   * Space like a native button. Space is `preventDefault`ed to stop the
+   * page scrolling; Enter for consistency.
+   *
+   * A label may nest an inline `<a>` (Markdoc). Tabbing to that link and
+   * pressing Enter activates the link — its keydown `target` is the `<a>`,
+   * so `_toggleGroupFromEvent` bails and the group does not toggle.
+   */
+  handleGroupKeydown(e: KeyboardEvent) {
+    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+    e.preventDefault();
+    this._toggleGroupFromEvent(e);
+  }
+
+  /** Shared toggle path for pointer (`click`) and keyboard (`keydown`). */
+  private _toggleGroupFromEvent(e: Event) {
     const target = e.target as Element;
-    // A Markdoc-rendered label can contain an inline link. A click on that
+    // A Markdoc-rendered label can contain an inline link. Activating that
     // link should navigate only — not also collapse/expand the group — so
-    // bail before the toggle logic when the click landed on (or inside) an
+    // bail before the toggle logic when the event landed on (or inside) an
     // <a>.
     if (target.closest('a')) return;
     // Climb to the group-label host regardless of what inner inline
-    // element (a `{% help %}` span, emphasis) the click landed on — a
+    // element (a `{% help %}` span, emphasis) the event landed on — a
     // Markdoc-rendered label can nest arbitrary inline markup, so a
     // single-level `parentElement` hop is no longer sufficient.
     const host = target.closest('[data-group-toggle]');
