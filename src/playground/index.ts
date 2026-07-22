@@ -32,6 +32,8 @@ import {
 } from './url-state';
 
 const DEBOUNCE_MS = 400;
+/** Default of `--protvista-color-accent` (see docs/theming.md). */
+const DEFAULT_ACCENT = '#0053d6';
 
 /** Minimal structural view of the preview element's writable inputs. */
 type PreviewElement = HTMLElement & {
@@ -48,6 +50,8 @@ const $ = <T extends HTMLElement>(id: string): T => {
 const presetSelect = $<HTMLSelectElement>('preset');
 const accessionInput = $<HTMLInputElement>('accession');
 const runButton = $<HTMLButtonElement>('run');
+const themeAccent = $<HTMLInputElement>('theme-accent');
+const themeReset = $<HTMLButtonElement>('theme-reset');
 const errorSummary = $<HTMLElement>('error-summary');
 const errorList = $<HTMLUListElement>('errors');
 const previewHost = $<HTMLElement>('preview');
@@ -250,6 +254,19 @@ presetSelect.addEventListener('change', () => {
 // Accession changes fire once on blur/enter → render once.
 accessionInput.addEventListener('change', () => void run());
 
+// ── Theme ─────────────────────────────────────────────────────
+// The accent is a CSS display token (docs/theming.md), NOT config. It is
+// set live on the (stable) preview host so it survives preview re-mounts,
+// and is intentionally left out of the shareable config/URL.
+function applyTheme(): void {
+  previewHost.style.setProperty('--protvista-color-accent', themeAccent.value);
+}
+themeAccent.addEventListener('input', applyTheme);
+themeReset.addEventListener('click', () => {
+  themeAccent.value = DEFAULT_ACCENT;
+  previewHost.style.removeProperty('--protvista-color-accent');
+});
+
 // ── Bootstrap ─────────────────────────────────────────────────
 function initialState(): { text: string; accession: string; presetId: string } {
   const restored = readHash();
@@ -280,7 +297,8 @@ editor = createEditor({
   ariaLabel: 'ProtVista configuration editor (YAML or JSON)',
   onChange: scheduleRefresh,
 });
-// Render the initial preview once on load.
+// Render the initial preview once on load, with the accent applied.
+applyTheme();
 void run();
 
 // Make the divider between the editor and preview panes draggable.

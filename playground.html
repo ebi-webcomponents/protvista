@@ -86,6 +86,16 @@
       input#accession {
         width: 7rem;
       }
+      input#theme-accent {
+        width: 2.4rem;
+        padding: 0.1rem;
+        cursor: pointer;
+      }
+      button#theme-reset {
+        cursor: pointer;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
       button#run {
         cursor: pointer;
         font-weight: 700;
@@ -245,6 +255,19 @@
           spellcheck="false"
           autocomplete="off"
         />
+      </div>
+
+      <div class="field">
+        <label for="theme-accent">Theme</label>
+        <input
+          id="theme-accent"
+          type="color"
+          value="#0053d6"
+          title="Viewer accent colour (sets --protvista-color-accent — a display token, not part of the config)"
+        />
+        <button id="theme-reset" type="button" title="Reset the theme accent">
+          Reset
+        </button>
       </div>
 
       <button id="run" type="button" title="Update the preview (Ctrl/Cmd+Enter)">
