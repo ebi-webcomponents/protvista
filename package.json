@@ -87,7 +87,7 @@
     "vite-plugin-dts": "5.0.3",
     "vite-plugin-env-compatible": "2.0.1",
     "vite-plugin-html": "3.2.2",
-    "vite-plugin-svgo": "3.0.0",
+    "vite-plugin-svgo": "2.0.0",
     "vitest": "4.1.10"
   },
   "browserslist": [

@@ -65,16 +65,45 @@ function locate(text: string, path: string | undefined): { from: number; to: num
 }
 
 /**
- * Extract a character offset from a thrown parser error. `js-yaml`
- * attaches a `mark` with a `position`; `JSON.parse` embeds `position N`
- * in its message on V8. Returns 0 when neither is available.
+ * Extract a character offset from a thrown parser error. Kept tolerant
+ * across parser versions (the repo has moved js-yaml major versions):
+ * a js-yaml `YAMLException` exposes a `mark` with either a `position`
+ * (char offset) or 0-based `line`/`column`; `JSON.parse` embeds
+ * `position N` in its message on V8. Falls back to 0 when nothing is
+ * available — a marker at the document start, never a throw.
  */
-function offsetFromParseError(error: unknown): number {
-  const mark = (error as { mark?: { position?: number } })?.mark;
-  if (mark && typeof mark.position === 'number') return mark.position;
+function lineColToOffset(text: string, line: number, column: number): number {
+  const lines = text.split('\n');
+  let offset = 0;
+  for (let i = 0; i < line && i < lines.length; i += 1) {
+    offset += lines[i].length + 1; // +1 for the consumed newline
+  }
+  return offset + Math.max(0, column);
+}
+
+function offsetFromParseError(error: unknown, text: string): number {
+  const mark = (
+    error as { mark?: { position?: number; line?: number; column?: number } }
+  )?.mark;
+  if (mark) {
+    if (typeof mark.position === 'number') return mark.position;
+    // js-yaml marks are 0-based. Robust to a parser dropping/renaming
+    // `position` as long as line/column survive.
+    if (typeof mark.line === 'number') {
+      return lineColToOffset(text, mark.line, mark.column ?? 0);
+    }
+  }
   const message = (error as { message?: string })?.message ?? '';
-  const posMatch = /position (\d+)/i.exec(message);
-  if (posMatch) return Number(posMatch[1]);
+  const jsonPos = /position (\d+)/i.exec(message); // JSON.parse on V8
+  if (jsonPos) return Number(jsonPos[1]);
+  const yamlLineCol = /\((\d+):(\d+)\)/.exec(message); // js-yaml "(line:column)", 1-based
+  if (yamlLineCol) {
+    return lineColToOffset(
+      text,
+      Number(yamlLineCol[1]) - 1,
+      Number(yamlLineCol[2]) - 1
+    );
+  }
   return 0;
 }
 
@@ -93,7 +122,7 @@ export async function computeDiagnostics(
   try {
     parsed = await parseConfigText(text);
   } catch (error) {
-    const at = Math.min(offsetFromParseError(error), text.length);
+    const at = Math.min(offsetFromParseError(error, text), text.length);
     return [
       {
         from: at,
