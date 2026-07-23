@@ -53,6 +53,14 @@ export type ValidationIssueCode =
   | 'missing-accession'
   /** The config sets both `rows:` and its deprecated `groups:` alias. */
   | 'rows-alias-conflict'
+  /**
+   * A top-level `rows:` entry is neither a group nor a standalone track:
+   * it carries neither `tracks:` nor `data:`, or it carries both. The
+   * `oneOf` in the schema can only report this as a contradictory
+   * "needs `tracks`" / "needs `data`" pair, so the validator detects it
+   * directly and replaces those with one targeted message.
+   */
+  | 'invalid-entry-shape'
   // ── Extends resolution ─────────────────────────────────
   /** The `extends` chain forms a cycle (a → b → a). */
   | 'circular-extends'

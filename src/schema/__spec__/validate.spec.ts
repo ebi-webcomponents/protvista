@@ -655,6 +655,204 @@ describe('validateConfig — accession placeholders', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// Structural: malformed top-level entry shape
+// ─────────────────────────────────────────────────────────────
+
+describe('validateConfig — invalid top-level entry shape', () => {
+  /** Build a config whose single entry is `entry`. */
+  const withEntry = (entry: unknown) =>
+    ({
+      sources: { features: 'https://example.org/features' },
+      rows: [entry],
+    }) as unknown as ProtvistaViewerConfig;
+
+  it('flags an entry with neither `tracks:` nor `data:`, naming both fields', () => {
+    const result = validateConfig(
+      withEntry({ id: 'orphan', kind: 'features' }),
+      freshRegistry()
+    );
+
+    expect(result.valid).toBe(false);
+    // Exactly one issue: the whole point is that the contradictory
+    // "needs tracks" / "needs data" / `oneOf` trio no longer surfaces.
+    expect(result.issues).toHaveLength(1);
+    const [issue] = result.issues;
+    expect(issue.code).toBe('invalid-entry-shape');
+    expect(issue.path).toBe('/rows/0');
+    expect(issue.message).toContain("'orphan'");
+    expect(issue.message).toContain("'tracks:'");
+    expect(issue.message).toContain("'data:'");
+  });
+
+  it('flags an entry with both `tracks:` and `data:`, naming both fields', () => {
+    const result = validateConfig(
+      withEntry({ id: 'mixed', tracks: [], data: 'features' }),
+      freshRegistry()
+    );
+
+    expect(result.valid).toBe(false);
+    expect(result.issues).toHaveLength(1);
+    const [issue] = result.issues;
+    expect(issue.code).toBe('invalid-entry-shape');
+    expect(issue.message).toContain("'mixed'");
+    expect(issue.message).toContain("'tracks:'");
+    expect(issue.message).toContain("'data:'");
+    // The two cases must not read identically — this one is about
+    // having both, not about missing one.
+    expect(issue.message).toContain('both');
+  });
+
+  it('no longer surfaces the raw oneOf / contradictory required errors', () => {
+    const result = validateConfig(
+      withEntry({ id: 'orphan', kind: 'features' }),
+      freshRegistry()
+    );
+
+    const text = result.issues.map((i) => i.message).join('\n');
+    expect(text).not.toContain('oneOf');
+    expect(text).not.toContain("required property 'tracks'");
+    expect(text).not.toContain("required property 'data'");
+    expect(issueByCode(result.issues, 'schema')).toBeUndefined();
+  });
+
+  it('falls back to the index when the entry has no usable id', () => {
+    const result = validateConfig(withEntry({ kind: 'features' }), freshRegistry());
+
+    expect(result.issues).toHaveLength(1);
+    expect(result.issues[0].message).toContain('at index 0');
+  });
+
+  it('falls back to the index for a non-string or empty id', () => {
+    // The guard is `typeof id === 'string' && id.length > 0`. A numeric
+    // or blank id is not a usable label, so it must degrade to the
+    // index rather than quote `'42'` / `''` into the message.
+    for (const id of [42, ''] as const) {
+      const result = validateConfig(withEntry({ id, kind: 'features' }), freshRegistry());
+      expect(result.issues).toHaveLength(1);
+      expect(result.issues[0].message).toContain('at index 0');
+      expect(result.issues[0].message).not.toContain(`'${id}'`);
+    }
+  });
+
+  it('treats an empty `tracks:` stub as unset, not as a group', () => {
+    // `tracks:` with nothing after it parses to null. Consistent with
+    // `rows-alias.ts`, that is a leftover stub rather than a value — so
+    // the entry reads as "neither", not as an empty group.
+    const result = validateConfig(withEntry({ id: 'stub', tracks: null }), freshRegistry());
+
+    expect(result.issues).toHaveLength(1);
+    expect(result.issues[0].code).toBe('invalid-entry-shape');
+    expect(result.issues[0].message).toContain('neither');
+  });
+
+  it('reads a both-null stub as "neither", not "both"', () => {
+    // Both keys present but both empty (`tracks:` / `data:` with nothing
+    // after them) is the case that separates the `null == unset` rule
+    // from a plain key-existence check: by presence it looks like "both",
+    // but neither carries a value, so it must read as "neither".
+    const result = validateConfig(
+      withEntry({ id: 'blank', tracks: null, data: null }),
+      freshRegistry()
+    );
+
+    expect(result.issues).toHaveLength(1);
+    expect(result.issues[0].code).toBe('invalid-entry-shape');
+    expect(result.issues[0].message).toContain('neither');
+    expect(result.issues[0].message).not.toContain('both');
+  });
+
+  it('reports one issue per offending entry', () => {
+    const result = validateConfig(
+      {
+        sources: { features: 'https://example.org/features' },
+        rows: [
+          { id: 'orphan' },
+          { id: 'mixed', tracks: [], data: 'features' },
+        ],
+      } as unknown as ProtvistaViewerConfig,
+      freshRegistry()
+    );
+
+    const shapeIssues = result.issues.filter(
+      (i) => i.code === 'invalid-entry-shape'
+    );
+    expect(shapeIssues).toHaveLength(2);
+    expect(shapeIssues.map((i) => i.path)).toEqual(['/rows/0', '/rows/1']);
+  });
+
+  it('leaves a non-object entry to the schema — it is not an ambiguous shape', () => {
+    const result = validateConfig(withEntry('not-an-entry'), freshRegistry());
+
+    expect(result.valid).toBe(false);
+    expect(issueByCode(result.issues, 'invalid-entry-shape')).toBeUndefined();
+    expect(issueByCode(result.issues, 'schema')).toBeDefined();
+  });
+
+  it('still reports unrelated structural errors elsewhere in the config', () => {
+    // The suppression is scoped to the offending entry: only the Ajv
+    // errors *under that entry* are dropped, so a structural problem
+    // elsewhere still surfaces on the same pass. (The subsequent
+    // semantic pass is skipped whenever any entry is flagged — that is
+    // the validator's existing short-circuit contract, not this
+    // suppression: a structural failure has always deferred semantic
+    // checks to a second run.)
+    const result = validateConfig(
+      {
+        version: 'bogus',
+        sources: { features: 'https://example.org/features' },
+        rows: [{ id: 'orphan', kind: 'features' }],
+      } as unknown as ProtvistaViewerConfig,
+      freshRegistry()
+    );
+
+    expect(issueByCode(result.issues, 'invalid-entry-shape')).toBeDefined();
+    const schemaIssue = issueByCode(result.issues, 'schema');
+    expect(schemaIssue).toBeDefined();
+    expect(schemaIssue!.path).toBe('/version');
+  });
+
+  it('suppresses only the flagged entry, not a similarly-prefixed sibling', () => {
+    // Guards the descendant test in `isUnderFlaggedEntry`: a flagged
+    // `/rows/1` must not swallow errors under `/rows/10`.
+    const rows: unknown[] = Array.from({ length: 11 }, (_, i) => ({
+      id: `g${i}`,
+      tracks: [{ id: 't', kind: 'features', data: 'features' }],
+    }));
+    rows[1] = { id: 'orphan' }; // flagged → /rows/1
+    rows[10] = { id: 'g10', tracks: [{ id: 't' }] }; // nested error → /rows/10/tracks/0
+
+    const result = validateConfig(
+      {
+        sources: { features: 'https://example.org/features' },
+        rows,
+      } as unknown as ProtvistaViewerConfig,
+      freshRegistry()
+    );
+
+    expect(issueByCode(result.issues, 'invalid-entry-shape')?.path).toBe('/rows/1');
+    expect(
+      result.issues.some((i) => i.path.startsWith('/rows/10/'))
+    ).toBe(true);
+  });
+
+  it('leaves valid groups and standalone tracks untouched', () => {
+    const result = validateConfig(
+      {
+        sources: { features: 'https://example.org/features' },
+        rows: [
+          { id: 'GROUP', tracks: [{ id: 't', kind: 'features', data: 'features' }] },
+          { id: 'standalone', kind: 'features', data: 'features' },
+        ],
+      } as unknown as ProtvistaViewerConfig,
+      freshRegistry()
+    );
+
+    expect(result.valid).toBe(true);
+    expect(result.issues).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────
 
