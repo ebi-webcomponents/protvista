@@ -177,9 +177,11 @@ The viewer renders a single collapsible group "Domains" (label title-cased from 
 
 ### Learning more
 
+- **Configuration vs data.** [`docs/configuration-vs-data.md`](./docs/configuration-vs-data.md) explains the boundary between what your config controls and what a data provider must supply — the Intent/Representation split, with a diagram and a paired example.
 - **Schema reference.** [`specs/config-approach.md`](./specs/config-approach.md) documents every field (`rows`, `tracks`, `sources`, `defaults`, `extends`, `kind`, `data`, `rendering`, `dataTooltip`) with worked examples and edge-case semantics. This is the normative source.
 - **Canonical default.** [`src/default-config.yaml`](./src/default-config.yaml) is the UniProt viewer itself, authored in the new schema. Useful as a reference.
 - **Worked examples.** [`examples/`](./examples) is the canonical, CI-validated set of runnable example configs — one per generic-format adapter (CSV/TSV/JSON/BED), inline data, a minimal URL-sourced config, and an `extends:`-based config that layers a custom track on the shipped default. See [`examples/README.md`](./examples/README.md).
+- **Adapter reference.** [`docs/adapter-reference.md`](./docs/adapter-reference.md) lists the expected payload shape and fields for every built-in kind and adapter, generated from the adapter code and drift-tested. A machine-readable schema for the bring-your-own feature record is served at [`feature-record.schema.json`](./public/schema/v1/feature-record.schema.json).
 - **Authoring `dataTooltip`.** [`docs/data-tooltip.md`](./docs/data-tooltip.md) covers the three authoring forms (bare string, `kind: fields`, `kind: markdown`) with examples.
 - **React host integration.** [`docs/react-integration.md`](./docs/react-integration.md) shows how a React host owns its own rich tooltips via the `change` event + `notooltip`, with a minimal worked example. The normative contract is [`specs/config-approach.md`](./specs/config-approach.md#react-host-integration).
 
