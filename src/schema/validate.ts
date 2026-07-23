@@ -393,6 +393,29 @@ function checkTrack(
     }
   }
 
+  // Unknown implicit adapter. A known kind also resolves to an adapter
+  // name (e.g. `features` → `uniprot-features-json`) that the loader looks
+  // up in the registry at fetch time. Built-in kinds always resolve to a
+  // registered adapter; a consumer kind whose adapter was never
+  // registered would otherwise fail late — the loader throws and degrades
+  // the track to empty. Catch it here, mirroring the explicit `adapter:`
+  // check below. Skipped when a data descriptor sets an explicit
+  // `adapter:` (that overrides the kind's adapter and is validated per
+  // descriptor), so the kind's adapter is never actually used.
+  if (track.kind !== undefined && registry.hasSemanticKind(track.kind)) {
+    const kindAdapter = registry.getSemanticKind(track.kind)?.adapter;
+    const hasExplicitAdapter = collectDescriptors(track).some(
+      (d) => !isShorthand(d) && d.adapter !== undefined
+    );
+    if (kindAdapter && !hasExplicitAdapter && !registry.hasAdapter(kindAdapter)) {
+      issues.push({
+        path: trackPath,
+        message: `Semantic kind '${track.kind}' in track ${trackPath} resolves to adapter '${kindAdapter}', which is not registered. Register it with registerAdapter().`,
+        code: 'unknown-adapter',
+      });
+    }
+  }
+
   // Track has no rendering path: no `kind`, no track-level
   // `component`, and no parent-group `component` to inherit. A
   // standalone track (no parent group) has no group component to fall

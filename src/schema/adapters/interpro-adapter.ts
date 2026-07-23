@@ -1,5 +1,6 @@
 import ColorHash from 'color-hash';
 
+import type { AdapterFunction } from '../types';
 import { InterProProteinSearch, TransformedInterPro } from './types/interpro';
 
 // Copied from InterPro to replicate the same colours for the representative domains
@@ -9,7 +10,14 @@ const colorHash = new ColorHash({
   lightness: [0.65, 0.35, 0.5],
 });
 
-const transformData = (data: InterProProteinSearch): TransformedInterPro => {
+/**
+ * Transform the raw InterPro protein-search response into the intermediate
+ * per-entry shape (one record per InterPro entry, carrying its protein
+ * locations).
+ */
+const toInterProEntries = (
+  data: InterProProteinSearch
+): TransformedInterPro => {
   try {
     return data?.results?.map(({ metadata, proteins }) => {
       const start = proteins[0].entry_protein_locations
@@ -45,4 +53,29 @@ const transformData = (data: InterProProteinSearch): TransformedInterPro => {
   }
 };
 
-export default transformData;
+/**
+ * `interpro-entries-json` — flattens each InterPro entry into one
+ * "InterPro Representative Domain" feature per representative-location
+ * fragment, which is what the track renders. (This flattening used to
+ * live in the loader; it is part of the adapter's transform so the loader
+ * stays generic.)
+ */
+export const interproAdapter: AdapterFunction = (raw) => {
+  const entries = toInterProEntries(raw as InterProProteinSearch);
+  const representativeDomains: Array<Record<string, unknown>> = [];
+  entries?.forEach((feature) => {
+    feature.locations?.forEach((location) => {
+      if (location.representative) {
+        location.fragments?.forEach((fragment) => {
+          representativeDomains.push({
+            ...feature,
+            type: 'InterPro Representative Domain',
+            start: fragment.start,
+            end: fragment.end,
+          });
+        });
+      }
+    });
+  });
+  return representativeDomains;
+};

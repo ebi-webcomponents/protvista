@@ -1,3 +1,5 @@
+import type { AdapterFunction } from '../types';
+
 const featureType = 'PDBE_COVER';
 const featureCategory = 'STRUCTURE_COVERAGE';
 
@@ -86,13 +88,12 @@ export const mergeOverlappingIntervals = (structures) => {
   return mergedIntervals;
 };
 
-const transformData = (data) => {
-  let transformedData = [];
+export const structureAdapter: AdapterFunction = (raw) => {
+  const data = raw as { dbReferences?: unknown[]; length?: number };
+  let transformedData: unknown[] = [];
   if (data && data.length !== 0) {
     const allFeatureStructures = getAllFeatureStructures(data);
     transformedData = mergeOverlappingIntervals(allFeatureStructures);
   }
   return transformedData;
 };
-
-export default transformData;

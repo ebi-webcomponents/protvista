@@ -1,5 +1,6 @@
-import { AlphaFoldPayload } from '@nightingale-elements/nightingale-structure';
+import type { AlphaFoldPayload } from '@nightingale-elements/nightingale-structure';
 
+import type { AdapterFunction } from '../types';
 import {
   cellSplitter,
   rowSplitter,
@@ -43,10 +44,12 @@ type PartialProtein = {
   };
 };
 
-const transformData = async (
-  data: AlphaFoldPayload,
-  protein: PartialProtein
+export const alphamissenseHeatmapAdapter: AdapterFunction = async (
+  raw,
+  proteinRaw
 ) => {
+  const data = raw as AlphaFoldPayload;
+  const protein = proteinRaw as PartialProtein;
   const alphaFoldSequenceMatch = data?.filter(
     ({ sequence, amAnnotationsUrl }) =>
       protein.sequence.sequence === sequence && amAnnotationsUrl
@@ -62,5 +65,3 @@ const transformData = async (
     );
   }
 };
-
-export default transformData;

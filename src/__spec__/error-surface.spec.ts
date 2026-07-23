@@ -1413,7 +1413,12 @@ describe('adapter throw resilience', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     // Must NOT reject even though the `boom` adapter throws.
-    const res = await loadProtvistaData('P05067', config, fetchOne, adapters);
+    const res = await loadProtvistaData(
+      'P05067',
+      config,
+      fetchOne,
+      (name) => adapters[name]
+    );
 
     expect(res.data['GOOD-ok']).toBeDefined(); // healthy track loaded
     expect(res.data['BOOM-bang']).toBeUndefined(); // throwing track degraded to empty

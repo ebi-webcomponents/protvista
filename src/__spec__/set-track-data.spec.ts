@@ -38,6 +38,7 @@ import { ACCESSION, makeConfig } from './fixtures';
 const fetchOne = vi.fn(async (url: string) => ({ url }));
 
 const noopAdapters: AdapterMap = {};
+const resolveNoopAdapter = (name: string) => noopAdapters[name];
 
 describe('loadProtvistaData — from: custom / setTrackData()', () => {
   beforeEach(() => {
@@ -65,7 +66,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       ACCESSION,
       config,
       fetchOne,
-      noopAdapters,
+      resolveNoopAdapter,
       customTrackData
     );
 
@@ -128,7 +129,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       ACCESSION,
       config,
       fetchOne,
-      noopAdapters,
+      resolveNoopAdapter,
       customTrackData
     );
 
@@ -157,7 +158,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       ACCESSION,
       config,
       fetchOne,
-      noopAdapters,
+      resolveNoopAdapter,
       customTrackData
     );
 
@@ -180,7 +181,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       ACCESSION,
       config,
       fetchOne,
-      noopAdapters,
+      resolveNoopAdapter,
       {} // no customTrackData
     );
 
@@ -216,7 +217,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       ACCESSION,
       config,
       fetchOne,
-      noopAdapters,
+      resolveNoopAdapter,
       {} // no customTrackData → track early-returns undefined
     );
 
@@ -242,7 +243,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       ACCESSION,
       config,
       fetchOne,
-      noopAdapters,
+      resolveNoopAdapter,
       customTrackData
     );
     const track = data['GROUP-mine'] as Array<{

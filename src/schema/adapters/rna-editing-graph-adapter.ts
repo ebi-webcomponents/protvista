@@ -1,6 +1,8 @@
+import type { AdapterFunction } from '../types';
 import { RnaEditing } from './types/rna-editing';
 
-const transformData = (data: RnaEditing) => {
+export const rnaEditingGraphAdapter: AdapterFunction = (raw) => {
+  const data = raw as RnaEditing;
   if (data.sequence && data.features.length) {
     const total = new Uint8ClampedArray(data.sequence.length);
     const missense = new Uint8ClampedArray(data.sequence.length);
@@ -44,5 +46,3 @@ const transformData = (data: RnaEditing) => {
     return graphData;
   }
 };
-
-export default transformData;
