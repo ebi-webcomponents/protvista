@@ -1,0 +1,20 @@
+# npm downloads for protvista-uniprot. Raw HTTP fetch events — inflated by CI/mirror/bot traffic and dominated by UniProt's builds; a baseline trend, NOT an adoption count.
+month,package,downloads
+2025-01,protvista-uniprot,999
+2025-02,protvista-uniprot,780
+2025-03,protvista-uniprot,1149
+2025-04,protvista-uniprot,381
+2025-05,protvista-uniprot,767
+2025-06,protvista-uniprot,1683
+2025-07,protvista-uniprot,1601
+2025-08,protvista-uniprot,732
+2025-09,protvista-uniprot,1106
+2025-10,protvista-uniprot,2127
+2025-11,protvista-uniprot,1038
+2025-12,protvista-uniprot,2336
+2026-01,protvista-uniprot,1080
+2026-02,protvista-uniprot,1043
+2026-03,protvista-uniprot,1079
+2026-04,protvista-uniprot,1423
+2026-05,protvista-uniprot,1298
+2026-06,protvista-uniprot,1101

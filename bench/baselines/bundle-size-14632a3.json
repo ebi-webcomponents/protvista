@@ -1,0 +1,16 @@
+{
+  "commit": "14632a30376b321fe98b2f33160a094e7dc55c08",
+  "shortSha": "14632a3",
+  "capturedAt": "2026-04-29T13:45:49.709Z",
+  "files": [
+    {
+      "file": "protvista-uniprot.mjs",
+      "raw": 4655449,
+      "gzip": 1162894
+    }
+  ],
+  "total": {
+    "raw": 4655449,
+    "gzip": 1162894
+  }
+}

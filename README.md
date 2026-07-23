@@ -2,9 +2,18 @@
 
 A Web Component which uses [Nightingale](https://github.com/ebi-webcomponents/nightingale) components to display protein sequence information.
 
-![Image of protvista-uniprot](protvista.png)
+**Branching model and v5**
 
-## 📣 Monthly Office Hours
+> - **`main` (this branch)** is the current-major **4.x** production line. Published on npm as `protvista-uniprot`; custom element `<protvista-uniprot>`. Receives non-breaking changes (security, performance, dependencies, CI). Use this for production.
+> - **[`next`](../../tree/next)** is the **v5** development line. It carries any breaking changes that come out of the [SSI RSMF](ROADMAP.md) work: a configuration-driven loader, a published JSON-Schema for viewer configurations, a declarative tooltip resolver.`v5` will rename the package and element to `protvista`. GitHub has already been renamed and the old URL auto-redirects, and `protvista-uniprot` will remain on npm as a deprecated alias once v5 ships. **Schemas and APIs on `next` are still evolving — do not depend on them in production yet.** Targeted production release: early 2027.
+
+![Image of ProtVista](protvista.png)
+
+## Roadmap & Future Plans
+
+Check out our **[3-Year Roadmap & Sustainability Plan (DRAFT)](ROADMAP.md)** to see our upcoming improvements, including moving towards a configuration-driven architecture, and how you can get involved!
+
+## Monthly Office Hours
 
 Have questions about using or contributing to ProtVista?
 
@@ -30,11 +39,11 @@ We welcome contributions!
 This component requires a modern browser with support for [ES2021](https://caniuse.com/?search=ES2021) and [Web Components (Custom Elements v1)](https://caniuse.com/custom-elementsv1).
 
 | Browser | Minimum version |
-|---------|----------------|
-| Chrome  | 92+            |
-| Edge    | 92+            |
-| Firefox | 90+            |
-| Safari  | 15+            |
+| ------- | --------------- |
+| Chrome  | 92+             |
+| Edge    | 92+             |
+| Firefox | 90+             |
+| Safari  | 15+             |
 
 Older browsers are not supported.
 
@@ -85,6 +94,40 @@ yarn start
 
 to install dependencies and start the local development server.
 
+## Testing
+
+Tests run under [Vitest](https://vitest.dev/) with a `jsdom` DOM environment. All APIs (`describe`, `it`, `expect`, `vi`, …) must be imported explicitly from `'vitest'` — `globals` is off.
+
+```bash
+# Run the full pipeline (lint + types + unit)
+yarn test
+
+# Unit tests only (CI-friendly, non-zero exit on failure)
+yarn test:unit
+
+# Watch mode
+yarn test:watch
+
+# Coverage (writes text + html + lcov to ./coverage/)
+yarn test:coverage
+```
+
+Coverage output is for local use only and is not committed. Open `coverage/index.html` after `yarn test:coverage` to inspect.
+
+### Continuous integration
+
+Every push and pull request runs the same checks as `yarn test` via [`.github/workflows/test-and-deploy.yml`](./.github/workflows/test-and-deploy.yml): `yarn test:lint`, `yarn test:types`, `yarn test:unit`, plus `yarn test:coverage` against the thresholds defined in `vite.config.mjs`. All steps run under Node 24 on `ubuntu-latest`. A separate `build` job runs `yarn build` (and, on `main`, `yarn build:demo`) and deploys the demo to GitHub Pages.
+
+### Coverage
+
+Coverage thresholds live in [`vite.config.mjs`](./vite.config.mjs) under `test.coverage.thresholds` and follow a ratchet pattern — they only ever go up. CI fails if a change drops coverage below the recorded threshold. Run `yarn test:coverage` locally to see the current numbers, or `yarn test:coverage:ratchet` to lift the thresholds to match the latest run (commit the resulting `vite.config.mjs` change in the same PR as the coverage improvement).
+
+## Performance benchmarks
+
+A `bench/` workflow captures repeatable performance baselines for the demo across three layers: library bundle size, Lighthouse CI against a fixed set of UniProt scenarios, and DOM-observed custom milestones (`fetch-and-parse`, `render`, `total`). Run `yarn bench` to produce `bench/results/summary.md`. Reference snapshots live under `bench/baselines/` and are committed; per-run output is gitignored.
+
+See [`bench/README.md`](./bench/README.md) for scenarios, capture procedure, and methodology notes.
+
 ## Configuration
 
 You can pass your own configuration to the component using the `config` attribute/property.
@@ -95,7 +138,7 @@ You can pass your own configuration to the component using the `config` attribut
     {
       "name": "string",
       "label": "string",
-      "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation",
+      "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation-canvas,
       "adapter": "feature-adapter|structure-adapter|proteomics-adapter|variation-adapter",
       "url": "string",
       "tracks": [
@@ -103,7 +146,7 @@ You can pass your own configuration to the component using the `config` attribut
           "name": "string",
           "label": "string",
           "filter": "string",
-          "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation",
+          "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation-canvas,
           "tooltip": "string"
         }
       ]

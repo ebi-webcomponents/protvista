@@ -1,4 +1,6 @@
-jest.mock('lit', () => ({
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('lit', () => ({
   nothing: Symbol.for('lit.nothing'),
 }));
 
@@ -175,9 +177,9 @@ describe('protvista-uniprot-datatable utils', () => {
     global.HTMLTableRowElement = MockHTMLTableRowElement;
 
     it('returns matching row based on tr[data-id]', () => {
-      const tr =
-        new MockHTMLTableRowElement() as unknown as HTMLTableRowElement;
-      (tr as any).dataset = { id: '2' };
+      const mock = new MockHTMLTableRowElement();
+      mock.dataset = { id: '2' };
+      const tr = mock as unknown as HTMLTableRowElement;
 
       const e = {
         composedPath: () => [tr],
@@ -188,9 +190,9 @@ describe('protvista-uniprot-datatable utils', () => {
     });
 
     it('returns an id with undefined row when the id is not found in filteredData', () => {
-      const tr =
-        new MockHTMLTableRowElement() as unknown as HTMLTableRowElement;
-      (tr as any).dataset = { id: '999' };
+      const mock = new MockHTMLTableRowElement();
+      mock.dataset = { id: '999' };
+      const tr = mock as unknown as HTMLTableRowElement;
 
       const e = {
         composedPath: () => [tr],

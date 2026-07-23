@@ -1,95 +1,79 @@
+import { describe, test, expect } from 'vitest';
+
 import {
   colorConfig,
   getFilteredVariants,
   VariantsForFilter,
 } from '../filter-config';
+import { TransformedVariant } from '../adapters/variation-adapter';
 
-const transformedVariantPositions = [
+const makeVariant = (
+  overrides: Partial<TransformedVariant>
+): TransformedVariant =>
+  ({
+    accession: 'A',
+    variant: 'A',
+    start: 1,
+    xrefNames: [],
+    hasPredictions: false,
+    consequenceType: 'missense',
+    type: 'VARIANT',
+    begin: '1',
+    end: '1',
+    xrefs: [],
+    cytogeneticBand: '',
+    locations: [],
+    somaticStatus: 0,
+    sourceType: 'uniprot',
+    wildType: 'A',
+    ...overrides,
+  }) as TransformedVariant;
+
+const transformedVariantPositions: VariantsForFilter = [
   {
     variants: [
-      {
+      makeVariant({
         accession: 'A',
-        begin: 1,
-        end: 1,
+        begin: '1',
+        end: '1',
         start: 1,
-        tooltipContent: '',
-        sourceType: 'source',
         variant: 'V',
-        protvistaFeatureId: 'id1',
-        xrefNames: [],
-        type: 'VARIANT',
-        wildType: 'A',
-        alternativeSequence: 'V',
-        consequenceType: 'disease',
         clinicalSignificances: [
           {
-            type: 'Variant of uncertain significance',
-            sources: ['Ensembl'],
+            type: 'Variant of uncertain significance' as never,
+            sources: [],
           },
         ],
-        xrefs: [],
-        hasPredictions: false,
-      },
-      {
+      }),
+      makeVariant({
         accession: 'B',
-        begin: 1,
-        end: 1,
+        begin: '1',
+        end: '1',
         start: 1,
-        tooltipContent: '',
-        sourceType: 'source',
         variant: 'D',
-        protvistaFeatureId: 'id2',
-        xrefNames: [],
-        type: 'VARIANT',
-        wildType: 'A',
-        alternativeSequence: 'D',
-        consequenceType: 'disease',
-        xrefs: [],
-        hasPredictions: false,
-      },
+      }),
     ],
   },
   {
     variants: [
-      {
+      makeVariant({
         accession: 'C',
-        begin: 2,
-        end: 2,
+        begin: '2',
+        end: '2',
         start: 2,
-        tooltipContent: '',
-        sourceType: 'source',
         variant: 'V',
-        protvistaFeatureId: 'id1',
-        xrefNames: [],
-        type: 'VARIANT',
-        wildType: 'A',
-        alternativeSequence: 'V',
-        consequenceType: 'disease',
-        xrefs: [],
-        hasPredictions: false,
-      },
+      }),
     ],
   },
   {
     variants: [
-      {
+      makeVariant({
         accession: 'D',
-        begin: 3,
-        end: 3,
+        begin: '3',
+        end: '3',
         start: 3,
-        tooltipContent: '',
-        sourceType: 'source',
         variant: 'V',
-        protvistaFeatureId: 'id1',
-        xrefNames: [],
-        type: 'VARIANT',
-        wildType: 'A',
-        alternativeSequence: 'V',
-        consequenceType: 'disease',
-        siftScore: 0.5,
-        xrefs: [],
-        hasPredictions: false,
-      },
+      }),
     ],
   },
 ];
@@ -97,47 +81,33 @@ const transformedVariantPositions = [
 describe('Variation filter config', () => {
   test('it should filter according to the callback function', () => {
     const filteredVariants = getFilteredVariants(
-      transformedVariantPositions as VariantsForFilter,
+      transformedVariantPositions,
       (variant) => variant.accession === 'A'
     );
     expect(filteredVariants).toEqual([
-      {
-        variants: [transformedVariantPositions[0].variants[0]],
-      },
-      {
-        variants: [],
-      },
-      {
-        variants: [],
-      },
+      { variants: [transformedVariantPositions[0].variants[0]] },
+      { variants: [] },
+      { variants: [] },
     ]);
   });
 
   test('it should get the right colour for disease', () => {
-    const firstVariant = colorConfig(
-      transformedVariantPositions[0].variants[0]
-    );
-    expect(firstVariant).toEqual('#009e73');
+    const result = colorConfig(transformedVariantPositions[0].variants[0]);
+    expect(result).toEqual('#009e73');
   });
 
   test('it should get the right colour for non disease', () => {
-    const secondVariant = colorConfig(
-      transformedVariantPositions[0].variants[1]
-    );
-    expect(secondVariant).toEqual('#009e73');
+    const result = colorConfig(transformedVariantPositions[0].variants[1]);
+    expect(result).toEqual('#009e73');
   });
 
   test('it should get the right colour for other', () => {
-    const thirdVariant = colorConfig(
-      transformedVariantPositions?.[1].variants[0]
-    );
-    expect(thirdVariant).toEqual('#009e73');
+    const result = colorConfig(transformedVariantPositions[1].variants[0]);
+    expect(result).toEqual('#009e73');
   });
 
   test('it should get the right colour for predicted', () => {
-    const thirdVariant = colorConfig(
-      transformedVariantPositions[2].variants[0]
-    );
-    expect(thirdVariant).toEqual('#009e73');
+    const result = colorConfig(transformedVariantPositions[2].variants[0]);
+    expect(result).toEqual('#009e73');
   });
 });

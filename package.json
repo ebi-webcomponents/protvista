@@ -1,7 +1,7 @@
 {
   "name": "protvista-uniprot",
   "description": "ProtVista tool for the UniProt website",
-  "version": "4.7.2",
+  "version": "4.9.3",
   "files": [
     "dist",
     "src"
@@ -11,11 +11,28 @@
     "build": "vite build",
     "build:demo": "vite build --config vite.demo.config.mjs",
     "start": "vite",
-    "test:lint": "eslint src --ext .ts ",
+    "test:lint": "eslint 'src/**/*.ts' 'bench/**/*.{mjs,cjs}'",
     "test:types": "tsc",
-    "test:unit": "jest",
-    "test": "npm-run-all --continue-on-error test:*",
-    "clear-cdn-cache": "./scripts/clearCDNcaches.sh"
+    "test:unit": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:ratchet": "vitest run --coverage --coverage.thresholds.autoUpdate",
+    "test": "npm-run-all --continue-on-error test:lint test:types test:unit",
+    "bench": "node bench/run.mjs",
+    "bench:bundle": "yarn build && node bench/bundle-size.mjs",
+    "bench:lighthouse": "yarn build:demo && lhci autorun --config=bench/lighthouserc.cjs",
+    "bench:summary": "node bench/summarize.mjs",
+    "clear-cdn-cache": "./scripts/clearCDNcaches.sh",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{md,json,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "main": "dist/protvista-uniprot.js",
   "module": "dist/protvista-uniprot.mjs",
@@ -38,56 +55,48 @@
     "@nightingale-elements/nightingale-navigation": "5.6.0",
     "@nightingale-elements/nightingale-sequence": "5.6.0",
     "@nightingale-elements/nightingale-sequence-heatmap": "5.6.2",
-    "@nightingale-elements/nightingale-structure": "5.8.0",
+    "@nightingale-elements/nightingale-structure": "5.10.2",
     "@nightingale-elements/nightingale-track-canvas": "5.6.0",
-    "@nightingale-elements/nightingale-variation": "5.6.0",
+    "@nightingale-elements/nightingale-variation-canvas": "^5.10.1",
     "color-hash": "2.0.2",
-    "core-js": "3.48.0",
     "lit": "3.3.2",
     "lodash-es": "4.18.1",
-    "timing-functions": "2.0.1",
-    "url-join": "5.0.0"
+    "timing-functions": "2.0.1"
   },
   "devDependencies": {
-    "@babel/core": "7.29.0",
-    "@babel/plugin-proposal-decorators": "7.29.0",
-    "@babel/plugin-transform-runtime": "7.29.0",
-    "@babel/preset-env": "7.29.0",
-    "@babel/preset-typescript": "7.28.5",
-    "@babel/runtime-corejs3": "7.29.0",
     "@eslint/js": "10.0.1",
+    "@lhci/cli": "0.15.1",
     "@originjs/vite-plugin-commonjs": "1.0.3",
-    "@types/jest": "30.0.0",
-    "@typescript-eslint/eslint-plugin": "8.56.1",
-    "@typescript-eslint/parser": "8.56.1",
-    "babel-jest": "30.2.0",
-    "eslint": "10.0.2",
+    "@types/color-hash": "2.0.0",
+    "@types/lodash-es": "4.17.12",
+    "@typescript-eslint/eslint-plugin": "8.59.1",
+    "@typescript-eslint/parser": "8.59.1",
+    "@vitest/coverage-v8": "4.1.5",
+    "eslint": "10.2.1",
     "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-no-unsanitized": "4.1.5",
     "eslint-plugin-prettier": "5.5.5",
-    "globals": "17.3.0",
-    "jest": "30.2.0",
+    "globals": "17.5.0",
+    "husky": "9.1.7",
+    "jsdom": "29.1.0",
+    "lint-staged": "15.5.2",
     "npm-run-all": "4.1.5",
-    "rollup-plugin-visualizer": "7.0.0",
+    "prettier": "3.8.3",
+    "rollup-plugin-visualizer": "7.0.1",
     "svg-inline-loader": "0.8.2",
-    "typescript": "5.9.3",
-    "typescript-eslint": "8.56.1",
-    "vite": "7.3.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.59.1",
+    "vite": "8.0.16",
     "vite-plugin-dts": "4.5.4",
     "vite-plugin-env-compatible": "2.0.1",
     "vite-plugin-html": "3.2.2",
-    "vite-plugin-svgo": "2.0.0"
+    "vite-plugin-svgo": "2.0.0",
+    "vitest": "4.1.5"
   },
   "browserslist": [
     "chrome >= 92",
     "edge >= 92",
     "firefox >= 90",
     "safari >= 15"
-  ],
-  "jest": {
-    "testRegex": "(/__tests__/.*|(\\.|/))spec\\.ts$",
-    "testPathIgnorePatterns": [
-      "/__mocks__/",
-      "<rootDir>/dist/"
-    ]
-  }
+  ]
 }

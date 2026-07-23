@@ -10,7 +10,7 @@ import NightingaleSequence from '@nightingale-elements/nightingale-sequence';
 import NightingaleColoredSequence from '@nightingale-elements/nightingale-colored-sequence';
 import NightingaleTrackCanvas from '@nightingale-elements/nightingale-track-canvas';
 import NightingaleInterproTrack from '@nightingale-elements/nightingale-interpro-track';
-import NightingaleVariation from '@nightingale-elements/nightingale-variation';
+import NightingaleVariationCanvas from '@nightingale-elements/nightingale-variation-canvas';
 import NightingaleLinegraphTrack from '@nightingale-elements/nightingale-linegraph-track';
 import NightingaleSequenceHeatmap from '@nightingale-elements/nightingale-sequence-heatmap';
 import NightingaleFilter, {
@@ -46,32 +46,126 @@ import config, {
 } from './config';
 
 import { TransformedInterPro } from './adapters/types/interpro';
+import { StructureFeature } from './adapters/structure-adapter';
+
+/** Union of all possible per-track payload shapes stored in this.data */
+type TrackPayload =
+  | Record<string, unknown>[]
+  | { sequence: string; variants: TransformedVariant[] }
+  | ({ sequence: string; variants: TransformedVariant[] } & Record<
+      string,
+      unknown
+    >)
+  | TransformedInterPro
+  | StructureFeature[]
+  | { variants?: TransformedVariant[] }
+  | string
+  | null
+  | undefined;
 
 import loaderIcon from './icons/spinner.svg';
 import protvistaStyles from './styles/protvista-styles';
 import loaderStyles from './styles/loader-styles';
 
-const adapters = {
-  'feature-adapter': featureAdapter,
-  'interpro-adapter': interproAdapter,
-  'proteomics-adapter': proteomicsAdapter,
-  'structure-adapter': structureAdapter,
-  'variation-adapter': variationAdapter,
-  'variation-graph-adapter': variationGraphAdapter,
-  'rna-editing-adapter': rnaEditingAdapter,
-  'rna-editing-graph-adapter': rnaEditingGraphAdapter,
-  'proteomics-ptm-adapter': proteomicsPTMApdapter,
-  'alphafold-confidence-adapter': alphaFoldConfidenceAdapter,
-  'alphamissense-pathogenicity-adapter': alphaMissensePathogenicityAdapter,
-  'alphamissense-heatmap-adapter': alphaMissenseHeatmapAdapter,
+// Performance marks deliberately use stable, namespaced names so they
+// survive component re-mount and tooling can pin to them by name.
+// Renaming or moving them is a breaking change for perf measurement.
+//
+// Each mark fires at most once per page (subsequent component instances
+// or re-loads no-op), and corresponding measures are emitted so they
+// show up as named segments in Chrome DevTools and Lighthouse's
+// user-timings audit.
+const markOnce = (name: string) => {
+  if (performance.getEntriesByName(name, 'mark').length === 0) {
+    performance.mark(name);
+  }
 };
+const measureOnce = (name: string, start: string, end: string) => {
+  if (performance.getEntriesByName(name, 'measure').length === 0) {
+    try {
+      performance.measure(name, start, end);
+    } catch {
+      // Either start/end mark missing — surface marks but skip the measure
+      // rather than throwing; comparing the marks directly still works.
+    }
+  }
+};
+
+/**
+ * Typed adapter dispatch. Each case calls the real adapter with its real
+ * signature so genuine mismatches become compile-time errors.
+ *
+ * Re-validation of the two bugs flagged in issue #133:
+ *   - variation-adapter: returns `{ sequence, variants } | null` — the null
+ *     case is handled downstream by the `if (!filteredData) return` guard.
+ *   - proteomics-ptm-adapter (ProteomicsPtm): the adapter accepts a single
+ *     ProteomicsPtm argument; trackData[0] is cast via Parameters<> which
+ *     preserves the real type at the call site. No signature mismatch found.
+ *
+ * The `raw as Parameters<typeof adapter>` cast on each case is intentional:
+ * trackData arrives as TrackPayload[] from the URL fetch and we cannot
+ * statically prove its shape matches the adapter's expectation. The cast is
+ * narrowed per-case (not a blanket unknown[]) so any future adapter signature
+ * change will surface here.
+ */
+async function callAdapter(
+  name: NonNullable<ProtvistaTrackConfig['data'][number]['adapter']>,
+  raw: TrackPayload[]
+): Promise<unknown> {
+  switch (name) {
+    case 'feature-adapter':
+      return featureAdapter(...(raw as Parameters<typeof featureAdapter>));
+    case 'interpro-adapter':
+      return interproAdapter(...(raw as Parameters<typeof interproAdapter>));
+    case 'proteomics-adapter':
+      return proteomicsAdapter(
+        ...(raw as Parameters<typeof proteomicsAdapter>)
+      );
+    case 'structure-adapter':
+      return structureAdapter(...(raw as Parameters<typeof structureAdapter>));
+    case 'variation-adapter':
+      return variationAdapter(...(raw as Parameters<typeof variationAdapter>));
+    case 'variation-graph-adapter':
+      return variationGraphAdapter(
+        ...(raw as Parameters<typeof variationGraphAdapter>)
+      );
+    case 'rna-editing-adapter':
+      return rnaEditingAdapter(
+        ...(raw as Parameters<typeof rnaEditingAdapter>)
+      );
+    case 'rna-editing-graph-adapter':
+      return rnaEditingGraphAdapter(
+        ...(raw as Parameters<typeof rnaEditingGraphAdapter>)
+      );
+    case 'proteomics-ptm-adapter':
+      return proteomicsPTMApdapter(
+        ...(raw as Parameters<typeof proteomicsPTMApdapter>)
+      );
+    case 'alphafold-confidence-adapter':
+      return alphaFoldConfidenceAdapter(
+        ...(raw as Parameters<typeof alphaFoldConfidenceAdapter>)
+      );
+    case 'alphamissense-pathogenicity-adapter':
+      return alphaMissensePathogenicityAdapter(
+        ...(raw as Parameters<typeof alphaMissensePathogenicityAdapter>)
+      );
+    case 'alphamissense-heatmap-adapter':
+      return alphaMissenseHeatmapAdapter(
+        ...(raw as Parameters<typeof alphaMissenseHeatmapAdapter>)
+      );
+    default: {
+      const _exhaustive: never = name;
+      throw new Error(`Unknown adapter: ${_exhaustive as string}`);
+    }
+  }
+}
 
 type NightingaleEvent = Event & {
   detail?: {
     displaystart?: number;
     displayend?: number;
     eventType?: 'click' | 'mouseover' | 'mouseout' | 'reset';
-    feature?: any;
+    feature?: unknown;
     coords?: [number, number];
   };
 };
@@ -82,12 +176,13 @@ class ProtvistaUniprot extends LitElement {
   private nostructure: boolean;
   private hasData: boolean;
   private loading: boolean;
-  private data: { [key: string]: any };
-  private rawData: { [key: string]: any };
+  private data: Record<string, TrackPayload> = {};
+  private rawData: Record<string, TrackPayload> = {};
   private displayCoordinates: { start?: number; end?: number } = {};
   private suspend?: boolean;
   private accession?: string;
   private sequence?: string;
+  private notooltip?: boolean;
   private transformedVariants?: {
     sequence: string;
     variants: TransformedVariant[];
@@ -100,8 +195,6 @@ class ProtvistaUniprot extends LitElement {
     this.nostructure = false;
     this.hasData = false;
     this.loading = true;
-    this.data = {};
-    this.rawData = {};
     this.displayCoordinates = {};
     this.transformedVariants = { sequence: '', variants: [] };
     this.addStyles();
@@ -123,7 +216,7 @@ class ProtvistaUniprot extends LitElement {
   addStyles() {
     // We are not using static get styles() as we are not using the shadowDOM because of Mol*
     const styleTag = document.createElement('style');
-    styleTag.innerHTML = `${protvistaStyles.toString()} ${loaderStyles.toString()}`;
+    styleTag.textContent = `${protvistaStyles.toString()} ${loaderStyles.toString()}`;
     document.querySelector('head')?.append(styleTag);
   }
 
@@ -133,7 +226,7 @@ class ProtvistaUniprot extends LitElement {
     loadComponent('nightingale-colored-sequence', NightingaleColoredSequence);
     loadComponent('nightingale-interpro-track', NightingaleInterproTrack);
     loadComponent('nightingale-sequence', NightingaleSequence);
-    loadComponent('nightingale-variation', NightingaleVariation);
+    loadComponent('nightingale-variation-canvas', NightingaleVariationCanvas);
     loadComponent('nightingale-linegraph-track', NightingaleLinegraphTrack);
     loadComponent('nightingale-filter', NightingaleFilter);
     loadComponent('nightingale-manager', NightingaleManager);
@@ -155,9 +248,28 @@ class ProtvistaUniprot extends LitElement {
       );
 
       // Some endpoints return empty arrays, while most fail 🙄
+      const wasHasData = this.hasData;
       this.hasData =
         this.hasData ||
-        Object.values(this.rawData).some((d) => !!d?.features?.length);
+        Object.values(this.rawData).some((d) => {
+          if (d && typeof d === 'object' && 'features' in d) {
+            const features = (d as { features?: unknown[] }).features;
+            return Array.isArray(features) && features.length > 0;
+          }
+          return false;
+        });
+
+      // Fire the public protvista-event the moment data first becomes
+      // available. (Previously this was hung off a `'load'` listener that
+      // never fired — see `connectedCallback` history.)
+      if (this.hasData && !wasHasData) {
+        this.dispatchEvent(
+          new CustomEvent('protvista-event', {
+            detail: { hasData: true },
+            bubbles: true,
+          })
+        );
+      }
 
       // Now iterate over tracks and categories, transforming the data
       // and assigning it as adequate
@@ -172,18 +284,20 @@ class ProtvistaUniprot extends LitElement {
 
             if (
               !trackData ||
-              (adapter === 'variation-adapter' && trackData[0].length === 0)
+              (adapter === 'variation-adapter' &&
+                Array.isArray(trackData[0]) &&
+                trackData[0].length === 0)
             ) {
               return;
             }
 
             // 1. Convert data
             let transformedData = adapter
-              ? await adapters[adapter].apply(null, trackData)
+              ? await callAdapter(adapter, trackData)
               : trackData;
 
             if (adapter === 'interpro-adapter') {
-              const representativeDomains = [];
+              const representativeDomains: TransformedInterPro = [];
               (transformedData as TransformedInterPro | undefined)?.forEach(
                 (feature) => {
                   feature.locations?.forEach((location) => {
@@ -218,7 +332,10 @@ class ProtvistaUniprot extends LitElement {
             this.data[`${categoryName}-${trackName}`] = filteredData;
 
             if (trackName === 'variation') {
-              this.transformedVariants = filteredData;
+              this.transformedVariants = filteredData as {
+                sequence: string;
+                variants: TransformedVariant[];
+              };
             }
             return filteredData;
           })
@@ -228,10 +345,16 @@ class ProtvistaUniprot extends LitElement {
           trackType === 'nightingale-linegraph-track' ||
           trackType === 'nightingale-colored-sequence'
             ? categoryData[0]
-            : categoryData.flat();
+            : (categoryData.flat() as Record<string, unknown>[]);
       }
     }
     this.loading = false;
+    markOnce('protvista:data-loaded');
+    measureOnce(
+      'protvista:fetch-and-parse',
+      'protvista:script-start',
+      'protvista:data-loaded'
+    );
     this.requestUpdate(); // Why?
   }
 
@@ -241,22 +364,28 @@ class ProtvistaUniprot extends LitElement {
       const element: NightingaleTrackCanvas | null = document.getElementById(
         `track-${id}`
       ) as NightingaleTrackCanvas;
+
       // set data if it hasn't changed
       if (element && element.data !== data) {
-        element.data = data;
+        element.data = data as NightingaleTrackCanvas['data'];
       }
       const currentCategory = this.config?.categories.find(
         ({ name }) => name === id
       );
+      const dataAsArray = data as {
+        length?: number;
+        variants?: TransformedVariant[];
+      } | null;
       if (
         currentCategory &&
         currentCategory.tracks &&
-        data &&
+        dataAsArray &&
         // Check there's data and special case for variants
         // NOTE: should refactor variation-adapter
         // to return a list of variants and set the sequence
         // on protvista-variation separately
-        (data.length > 0 || data.variants?.length)
+        ((dataAsArray.length ?? 0) > 0 ||
+          (dataAsArray.variants?.length ?? 0) > 0)
       ) {
         // Make category element visible
         const categoryElt = document.getElementById(
@@ -270,7 +399,9 @@ class ProtvistaUniprot extends LitElement {
             `track-${id}-${track.name}`
           ) as NightingaleTrackCanvas | null;
           if (elementTrack) {
-            elementTrack.data = this.data[`${id}-${track.name}`];
+            elementTrack.data = this.data[
+              `${id}-${track.name}`
+            ] as NightingaleTrackCanvas['data'];
           }
         }
       }
@@ -286,7 +417,11 @@ class ProtvistaUniprot extends LitElement {
                 'nightingale-sequence-heatmap'
               );
             if (heatmapComponent && this.sequence) {
-              const heatmapData = this.data[`${id}-${track.name}`];
+              const heatmapData = this.data[`${id}-${track.name}`] as {
+                xValue: number;
+                yValue: string;
+                score: number;
+              }[];
               const xDomain = Array.from(
                 { length: this.sequence.length },
                 (_, i) => i + 1
@@ -294,9 +429,15 @@ class ProtvistaUniprot extends LitElement {
               const yDomain = [
                 ...new Set(heatmapData.map((hotMapItem) => hotMapItem.yValue)),
               ] as string[];
-              heatmapComponent.setHeatmapData(xDomain, yDomain, heatmapData);
+              heatmapComponent.setHeatmapData(
+                xDomain,
+                yDomain,
+                heatmapData as Parameters<
+                  typeof heatmapComponent.setHeatmapData
+                >[2]
+              );
               heatmapComponent.updateComplete.then(() => {
-                heatmapComponent.heatmapInstance.setColor((d) =>
+                heatmapComponent.heatmapInstance?.setColor((d) =>
                   amColorScale(d.score)
                 );
               });
@@ -310,18 +451,35 @@ class ProtvistaUniprot extends LitElement {
   updated(changedProperties: Map<string, string>) {
     super.updated(changedProperties);
 
+    // First render with content — manager is in the DOM, not the loader.
+    if (this.hasData && !this.loading) {
+      markOnce('protvista:first-render');
+      measureOnce(
+        'protvista:render',
+        'protvista:data-loaded',
+        'protvista:first-render'
+      );
+      measureOnce(
+        'protvista:total',
+        'protvista:script-start',
+        'protvista:first-render'
+      );
+    }
+
     const filterComponent =
       this.querySelector<NightingaleFilter>('nightingale-filter');
     if (filterComponent && filterComponent.filters !== filterConfig) {
       filterComponent.filters = filterConfig as Filter[];
     }
 
-    const variationComponent = this.querySelector<NightingaleVariation>(
-      'nightingale-variation'
+    const variationComponent = this.querySelector<NightingaleVariationCanvas>(
+      'nightingale-variation-canvas'
     );
 
     if (variationComponent && variationComponent?.colorConfig !== colorConfig) {
-      variationComponent.colorConfig = colorConfig;
+      variationComponent.colorConfig = colorConfig as (
+        v: import('@nightingale-elements/nightingale-variation').VariationDatum
+      ) => string;
     }
 
     if (changedProperties.has('suspend')) {
@@ -339,6 +497,7 @@ class ProtvistaUniprot extends LitElement {
 
     if (!this.accession) return;
     this.loadEntry(this.accession).then((entryData) => {
+      if (!entryData) return;
       this.sequence = entryData.sequence.sequence;
       this.displayCoordinates = { start: 1, end: this.sequence?.length };
       // We need to get the length of the protein before rendering it
@@ -348,6 +507,7 @@ class ProtvistaUniprot extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    markOnce('protvista:script-start');
     this.registerWebComponents();
 
     if (!this.suspend) this._init();
@@ -360,30 +520,18 @@ class ProtvistaUniprot extends LitElement {
         this.displayCoordinates.end = e.detail.displayend;
       }
     });
-
-    // Note: this doesn't seem to work
-    this.addEventListener('load', () => {
-      if (!this.hasData) {
-        this.dispatchEvent(
-          new CustomEvent('protvista-event', {
-            detail: {
-              hasData: true,
-            },
-            bubbles: true,
-          })
-        );
-        this.hasData = true;
-      }
-    });
   }
 
-  async loadEntry(accession: string) {
+  async loadEntry(
+    accession: string
+  ): Promise<{ sequence: { sequence: string } } | undefined> {
     try {
-      return await (
+      return (await (
         await fetch(`https://www.ebi.ac.uk/proteins/api/proteins/${accession}`)
-      ).json();
+      ).json()) as { sequence: { sequence: string } };
     } catch (e) {
       console.error(`Couldn't load UniProt entry`, e);
+      return undefined;
     }
   }
 
@@ -525,7 +673,7 @@ class ProtvistaUniprot extends LitElement {
                 }
               })}
               ${!category.tracks
-                ? this.data[category.name].map(
+                ? (this.data[category.name] as { accession?: string }[]).map(
                     (item: { accession?: string }) => {
                       if (this.openCategories.includes(category.name)) {
                         if (!item || !item.accession) return '';
@@ -604,11 +752,11 @@ class ProtvistaUniprot extends LitElement {
     }
   }
 
-  groupByCategory(filters, category) {
+  groupByCategory(filters: Filter[] | undefined, category: string) {
     return filters?.filter((f) => f.type.name === category);
   }
 
-  getFilter(filters, filterName) {
+  getFilter(filters: Filter[] | undefined, filterName: string) {
     return filters?.filter((f) => f.name === filterName)?.[0];
   }
 
@@ -627,11 +775,15 @@ class ProtvistaUniprot extends LitElement {
 
     if (selectedFilters) {
       const selectedConsequenceFilters = selectedFilters
-        .map((f) => this.getFilter(consequenceFilters, f))
-        .filter(Boolean);
+        .map((f: string) => this.getFilter(consequenceFilters, f))
+        .filter(Boolean) as (Filter & {
+        filterPredicate: (v: TransformedVariant) => unknown;
+      })[];
       const selectedProvenanceFilters = selectedFilters
-        .map((f) => this.getFilter(provenanceFilters, f))
-        .filter(Boolean);
+        .map((f: string) => this.getFilter(provenanceFilters, f))
+        .filter(Boolean) as (Filter & {
+        filterPredicate: (v: TransformedVariant) => unknown;
+      })[];
 
       const filteredVariants = this.transformedVariants?.variants
         ?.filter((variant) =>
@@ -645,10 +797,13 @@ class ProtvistaUniprot extends LitElement {
           )
         );
 
+      const existing = this.data['VARIATION-variation'];
       this.data['VARIATION-variation'] = {
-        ...this.data['VARIATION-variation'],
+        ...(existing && typeof existing === 'object' && !Array.isArray(existing)
+          ? existing
+          : {}),
         variants: filteredVariants,
-      };
+      } as TrackPayload;
 
       this._loadDataInComponents();
     }
@@ -711,9 +866,9 @@ class ProtvistaUniprot extends LitElement {
           >
           </nightingale-interpro-track>
         `;
-      case 'nightingale-variation':
+      case 'nightingale-variation-canvas':
         return html`
-          <nightingale-variation
+          <nightingale-variation-canvas
             length="${this.sequence?.length}"
             height="500"
             display-start="${this.displayCoordinates?.start}"
@@ -722,7 +877,7 @@ class ProtvistaUniprot extends LitElement {
             highlight-event="onclick"
             use-ctrl-to-zoom
           >
-          </nightingale-variation>
+          </nightingale-variation-canvas
         `;
       case 'nightingale-linegraph-track':
         return html`

@@ -1,6 +1,6 @@
-# Contributing to ProtVista-UniProt
+# Contributing to ProtVista
 
-Thank you for your interest in contributing to ProtVista-UniProt! This document provides guidelines for contributing to the project.
+Thank you for your interest in contributing to ProtVista! This document provides guidelines for contributing to the project.
 
 ProtVista is maintained as open-source research software and is part of an ongoing sustainability effort supported through the Research Software Maintenance Fund (RSMF).
 
@@ -22,8 +22,8 @@ All repository interactions and project events are expected to follow our [Code 
 1. Create a fork and clone it to your local machine:
 
    ```bash
-   git clone https://github.com/YOUR-USERNAME/protvista-uniprot.git
-   cd protvista-uniprot
+   git clone https://github.com/YOUR-USERNAME/protvista.git
+   cd protvista
    ```
 
 2. Install dependencies:
@@ -104,6 +104,24 @@ yarn test:coverage # Generate coverage report
 - Test edge cases and error conditions.
 - Aim to maintain or improve code coverage.
 
+## Hooks and feedback loop
+
+The repository ships local git hooks that mirror the checks CI runs, so failures show up before you push rather than after. The hooks install automatically when you run `yarn install` (via the `prepare` script in `package.json`); no separate setup step is required.
+
+There are three tiers, ordered from fast to thorough:
+
+| Tier       | When it runs       | What it does                                                                                           |
+| ---------- | ------------------ | ------------------------------------------------------------------------------------------------------ |
+| Pre-commit | Every `git commit` | `lint-staged` — ESLint `--fix` and Prettier `--write` on staged files only. Sub-second on small diffs. |
+| Pre-push   | Every `git push`   | `yarn test` — lint, type check, and unit tests across the whole tree. The same checks CI runs.         |
+| CI         | Every push and PR  | The pre-push checks plus a coverage threshold check (`yarn test:coverage`).                            |
+
+The hooks are not gatekeepers — CI is. If a hook is incorrectly blocking a legitimate push (mid-rebase, work-in-progress on a side branch, etc.), use `git push --no-verify` to bypass. CI will still run the full set when the change reaches a PR.
+
+If a hook is gating a legitimate change for an unclear reason, run the underlying command directly to see the full output: `yarn lint-staged` for pre-commit, `yarn test` for pre-push. The hooks themselves are short shell scripts in `.husky/` — open them if you need to inspect what's running.
+
+Coverage thresholds live in `vite.config.mjs` under `test.coverage.thresholds`. They follow a ratchet pattern: thresholds are seeded at the current baseline so coverage can only go up. If a refactor genuinely needs to drop coverage (e.g., removing tested code), update the thresholds in the same change.
+
 ## Code Style
 
 - ESLint and Prettier are used for formatting (automated in CI).
@@ -157,9 +175,9 @@ Note that office hours are not recorded.
 | Date       | Time          | Status      |
 | ---------- | ------------- | ----------- |
 | 2026-02-27 | 15.30 - 16.30 | ✅ Complete |
-| 2026-03-27 | 10.30 - 11.30 | Planned     |
-| 2026-04-24 | 15.30 - 16.30 | Planned     |
-| 2026-05-29 | 10.30 - 11.30 | Planned     |
+| 2026-03-27 | 10.30 - 11.30 | ✅ Complete |
+| 2026-04-24 | 15.30 - 16.30 | ✅ Complete |
+| 2026-05-29 | 10.30 - 11.30 | ✅ Complete |
 | 2026-06-26 | 15.30 - 16.30 | Planned     |
 | 2026-07-31 | 10.30 - 11.30 | Planned     |
 | 2026-08-28 | 15.30 - 16.30 | Planned     |
@@ -190,4 +208,4 @@ By contributing, you agree that your contributions will be licensed under the sa
 
 If you use ProtVista in research outputs, please cite the project using the latest release DOI (see the repository README for citation instructions).
 
-Thank you for contributing to ProtVista-UniProt! 🎉
+Thank you for contributing to ProtVista! 🎉

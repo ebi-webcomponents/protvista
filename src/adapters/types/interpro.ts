@@ -64,7 +64,7 @@ export type TransformedInterPro = {
   locations: EntryProteinLocation[];
   start: string | number;
   end: string | number;
-  color: any;
+  color: string;
   tooltipContent: string;
   length: number;
   accession: string;

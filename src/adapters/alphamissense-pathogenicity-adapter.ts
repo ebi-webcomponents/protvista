@@ -25,7 +25,7 @@ const pathogenicityCategories = [
   { min: pathogenic, max: certainlyPathogenic, code: 'P' },
 ];
 
-const getPathogenicityCode = (score) => {
+const getPathogenicityCode = (score: number): string | undefined => {
   for (const { min, max, code } of pathogenicityCategories) {
     if (score >= min && score < max) {
       return code;
@@ -47,6 +47,10 @@ const parseCSV = (rawText: string): string => {
     if (i === 0 || !row) {
       continue;
     }
+    const match = row.match(cellSplitter);
+    if (!match) {
+      continue;
+    }
     const [
       ,
       wildType,
@@ -54,7 +58,7 @@ const parseCSV = (rawText: string): string => {
       mutated,
       pathogenicityScore,
       pathogenicityLabel,
-    ] = row.match(cellSplitter);
+    ] = match;
     const position = +positionString;
     const index = position - 1;
     if (!positions[index]) {
@@ -89,13 +93,16 @@ const parseCSV = (rawText: string): string => {
 };
 
 // Load and parse
-const loadAndParseAnnotations = async (url: string): Promise<string> => {
+const loadAndParseAnnotations = async (
+  url: string
+): Promise<string | undefined> => {
   try {
     const payload = await fetch(url);
     const rawCSV = await payload.text();
     return parseCSV(rawCSV);
   } catch (e) {
     console.error('Could not load AlphaMissense pathogenicity score', e);
+    return undefined;
   }
 };
 
@@ -114,9 +121,9 @@ const transformData = async (
       protein.sequence.sequence === sequence && amAnnotationsUrl
   );
   if (alphaFoldSequenceMatch.length === 1) {
-    const heatmapData = await loadAndParseAnnotations(
-      alphaFoldSequenceMatch[0].amAnnotationsUrl
-    );
+    const url = alphaFoldSequenceMatch[0].amAnnotationsUrl;
+    if (!url) return undefined;
+    const heatmapData = await loadAndParseAnnotations(url);
     return heatmapData;
   } else if (alphaFoldSequenceMatch.length > 1) {
     console.warn(
