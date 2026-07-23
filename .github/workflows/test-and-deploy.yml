@@ -34,7 +34,7 @@ jobs:
         run: yarn test:coverage
 
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium chromium-headless-shell
 
       - name: Browser tests (a11y + interaction)
         run: yarn test:browser
