@@ -16,6 +16,7 @@ type TestableElement = HTMLElement & {
   viewerConfig?: unknown;
   loadEntry: (...args: unknown[]) => Promise<unknown>;
   _init: () => Promise<void>;
+  applyTheme: (theme: unknown) => void;
 };
 
 const mount = (config: unknown): TestableElement => {
@@ -62,6 +63,26 @@ describe('config theme → chrome tokens on the host', () => {
     const el = mount({ accession: 'P05067', rows: [inlineTrack] });
     await el._init();
     expect(el.style.getPropertyValue('--protvista-group-label-bg')).toBe('');
+    expect(el.style.getPropertyValue('--protvista-color-accent')).toBe('');
+  });
+
+  it('clears previously-set tokens on re-apply with a narrowed or removed theme', async () => {
+    const el = mount({
+      accession: 'P05067',
+      theme: { labelColor: '#e8f5e9', accentColor: '#008000' },
+      rows: [inlineTrack],
+    });
+    await el._init();
+    expect(el.style.getPropertyValue('--protvista-group-label-bg')).toBe('#e8f5e9');
+
+    // Narrow the theme (drop labelColor): the stale label tokens must clear.
+    el.applyTheme({ accentColor: '#123456' });
+    expect(el.style.getPropertyValue('--protvista-group-label-bg')).toBe('');
+    expect(el.style.getPropertyValue('--protvista-track-label-bg')).toBe('');
+    expect(el.style.getPropertyValue('--protvista-color-accent')).toBe('#123456');
+
+    // Remove the theme entirely: all managed tokens clear.
+    el.applyTheme(undefined);
     expect(el.style.getPropertyValue('--protvista-color-accent')).toBe('');
   });
 });
