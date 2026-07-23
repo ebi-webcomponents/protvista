@@ -1,5 +1,6 @@
 /**
- * Vitest setup: filter benign jsdom CSS-parse noise.
+ * Vitest global setup: polyfill the missing `CSS.escape` global and filter
+ * benign jsdom CSS-parse noise.
  *
  * jsdom's CSS parser (cssom) is CSS2-era and cannot parse modern syntax
  * such as native nesting, `:has()`, `@layer`, `@container`, etc. When
@@ -14,6 +15,16 @@
  * If jsdom ever learns modern CSS (or we switch to happy-dom), this file
  * can be removed.
  */
+
+// jsdom in this environment ships without the `CSS.escape` global that the
+// component's `findById()` relies on during the connectedCallback → updated()
+// lifecycle (real browsers all have it). Polyfill it once, globally, so any
+// spec driving the real mount lifecycle can run.
+if (typeof (globalThis as { CSS?: unknown }).CSS === 'undefined') {
+  (globalThis as { CSS?: { escape(s: string): string } }).CSS = {
+    escape: (s: string) => String(s).replace(/([^\w-])/g, '\\$1'),
+  };
+}
 
 const originalError = console.error;
 

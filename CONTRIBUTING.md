@@ -102,7 +102,11 @@ yarn test:coverage # Generate coverage report
 - Write unit tests for new components/functions.
 - Include visual regression tests for UI changes when possible.
 - Test edge cases and error conditions.
-- Aim to maintain or improve code coverage.
+- Aim to maintain or improve code coverage. CI enforces a coverage floor (a
+  ratchet, #162) via `test.coverage.thresholds` in `vite.config.mjs`; the
+  `yarn test:coverage` step fails any PR that drops below it. When your change
+  raises coverage, bump the thresholds up in the same PR so the floor ratchets
+  upward. Only lower them with a justification.
 
 ## Code Style
 
