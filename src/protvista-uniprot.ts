@@ -416,8 +416,19 @@ class ProtvistaUniprot extends LitElement {
    * that must override a config theme uses `!important` (or sets the token
    * inline itself). A no-code theming shortcut — the tokens are documented
    * in docs/theming.md.
+   *
+   * Clears every token it manages up front, then sets what the theme
+   * supplies, so a re-init (accession change / retry) with a
+   * removed-or-narrowed theme can't leave stale inline values on the host.
    */
   private applyTheme(theme: NormalizedConfig['theme']) {
+    for (const token of [
+      '--protvista-group-label-bg',
+      '--protvista-track-label-bg',
+      '--protvista-color-accent',
+    ]) {
+      this.style.removeProperty(token);
+    }
     if (!theme) return;
     if (theme.labelColor) {
       // The row-label side panel: group + track label backgrounds.

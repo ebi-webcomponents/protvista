@@ -123,18 +123,20 @@ Coverage output is for local use only and is not committed. Open `coverage/index
 
 ### Continuous integration
 
-Every push and pull request runs the same three steps as `yarn test` via [`.github/workflows/test-and-deploy.yml`](./.github/workflows/test-and-deploy.yml): `yarn test:lint`, `yarn test:types`, and `yarn test:unit`, under Node 24 on `ubuntu-latest`. A separate `build` job runs `yarn build` (and, on `next`, `yarn build:demo`) and deploys the demo to GitHub Pages. Coverage is not collected in CI today — run `yarn test:coverage` locally when you need a coverage signal.
+Every push and pull request runs three steps via [`.github/workflows/test-and-deploy.yml`](./.github/workflows/test-and-deploy.yml): `yarn test:lint`, `yarn test:types`, and `yarn test:coverage`, under Node 24 on `ubuntu-latest`. The coverage step runs the full unit suite and enforces the coverage floor (see below), so a PR that drops coverage below the floor fails CI. A separate `build` job runs `yarn build` (and, on `main`, `yarn build:demo`) and deploys the demo to GitHub Pages.
 
 ### Coverage
 
-Captured 2026-04-20 via `yarn test:coverage` (v8 instrumentation, 29 tests across 3 spec files):
+Coverage is gated by a fixed floor (a coverage ratchet, #162) configured under `test.coverage.thresholds` in [`vite.config.mjs`](./vite.config.mjs) and enforced by the CI coverage step. The floor is bumped up manually as coverage improves and is never lowered without justification.
 
-| Metric     | Coverage % |
-| ---------- | ---------- |
-| Statements | 71.41      |
-| Branches   | 70.77      |
-| Functions  | 68.63      |
-| Lines      | 71.78      |
+Captured 2026-07-21 via `yarn test:coverage` (v8 instrumentation, 533 tests across 32 spec files):
+
+| Metric     | Coverage % | Floor |
+| ---------- | ---------- | ----- |
+| Statements | 75.81      | 74    |
+| Branches   | 71.26      | 70    |
+| Functions  | 73.39      | 72    |
+| Lines      | 76.82      | 75    |
 
 ## Performance benchmarks
 

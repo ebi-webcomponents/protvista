@@ -28,16 +28,6 @@ import { formatValidationIssues } from '../errors/format';
 import type { ValidationIssue } from '../schema/errors';
 import type { NormalizedConfig, NormalizedTrack } from '../schema/normalize';
 
-// jsdom in this environment ships without the `CSS.escape` global that
-// the component's `findById()` relies on (real browsers all have it).
-// Polyfill it so the full connectedCallback → updated() lifecycle can
-// run in the mount-panel tests.
-if (typeof (globalThis as { CSS?: unknown }).CSS === 'undefined') {
-  (globalThis as { CSS?: { escape(s: string): string } }).CSS = {
-    escape: (s: string) => String(s).replace(/([^\w-])/g, '\\$1'),
-  };
-}
-
 const PANEL = `.${CSS_PREFIX}-error-panel`;
 const BADGE = `.${CSS_PREFIX}-error-badge`;
 const ISSUES = `.${CSS_PREFIX}-error-issues`;
