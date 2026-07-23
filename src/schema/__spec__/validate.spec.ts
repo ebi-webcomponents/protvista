@@ -81,13 +81,11 @@ describe('validateConfig — happy paths', () => {
 // ─────────────────────────────────────────────────────────────
 
 describe('validateConfig — structural errors', () => {
-  it('rejects a config carrying neither `rows` nor `groups`', () => {
+  it('rejects a config with no `rows`', () => {
     const result = validateConfig({}, freshRegistry());
     expect(result.valid).toBe(false);
     expect(result.issues[0].code).toBe('schema');
-    // The root `oneOf` requires exactly one of the two spellings, so a
-    // config with neither fails both branches. `rows` is the canonical
-    // one and the only one an author should be reaching for.
+    // `rows` is required at the root.
     expect(result.issues.some((i) => i.message.includes("'rows'"))).toBe(true);
   });
 
@@ -735,9 +733,9 @@ describe('validateConfig — invalid top-level entry shape', () => {
   });
 
   it('treats an empty `tracks:` stub as unset, not as a group', () => {
-    // `tracks:` with nothing after it parses to null. Consistent with
-    // `rows-alias.ts`, that is a leftover stub rather than a value — so
-    // the entry reads as "neither", not as an empty group.
+    // `tracks:` with nothing after it parses to null. Per `shape.ts`'s
+    // `isSet`, that is a leftover stub rather than a value — so the entry
+    // reads as "neither", not as an empty group.
     const result = validateConfig(withEntry({ id: 'stub', tracks: null }), freshRegistry());
 
     expect(result.issues).toHaveLength(1);

@@ -121,6 +121,21 @@ describe('normalizeConfig — label fallbacks', () => {
   });
 });
 
+describe('normalizeConfig — theme pass-through', () => {
+  it('carries a top-level theme through unchanged', () => {
+    const out = normalizeConfig({
+      rows: [{ id: 'C', tracks: [] }],
+      theme: { labelColor: '#e8f5e9', accentColor: 'green' },
+    });
+    expect(out.theme).toEqual({ labelColor: '#e8f5e9', accentColor: 'green' });
+  });
+
+  it('omits theme when the config declares none', () => {
+    const out = normalizeConfig({ rows: [{ id: 'C', tracks: [] }] });
+    expect(out.theme).toBeUndefined();
+  });
+});
+
 // ─────────────────────────────────────────────────────────────
 // data shorthand expansion
 // ─────────────────────────────────────────────────────────────

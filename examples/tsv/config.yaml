@@ -1,7 +1,7 @@
 # Bring-your-own TSV file. The `.tsv` extension on `data:` infers the
 # `features-tsv` adapter — no explicit `adapter:` needed.
 accession: P05067
-groups:
+rows:
   - id: MY_LAB
     label: My lab
     tracks:

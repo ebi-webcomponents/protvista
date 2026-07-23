@@ -49,7 +49,6 @@ import type {
 import { isGroupConfig } from './discriminate';
 import type { Registry } from './registry';
 import { RENDERABLE_COMPONENT_NAMES } from './components';
-import { resolveRowsAlias, rowsAliasConflict } from './rows-alias';
 import { isPlainObject, isSet } from './shape';
 import { dataFileFormatForPath } from './file-formats';
 import type {
@@ -113,26 +112,14 @@ export function validateConfig(
 ): ValidationResult {
   const issues: ValidationIssue[] = [];
 
-  // ── Deprecated `groups:` alias ────────────────────────────
-  // Fold `groups:` into `rows:` up front so both passes below see one
-  // canonical field. The conflict (both set) is probed separately
-  // rather than letting `resolveRowsAlias` throw, because this function
-  // contracts never to throw. Reporting it alone — and skipping the
-  // structural pass, whose `oneOf` would also reject the config but
-  // with an opaque "must match exactly one schema" — is what keeps the
-  // author's error list to the single actionable line.
-  const conflict = rowsAliasConflict(config);
-  if (conflict) return { valid: false, issues: [conflict] };
-  const resolved = resolveRowsAlias(config);
-
   // ── Entry-shape probe ─────────────────────────────────────
   // Run before Ajv so the entries it explains can have their `oneOf`
   // fallout dropped below. See `checkEntryShapes`.
-  const shape = checkEntryShapes(resolved);
+  const shape = checkEntryShapes(config);
 
   // ── Structural pass ───────────────────────────────────────
   const structural = getStructuralValidator();
-  const ok = structural(resolved);
+  const ok = structural(config);
   if (!ok || shape.issues.length > 0) {
     for (const err of structural.errors ?? []) {
       // Suppress every Ajv error belonging to an entry the probe already
@@ -152,7 +139,7 @@ export function validateConfig(
   }
 
   // ── Semantic pass ─────────────────────────────────────────
-  const c = resolved as ProtvistaViewerConfig;
+  const c = config as ProtvistaViewerConfig;
   checkVersion(c, issues);
   checkAccessionPlaceholders(c, issues);
   checkRows(c, registry, issues);

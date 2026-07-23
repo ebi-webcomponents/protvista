@@ -51,8 +51,6 @@ export type ValidationIssueCode =
   | 'invalid-color-scale'
   | 'unsupported-version'
   | 'missing-accession'
-  /** The config sets both `rows:` and its deprecated `groups:` alias. */
-  | 'rows-alias-conflict'
   /**
    * A top-level `rows:` entry is neither a group nor a standalone track:
    * it carries neither `tracks:` nor `data:`, or it carries both. The

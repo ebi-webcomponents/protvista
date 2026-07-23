@@ -68,10 +68,10 @@ import type {
   ComponentName,
   AdapterName,
   AuthoredTooltipSpec,
+  ThemeConfig,
 } from './types';
 import { isGroupConfig } from './discriminate';
 import type { Registry } from './registry';
-import { resolveRowsAlias } from './rows-alias';
 import { dataFileFormatForPath } from './file-formats';
 
 // ─────────────────────────────────────────────────────────────
@@ -90,6 +90,8 @@ export interface NormalizedConfig {
   defaults: NormalizedDefaults;
   /** Author-set: promote warnings to a mount-level failure. See `ProtvistaViewerConfig.strict`. */
   strict?: boolean;
+  /** Author-set viewer-wide chrome colours. See `ProtvistaViewerConfig.theme`. */
+  theme?: ThemeConfig;
   rows: NormalizedRow[];
 }
 
@@ -193,11 +195,7 @@ export function normalizeConfig(
   opts: NormalizeOptions = {}
 ): NormalizedConfig {
   const { registry } = opts;
-  // Defensive: `loadConfig` has already folded any `groups:` alias into
-  // `rows:`, but `normalizeConfig` is exported and an embedder may call
-  // it directly on an authored config. Re-resolving an alias-free
-  // config is a no-op.
-  const config = resolveRowsAlias(rawConfig);
+  const config = rawConfig;
   const sources = config.sources ?? {};
 
   const defaults: NormalizedDefaults = {
@@ -230,6 +228,7 @@ export function normalizeConfig(
     sources,
     defaults,
     ...(config.strict !== undefined ? { strict: config.strict } : {}),
+    ...(config.theme !== undefined ? { theme: config.theme } : {}),
     rows,
   };
 }

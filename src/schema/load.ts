@@ -51,7 +51,6 @@ import { validateConfig } from './validate';
 import { normalizeConfig, type NormalizedConfig } from './normalize';
 import { ConfigValidationError } from './errors';
 import { parseConfigText, type ParseFormat } from './parse';
-import { resolveRowsAlias } from './rows-alias';
 import {
   mergeExtends,
   type ExtendsResolver,
@@ -140,12 +139,7 @@ export async function loadConfig(
 ): Promise<NormalizedConfig> {
   const registry = opts.registry ?? createRegistry();
 
-  // Fold a deprecated `groups:` into `rows:` as the very first thing
-  // after parse, so every later stage — extends, validate, normalize —
-  // only ever sees `rows:` and needs no alias branch of its own.
-  const parsed = resolveRowsAlias(
-    await parseInput(input, opts.format ?? 'auto')
-  );
+  const parsed = await parseInput(input, opts.format ?? 'auto');
 
   // `extends` resolution runs BETWEEN parse and validate so partial
   // child configs (e.g. `extends: "./base-config.yaml"` plus one

@@ -6,7 +6,8 @@
  * bench/results/lighthouse/.
  *
  * Edit `collect.url` to change scenarios. Each query string is a UniProt
- * accession; index.html reads `?accession=` and renders that protein.
+ * accession; bench.html (a minimal, stable harness — not the richer
+ * demo.html) reads `?accession=` and renders that protein.
  */
 module.exports = {
   ci: {
@@ -22,11 +23,11 @@ module.exports = {
       // audit and `bench/summarize.mjs` surfaces them in summary.md.
       url: [
         // Well-annotated default — features, variants, structure.
-        'http://localhost:4173/?accession=P05067',
+        'http://localhost:4173/bench.html?accession=P05067',
         // Heavy entry — many variants, 3D Beacons.
-        'http://localhost:4173/?accession=P38398',
+        'http://localhost:4173/bench.html?accession=P38398',
         // Sparse entry — minimal feature load.
-        'http://localhost:4173/?accession=A0A2K5ULD0',
+        'http://localhost:4173/bench.html?accession=A0A2K5ULD0',
       ],
       // 5 runs per URL — LHCI takes the median, this smooths out the
       // noise floor more than the default 3 without doubling wall time.

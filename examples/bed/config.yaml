@@ -1,7 +1,7 @@
 # Bring-your-own BED file. The `.bed` extension on `data:` infers the
 # `bed` adapter — no explicit `adapter:` needed.
 accession: P05067
-groups:
+rows:
   - id: MY_LAB
     label: My lab
     tracks:

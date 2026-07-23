@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <title>protvista-uniprot — benchmark harness</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+
+  <body>
+    <!--
+      Performance benchmark harness for Lighthouse CI (bench/lighthouserc.cjs).
+
+      Kept deliberately MINIMAL and STABLE so baseline numbers stay
+      comparable across runs: a single <protvista-uniprot>, the accession
+      read from ?accession= (default P05067), and nothing else — no fonts,
+      no styling, no navigation chrome that would perturb the measurement.
+      The component emits its `protvista:*` performance marks/measures
+      unconditionally, which Lighthouse captures via its user-timings audit.
+
+      Do NOT add demo/showcase content here — that belongs in demo.html.
+      Changing this page's payload invalidates the committed baselines under
+      bench/baselines/; re-capture them if you must change it.
+    -->
+    <protvista-uniprot id="pv"></protvista-uniprot>
+    <script>
+      const params = new URLSearchParams(location.search);
+      document
+        .getElementById('pv')
+        .setAttribute('accession', params.get('accession') || 'P05067');
+    </script>
+    <script type="module" src="./src/protvista-uniprot.ts"></script>
+  </body>
+</html>

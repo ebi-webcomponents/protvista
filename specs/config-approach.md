@@ -181,12 +181,8 @@ interface ProtvistaViewerConfig {
    */
   rows: TopLevelEntry[];
 
-  /**
-   * @deprecated Renamed to `rows`. Folded into `rows` on load, with a
-   * one-time console warning; removed before the v5 schema is
-   * published. Setting both is a validation error.
-   */
-  groups?: TopLevelEntry[];
+  /** Optional viewer-wide chrome colours (no-code theming). */
+  theme?: { labelColor?: string; accentColor?: string };
 }
 
 /**
