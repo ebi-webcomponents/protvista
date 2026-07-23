@@ -722,6 +722,18 @@ describe('validateConfig — invalid top-level entry shape', () => {
     expect(result.issues[0].message).toContain('at index 0');
   });
 
+  it('falls back to the index for a non-string or empty id', () => {
+    // The guard is `typeof id === 'string' && id.length > 0`. A numeric
+    // or blank id is not a usable label, so it must degrade to the
+    // index rather than quote `'42'` / `''` into the message.
+    for (const id of [42, ''] as const) {
+      const result = validateConfig(withEntry({ id, kind: 'features' }), freshRegistry());
+      expect(result.issues).toHaveLength(1);
+      expect(result.issues[0].message).toContain('at index 0');
+      expect(result.issues[0].message).not.toContain(`'${id}'`);
+    }
+  });
+
   it('treats an empty `tracks:` stub as unset, not as a group', () => {
     // `tracks:` with nothing after it parses to null. Consistent with
     // `rows-alias.ts`, that is a leftover stub rather than a value — so
@@ -731,6 +743,22 @@ describe('validateConfig — invalid top-level entry shape', () => {
     expect(result.issues).toHaveLength(1);
     expect(result.issues[0].code).toBe('invalid-entry-shape');
     expect(result.issues[0].message).toContain('neither');
+  });
+
+  it('reads a both-null stub as "neither", not "both"', () => {
+    // Both keys present but both empty (`tracks:` / `data:` with nothing
+    // after them) is the case that separates the `null == unset` rule
+    // from a plain key-existence check: by presence it looks like "both",
+    // but neither carries a value, so it must read as "neither".
+    const result = validateConfig(
+      withEntry({ id: 'blank', tracks: null, data: null }),
+      freshRegistry()
+    );
+
+    expect(result.issues).toHaveLength(1);
+    expect(result.issues[0].code).toBe('invalid-entry-shape');
+    expect(result.issues[0].message).toContain('neither');
+    expect(result.issues[0].message).not.toContain('both');
   });
 
   it('reports one issue per offending entry', () => {
@@ -761,9 +789,13 @@ describe('validateConfig — invalid top-level entry shape', () => {
   });
 
   it('still reports unrelated structural errors elsewhere in the config', () => {
-    // The suppression is scoped to the offending entry. A malformed
-    // entry must not hide a problem the author would otherwise have to
-    // discover on a second pass.
+    // The suppression is scoped to the offending entry: only the Ajv
+    // errors *under that entry* are dropped, so a structural problem
+    // elsewhere still surfaces on the same pass. (The subsequent
+    // semantic pass is skipped whenever any entry is flagged — that is
+    // the validator's existing short-circuit contract, not this
+    // suppression: a structural failure has always deferred semantic
+    // checks to a second run.)
     const result = validateConfig(
       {
         version: 'bogus',

@@ -22,6 +22,7 @@
  */
 
 import { ConfigValidationError, type ValidationIssue } from './errors';
+import { isPlainObject, isSet } from './shape';
 
 /**
  * Author-facing text for the both-fields-set case. Exported so the
@@ -50,27 +51,6 @@ function warnOnce(): void {
 }
 
 /**
- * A plain (non-array, non-null) object — the only shape that can carry
- * either field. Anything else passes through untouched; the validator
- * surfaces a readable schema error for it.
- */
-function isConfigObject(v: unknown): v is Record<string, unknown> {
-  return v !== null && typeof v === 'object' && !Array.isArray(v);
-}
-
-/**
- * Whether a field was actually set by the author. An empty YAML key
- * (`groups:` / `rows:` with nothing after it) parses to `null` — a
- * leftover stub, not a value — so `null` counts as unset alongside
- * `undefined`. Deciding presence by key existence instead would reject a
- * blank `groups:` line (common right after a rename) as a both-fields
- * conflict and fire the deprecation warning for a field carrying nothing.
- */
-function isSet(v: unknown): boolean {
-  return v !== undefined && v !== null;
-}
-
-/**
  * Non-throwing probe for the both-fields-set case, returning the issue
  * rather than raising it.
  *
@@ -79,7 +59,7 @@ function isSet(v: unknown): boolean {
  * probes with this first and pushes the issue onto its own list.
  */
 export function rowsAliasConflict(config: unknown): ValidationIssue | undefined {
-  if (!isConfigObject(config)) return undefined;
+  if (!isPlainObject(config)) return undefined;
   if (!isSet(config.rows) || !isSet(config.groups)) return undefined;
   return {
     path: '/groups',
@@ -105,7 +85,7 @@ export function rowsAliasConflict(config: unknown): ValidationIssue | undefined 
  *   has given no way to tell which they meant.
  */
 export function resolveRowsAlias<T>(config: T): T {
-  if (!isConfigObject(config)) return config;
+  if (!isPlainObject(config)) return config;
   if (!('groups' in config)) return config;
 
   const conflict = rowsAliasConflict(config);

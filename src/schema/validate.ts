@@ -50,6 +50,7 @@ import { isGroupConfig } from './discriminate';
 import type { Registry } from './registry';
 import { RENDERABLE_COMPONENT_NAMES } from './components';
 import { resolveRowsAlias, rowsAliasConflict } from './rows-alias';
+import { isPlainObject, isSet } from './shape';
 import { dataFileFormatForPath } from './file-formats';
 import type {
   ValidationIssue,
@@ -236,7 +237,13 @@ function checkEntryShapes(config: unknown): {
 
     const hasTracks = isSet(entry.tracks);
     const hasData = isSet(entry.data);
-    // Exactly one present is a well-formed entry — nothing to say.
+    // Exactly one present is a well-formed *shape* — nothing to say here.
+    // The probe deliberately keys on presence, not correctness: a
+    // present-but-malformed field (`tracks: 'oops'`, a non-object
+    // `data:`) has an unambiguous shape, so it falls through to Ajv,
+    // whose type/enum error names the actual mistake. Only the
+    // genuinely ambiguous neither/both cases — where Ajv can offer no
+    // better than the `oneOf` dump — are claimed below.
     if (hasTracks !== hasData) return;
 
     flagged.push(`/rows/${index}`);
@@ -269,22 +276,6 @@ function isUnderFlaggedEntry(instancePath: string, flagged: string[]): boolean {
 function describeEntry(entry: Record<string, unknown>, index: number): string {
   const { id } = entry;
   return typeof id === 'string' && id.length > 0 ? `'${id}'` : `at index ${index}`;
-}
-
-/** A plain (non-null, non-array) object — the only shape an entry can be. */
-function isPlainObject(v: unknown): v is Record<string, unknown> {
-  return v !== null && typeof v === 'object' && !Array.isArray(v);
-}
-
-/**
- * Whether a field was actually set by the author. An empty YAML key
- * (`tracks:` with nothing after it) parses to `null` — a leftover stub,
- * not a value — so `null` counts as unset alongside `undefined`. Matches
- * `rows-alias.ts`, which treats an empty `rows:` / `groups:` stub the
- * same way: one notion of "set" across the schema layer.
- */
-function isSet(v: unknown): boolean {
-  return v !== undefined && v !== null;
 }
 
 // ─────────────────────────────────────────────────────────────
