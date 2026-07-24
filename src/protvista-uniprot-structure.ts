@@ -22,14 +22,21 @@ import externalLinkIcon from './icons/external-link.svg';
 import loaderIcon from './icons/spinner.svg';
 import loaderStyles from './styles/loader-styles';
 
-const PDBLinks = [
-  { name: 'PDBe', link: 'https://www.ebi.ac.uk/pdbe-srv/view/entry/' },
-  { name: 'RCSB-PDB', link: 'https://www.rcsb.org/structure/' },
-  { name: 'PDBj', link: 'https://pdbj.org/mine/summary/' },
-];
 const alphaFoldLinkUrl = 'https://alphafold.ebi.ac.uk/search/text/';
 const foldseekUrl = `https://search.foldseek.com/search`;
 const uniprotKBUrl = 'https://www.uniprot.org/uniprotkb/';
+
+const sourceMethods = new Map([
+  ['AlphaFold DB', 'Predicted'],
+  ['SWISS-MODEL', 'Modeling'],
+  ['ModelArchive', 'Modeling'],
+  ['PED', 'Modeling'],
+  ['SASBDB', 'SAS'],
+  ['isoform.io', 'Predicted'],
+  ['AlphaFill', 'Predicted'],
+  ['HEGELAB', 'Modeling'],
+  ['levylab', 'Modeling'],
+]);
 
 // Excluded source from 3d-beacons is PDBe as we fetch them separately from UniProt
 const providersFrom3DBeacons = [
@@ -227,6 +234,7 @@ const processAFData = (
         afPrediction: true,
         oligomericState,
         chain,
+        method: sourceMethods.get('AlphaFold DB') || undefined,
       };
     })
     .sort((a, b) => getIsoformNum(a.id) - getIsoformNum(b.id))
@@ -290,6 +298,7 @@ const process3DBeaconsData = (
           )
           .join(', ') || undefined,
       oligomericState: summary.oligomeric_state || undefined,
+      method: sourceMethods.get(summary.provider) || undefined,
     })) || []
   );
 };
@@ -487,12 +496,7 @@ class ProtvistaUniprotStructure extends LitElement {
 
     return html`
       ${source === 'PDB'
-        ? html`
-            ${PDBLinks.map(
-              (pdbLink) =>
-                html`<a href="${pdbLink.link}${id}">${pdbLink.name}</a>`
-            ).reduce((prev, curr) => html`${prev} · ${curr}`)}
-          `
+        ? html` <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${id}">PDBe</a> `
         : nothing}
       ${source === 'AlphaFold DB' && this.accession
         ? html`<a href="${alphaFoldLinkUrl}${this.accession}">AlphaFold</a>`
