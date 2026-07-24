@@ -32,17 +32,95 @@ All repository interactions and project events are expected to follow our [Code 
    yarn install
    ```
 
-3. Run the development server:
+3. Run the development server (serves the demo at a local URL):
 
    ```bash
    yarn start
    ```
 
-4. Run tests:
+4. Run the tests:
 
    ```bash
    yarn test
    ```
+
+## Architecture Overview
+
+ProtVista is **config-driven**. The viewer is a single custom element,
+`<protvista-uniprot>`, driven by a declarative configuration document. Authors
+write against a schema of high-level domain concepts (`kind: features`,
+`kind: variants`, `kind: confidence-score`, …) and never name Nightingale
+components or data adapters directly. The runtime resolves those concepts into
+concrete components and adapters for them.
+
+Understanding two pieces — the **registry** and the **config pipeline** — is
+enough to contribute to most of the codebase. Both live under
+[`src/schema/`](./src/schema).
+
+> The normative schema reference (every config field, with worked examples and
+> edge-case semantics) is [`specs/config-approach.md`](./specs/config-approach.md).
+> A higher-level design walkthrough lives in
+> [`docs/architecture.md`](./docs/architecture.md). This section is a
+> contributor's map, not a substitute for either.
+
+### The registry
+
+The registry ([`src/schema/registry.ts`](./src/schema/registry.ts)) is the
+single source of truth for every name a config can reference. It has four
+buckets:
+
+| Bucket             | What it maps                                  | Built-ins defined in                       |
+| ------------------ | --------------------------------------------- | ------------------------------------------ |
+| **Semantic kinds** | `kind` → `(component, adapter, rendering)`    | `registry.ts` (`BUILTIN_SEMANTIC_KINDS`)   |
+| **Adapters**       | adapter name → `AdapterFunction`              | [`src/schema/adapters`](./src/schema/adapters) (`BUILTIN_ADAPTERS`) |
+| **Themes**         | theme name → colour-scale `ColorStop[]`       | `registry.ts` (`BUILTIN_THEMES`)           |
+| **Components**     | tag name → custom-element constructor         | [`src/built-in-components.ts`](./src/built-in-components.ts) |
+
+`createRegistry()` is a factory, not a module singleton — each viewer instance
+holds its own registry, so custom registrations never leak between viewers on
+the same page. It seeds all built-ins at construction.
+
+The validator uses the registry to close the open-string unions in the schema
+(an unknown adapter fails validation with a stable, greppable message), and the
+loader uses it to resolve a semantic kind into the concrete component + adapter
+to mount.
+
+**Extending the registry.** Consumers extend it at runtime through the
+escape-hatch API exposed on the element (`ProtvistaRuntimeAPI`):
+`registerAdapter`, `registerSemanticKind`, `registerTheme`, and
+`registerComponent`. Registering a name twice throws a `RegistryCollisionError`,
+so behaviour never depends on call order. The one deliberate exception is
+built-in **adapters**: because an adapter names a *data format* rather than a
+viewer behaviour, an adopter whose CSV has a different column layout may
+register over a built-in adapter name exactly once.
+
+To add a **new built-in**, add an entry to the relevant table
+(`BUILTIN_SEMANTIC_KINDS` / `BUILTIN_THEMES` in `registry.ts`,
+`BUILTIN_ADAPTERS` in `src/schema/adapters`, or `registerBuiltinComponents` in
+`src/built-in-components.ts`) — the factory wiring needs no change.
+
+### The config pipeline
+
+`loadConfig()` ([`src/schema/load.ts`](./src/schema/load.ts)) orchestrates the
+stages that turn author input (a JSON string, a YAML string, or an
+already-parsed object) into the `NormalizedConfig` shape the element mounts
+directly:
+
+```
+author input → parse → extends → validate → normalize → render
+```
+
+| Stage         | Module                                     | Responsibility                                                                 |
+| ------------- | ------------------------------------------ | ------------------------------------------------------------------------------ |
+| **parse**     | [`parse.ts`](./src/schema/parse.ts)        | JSON/YAML → plain JS value. Format is auto-detected from content; `js-yaml` is lazy-loaded so JSON-only adopters never download it. |
+| **extends**   | [`extends.ts`](./src/schema/extends.ts)    | Resolve and merge an `extends` chain (`sources`, `defaults`, `rows`, `tracks`, `rendering`), child-wins. |
+| **validate**  | [`validate.ts`](./src/schema/validate.ts)  | Structural pass (Ajv against `schema.json`, draft 2020-12) then a semantic pass (closed-set checks against the registry). Returns issues; never throws. |
+| **normalize** | [`normalize.ts`](./src/schema/normalize.ts)| Expand shorthands, resolve semantic kinds via the registry, cascade rendering inheritance, apply id→label fallbacks, detect duplicate ids. |
+
+Each stage is a standalone module so editor tooling, linters, and CI can run
+the validator without paying for the YAML parser or committing to the normalize
+step. When touching a stage, keep this separation intact and preserve the stable
+error messages (adopters grep their logs for strings like `"Unknown adapter"`).
 
 ## Making Changes
 
@@ -89,19 +167,29 @@ Before submitting, ensure:
 
 ## Testing
 
+Tests run under [Vitest](https://vitest.dev/), split into two projects: a
+`unit` project (`jsdom` DOM environment) and a `browser` project (real-browser
+component tests). Vitest globals are off — import `describe`, `it`, `expect`,
+`vi`, … explicitly from `'vitest'`.
+
 ### Running Tests
 
 ```bash
-yarn test          # Run all tests
-yarn test:watch    # Run tests in watch mode
-yarn test:coverage # Generate coverage report
+yarn test          # Full pipeline: lint + types + unit + browser
+yarn test:unit     # Unit tests only (CI-friendly, jsdom)
+yarn test:browser  # Browser component tests only
+yarn test:watch    # Watch mode
+yarn test:coverage # Run the unit suite and write coverage to ./coverage/
 ```
 
 ### Writing Tests
 
-- Write unit tests for new components/functions.
-- Include visual regression tests for UI changes when possible.
-- Test edge cases and error conditions.
+- Write unit tests for new components/functions and, for schema work, cover each
+  pipeline stage (parse, extends, validate, normalize) and both registry paths
+  (built-ins and `register*` extension) independently.
+- Include browser/visual tests for UI changes when possible.
+- Test edge cases and error conditions — especially the stable validator error
+  messages, which adopters depend on.
 - Aim to maintain or improve code coverage. CI enforces a coverage floor (a
   ratchet, #162) via `test.coverage.thresholds` in `vite.config.mjs`; the
   `yarn test:coverage` step fails any PR that drops below it. When your change

@@ -25,7 +25,7 @@ See dates and joining details here: [Office Hours](./CONTRIBUTING.md#office-hour
 
 We welcome contributions!
 
-- Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup, pull request guidelines, and office hours.
+- Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup, an overview of the config-driven architecture (registry and config pipeline), pull request guidelines, and office hours.
 - Community standards: [Code of Conduct](./CODE_OF_CONDUCT.md)
 - Security issues: please report privately via [SECURITY.md](./SECURITY.md)
 
