@@ -1,4 +1,16 @@
-const transformData = (data) => {
+import type { AdapterFunction } from '../types';
+
+type VariationFeature = {
+  genomicLocation?: string[];
+  begin: string | number;
+  association?: Array<{ disease?: boolean }>;
+  [key: string]: unknown;
+};
+
+type VariationData = { sequence?: string; features: VariationFeature[] };
+
+export const variationGraphAdapter: AdapterFunction = (raw) => {
+  const data = raw as VariationData;
   if (data.sequence && data.features.length) {
     const variants = data.features.map((variant) => ({
       ...variant,
@@ -47,5 +59,3 @@ const transformData = (data) => {
     return graphData;
   }
 };
-
-export default transformData;

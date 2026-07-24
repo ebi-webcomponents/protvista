@@ -9,9 +9,9 @@
  * discovery-path regression can't silently zero out the whole suite):
  *
  *   1. Schema validation — `loadConfig` must accept it.
- *   2. Data pipeline — `loadProtvistaData`, driven by the real
- *      exported `adapters` map (the same one `<protvista-uniprot>`
- *      uses), must produce `hasData: true`, AND every track the
+ *   2. Data pipeline — `loadProtvistaData`, driven by a real registry
+ *      seeded with every built-in adapter (the same resolution
+ *      `<protvista-uniprot>` uses), must produce `hasData: true`, AND every track the
  *      example authored itself locally (`from: file` / `from:
  *      inline` — as opposed to a `from: url` track riding on this
  *      suite's canned `https://` fixture) must independently produce
@@ -47,12 +47,18 @@ import { render } from 'lit';
 
 import { loadConfig } from '../schema/load';
 import type { NormalizedConfig } from '../schema/normalize';
-import { loadProtvistaData, type AdapterMap } from '../load-data';
+import { loadProtvistaData } from '../load-data';
+import { createRegistry } from '../schema/registry';
 import { CSS_PREFIX } from '../styles/css-prefix';
 // Side-effect import: registers the `protvista-uniprot` custom
-// element and exposes the real, drift-proof adapter map.
+// element. The data pipeline resolves adapters through a real registry
+// (seeded with every built-in), matching what the element does at runtime.
 import '../protvista-uniprot';
-import { adapters as realAdapters } from '../protvista-uniprot';
+
+// A registry seeded with all built-in adapters — the drift-proof
+// equivalent of the element's own runtime resolution.
+const registry = createRegistry();
+const resolveAdapter = (name: string) => registry.getAdapter(name);
 
 const REFERENCE_ACCESSION = 'P05067';
 const SEQ_LEN = 770;
@@ -206,7 +212,7 @@ describe.each(discoverExamples())('example: $name', ({ dir, configPath }) => {
       REFERENCE_ACCESSION,
       config,
       fetchOne,
-      realAdapters as AdapterMap
+      resolveAdapter
     );
   });
 

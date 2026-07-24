@@ -1,4 +1,6 @@
-import { AlphaFoldPayload } from '@nightingale-elements/nightingale-structure';
+import type { AlphaFoldPayload } from '@nightingale-elements/nightingale-structure';
+
+import type { AdapterFunction } from '../types';
 
 type AlphafoldConfidencePayload = {
   residueNumber: Array<number>;
@@ -26,10 +28,12 @@ type PartialProtein = {
   };
 };
 
-const transformData = async (
-  data: AlphaFoldPayload,
-  protein: PartialProtein
+export const alphafoldConfidenceAdapter: AdapterFunction = async (
+  raw,
+  proteinRaw
 ) => {
+  const data = raw as AlphaFoldPayload;
+  const protein = proteinRaw as PartialProtein;
   const alphaFoldSequenceMatch = data?.filter(
     ({ sequence }) => protein.sequence.sequence === sequence
   );
@@ -48,5 +52,3 @@ const transformData = async (
     );
   }
 };
-
-export default transformData;

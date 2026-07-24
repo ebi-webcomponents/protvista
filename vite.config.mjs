@@ -169,10 +169,10 @@ export default defineConfig({
         // Type-only files — no runtime to cover.
         'src/**/*.d.ts',
         'src/types/**',
-        'src/adapters/types/**',
+        'src/schema/adapters/types/**',
         // Static lookup tables / config constants — no branches or funcs
         // to cover, and including them inflates aggregate %.
-        'src/adapters/config/**',
+        'src/schema/adapters/config/**',
         // Style template strings.
         'src/styles/**',
         // Playground DOM / CodeMirror wiring — integration-level, not

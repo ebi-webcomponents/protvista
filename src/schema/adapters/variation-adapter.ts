@@ -7,6 +7,8 @@ import {
   VariationDatum,
 } from '@nightingale-elements/nightingale-variation-canvas';
 
+import type { AdapterFunction } from '../types';
+
 export type TransformedVariant = VariationDatum & Variant;
 
 const getSourceType = (xrefs: Xref[], sourceType: SourceType) => {
@@ -17,13 +19,14 @@ const getSourceType = (xrefs: Xref[], sourceType: SourceType) => {
   return xrefNames;
 };
 
-const transformData = (
-  data: ProteinsAPIVariation
-): {
-  sequence: string;
-  variants: TransformedVariant[];
-} => {
-  const { sequence, features } = data;
+export const variationAdapter: AdapterFunction = (
+  raw
+): { sequence: string; variants: TransformedVariant[] } | null => {
+  const { sequence, features } = (raw ?? {}) as ProteinsAPIVariation;
+  // Refuse to run against an empty payload — behaviour preserved from the
+  // legacy loader, which skipped this adapter when the fetched body was
+  // empty (an empty array leaves `features` undefined here).
+  if (!features) return null;
   const variants = features.map((variant) => ({
     ...variant,
     accession: variant.genomicLocation?.join(', '),
@@ -32,8 +35,5 @@ const transformData = (
     xrefNames: getSourceType(variant.xrefs, variant.sourceType),
     hasPredictions: variant.predictions && variant.predictions.length > 0,
   }));
-  if (!variants) return null;
   return { sequence, variants };
 };
-
-export default transformData;

@@ -1,4 +1,6 @@
-import { AlphaFoldPayload } from '@nightingale-elements/nightingale-structure';
+import type { AlphaFoldPayload } from '@nightingale-elements/nightingale-structure';
+
+import type { AdapterFunction } from '../types';
 
 // from color scale B:0,H:0.1132,V:0.2264,L:0.3395,A:0.4527,l:0.5895,h:0.7264,p:0.8632,P:1
 const certainlyBenign = 0;
@@ -109,10 +111,12 @@ type PartialProtein = {
   };
 };
 
-const transformData = async (
-  data: AlphaFoldPayload,
-  protein: PartialProtein
+export const alphamissensePathogenicityAdapter: AdapterFunction = async (
+  raw,
+  proteinRaw
 ) => {
+  const data = raw as AlphaFoldPayload;
+  const protein = proteinRaw as PartialProtein;
   const alphaFoldSequenceMatch = data?.filter(
     ({ sequence, amAnnotationsUrl }) =>
       protein.sequence.sequence === sequence && amAnnotationsUrl
@@ -128,5 +132,3 @@ const transformData = async (
     );
   }
 };
-
-export default transformData;

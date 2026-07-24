@@ -14,25 +14,11 @@ import type NightingaleFilter from '@nightingale-elements/nightingale-filter';
 import type { Filter } from '@nightingale-elements/nightingale-filter';
 import { amColorScale } from '@nightingale-elements/nightingale-structure';
 
-// adapters
-import featureAdapter from './adapters/feature-adapter';
-import proteomicsAdapter from './adapters/proteomics-adapter';
-import structureAdapter from './adapters/structure-adapter';
-import variationAdapter, {
-  TransformedVariant,
-} from './adapters/variation-adapter';
-import interproAdapter from './adapters/interpro-adapter';
-import variationGraphAdapter from './adapters/variation-graph-adapter';
-import rnaEditingGraphAdapter from './adapters/rna-editing-graph-adapter';
-import rnaEditingAdapter from './adapters/rna-editing-adapter';
-import proteomicsPTMApdapter from './adapters/ptm-exchange-adapter';
-import alphaFoldConfidenceAdapter from './adapters/alphafold-confidence-adapter';
-import alphaMissensePathogenicityAdapter from './adapters/alphamissense-pathogenicity-adapter';
-import alphaMissenseHeatmapAdapter from './adapters/alphamissense-heatmap-adapter';
-import { featuresCsv } from './schema/adapters/features-csv';
-import { featuresTsv } from './schema/adapters/features-tsv';
-import { featuresJson } from './schema/adapters/features-json';
-import { bed } from './schema/adapters/bed';
+// Adapter functions are no longer imported or held here: they live in the
+// schema registry (seeded from `BUILTIN_ADAPTERS`) and the loader resolves
+// them by name via `this.registry.getAdapter`. Only this type is still
+// needed for a local narrowing below.
+import type { TransformedVariant } from './schema/adapters/variation-adapter';
 
 import { loadComponent } from './utils';
 import {
@@ -110,33 +96,6 @@ const measureOnce = (name: string, start: string, end: string) => {
       // rather than throwing; comparing the marks directly still works.
     }
   }
-};
-
-// Exported so tests and the schema-driven loader can construct the
-// exact same adapter map without risking drift. Keys are the canonical
-// schema-level `<source>-<format>` adapter names — the same vocabulary
-// config authors write in `adapter:` fields.
-export const adapters = {
-  'uniprot-features-json': featureAdapter,
-  'interpro-entries-json': interproAdapter,
-  'uniprot-proteomics-json': proteomicsAdapter,
-  'uniprot-proteins-pdb-json': structureAdapter,
-  'uniprot-variation-json': variationAdapter,
-  'uniprot-variation-counts-json': variationGraphAdapter,
-  'uniprot-rna-editing-json': rnaEditingAdapter,
-  'uniprot-rna-editing-counts-json': rnaEditingGraphAdapter,
-  'uniprot-proteomics-ptm-json': proteomicsPTMApdapter,
-  'alphafold-prediction-json': alphaFoldConfidenceAdapter,
-  'alphamissense-average-csv': alphaMissensePathogenicityAdapter,
-  'alphamissense-full-csv': alphaMissenseHeatmapAdapter,
-  // Generic-format bring-your-own-data adapters. These are also seeded
-  // into the schema Registry via BUILTIN_ADAPTERS (which gates config
-  // validation); they must additionally live here because this is the
-  // map the loader actually invokes to transform a track's fetched body.
-  'features-csv': featuresCsv,
-  'features-tsv': featuresTsv,
-  'features-json': featuresJson,
-  bed,
 };
 
 type NightingaleEvent = Event & {
@@ -607,7 +566,10 @@ class ProtvistaUniprot extends LitElement {
           return null;
         }
       },
-      adapters,
+      // Resolve adapter functions by name through the registry — the same
+      // source of truth config validation consults, so a consumer's
+      // `registerAdapter()` adapter both validates and runs.
+      (name) => this.registry.getAdapter(name),
       this.customTrackData,
       only ? { only, previousData: this.data } : undefined
     );

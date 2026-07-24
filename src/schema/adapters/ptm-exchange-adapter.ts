@@ -1,3 +1,5 @@
+import type { AdapterFunction } from '../types';
+
 type ProteomicsPtm = {
   accession: string;
   entryName: string;
@@ -93,7 +95,8 @@ const convertPtmExchangePtms = (ptms: PTM[], absolutePosition: number) => {
   });
 };
 
-const transformData = (data: ProteomicsPtm) => {
+export const proteomicsPtmAdapter: AdapterFunction = (raw) => {
+  const data = raw as ProteomicsPtm;
   if (data) {
     const { features } = data;
 
@@ -135,5 +138,3 @@ const transformData = (data: ProteomicsPtm) => {
   }
   return [];
 };
-
-export default transformData;
