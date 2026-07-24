@@ -87,6 +87,19 @@ Reactive properties on the `<protvista-uniprot>` element (HTML attribute name in
 - `nostructure` [`nostructure`]: `boolean` (default `false`) — suppresses the PDBe 3D structure group.
 - `notooltip` [`notooltip`]: `boolean` (default `false`) — suppresses the built-in click tooltip. Typically set by embedders rendering their own overlay. See [React host integration](./docs/react-integration.md) for the consumer-side pattern.
 - `suspend` [`suspend`]: `boolean` (default `false`) — pauses rendering. Useful when the accession is about to change and you want to avoid a flash of intermediate state.
+- `noPersistLayout` [`no-persist-layout`]: `boolean` (default `false`) — opts out of layout persistence (a user's reorder/show-hide is neither restored on mount nor saved to localStorage or the `?layout=` URL). See [Track configuration](./docs/track-configuration.md).
+
+### Layout (Customize layout)
+
+End users can reorder tracks individually and show/hide tracks in the viewer via the **Customize layout** panel; the same layout can be driven programmatically. Each method emits a `protvista-layout-change` event (see [Events](#events)).
+
+- `setTrackOrder(order: string[])`: reorder tracks by their `${groupId}-${trackId}` keys. Grouping is derived from adjacency (adjacent same-group tracks render under the group header; a track moved away renders as "Group / Track").
+- `setRowVisibility(rowId: string, visible: boolean)`: show/hide a whole lane (group or standalone track).
+- `setTrackVisibility(groupId: string, trackId: string, visible: boolean)`: show/hide one track within a group.
+- `resetLayout()`: restore the authored layout (drop every reorder + show/hide override).
+- `getLayout(): { order: string[] | null; hidden: Record<string, boolean> }`: read the current overlay.
+
+A layout persists per-config in localStorage and in a shareable `?layout=` URL parameter. See [Track configuration](./docs/track-configuration.md) for the controls, the authored `hidden` default, accessibility, and persistence.
 
 ## Development
 
@@ -129,14 +142,14 @@ Every push and pull request runs three steps via [`.github/workflows/test-and-de
 
 Coverage is gated by a fixed floor (a coverage ratchet, #162) configured under `test.coverage.thresholds` in [`vite.config.mjs`](./vite.config.mjs) and enforced by the CI coverage step. The floor is bumped up manually as coverage improves and is never lowered without justification.
 
-Captured 2026-07-21 via `yarn test:coverage` (v8 instrumentation, 533 tests across 32 spec files):
+Captured 2026-07-24 via `yarn test:coverage` (v8 instrumentation, 727 tests across 53 spec files):
 
 | Metric     | Coverage % | Floor |
 | ---------- | ---------- | ----- |
-| Statements | 75.81      | 74    |
-| Branches   | 71.26      | 70    |
-| Functions  | 73.39      | 72    |
-| Lines      | 76.82      | 75    |
+| Statements | 82.45      | 80    |
+| Branches   | 75.60      | 74    |
+| Functions  | 80.24      | 78    |
+| Lines      | 83.91      | 81    |
 
 ## Performance benchmarks
 
@@ -182,6 +195,7 @@ The viewer renders a single collapsible group "Domains" (label title-cased from 
 - **Worked examples.** [`examples/`](./examples) is the canonical, CI-validated set of runnable example configs — one per generic-format adapter (CSV/TSV/JSON/BED), inline data, a minimal URL-sourced config, and an `extends:`-based config that layers a custom track on the shipped default. See [`examples/README.md`](./examples/README.md).
 - **Authoring `dataTooltip`.** [`docs/data-tooltip.md`](./docs/data-tooltip.md) covers the three authoring forms (bare string, `kind: fields`, `kind: markdown`) with examples.
 - **React host integration.** [`docs/react-integration.md`](./docs/react-integration.md) shows how a React host owns its own rich tooltips via the `change` event + `notooltip`, with a minimal worked example. The normative contract is [`specs/config-approach.md`](./specs/config-approach.md#react-host-integration).
+- **Track configuration.** [`docs/track-configuration.md`](./docs/track-configuration.md) covers the end-user "Customize layout" controls (reorder + show/hide), the authored `hidden: true` default for shipping a group/track hidden on first mount, the runtime layout API, and per-config persistence + the shareable `?layout=` URL.
 
 ## Events
 
@@ -196,6 +210,20 @@ detail: {
   hasData: true;
 }
 ```
+
+A `protvista-layout-change` event is emitted whenever the user (or the
+runtime API) reorders or shows/hides a track. Its `detail` is the current
+layout overlay, the same shape `getLayout()` returns:
+
+```js
+detail: {
+  // flat ${groupId}-${trackId} track order, or null for the authored order
+  order: ['VARIATION-variants', 'DOMAINS_AND_SITES-domain'],
+  hidden: { MOLECULE_PROCESSING: true } // row id or `groupId-trackId`
+}
+```
+
+See [Track configuration](./docs/track-configuration.md) for the full layout API and persistence model.
 
 ## Publishing
 

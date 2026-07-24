@@ -57,14 +57,31 @@ runs `test:browser` and `test:coverage` on every push/PR.
 
 ### Group expand/collapse — `<protvista-uniprot>` (`src/__browser__/group-toggle.browser.spec.ts`)
 
-The group-collapse toggle is the current proxy for the planned track
-show/hide UI ([issue #199](https://github.com/ebi-webcomponents/protvista/issues/199),
-not yet built).
-
 - **Fixed in this work:** the toggle was a bare `<div @click>` — operable
   by mouse only. It now exposes `role="button"`, `tabindex="0"`, and a
   live `aria-expanded`, and activates on **Enter/Space** as well as click.
 - **axe:** no violations over the group.
+
+### Track Manager — "Customize layout" (`src/__browser__/track-manager.browser.spec.ts`)
+
+The track-configuration UI ([issue #199](https://github.com/ebi-webcomponents/protvista/issues/199))
+is now built: an end user can reorder and show/hide each track individually
+in the viewer (`<protvista-track-manager>`), with grouping derived from
+adjacency, backed by the runtime layout API and per-config persistence. See
+[`docs/track-configuration.md`](./track-configuration.md).
+
+- **axe:** no violations on the panel, in isolation and mounted in the viewer.
+- **Real controls:** show/hide is a `<button>` with `aria-pressed` plus an
+  action word ("Hide X" / "Show X") and an eye / slashed-eye icon, never
+  colour or icon alone. Every track (and each group header) exposes a drag
+  handle plus move-up/down buttons, so reorder never depends on a dragging
+  gesture (WCAG 2.5.7).
+- **Keyboard:** a roving-tabindex grid. Up/Down move between rows,
+  Left/Right between a row's controls; one tab stop for the whole list.
+- **Announcements:** an `aria-live` region announces each reorder ("… moved
+  to position N of M"), hide, and show.
+- **Focus:** stays with an item when it is moved or hidden/shown, without
+  scrolling the page.
 
 ## Known residual gaps (for the manual audit)
 
@@ -81,13 +98,16 @@ These are documented, not yet remediated:
    imperfect nesting of interactive content. Activating the link never
    toggles the group (the shared handler bails when the event target is an
    `<a>`, and the link stays independently focusable), but a cleaner DOM
-   would separate the collapse affordance from the link. Revisit when the
-   #199 track-config UI lands.
+   would separate the collapse affordance from the link. The #199 Track
+   Manager controls deliberately avoid this pattern (real, separate
+   `<button>`s with no nested interactive content); the legacy collapse
+   toggle is left as-is for now since it is functionally correct, and a DOM
+   cleanup of the group header is a separate, low-risk follow-up.
 4. **Nightingale track internals** (canvas/SVG rendering) are out of scope
    here (stubbed in tests) and must be assessed separately.
 
 ## Coverage floor
 
 `vite.config.mjs` enforces a coverage floor (issue #162) just below the
-current baseline: statements 79 / branches 74 / functions 76 / lines 80.
+current baseline: statements 80 / branches 74 / functions 78 / lines 81.
 Ratchet these up as coverage grows.

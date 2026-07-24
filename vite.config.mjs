@@ -189,10 +189,10 @@ export default defineConfig({
       // ratchet — bump these up as coverage improves; never lower them
       // without a justification in the PR.
       thresholds: {
-        statements: 74,
-        branches: 70,
-        functions: 72,
-        lines: 75,
+        statements: 80,
+        branches: 74,
+        functions: 78,
+        lines: 81,
       },
     },
   },
