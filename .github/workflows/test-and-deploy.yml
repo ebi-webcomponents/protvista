@@ -30,7 +30,13 @@ jobs:
       - name: Type check
         run: yarn test:types
 
-      - name: Unit tests + coverage
+      - name: Unit tests
+        run: yarn test:unit
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium chromium-headless-shell
+
+      - name: Coverage (both unit and browser tests, enforces thresholds)
         run: yarn test:coverage
 
   build:

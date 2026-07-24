@@ -41,6 +41,12 @@ vi.mock('@nightingale-elements/nightingale-track-canvas', () => ({
 }));
 vi.mock('@nightingale-elements/nightingale-variation-canvas', () => ({
   default: class extends HTMLElement {},
+  // Real (value) exports the app imports. Browser ESM links named
+  // imports strictly, so these must exist even though the code paths
+  // that read them aren't exercised by the mounting specs. (jsdom's
+  // module runner tolerated their absence; a real browser does not.)
+  AminoAcid: { Empty: '' },
+  ClinicalSignificance: {},
 }));
 vi.mock('@nightingale-elements/nightingale-linegraph-track', () => ({
   default: class extends HTMLElement {},
