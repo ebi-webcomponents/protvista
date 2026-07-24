@@ -29,6 +29,10 @@ rather than each maintaining their own divergent samples.
 Column/shape conventions for the four generic-format adapters (CSV,
 TSV, JSON, BED) are documented in
 [`specs/generic-format-adapters.md`](../specs/generic-format-adapters.md).
+The expected payload shape for every built-in kind and adapter — plus
+the config-vs-payload boundary — is in
+[`docs/adapter-reference.md`](../docs/adapter-reference.md) and
+[`docs/configuration-vs-data.md`](../docs/configuration-vs-data.md).
 The full config schema is documented in
 [`specs/config-approach.md`](../specs/config-approach.md), which is
 the normative source these examples are drawn from.
