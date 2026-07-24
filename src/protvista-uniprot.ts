@@ -78,6 +78,14 @@ import {
   effectiveRows,
   visibleTracks,
 } from './layout';
+import {
+  LAYOUT_PARAM,
+  configIdentity,
+  storageKey,
+  isDefaultLayout,
+  encodeLayout,
+  decodeLayout,
+} from './layout-persistence';
 
 // The Track Manager ("Customize layout" panel). Side-effect import so the
 // `@customElement('protvista-track-manager')` decorator registers the tag
@@ -227,6 +235,13 @@ class ProtvistaUniprot extends LitElement {
    * is open). Internal reactive state (`state: true`, no attribute).
    */
   private _customizeMode: boolean;
+  /**
+   * Opt out of layout persistence. When present as the `no-persist-layout`
+   * attribute, a customized layout is neither restored on mount nor saved
+   * (localStorage + the `?layout=` URL are both left untouched), so an
+   * embedder that manages layout itself is unaffected.
+   */
+  private noPersistLayout?: boolean;
   private nostructure: boolean;
   /**
    * Opt out of the built-in click tooltip. Consumers rendering a React overlay typically set this.
@@ -397,6 +412,7 @@ class ProtvistaUniprot extends LitElement {
     this.openGroups = [];
     this._layout = emptyLayout();
     this._customizeMode = false;
+    this.noPersistLayout = false;
     this.nostructure = false;
     this.hasData = false;
     this.loading = true;
@@ -516,6 +532,79 @@ class ProtvistaUniprot extends LitElement {
         bubbles: true,
       })
     );
+    this._persistLayout();
+  }
+
+  // ── Layout persistence (localStorage + ?layout= URL) ────────
+  // A customized layout survives reload (localStorage, keyed per-config) and
+  // is shareable by link (the `?layout=` URL). Restore precedence on mount
+  // is URL > localStorage > authored default. The `no-persist-layout`
+  // attribute opts out of both, read and write. This is viewer-held runtime
+  // state, never written back to the config (see specs/config-approach.md).
+
+  /** Storage key for the current config, or `null` if unavailable. */
+  private _layoutStorageKey(): string | null {
+    if (!this.config) return null;
+    return storageKey(configIdentity(this.config.rows));
+  }
+
+  /** Read the `?layout=` token from the current URL (browser only). */
+  private _readUrlLayout(): string | null {
+    if (typeof window === 'undefined' || !window.location) return null;
+    return new URLSearchParams(window.location.search).get(LAYOUT_PARAM);
+  }
+
+  /**
+   * Restore a saved / shared overlay into `_layout`, honouring the
+   * URL > localStorage > default precedence. Sets `_layout` directly (not
+   * via `_commitLayout`) so restoring neither re-persists nor fires a
+   * change event. A no-op when persistence is opted out.
+   */
+  private _restoreLayout(): void {
+    if (this.noPersistLayout) return;
+    const fromUrl = decodeLayout(this._readUrlLayout());
+    if (fromUrl) {
+      this._layout = fromUrl;
+      return;
+    }
+    const key = this._layoutStorageKey();
+    if (!key) return;
+    try {
+      const stored = decodeLayout(window.localStorage.getItem(key));
+      if (stored) this._layout = stored;
+    } catch {
+      // localStorage can throw (privacy mode, disabled). Ignore — the
+      // authored default stands.
+    }
+  }
+
+  /**
+   * Persist the current overlay to localStorage and mirror it into the
+   * `?layout=` URL so the view is copy-shareable. A default overlay clears
+   * both (so "reset to default" leaves no trace). A no-op when opted out.
+   */
+  private _persistLayout(): void {
+    if (this.noPersistLayout) return;
+    const key = this._layoutStorageKey();
+    if (!key) return;
+    const isDefault = isDefaultLayout(this._layout);
+    const token = isDefault ? null : encodeLayout(this._layout);
+
+    try {
+      if (token === null) window.localStorage.removeItem(key);
+      else window.localStorage.setItem(key, token);
+    } catch {
+      // Ignore storage failures (privacy mode / quota); the URL still
+      // reflects the view for sharing.
+    }
+
+    if (typeof window === 'undefined' || !window.history || !window.location) {
+      return;
+    }
+    const url = new URL(window.location.href);
+    if (token === null) url.searchParams.delete(LAYOUT_PARAM);
+    else url.searchParams.set(LAYOUT_PARAM, token);
+    window.history.replaceState(window.history.state, '', url);
   }
 
   static get properties() {
@@ -527,6 +616,11 @@ class ProtvistaUniprot extends LitElement {
       openGroups: { type: Array },
       _layout: { state: true },
       _customizeMode: { state: true },
+      noPersistLayout: {
+        type: Boolean,
+        reflect: true,
+        attribute: 'no-persist-layout',
+      },
       config: { type: Object },
       viewerConfig: { type: Object },
       // HTML attribute form is kebab-case: `config-src="./my-config.yaml"`.
@@ -1082,6 +1176,10 @@ class ProtvistaUniprot extends LitElement {
           this.accession = normalized.accession;
         }
         this.config = normalized;
+        // Restore a previously-saved / shared layout now that the config
+        // (and thus its identity) is known. Runs before data loads, so the
+        // customized order/visibility is in place for the first render.
+        this._restoreLayout();
         this.applyTheme(normalized.theme);
         // Define the components this config references (built-in or
         // consumer-registered) now that the resolved set is known. Runs
