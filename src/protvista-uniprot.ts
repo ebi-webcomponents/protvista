@@ -1,6 +1,7 @@
 import { LitElement, html, svg } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import { repeat } from 'lit/directives/repeat.js';
 import { frame } from 'timing-functions';
 
 // Nightingale — type-only imports for the components this file
@@ -65,8 +66,18 @@ import type {
   SemanticKindDefinition,
   ColorStop,
 } from './schema/types';
-import type { NormalizedConfig, NormalizedTrack } from './schema/normalize';
+import type {
+  NormalizedConfig,
+  NormalizedRow,
+  NormalizedTrack,
+} from './schema/normalize';
 import { renderingToAttrs } from './renderer/render-helpers';
+import {
+  type LayoutState,
+  emptyLayout,
+  effectiveRows,
+  visibleTracks,
+} from './layout';
 
 import loaderIcon from './icons/spinner.svg';
 import protvistaStyles from './styles/protvista-styles';
@@ -197,6 +208,13 @@ let protvistaInstanceSeq = 0;
 @customElement('protvista-uniprot')
 class ProtvistaUniprot extends LitElement {
   private openGroups: string[];
+  /**
+   * Runtime row-order + visibility overlay (see `LayoutState`). Internal
+   * reactive state (`state: true`, no attribute): mutated by immutable
+   * replacement (like `openGroups`) so Lit's identity dirty-check fires a
+   * re-render, which the `updated()` gate turns into a data re-push.
+   */
+  private _layout: LayoutState;
   private nostructure: boolean;
   /**
    * Opt out of the built-in click tooltip. Consumers rendering a React overlay typically set this.
@@ -365,6 +383,7 @@ class ProtvistaUniprot extends LitElement {
     super();
     registerBuiltinComponents(this.registry);
     this.openGroups = [];
+    this._layout = emptyLayout();
     this.nostructure = false;
     this.hasData = false;
     this.loading = true;
@@ -410,6 +429,7 @@ class ProtvistaUniprot extends LitElement {
       sequence: { type: String },
       data: { type: Object },
       openGroups: { type: Array },
+      _layout: { state: true },
       config: { type: Object },
       viewerConfig: { type: Object },
       // HTML attribute form is kebab-case: `config-src="./my-config.yaml"`.
@@ -926,7 +946,11 @@ class ProtvistaUniprot extends LitElement {
       changedProperties.has('data') ||
       changedProperties.has('config') ||
       changedProperties.has('sequence') ||
-      changedProperties.has('openGroups')
+      changedProperties.has('openGroups') ||
+      // A reorder moves Nightingale DOM nodes (keyed `repeat`) and a
+      // show re-mounts a previously-hidden row; both need their payload
+      // (re-)pushed on the same tick, exactly like an `openGroups` expand.
+      changedProperties.has('_layout')
     ) {
       this._loadDataInComponents();
     }
@@ -1612,6 +1636,24 @@ class ProtvistaUniprot extends LitElement {
     `;
   }
 
+  // ── Runtime layout overlay (row order + visibility) ─────────
+  // Derive the *displayed* rows from the pristine normalized `config.rows`
+  // plus the `_layout` overlay (pure logic in `./layout`). `config` is
+  // never mutated, so "reset to default layout" is just clearing `_layout`.
+  // Only the render loop reads these — data loading and aggregate
+  // computation stay on the full `config.rows` so a hidden row's data is
+  // still fetched and revealing it is instant.
+
+  /** The lanes to render: authored rows, reordered then visibility-filtered. */
+  private _effectiveRows(): NormalizedRow[] {
+    return effectiveRows(this.config?.rows ?? [], this._layout);
+  }
+
+  /** A group's currently-visible child tracks (hidden ones filtered out). */
+  private _visibleTracks(group: NormalizedRow): NormalizedTrack[] {
+    return visibleTracks(group, this._layout);
+  }
+
   render() {
     // Suspend still wins over everything (unchanged semantics).
     if (this.suspend) {
@@ -1667,7 +1709,15 @@ class ProtvistaUniprot extends LitElement {
             ></nightingale-sequence>
           </div>
         </div>
-        ${this.config.rows.map((group) => {
+        ${repeat(
+          // Keyed on row `id` so a reorder *moves* the Nightingale DOM
+          // nodes instead of re-binding canvases positionally (keeping
+          // nightingale-manager alignment intact), and hiding a lane
+          // removes its part rather than shifting the rest. `_effectiveRows`
+          // applies the runtime order + visibility overlay.
+          this._effectiveRows(),
+          (group) => group.id,
+          (group) => {
           const groupHasData = hasRenderableData(this.data[group.id]);
           const groupHasError = this._visibleGroupErrors.has(group.id);
           if (!groupHasData && !groupHasError) return '';
@@ -1741,59 +1791,69 @@ class ProtvistaUniprot extends LitElement {
             </div>
 
             <!-- Expanded Groups -->
-            ${group.tracks &&
-            group.tracks.map((track) => {
-              if (this.openGroups.includes(group.id)) {
-                const trackKey = `${group.id}-${track.id}`;
-                const trackData = this.data[trackKey];
-                const trackHasData = hasRenderableData(trackData);
-                const trackHasError = this._trackErrors.has(trackKey);
-                // A track with neither data nor a (broken) error renders
-                // nothing — this is also the 4xx "missing" path.
-                if (!trackHasData && !trackHasError) {
-                  return '';
-                }
-                const attrs = renderingToAttrs(track.rendering);
-                return html`
-                  <div
-                    class="${CSS_PREFIX}-group__track"
-                    id="${CSS_PREFIX}-track_${track.id}"
-                  >
-                    <div
-                      class="${CSS_PREFIX}-track-label"
-                      title="${track.description ?? ''}"
-                    >
-                      ${(track.filterUI === 'nightingale-filter' &&
-                        this.getFilterComponent(`${group.id}-${track.id}`)) ||
-                      unsafeHTML(
-                        renderLabel(track.label, this.accession)
-                      )}${this._renderTrackBadge(trackKey)}
-                    </div>
-                    ${trackHasData
-                      ? html`<div
-                          class="${CSS_PREFIX}-track-content ${group.component ===
-                          'nightingale-colored-sequence'
-                            ? `${CSS_PREFIX}-track-content__coloured-sequence`
-                            : ''}"
-                          data-id="${CSS_PREFIX}-track_${track.id}"
+            ${this.openGroups.includes(group.id)
+              ? repeat(
+                  // Only the currently-visible child tracks, keyed on track
+                  // `id`. A hidden track drops out of the expanded view but
+                  // its data still loads (revealing it is instant) and the
+                  // group aggregate is unaffected.
+                  this._visibleTracks(group),
+                  (track) => track.id,
+                  (track) => {
+                    const trackKey = `${group.id}-${track.id}`;
+                    const trackData = this.data[trackKey];
+                    const trackHasData = hasRenderableData(trackData);
+                    const trackHasError = this._trackErrors.has(trackKey);
+                    // A track with neither data nor a (broken) error renders
+                    // nothing — this is also the 4xx "missing" path.
+                    if (!trackHasData && !trackHasError) {
+                      return '';
+                    }
+                    const attrs = renderingToAttrs(track.rendering);
+                    return html`
+                      <div
+                        class="${CSS_PREFIX}-group__track"
+                        id="${CSS_PREFIX}-track_${track.id}"
+                      >
+                        <div
+                          class="${CSS_PREFIX}-track-label"
+                          title="${track.description ?? ''}"
                         >
-                          ${this.getTrack(
-                            track.component,
-                            'non-overlapping',
-                            attrs.color,
-                            attrs.shape,
-                            `${group.id}-${track.id}`,
-                            attrs.scale,
-                            attrs.colorRange
-                          )}
-                        </div>`
-                      : ''}
-                  </div>
-                `;
-              }
-            })}
+                          ${(track.filterUI === 'nightingale-filter' &&
+                            this.getFilterComponent(
+                              `${group.id}-${track.id}`
+                            )) ||
+                          unsafeHTML(
+                            renderLabel(track.label, this.accession)
+                          )}${this._renderTrackBadge(trackKey)}
+                        </div>
+                        ${trackHasData
+                          ? html`<div
+                              class="${CSS_PREFIX}-track-content ${group.component ===
+                              'nightingale-colored-sequence'
+                                ? `${CSS_PREFIX}-track-content__coloured-sequence`
+                                : ''}"
+                              data-id="${CSS_PREFIX}-track_${track.id}"
+                            >
+                              ${this.getTrack(
+                                track.component,
+                                'non-overlapping',
+                                attrs.color,
+                                attrs.shape,
+                                `${group.id}-${track.id}`,
+                                attrs.scale,
+                                attrs.colorRange
+                              )}
+                            </div>`
+                          : ''}
+                      </div>
+                    `;
+                  }
+                )
+              : ''}
           `;
-        })}
+          }
+        )}
         <div class="${CSS_PREFIX}-nav-container">
           <div class="${CSS_PREFIX}-credits"></div>
           <div class="${CSS_PREFIX}-track-content">
