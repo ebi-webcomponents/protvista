@@ -96,7 +96,7 @@ register over a built-in adapter name exactly once.
 
 To add a **new built-in**, add an entry to the relevant table
 (`BUILTIN_SEMANTIC_KINDS` / `BUILTIN_THEMES` in `registry.ts`,
-`BUILTIN_ADAPTERS` in `src/schema/adapters`, or `registerBuiltinComponents` in
+`BUILTIN_ADAPTERS` in `src/schema/adapters`, or `RENDERABLE_COMPONENTS` in
 `src/built-in-components.ts`) — the factory wiring needs no change.
 
 ### The config pipeline
@@ -107,13 +107,13 @@ already-parsed object) into the `NormalizedConfig` shape the element mounts
 directly:
 
 ```
-author input → parse → extends → validate → normalize → render
+author input → parse → extends → validate → normalize
 ```
 
 | Stage         | Module                                     | Responsibility                                                                 |
 | ------------- | ------------------------------------------ | ------------------------------------------------------------------------------ |
 | **parse**     | [`parse.ts`](./src/schema/parse.ts)        | JSON/YAML → plain JS value. Format is auto-detected from content; `js-yaml` is lazy-loaded so JSON-only adopters never download it. |
-| **extends**   | [`extends.ts`](./src/schema/extends.ts)    | Resolve and merge an `extends` chain (`sources`, `defaults`, `rows`, `tracks`, `rendering`), child-wins. |
+| **extends**   | [`extends.ts`](./src/schema/extends.ts)    | Resolve and merge an `extends` chain (`sources`, `defaults`, `theme`, `rows`, `tracks`, `rendering`), child-wins. |
 | **validate**  | [`validate.ts`](./src/schema/validate.ts)  | Structural pass (Ajv against `schema.json`, draft 2020-12) then a semantic pass (closed-set checks against the registry). Returns issues; never throws. |
 | **normalize** | [`normalize.ts`](./src/schema/normalize.ts)| Expand shorthands, resolve semantic kinds via the registry, cascade rendering inheritance, apply id→label fallbacks, detect duplicate ids. |
 
@@ -179,7 +179,7 @@ yarn test          # Full pipeline: lint + types + unit + browser
 yarn test:unit     # Unit tests only (CI-friendly, jsdom)
 yarn test:browser  # Browser component tests only
 yarn test:watch    # Watch mode
-yarn test:coverage # Run the unit suite and write coverage to ./coverage/
+yarn test:coverage # Run both test projects and write coverage to ./coverage/
 ```
 
 ### Writing Tests
