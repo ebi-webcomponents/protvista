@@ -2126,9 +2126,20 @@ class ProtvistaUniprot extends LitElement {
         @row-visibility-toggle="${this._onRowVisibilityToggle}"
         @track-visibility-toggle="${this._onTrackVisibilityToggle}"
         @reset-layout="${this._onResetLayout}"
+        @customize-close="${this._onCloseCustomize}"
       ></protvista-track-manager>
     `;
   }
+
+  /** Close the Customize panel and return focus to its toggle button. */
+  private _onCloseCustomize = () => {
+    this._customizeMode = false;
+    void this.updateComplete.then(() => {
+      this.querySelector<HTMLElement>(
+        `.${CSS_PREFIX}-customize-toggle`
+      )?.focus();
+    });
+  };
 
   private _onTrackOrderChange = (e: CustomEvent<{ order: string[] }>) => {
     this.setTrackOrder(e.detail.order);

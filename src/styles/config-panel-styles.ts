@@ -19,7 +19,7 @@ const p = unsafeCSS(CSS_PREFIX);
 export default css`
   protvista-uniprot .${p}-toolbar {
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
     margin: 0 0 0.5rem;
   }
 

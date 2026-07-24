@@ -240,6 +240,19 @@ export class ProtvistaTrackManager extends LitElement {
       font-size: 0.85em;
     }
 
+    /* Primary "Done" action: filled accent (white text ≈ 8:1 contrast). */
+    .done {
+      background: var(--protvista-color-accent, #0053d6);
+      border-color: var(--protvista-color-accent, #0053d6);
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .done:hover {
+      background: var(--protvista-color-accent, #0053d6);
+      filter: brightness(0.92);
+    }
+
     .visually-hidden {
       position: absolute;
       width: 1px;
@@ -318,12 +331,26 @@ export class ProtvistaTrackManager extends LitElement {
         ? this._focusKey
         : allKeys[0];
 
+    // "Edited" = the overlay deviates from the authored layout; drives the
+    // Reset control's enabled state (Reset is a no-op at the default).
+    const edited =
+      this.layout.order !== null ||
+      Object.keys(this.layout.hidden).length > 0;
+
     return html`
       <section class="panel" aria-label="Customize layout">
         <div class="panel__head">
           <span class="panel__title">Customize layout</span>
-          <button type="button" class="reset" @click=${this._onReset}>
+          <button
+            type="button"
+            class="reset"
+            ?disabled=${!edited}
+            @click=${this._onReset}
+          >
             Reset to default
+          </button>
+          <button type="button" class="done" @click=${this._onDone}>
+            Done
           </button>
           ${hiddenCount > 0
             ? html`<span class="panel__count">· ${hiddenCount} hidden</span>`
@@ -825,6 +852,17 @@ export class ProtvistaTrackManager extends LitElement {
     this._announcement = 'Layout reset to the authored default';
     this.dispatchEvent(
       new CustomEvent('reset-layout', { bubbles: true, composed: true })
+    );
+  };
+
+  /**
+   * Close the Customize panel. Changes are already applied and persisted
+   * live, so this just exits the mode; the host returns focus to the
+   * "Customize layout" toggle.
+   */
+  private _onDone = () => {
+    this.dispatchEvent(
+      new CustomEvent('customize-close', { bubbles: true, composed: true })
     );
   };
 

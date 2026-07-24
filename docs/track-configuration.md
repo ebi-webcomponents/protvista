@@ -38,7 +38,10 @@ A hidden track **stays in place** in the list, dimmed, with just a **"Show"**
 toggle (its move/drag controls return once it is shown), so it is easy to
 find and bring back in context; a **count** in the panel header shows how
 many are hidden. A whole hidden group stays listed too, so it is never lost.
-A **Reset to default** button restores the authored layout.
+
+A **Reset to default** button (enabled only once the layout has been edited)
+restores the authored layout, and a **Done** button closes the panel.
+Changes apply and persist live, so there is no separate save step.
 
 ### Accessibility
 

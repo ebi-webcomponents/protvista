@@ -134,6 +134,34 @@ describe('<protvista-track-manager> — accessibility semantics', () => {
   });
 });
 
+describe('<protvista-track-manager> — panel actions', () => {
+  it('disables Reset until the layout is edited', async () => {
+    const clean = await mountManager({ order: null, hidden: {} });
+    expect(
+      clean.shadowRoot!.querySelector<HTMLButtonElement>('button.reset')!.disabled
+    ).toBe(true);
+
+    const edited = await mountManager({
+      order: null,
+      hidden: { 'DOMAINS-region': true },
+    });
+    expect(
+      edited.shadowRoot!.querySelector<HTMLButtonElement>('button.reset')!
+        .disabled
+    ).toBe(false);
+  });
+
+  it('emits customize-close from the Done button', async () => {
+    const el = await mountManager({ order: null, hidden: {} });
+    const fired = detailOf<unknown>(el, 'customize-close');
+    await userEvent.click(
+      el.shadowRoot!.querySelector<HTMLButtonElement>('button.done')!
+    );
+    await fired;
+    expect(true).toBe(true);
+  });
+});
+
 describe('<protvista-track-manager> — roving-tabindex grid', () => {
   it('keeps one control tabbable and navigates rows + controls with arrows', async () => {
     const el = await mountManager({ order: null, hidden: {} });
@@ -342,6 +370,26 @@ describe('<protvista-uniprot> — Customize mode integration', () => {
     const el = await mountViewer();
     await openPanel(el);
     await expectNoA11yViolations(el);
+  });
+
+  it('the Done button closes the panel and restores focus to the toggle', async () => {
+    const el = await mountViewer();
+    await openPanel(el);
+    const toggle = el.querySelector<HTMLElement>(
+      `.${CSS_PREFIX}-customize-toggle`
+    )!;
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+
+    await userEvent.click(
+      manager(el)!.shadowRoot!.querySelector<HTMLButtonElement>('button.done')!
+    );
+    await vi.waitFor(() => {
+      if (manager(el)) throw new Error('panel still open');
+    });
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    await vi.waitFor(() => {
+      if (document.activeElement !== toggle) throw new Error('focus not restored');
+    });
   });
 
   it('hiding a whole group removes its lane from the canvas', async () => {
