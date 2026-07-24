@@ -674,13 +674,36 @@ export type AdapterName = KnownAdapterName | (string & {});
 // ─────────────────────────────────────────────────────────────
 
 /**
+ * User-driven layout overlay: row order plus per-row/track visibility,
+ * held in the viewer and layered over the config without mutating it (the
+ * config is the initial mount; runtime UI state lives in the component).
+ * Returned by `getLayout()` and carried as the `detail` of every
+ * `protvista-layout-change` event, so an embedder can persist and restore
+ * a customized view.
+ */
+export interface ViewerLayout {
+  /**
+   * Effective row order as a list of row ids. `null` means "authored
+   * order" (no reordering applied).
+   */
+  order: string[] | null;
+  /**
+   * Explicit show/hide choices, keyed by row id (a lane) or the
+   * `${groupId}-${trackId}` composite (a track within a group). A present
+   * value overrides the authored `hidden` default; an absent key falls
+   * back to it. `true` = hidden, `false` = shown.
+   */
+  hidden: Record<string, boolean>;
+}
+
+/**
  * Runtime API for advanced customisation.
  * Accessed via the `<protvista-uniprot>` element's JS API.
  *
  * The declarative config schema covers the 80% common case; this
  * API exists for the remaining 20% — registering custom adapters,
  * semantic kinds, or colour themes; injecting data programmatically;
- * subscribing to viewer events.
+ * driving the layout; subscribing to viewer events.
  */
 export interface ProtvistaRuntimeAPI {
   /**
@@ -732,6 +755,43 @@ export interface ProtvistaRuntimeAPI {
    * @param data    — data conforming to the track's expected Representation.
    */
   setTrackData(groupId: string, trackId: string, data: unknown): void;
+
+  // ── Layout (row order + visibility) ─────────────────────────
+  // User-driven layout state, held in the viewer and layered over the
+  // config without mutating it (the config is the initial mount; runtime
+  // UI state lives in the component). Every mutation dispatches a bubbling
+  // `protvista-layout-change` CustomEvent whose `detail` is the new
+  // `ViewerLayout`, so an embedder can persist and restore it.
+
+  /**
+   * Reorder the top-level rows (lanes) by id. Ids not in the config are
+   * ignored; rows the list omits keep their authored position, appended
+   * after — so a saved order survives config edits.
+   */
+  setRowOrder(order: string[]): void;
+
+  /** Show or hide a whole lane (a group or a standalone track) by row id. */
+  setRowVisibility(rowId: string, visible: boolean): void;
+
+  /**
+   * Show or hide an individual track within a group.
+   *
+   * @param groupId — the group's `id`.
+   * @param trackId — the track's `id`.
+   */
+  setTrackVisibility(groupId: string, trackId: string, visible: boolean): void;
+
+  /**
+   * Restore the authored layout: drop every reorder and show/hide override
+   * so the view returns to the config's initial mount.
+   */
+  resetLayout(): void;
+
+  /**
+   * A copy of the current layout overlay — safe to keep or serialize; the
+   * `protvista-layout-change` event carries the same shape.
+   */
+  getLayout(): ViewerLayout;
 
   /**
    * Replace the entire viewer configuration at runtime. Triggers a

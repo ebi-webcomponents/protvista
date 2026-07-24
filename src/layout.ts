@@ -10,21 +10,14 @@
  * layout exactly, so a user who changes nothing sees no difference.
  */
 import type { NormalizedRow, NormalizedTrack } from './schema/normalize';
+import type { ViewerLayout } from './schema/types';
 
-export interface LayoutState {
-  /**
-   * Effective row order as a list of row ids. `null` means "authored
-   * order" (no reordering applied).
-   */
-  order: string[] | null;
-  /**
-   * Explicit user show/hide choices, keyed by row id (a lane) or the
-   * `${groupId}-${trackId}` composite (a track within a group). A present
-   * value overrides the authored `hidden` default; an absent key falls back
-   * to that default. `true` = hidden, `false` = shown.
-   */
-  hidden: Record<string, boolean>;
-}
+/**
+ * The runtime layout overlay. Structurally the public `ViewerLayout`
+ * contract (`getLayout()` / the `protvista-layout-change` event `detail`);
+ * aliased here so the render/logic code reads in layout terms.
+ */
+export type LayoutState = ViewerLayout;
 
 /** The empty overlay: authored order, no visibility overrides. */
 export function emptyLayout(): LayoutState {

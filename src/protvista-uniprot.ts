@@ -422,6 +422,89 @@ class ProtvistaUniprot extends LitElement {
     this.registry.registerComponent(name, ctor);
   }
 
+  // ── Runtime layout API (ProtvistaRuntimeAPI) ────────────────
+  // Drive the row-order + visibility overlay from consumer code. Each
+  // mutation swaps `_layout` immutably (so Lit re-renders and the
+  // `updated()` gate re-pushes data) and dispatches a bubbling
+  // `protvista-layout-change` event carrying the new overlay, so an
+  // embedder can save/restore it. The authored config is never touched.
+
+  /**
+   * Reorder the top-level rows (lanes) by id. Ids not present in the
+   * config are ignored, and rows the list omits keep their authored
+   * position, appended after the ordered ones (see `orderRows`), so a
+   * saved order survives config edits.
+   */
+  setRowOrder(order: string[]): void {
+    const next = [...order];
+    const cur = this._layout.order;
+    const unchanged =
+      cur !== null &&
+      cur.length === next.length &&
+      cur.every((id, i) => id === next[i]);
+    if (unchanged) return;
+    this._commitLayout({ ...this._layout, order: next });
+  }
+
+  /** Show or hide a whole lane (a group or a standalone track) by row id. */
+  setRowVisibility(rowId: string, visible: boolean): void {
+    this._setHidden(rowId, !visible);
+  }
+
+  /** Show or hide an individual track within a group. */
+  setTrackVisibility(groupId: string, trackId: string, visible: boolean): void {
+    this._setHidden(`${groupId}-${trackId}`, !visible);
+  }
+
+  /**
+   * Restore the authored layout: drop every reorder and show/hide
+   * override so the view returns to the config's initial mount.
+   */
+  resetLayout(): void {
+    const isDefault =
+      this._layout.order === null &&
+      Object.keys(this._layout.hidden).length === 0;
+    if (isDefault) return;
+    this._commitLayout(emptyLayout());
+  }
+
+  /**
+   * A copy of the current layout overlay — safe to keep or serialize; the
+   * `protvista-layout-change` event carries the same shape. `order` is
+   * `null` when no reorder has been applied.
+   */
+  getLayout(): LayoutState {
+    return {
+      order: this._layout.order ? [...this._layout.order] : null,
+      hidden: { ...this._layout.hidden },
+    };
+  }
+
+  /** Set one visibility override, skipping a no-op write. */
+  private _setHidden(key: string, hidden: boolean): void {
+    if (this._layout.hidden[key] === hidden) return;
+    this._commitLayout({
+      ...this._layout,
+      hidden: { ...this._layout.hidden, [key]: hidden },
+    });
+  }
+
+  /**
+   * Single mutation point for `_layout`: swap it immutably (Lit dirty-checks
+   * by identity) and announce the new overlay. Every layout change — API or
+   * UI control — routes through here so the event fires exactly once per
+   * change.
+   */
+  private _commitLayout(next: LayoutState): void {
+    this._layout = next;
+    this.dispatchEvent(
+      new CustomEvent('protvista-layout-change', {
+        detail: this.getLayout(),
+        bubbles: true,
+      })
+    );
+  }
+
   static get properties() {
     return {
       suspend: { type: Boolean, reflect: true },

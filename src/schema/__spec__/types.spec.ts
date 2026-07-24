@@ -288,6 +288,11 @@ describe('Escape-hatch API signatures', () => {
       registerTheme: noop,
       registerComponent: noop,
       setTrackData: noop,
+      setRowOrder: noop,
+      setRowVisibility: noop,
+      setTrackVisibility: noop,
+      resetLayout: noop,
+      getLayout: () => ({ order: null, hidden: {} }),
       setConfig: noop,
       on: noop,
     };
