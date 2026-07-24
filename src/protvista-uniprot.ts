@@ -1788,12 +1788,17 @@ class ProtvistaUniprot extends LitElement {
         .rows="${this.config?.rows ?? []}"
         .layout="${this._layout}"
         accession="${this.accession ?? ''}"
+        @row-order-change="${this._onRowOrderChange}"
         @row-visibility-toggle="${this._onRowVisibilityToggle}"
         @track-visibility-toggle="${this._onTrackVisibilityToggle}"
         @reset-layout="${this._onResetLayout}"
       ></protvista-track-manager>
     `;
   }
+
+  private _onRowOrderChange = (e: CustomEvent<{ order: string[] }>) => {
+    this.setRowOrder(e.detail.order);
+  };
 
   private _onRowVisibilityToggle = (
     e: CustomEvent<{ rowId: string; visible: boolean }>

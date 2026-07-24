@@ -73,6 +73,40 @@ export function orderRows<T extends { id: string }>(
   return result;
 }
 
+/**
+ * Return a copy of `ids` with the positions of `a` and `b` swapped. Used by
+ * the move-up / move-down controls (swap a lane with its visible neighbour).
+ * A no-op copy when either id is absent or `a === b`.
+ */
+export function swapIds(ids: string[], a: string, b: string): string[] {
+  const ia = ids.indexOf(a);
+  const ib = ids.indexOf(b);
+  if (ia === -1 || ib === -1 || ia === ib) return ids.slice();
+  const out = ids.slice();
+  out[ia] = b;
+  out[ib] = a;
+  return out;
+}
+
+/**
+ * Move `movedId` to sit immediately before `targetId`. Used by drag-and-drop
+ * (drop a lane onto another). A no-op copy when either id is absent or they
+ * are equal.
+ */
+export function moveId(
+  ids: string[],
+  movedId: string,
+  targetId: string
+): string[] {
+  if (movedId === targetId) return ids.slice();
+  if (ids.indexOf(movedId) === -1 || ids.indexOf(targetId) === -1) {
+    return ids.slice();
+  }
+  const out = ids.filter((id) => id !== movedId);
+  out.splice(out.indexOf(targetId), 0, movedId);
+  return out;
+}
+
 /** The lanes to render: authored rows, reordered then visibility-filtered. */
 export function effectiveRows(
   rows: NormalizedRow[],

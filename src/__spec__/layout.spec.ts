@@ -18,6 +18,8 @@ import {
   emptyLayout,
   isHidden,
   orderRows,
+  swapIds,
+  moveId,
   effectiveRows,
   visibleTracks,
 } from '../layout';
@@ -94,6 +96,30 @@ describe('orderRows', () => {
       'B',
       'C',
     ]);
+  });
+});
+
+describe('swapIds', () => {
+  it('swaps two ids in place (move up/down)', () => {
+    expect(swapIds(['A', 'B', 'C'], 'A', 'B')).toEqual(['B', 'A', 'C']);
+    expect(swapIds(['A', 'B', 'C'], 'C', 'A')).toEqual(['C', 'B', 'A']);
+  });
+
+  it('is a no-op copy when an id is absent or a === b', () => {
+    expect(swapIds(['A', 'B'], 'A', 'A')).toEqual(['A', 'B']);
+    expect(swapIds(['A', 'B'], 'A', 'Z')).toEqual(['A', 'B']);
+  });
+});
+
+describe('moveId', () => {
+  it('moves an id to sit immediately before the target', () => {
+    expect(moveId(['A', 'B', 'C', 'D'], 'A', 'C')).toEqual(['B', 'A', 'C', 'D']);
+    expect(moveId(['A', 'B', 'C', 'D'], 'D', 'B')).toEqual(['A', 'D', 'B', 'C']);
+  });
+
+  it('is a no-op copy when an id is absent or moved === target', () => {
+    expect(moveId(['A', 'B'], 'A', 'A')).toEqual(['A', 'B']);
+    expect(moveId(['A', 'B'], 'Z', 'B')).toEqual(['A', 'B']);
   });
 });
 

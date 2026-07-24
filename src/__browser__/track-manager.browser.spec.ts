@@ -70,10 +70,18 @@ const toggles = (el: Mgr) =>
     el.shadowRoot!.querySelectorAll<HTMLButtonElement>('button.toggle')
   );
 
-const tabbable = (el: Mgr) =>
+const byKey = (el: Mgr, key: string) =>
   el.shadowRoot!.querySelector<HTMLButtonElement>(
-    'button.toggle[tabindex="0"]'
+    `button[data-key="${key}"]`
+  )!;
+
+const tabbableControls = (el: Mgr) =>
+  el.shadowRoot!.querySelectorAll<HTMLButtonElement>(
+    'button[data-key][tabindex="0"]'
   );
+
+const activeKey = (el: Mgr) =>
+  (el.shadowRoot!.activeElement as HTMLElement | null)?.dataset.key;
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -113,31 +121,91 @@ describe('<protvista-track-manager> — accessibility semantics', () => {
   });
 });
 
-describe('<protvista-track-manager> — roving-tabindex keyboard', () => {
-  it('keeps exactly one toggle tabbable and moves focus with the arrows', async () => {
+describe('<protvista-track-manager> — roving-tabindex grid keyboard', () => {
+  it('keeps one control tabbable and navigates rows and controls with arrows', async () => {
     const el = await mountManager({ order: null, hidden: {} });
-    const all = toggles(el);
-    // Visible: DOMAINS, its two tracks, and the standalone lane = 4 toggles.
-    expect(all.length).toBe(4);
-    expect(
-      el.shadowRoot!.querySelectorAll('button.toggle[tabindex="0"]').length
-    ).toBe(1);
+    // Still four show/hide toggles (DOMAINS, its two tracks, the standalone).
+    expect(toggles(el).length).toBe(4);
+    // Exactly one control is tabbable; it is the first lane's drag handle.
+    expect(tabbableControls(el).length).toBe(1);
+    expect(tabbableControls(el)[0].dataset.key).toBe('H:DOMAINS');
 
-    const first = tabbable(el)!;
-    first.focus();
-    expect(el.shadowRoot!.activeElement).toBe(first);
+    byKey(el, 'H:DOMAINS').focus();
+    expect(activeKey(el)).toBe('H:DOMAINS');
 
+    // Left/Right move within the row: handle → move-down → toggle. (Move-up
+    // is disabled on the first lane, so it is skipped.)
+    await userEvent.keyboard('{ArrowRight}');
+    await el.updateComplete;
+    expect(activeKey(el)).toBe('D:DOMAINS');
+    await userEvent.keyboard('{ArrowRight}');
+    await el.updateComplete;
+    expect(activeKey(el)).toBe('L:DOMAINS');
+
+    // Down moves to the next row (a child track), clamping the column.
     await userEvent.keyboard('{ArrowDown}');
     await el.updateComplete;
-    expect(el.shadowRoot!.activeElement).toBe(toggles(el)[1]);
+    expect(activeKey(el)).toBe('T:DOMAINS:domain');
 
+    // End jumps to the last row's first control; Home back to the top.
     await userEvent.keyboard('{End}');
     await el.updateComplete;
-    expect(el.shadowRoot!.activeElement).toBe(toggles(el)[3]);
-
+    expect(activeKey(el)).toBe('H:sites');
     await userEvent.keyboard('{Home}');
     await el.updateComplete;
-    expect(el.shadowRoot!.activeElement).toBe(toggles(el)[0]);
+    expect(activeKey(el)).toBe('H:DOMAINS');
+  });
+});
+
+describe('<protvista-track-manager> — reorder controls', () => {
+  it('disables move-up on the first lane and move-down on the last', async () => {
+    const el = await mountManager({ order: null, hidden: {} });
+    expect(byKey(el, 'U:DOMAINS').disabled).toBe(true);
+    expect(byKey(el, 'D:sites').disabled).toBe(true);
+    // The interior directions stay enabled.
+    expect(byKey(el, 'D:DOMAINS').disabled).toBe(false);
+    expect(byKey(el, 'U:sites').disabled).toBe(false);
+  });
+
+  it('emits a reordered list and announces when moving a lane down', async () => {
+    const el = await mountManager({ order: null, hidden: {} });
+    const order = new Promise<string[]>((res) =>
+      el.addEventListener(
+        'row-order-change',
+        (e) => res((e as CustomEvent).detail.order),
+        { once: true }
+      )
+    );
+    await userEvent.click(byKey(el, 'D:DOMAINS'));
+    expect(await order).toEqual(['sites', 'DOMAINS']);
+    await el.updateComplete;
+    const live = el.shadowRoot!.querySelector('[aria-live="polite"]')!;
+    expect(live.textContent).toContain('Domains moved to position 2 of 2');
+  });
+
+  it('reorders via drag-and-drop (drop a lane onto another)', async () => {
+    const el = await mountManager({ order: null, hidden: {} });
+    const order = new Promise<string[]>((res) =>
+      el.addEventListener(
+        'row-order-change',
+        (e) => res((e as CustomEvent).detail.order),
+        { once: true }
+      )
+    );
+    const handleSites = byKey(el, 'H:sites');
+    const domainsRow = byKey(el, 'H:DOMAINS').closest('.row')!;
+    const dt = new DataTransfer();
+    handleSites.dispatchEvent(
+      new DragEvent('dragstart', { dataTransfer: dt, bubbles: true })
+    );
+    domainsRow.dispatchEvent(
+      new DragEvent('dragover', { dataTransfer: dt, bubbles: true, cancelable: true })
+    );
+    domainsRow.dispatchEvent(
+      new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true })
+    );
+    // Dropping "sites" onto "DOMAINS" puts sites first.
+    expect(await order).toEqual(['sites', 'DOMAINS']);
   });
 });
 
@@ -254,6 +322,12 @@ async function mountViewer(): Promise<Viewer> {
 const manager = (el: Viewer) =>
   el.querySelector('protvista-track-manager') as ProtvistaTrackManager | null;
 
+/** Order of lane ids as rendered on the canvas (groups + standalone). */
+const canvasLaneOrder = (el: Viewer) =>
+  Array.from(el.querySelectorAll(`.${CSS_PREFIX}-group`)).map((d) =>
+    d.getAttribute('id')?.replace(`${CSS_PREFIX}-group_`, '')
+  );
+
 describe('<protvista-uniprot> — Customize mode integration', () => {
   it('opens the Track Manager panel and is axe-clean', async () => {
     const el = await mountViewer();
@@ -313,5 +387,44 @@ describe('<protvista-uniprot> — Customize mode integration', () => {
       }
     });
     expect(el.getLayout()).toEqual({ order: null, hidden: {} });
+  });
+
+  it('reordering a lane in the panel reorders the canvas and keeps focus', async () => {
+    const el = await mountViewer();
+    await userEvent.click(
+      el.querySelector<HTMLButtonElement>(`.${CSS_PREFIX}-customize-toggle`)!
+    );
+    await vi.waitFor(() => {
+      if (!manager(el)) throw new Error('panel not open');
+    });
+    expect(canvasLaneOrder(el)).toEqual(['DOMAINS', 'sites']);
+
+    // Move the DOMAINS lane down via its keyboard-operable button.
+    const down = manager(el)!.shadowRoot!.querySelector<HTMLButtonElement>(
+      'button[data-key="D:DOMAINS"]'
+    )!;
+    await userEvent.click(down);
+
+    await vi.waitFor(() => {
+      if (el.getLayout().order?.[0] !== 'sites') throw new Error('not reordered');
+    });
+    expect(el.getLayout().order).toEqual(['sites', 'DOMAINS']);
+    // Canvas mirrors the new order.
+    expect(canvasLaneOrder(el)).toEqual(['sites', 'DOMAINS']);
+    // The panel's lane list mirrors it too.
+    const laneKeys = Array.from(
+      manager(el)!.shadowRoot!.querySelectorAll(
+        '.lane-list > li > .row button.toggle'
+      )
+    ).map((b) => (b as HTMLElement).dataset.key);
+    expect(laneKeys).toEqual(['L:sites', 'L:DOMAINS']);
+    // Focus stays with the moved lane — its drag handle, now that it is
+    // last (its move-down button became disabled). WCAG 2.4.7.
+    await vi.waitFor(() => {
+      const active = manager(el)!.shadowRoot!.activeElement as HTMLElement | null;
+      if (active?.dataset.key !== 'H:DOMAINS') {
+        throw new Error(`focus lost (on ${active?.dataset.key ?? 'nothing'})`);
+      }
+    });
   });
 });
