@@ -82,6 +82,10 @@ adjacency, backed by the runtime layout API and per-config persistence. See
   to position N of M"), hide, and show.
 - **Focus:** stays with an item when it is moved or hidden/shown, without
   scrolling the page.
+- **Hidden in place:** a hidden track stays in its row rather than moving to a
+  separate section, dimmed with a muted italic label, an eye-slash icon, and a
+  "Show" action word, so its state never rides on colour or opacity alone and
+  its contrast holds.
 
 ## Known residual gaps (for the manual audit)
 
