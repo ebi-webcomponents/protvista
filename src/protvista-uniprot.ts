@@ -74,9 +74,10 @@ import type {
 import { renderingToAttrs } from './renderer/render-helpers';
 import {
   type LayoutState,
+  type Block,
+  type TrackEntry,
   emptyLayout,
-  effectiveRows,
-  visibleTracks,
+  displayBlocks,
 } from './layout';
 import {
   LAYOUT_PARAM,
@@ -216,6 +217,19 @@ const hasRenderableData = (value: unknown): boolean => {
   if (Array.isArray(value)) return value.length > 0;
   return Object.keys(value as object).length > 0;
 };
+
+/**
+ * Stable keyed-`repeat` key for a display block. Intact groups key on the
+ * group id (so a within-group reorder moves the inner track nodes, not the
+ * whole block); partial groups add their first track key (a group can appear
+ * as several partial blocks); singles key on the track key.
+ */
+function blockKey(block: Block): string {
+  if (block.kind === 'single') return `t:${block.entry.key}`;
+  return block.intact
+    ? `g:${block.group.id}`
+    : `g:${block.group.id}:${block.tracks[0].key}`;
+}
 
 /** Monotonic per-page counter giving each element a unique id nonce. */
 let protvistaInstanceSeq = 0;
@@ -459,12 +473,14 @@ class ProtvistaUniprot extends LitElement {
   // embedder can save/restore it. The authored config is never touched.
 
   /**
-   * Reorder the top-level rows (lanes) by id. Ids not present in the
-   * config are ignored, and rows the list omits keep their authored
-   * position, appended after the ordered ones (see `orderRows`), so a
-   * saved order survives config edits.
+   * Reorder the tracks by their `${groupId}-${trackId}` keys. Grouping is
+   * derived from adjacency: same-group tracks that stay adjacent render
+   * together under the group header; a track moved away from its siblings
+   * renders on its own as "Group / Track". Keys not present in the config are
+   * ignored, and tracks the list omits keep their authored position, appended
+   * after (see `orderRows`), so a saved order survives config edits.
    */
-  setRowOrder(order: string[]): void {
+  setTrackOrder(order: string[]): void {
     const next = [...order];
     const cur = this._layout.order;
     const unchanged =
@@ -1832,22 +1848,218 @@ class ProtvistaUniprot extends LitElement {
     `;
   }
 
-  // ── Runtime layout overlay (row order + visibility) ─────────
-  // Derive the *displayed* rows from the pristine normalized `config.rows`
-  // plus the `_layout` overlay (pure logic in `./layout`). `config` is
-  // never mutated, so "reset to default layout" is just clearing `_layout`.
-  // Only the render loop reads these — data loading and aggregate
-  // computation stay on the full `config.rows` so a hidden row's data is
-  // still fetched and revealing it is instant.
+  // ── Runtime layout overlay (flat per-track order) ───────────
+  // Derive the *displayed* blocks from the pristine normalized `config.rows`
+  // plus the `_layout` overlay (pure logic in `./layout`). `config` is never
+  // mutated, so "reset to default layout" is just clearing `_layout`. Data
+  // loading + aggregate computation stay on the full `config.rows`, so a
+  // hidden track's data is still fetched and revealing it is instant.
 
-  /** The lanes to render: authored rows, reordered then visibility-filtered. */
-  private _effectiveRows(): NormalizedRow[] {
-    return effectiveRows(this.config?.rows ?? [], this._layout);
+  /**
+   * The display blocks to render, in effective order: intact groups keep
+   * their collapsible header + aggregate; split groups render their tracks
+   * individually ("Group / Track" for isolated ones). Grouping is derived
+   * from the flat per-track order (see `./layout`).
+   */
+  private _displayBlocks(): Block[] {
+    return displayBlocks(this.config?.rows ?? [], this._layout);
   }
 
-  /** A group's currently-visible child tracks (hidden ones filtered out). */
-  private _visibleTracks(group: NormalizedRow): NormalizedTrack[] {
-    return visibleTracks(group, this._layout);
+  /** Render one display block onto the canvas. */
+  private _renderBlock(block: Block) {
+    if (block.kind === 'single') {
+      return block.separated
+        ? this._renderSeparatedTrack(block.entry)
+        : this.renderStandaloneTrack(block.entry.group);
+    }
+    return this._renderGroupBlock(block.group, block.tracks, block.intact);
+  }
+
+  /**
+   * A group block. `intact` groups keep the collapsible header + aggregate
+   * summary; `partial` blocks (a split group's contiguous run) show a plain,
+   * non-collapsible label bracket and always render their tracks expanded.
+   */
+  private _renderGroupBlock(
+    group: NormalizedRow,
+    entries: TrackEntry[],
+    intact: boolean
+  ) {
+    const groupHasData = hasRenderableData(this.data[group.id]);
+    const groupHasError = this._visibleGroupErrors.has(group.id);
+    const anyTrackRenderable = entries.some(
+      (e) => hasRenderableData(this.data[e.key]) || this._trackErrors.has(e.key)
+    );
+    if (!anyTrackRenderable && !(intact && (groupHasData || groupHasError))) {
+      return '';
+    }
+
+    // Intact + collapsed with an error but no aggregate: header + badge only
+    // (mirrors the previous group-error row).
+    if (intact && !this.openGroups.includes(group.id) && !groupHasData && groupHasError) {
+      return this.renderGroupErrorRow(group);
+    }
+
+    const groupAttrs = renderingToAttrs(group.rendering);
+    const expanded = intact ? this.openGroups.includes(group.id) : true;
+    const header = intact
+      ? html`
+          <div class="${CSS_PREFIX}-group" id="${CSS_PREFIX}-group_${group.id}">
+            <div
+              class="${CSS_PREFIX}-group-label"
+              data-group-toggle="${group.id}"
+              role="button"
+              tabindex="0"
+              aria-expanded="${this.openGroups.includes(group.id)}"
+              title="${group.description ?? ''}"
+              @click="${this.handleGroupClick}"
+              @keydown="${this.handleGroupKeydown}"
+            >
+              ${unsafeHTML(
+                renderLabel(group.label, this.accession)
+              )}${this._renderGroupBadge(group.id)}
+            </div>
+            <div
+              data-id="${CSS_PREFIX}-group_${group.id}"
+              class="${CSS_PREFIX}-aggregate-track-content ${CSS_PREFIX}-track-content ${group.component ===
+              'nightingale-colored-sequence'
+                ? `${CSS_PREFIX}-track-content__coloured-sequence`
+                : ''}"
+              .style="${this.openGroups.includes(group.id)
+                ? 'opacity:0'
+                : 'opacity:1'}"
+            >
+              ${hasRenderableData(this.data[group.id])
+                ? this.getTrack(
+                    group.component,
+                    'non-overlapping',
+                    groupAttrs.color,
+                    groupAttrs.shape,
+                    group.id,
+                    groupAttrs.scale,
+                    groupAttrs.colorRange
+                  )
+                : ''}
+            </div>
+          </div>
+        `
+      : html`
+          <div class="${CSS_PREFIX}-group__track">
+            <div
+              class="${CSS_PREFIX}-group-label ${CSS_PREFIX}-group-label--partial"
+              title="${group.description ?? ''}"
+            >
+              ${unsafeHTML(renderLabel(group.label, this.accession))}
+            </div>
+          </div>
+        `;
+
+    return html`
+      ${header}
+      ${expanded
+        ? repeat(
+            entries,
+            (e) => e.key,
+            (e) => this._renderExpandedTrack(group, e.track)
+          )
+        : ''}
+    `;
+  }
+
+  /**
+   * A single track row inside a group block (`.group__track`, visible by
+   * default). Kept byte-identical to the pre-flat expanded-track markup so
+   * the default (uncustomized) view is unchanged.
+   */
+  private _renderExpandedTrack(group: NormalizedRow, track: NormalizedTrack) {
+    const key = `${group.id}-${track.id}`;
+    const trackHasData = hasRenderableData(this.data[key]);
+    const trackHasError = this._trackErrors.has(key);
+    // A track with neither data nor a (broken) error renders nothing — this
+    // is also the 4xx "missing" path.
+    if (!trackHasData && !trackHasError) return '';
+    const attrs = renderingToAttrs(track.rendering);
+    return html`
+      <div class="${CSS_PREFIX}-group__track" id="${CSS_PREFIX}-track_${track.id}">
+        <div class="${CSS_PREFIX}-track-label" title="${track.description ?? ''}">
+          ${(track.filterUI === 'nightingale-filter' &&
+            this.getFilterComponent(key)) ||
+          unsafeHTML(renderLabel(track.label, this.accession))}${this._renderTrackBadge(
+            key
+          )}
+        </div>
+        ${trackHasData
+          ? html`<div
+              class="${CSS_PREFIX}-track-content ${group.component ===
+              'nightingale-colored-sequence'
+                ? `${CSS_PREFIX}-track-content__coloured-sequence`
+                : ''}"
+              data-id="${CSS_PREFIX}-track_${track.id}"
+            >
+              ${this.getTrack(
+                track.component,
+                'non-overlapping',
+                attrs.color,
+                attrs.shape,
+                key,
+                attrs.scale,
+                attrs.colorRange
+              )}
+            </div>`
+          : ''}
+      </div>
+    `;
+  }
+
+  /**
+   * A track moved out of its group: rendered on its own as "Group / Track"
+   * (`.group__track`, visible by default, unique id so a group's several
+   * separated tracks never collide).
+   */
+  private _renderSeparatedTrack(entry: TrackEntry) {
+    const { group, track, key } = entry;
+    const trackHasData = hasRenderableData(this.data[key]);
+    const trackHasError = this._trackErrors.has(key);
+    if (!trackHasData && !trackHasError) return '';
+    const attrs = renderingToAttrs(track.rendering);
+    const label = `${this._labelText(group.label)} / ${this._labelText(
+      track.label
+    )}`;
+    return html`
+      <div class="${CSS_PREFIX}-group__track" id="${CSS_PREFIX}-track_${key}">
+        <div class="${CSS_PREFIX}-track-label" title="${label}">
+          ${(track.filterUI === 'nightingale-filter' &&
+            this.getFilterComponent(key)) ||
+          label}${this._renderTrackBadge(key)}
+        </div>
+        ${trackHasData
+          ? html`<div
+              class="${CSS_PREFIX}-track-content ${track.component ===
+              'nightingale-colored-sequence'
+                ? `${CSS_PREFIX}-track-content__coloured-sequence`
+                : ''}"
+              data-id="${CSS_PREFIX}-track_${key}"
+            >
+              ${this.getTrack(
+                track.component,
+                'non-overlapping',
+                attrs.color,
+                attrs.shape,
+                key,
+                attrs.scale,
+                attrs.colorRange
+              )}
+            </div>`
+          : ''}
+      </div>
+    `;
+  }
+
+  /** Plain-text label (Markdoc → text) for the "Group / Track" name. */
+  private _labelText(source: string): string {
+    const html = renderLabel(source, this.accession);
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return (doc.body.textContent || '').trim() || source;
   }
 
   // ── "Customize layout" chrome ───────────────────────────────
@@ -1886,7 +2098,7 @@ class ProtvistaUniprot extends LitElement {
         .rows="${this.config?.rows ?? []}"
         .layout="${this._layout}"
         accession="${this.accession ?? ''}"
-        @row-order-change="${this._onRowOrderChange}"
+        @track-order-change="${this._onTrackOrderChange}"
         @row-visibility-toggle="${this._onRowVisibilityToggle}"
         @track-visibility-toggle="${this._onTrackVisibilityToggle}"
         @reset-layout="${this._onResetLayout}"
@@ -1894,8 +2106,8 @@ class ProtvistaUniprot extends LitElement {
     `;
   }
 
-  private _onRowOrderChange = (e: CustomEvent<{ order: string[] }>) => {
-    this.setRowOrder(e.detail.order);
+  private _onTrackOrderChange = (e: CustomEvent<{ order: string[] }>) => {
+    this.setTrackOrder(e.detail.order);
   };
 
   private _onRowVisibilityToggle = (
@@ -1972,149 +2184,14 @@ class ProtvistaUniprot extends LitElement {
           </div>
         </div>
         ${repeat(
-          // Keyed on row `id` so a reorder *moves* the Nightingale DOM
-          // nodes instead of re-binding canvases positionally (keeping
-          // nightingale-manager alignment intact), and hiding a lane
-          // removes its part rather than shifting the rest. `_effectiveRows`
-          // applies the runtime order + visibility overlay.
-          this._effectiveRows(),
-          (group) => group.id,
-          (group) => {
-          const groupHasData = hasRenderableData(this.data[group.id]);
-          const groupHasError = this._visibleGroupErrors.has(group.id);
-          if (!groupHasData && !groupHasError) return '';
-          // Group has a visible fetch failure but no aggregate to draw (all
-          // or some tracks failed). While it's collapsed, render just the
-          // header + badge so the failure stays visible; handles standalone
-          // (never expandable) and collapsed grouped tracks alike. When
-          // it's expanded, fall through instead so the per-track rows —
-          // each with its own ⚠ badge and Retry — render; those are more
-          // informative than a single group-level badge.
-          if (
-            !groupHasData &&
-            groupHasError &&
-            !this.openGroups.includes(group.id)
-          ) {
-            return this.renderGroupErrorRow(group);
-          }
-          // A standalone track (authored as a top-level entry with no
-          // `tracks:`) is wrapped by the normalizer in a synthetic
-          // single-track group flagged `standalone`. Render it as one
-          // row with a plain (non-clickable) track label and no
-          // collapse affordance. A genuine one-track group keeps its
-          // collapse header — the difference is author-controlled.
-          if (group.standalone) {
-            return this.renderStandaloneTrack(group);
-          }
-          // Flatten the structured rendering block onto the plain-string
-          // attribute shape Nightingale consumes. Track rendering is
-          // already cascaded (defaults → group → kind preset →
-          // track), so we don't need the legacy `track.color ||
-          // group.color` fallback chain any more.
-          const groupAttrs = renderingToAttrs(group.rendering);
-          return html`
-            <div class="${CSS_PREFIX}-group" id="${CSS_PREFIX}-group_${group.id}">
-              <div
-                class="${CSS_PREFIX}-group-label"
-                data-group-toggle="${group.id}"
-                role="button"
-                tabindex="0"
-                aria-expanded="${this.openGroups.includes(group.id)}"
-                title="${group.description ?? ''}"
-                @click="${this.handleGroupClick}"
-                @keydown="${this.handleGroupKeydown}"
-              >
-                ${unsafeHTML(
-                  renderLabel(group.label, this.accession)
-                )}${this._renderGroupBadge(group.id)}
-              </div>
-              <div
-                data-id="${CSS_PREFIX}-group_${group.id}"
-                class="${CSS_PREFIX}-aggregate-track-content ${CSS_PREFIX}-track-content ${group.component ===
-                'nightingale-colored-sequence'
-                  ? `${CSS_PREFIX}-track-content__coloured-sequence`
-                  : ''}"
-                .style="${this.openGroups.includes(group.id)
-                  ? 'opacity:0'
-                  : 'opacity:1'}"
-              >
-                ${hasRenderableData(this.data[group.id])
-                  ? this.getTrack(
-                      group.component,
-                      'non-overlapping',
-                      groupAttrs.color,
-                      groupAttrs.shape,
-                      group.id,
-                      groupAttrs.scale,
-                      groupAttrs.colorRange
-                    )
-                  : ''}
-              </div>
-            </div>
-
-            <!-- Expanded Groups -->
-            ${this.openGroups.includes(group.id)
-              ? repeat(
-                  // Only the currently-visible child tracks, keyed on track
-                  // `id`. A hidden track drops out of the expanded view but
-                  // its data still loads (revealing it is instant) and the
-                  // group aggregate is unaffected.
-                  this._visibleTracks(group),
-                  (track) => track.id,
-                  (track) => {
-                    const trackKey = `${group.id}-${track.id}`;
-                    const trackData = this.data[trackKey];
-                    const trackHasData = hasRenderableData(trackData);
-                    const trackHasError = this._trackErrors.has(trackKey);
-                    // A track with neither data nor a (broken) error renders
-                    // nothing — this is also the 4xx "missing" path.
-                    if (!trackHasData && !trackHasError) {
-                      return '';
-                    }
-                    const attrs = renderingToAttrs(track.rendering);
-                    return html`
-                      <div
-                        class="${CSS_PREFIX}-group__track"
-                        id="${CSS_PREFIX}-track_${track.id}"
-                      >
-                        <div
-                          class="${CSS_PREFIX}-track-label"
-                          title="${track.description ?? ''}"
-                        >
-                          ${(track.filterUI === 'nightingale-filter' &&
-                            this.getFilterComponent(
-                              `${group.id}-${track.id}`
-                            )) ||
-                          unsafeHTML(
-                            renderLabel(track.label, this.accession)
-                          )}${this._renderTrackBadge(trackKey)}
-                        </div>
-                        ${trackHasData
-                          ? html`<div
-                              class="${CSS_PREFIX}-track-content ${group.component ===
-                              'nightingale-colored-sequence'
-                                ? `${CSS_PREFIX}-track-content__coloured-sequence`
-                                : ''}"
-                              data-id="${CSS_PREFIX}-track_${track.id}"
-                            >
-                              ${this.getTrack(
-                                track.component,
-                                'non-overlapping',
-                                attrs.color,
-                                attrs.shape,
-                                `${group.id}-${track.id}`,
-                                attrs.scale,
-                                attrs.colorRange
-                              )}
-                            </div>`
-                          : ''}
-                      </div>
-                    `;
-                  }
-                )
-              : ''}
-          `;
-          }
+          // Keyed on a stable per-block id so a reorder *moves* the
+          // Nightingale DOM nodes instead of re-binding canvases positionally
+          // (keeping nightingale-manager alignment intact). `_displayBlocks`
+          // applies the flat per-track order + visibility overlay and derives
+          // the group brackets.
+          this._displayBlocks(),
+          (block) => blockKey(block),
+          (block) => this._renderBlock(block)
         )}
         <div class="${CSS_PREFIX}-nav-container">
           <div class="${CSS_PREFIX}-credits"></div>

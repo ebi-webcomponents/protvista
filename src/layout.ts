@@ -107,22 +107,138 @@ export function moveId(
   return out;
 }
 
-/** The lanes to render: authored rows, reordered then visibility-filtered. */
-export function effectiveRows(
-  rows: NormalizedRow[],
-  layout: LayoutState
-): NormalizedRow[] {
-  return orderRows(rows, layout.order).filter(
-    (row) => !isHidden(layout, row.id, row.hidden)
-  );
+/**
+ * Move the contiguous set `blockKeys` (kept in their given order) to sit
+ * immediately before `beforeKey`, or at the end when `beforeKey` is `null` or
+ * absent. Used to move a whole group block past its neighbour while leaving
+ * the other keys (including hidden tracks) in place.
+ */
+export function moveBlock(
+  allKeys: string[],
+  blockKeys: string[],
+  beforeKey: string | null
+): string[] {
+  const moving = new Set(blockKeys);
+  const rest = allKeys.filter((k) => !moving.has(k));
+  const idx = beforeKey === null ? -1 : rest.indexOf(beforeKey);
+  const at = idx === -1 ? rest.length : idx;
+  return [...rest.slice(0, at), ...blockKeys, ...rest.slice(at)];
 }
 
-/** A group's currently-visible child tracks (hidden ones filtered out). */
-export function visibleTracks(
-  group: NormalizedRow,
+// ─────────────────────────────────────────────────────────────
+// Flat per-track model
+// ─────────────────────────────────────────────────────────────
+//
+// Order is a flat list of track keys (`${groupId}-${trackId}`); grouping is
+// derived from adjacency, not stored. Same-group tracks that stay adjacent
+// render together under the group header; a track moved away from its
+// siblings renders on its own as "Group / Track".
+
+/** The global key for a track: `${groupId}-${trackId}`. */
+export function trackKey(groupId: string, trackId: string): string {
+  return `${groupId}-${trackId}`;
+}
+
+export interface TrackEntry {
+  group: NormalizedRow;
+  track: NormalizedTrack;
+  /** Global `${groupId}-${trackId}` key (data-push, hidden, and order key). */
+  key: string;
+}
+
+/** Every track in authored order, flattened out of the rows. */
+export function flattenTracks(rows: NormalizedRow[]): TrackEntry[] {
+  const out: TrackEntry[] = [];
+  for (const group of rows) {
+    for (const track of group.tracks) {
+      out.push({ group, track, key: trackKey(group.id, track.id) });
+    }
+  }
+  return out;
+}
+
+/** The full flat order of every track key (visible + hidden), overlay applied. */
+export function orderedTrackKeys(
+  rows: NormalizedRow[],
   layout: LayoutState
-): NormalizedTrack[] {
-  return group.tracks.filter(
-    (track) => !isHidden(layout, `${group.id}-${track.id}`, track.hidden)
-  );
+): string[] {
+  return orderRows(
+    flattenTracks(rows).map((e) => ({ id: e.key })),
+    layout.order
+  ).map((x) => x.id);
+}
+
+/**
+ * The tracks to display, in effective order, with hidden ones removed. A
+ * track is hidden when it (or its whole group) is hidden — so an explicit
+ * group hide, or hiding every track of a group, empties the group entirely.
+ */
+export function effectiveTracks(
+  rows: NormalizedRow[],
+  layout: LayoutState
+): TrackEntry[] {
+  const byKey = new Map(flattenTracks(rows).map((e) => [e.key, e]));
+  return orderedTrackKeys(rows, layout)
+    .map((key) => byKey.get(key))
+    .filter((e): e is TrackEntry => e !== undefined)
+    .filter(
+      (e) =>
+        // A whole-group hide suppresses every track. A standalone row *is*
+        // its track, so it is controlled by the row id alone (its separate
+        // per-track key is not consulted, avoiding a two-key tangle).
+        !isHidden(layout, e.group.id, e.group.hidden) &&
+        (e.group.standalone || !isHidden(layout, e.key, e.track.hidden))
+    );
+}
+
+/**
+ * One displayed unit on the canvas / in the panel.
+ *
+ * - `group` intact: all of a real group's visible tracks are contiguous →
+ *   render the collapsible header + aggregate + tracks.
+ * - `group` partial (`intact:false`): a run of ≥2 tracks of a split group →
+ *   a label-only bracket header + the tracks, always expanded, no aggregate.
+ * - `single`: one track — a standalone (`separated:false`, its own label) or a
+ *   track isolated from a multi-track group (`separated:true`, "Group / Track").
+ */
+export type Block =
+  | { kind: 'group'; group: NormalizedRow; tracks: TrackEntry[]; intact: boolean }
+  | { kind: 'single'; entry: TrackEntry; separated: boolean };
+
+/** Group the effective tracks into display blocks (see `Block`). */
+export function displayBlocks(
+  rows: NormalizedRow[],
+  layout: LayoutState
+): Block[] {
+  const entries = effectiveTracks(rows, layout);
+  const visibleCount = new Map<string, number>();
+  for (const e of entries) {
+    visibleCount.set(e.group.id, (visibleCount.get(e.group.id) ?? 0) + 1);
+  }
+
+  const blocks: Block[] = [];
+  let i = 0;
+  while (i < entries.length) {
+    const groupId = entries[i].group.id;
+    let j = i + 1;
+    while (j < entries.length && entries[j].group.id === groupId) j++;
+    const run = entries.slice(i, j);
+    const group = run[0].group;
+    const n = visibleCount.get(groupId) ?? run.length;
+
+    if (run.length === n) {
+      // All the group's visible tracks are contiguous → intact.
+      if (group.standalone) {
+        blocks.push({ kind: 'single', entry: run[0], separated: false });
+      } else {
+        blocks.push({ kind: 'group', group, tracks: run, intact: true });
+      }
+    } else if (run.length >= 2) {
+      blocks.push({ kind: 'group', group, tracks: run, intact: false });
+    } else {
+      blocks.push({ kind: 'single', entry: run[0], separated: true });
+    }
+    i = j;
+  }
+  return blocks;
 }

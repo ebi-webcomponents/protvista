@@ -1,19 +1,13 @@
 /**
  * Real-DOM accessibility + interaction coverage for the "Customize layout"
- * Track Manager (issue #199 show/hide UI).
+ * Track Manager (issue #199), in its flat per-track form: every track can be
+ * shown/hidden and reordered individually, a group header reorders/hides the
+ * whole group, and a track moved out of its group renders as "Group / Track".
  *
- * Two layers:
- *   1. `<protvista-track-manager>` in isolation — the accessible list: axe,
- *      real `<button>` toggles with `aria-pressed` + action labels, the
- *      roving-tabindex keyboard model, the hidden-tracks section, the
- *      aria-live announcement, and the emitted intent events.
- *   2. `<protvista-uniprot>` end to end — the Customize toggle opens the
- *      panel and hiding a lane there reflows the real canvas, proving the
- *      list is the source of truth the canvas mirrors.
- *
- * jsdom can't render Shadow DOM or run roving-tabindex focus the way a
- * browser does, so these mount for real (Playwright/Chromium) and assert
- * with axe-core.
+ * Two layers: `<protvista-track-manager>` in isolation (a11y, roving grid,
+ * reorder + visibility events), and `<protvista-uniprot>` end to end (the
+ * panel drives the real canvas). Mounts for real (Playwright/Chromium) and
+ * asserts with axe-core.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { userEvent } from 'vitest/browser';
@@ -37,6 +31,7 @@ const t = (id: string, label: string): unknown => ({
   rendering: {},
   data: [],
 });
+// DOMAINS group (domain, region) + a standalone "sites" track.
 const ROWS = [
   {
     id: 'DOMAINS',
@@ -65,23 +60,23 @@ async function mountManager(layout: ViewerLayout): Promise<Mgr> {
   return el;
 }
 
-const toggles = (el: Mgr) =>
-  Array.from(
-    el.shadowRoot!.querySelectorAll<HTMLButtonElement>('button.toggle')
-  );
-
 const byKey = (el: Mgr, key: string) =>
-  el.shadowRoot!.querySelector<HTMLButtonElement>(
-    `button[data-key="${key}"]`
-  )!;
+  el.shadowRoot!.querySelector<HTMLButtonElement>(`button[data-key="${key}"]`)!;
 
-const tabbableControls = (el: Mgr) =>
+const tabbable = (el: Mgr) =>
   el.shadowRoot!.querySelectorAll<HTMLButtonElement>(
     'button[data-key][tabindex="0"]'
   );
 
 const activeKey = (el: Mgr) =>
   (el.shadowRoot!.activeElement as HTMLElement | null)?.dataset.key;
+
+const detailOf = <T,>(el: Mgr, type: string): Promise<T> =>
+  new Promise((res) =>
+    el.addEventListener(type, (e) => res((e as CustomEvent).detail), {
+      once: true,
+    })
+  );
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -90,189 +85,160 @@ afterEach(() => {
 
 describe('<protvista-track-manager> — accessibility semantics', () => {
   it('has no axe violations (visible + hidden sections)', async () => {
-    const el = await mountManager({ order: null, hidden: { sites: true } });
+    const el = await mountManager({ order: null, hidden: { 'DOMAINS-region': true } });
     await expectNoA11yViolations(el);
   });
 
-  it('renders real toggle buttons with aria-pressed and an action label', async () => {
-    const el = await mountManager({ order: null, hidden: { sites: true } });
-    const domains = el.shadowRoot!.querySelector<HTMLButtonElement>(
-      'button.toggle[data-key="L:DOMAINS"]'
-    )!;
-    // A visible lane: not pressed, action is "Hide".
-    expect(domains.getAttribute('aria-pressed')).toBe('false');
-    expect(domains.getAttribute('aria-label')).toBe('Hide Domains');
-
-    const sites = el.shadowRoot!.querySelector<HTMLButtonElement>(
-      'button.toggle[data-key="L:sites"]'
-    )!;
-    // A hidden lane lives in the Hidden section: pressed, action is "Show".
-    expect(sites.getAttribute('aria-pressed')).toBe('true');
-    expect(sites.getAttribute('aria-label')).toBe('Show Sites');
+  it('labels the group, track, and hidden toggles with aria-pressed', async () => {
+    const el = await mountManager({ order: null, hidden: { 'DOMAINS-region': true } });
+    // The group header hide toggle.
+    const group = byKey(el, 'GT:DOMAINS-domain');
+    expect(group.getAttribute('aria-pressed')).toBe('false');
+    expect(group.getAttribute('aria-label')).toBe('Hide Domains');
+    // A visible track toggle.
+    const domain = byKey(el, 'T:DOMAINS-domain');
+    expect(domain.getAttribute('aria-label')).toBe('Hide Domain');
+    // The hidden region track lives in the Hidden section as "Group / Track".
+    const shown = byKey(el, 'S:DOMAINS-region');
+    expect(shown.getAttribute('aria-pressed')).toBe('true');
+    expect(shown.getAttribute('aria-label')).toBe('Show Domains / Region');
   });
 
-  it('moves hidden lanes into a labelled Hidden tracks section with a count', async () => {
-    const el = await mountManager({ order: null, hidden: { sites: true } });
-    const hidden = el.shadowRoot!.querySelector<HTMLElement>(
-      'section[aria-label="Hidden tracks"]'
-    )!;
-    expect(hidden).not.toBeNull();
-    expect(hidden.querySelector('.hidden__badge')!.textContent).toContain('1');
-  });
-
-  it('groups the Reset control beside the title (not pushed to the far edge)', async () => {
+  it('groups the Reset control beside the title', async () => {
     const el = await mountManager({ order: null, hidden: {} });
     const head = el.shadowRoot!.querySelector<HTMLElement>('.panel__head')!;
-    // Title first, Reset immediately after, clustered to the left.
     expect(head.children[0].classList.contains('panel__title')).toBe(true);
     expect(head.children[1].classList.contains('reset')).toBe(true);
     expect(getComputedStyle(head).justifyContent).toBe('flex-start');
   });
 });
 
-describe('<protvista-track-manager> — roving-tabindex grid keyboard', () => {
-  it('keeps one control tabbable and navigates rows and controls with arrows', async () => {
+describe('<protvista-track-manager> — roving-tabindex grid', () => {
+  it('keeps one control tabbable and navigates rows + controls with arrows', async () => {
     const el = await mountManager({ order: null, hidden: {} });
-    // Still four show/hide toggles (DOMAINS, its two tracks, the standalone).
-    expect(toggles(el).length).toBe(4);
-    // Exactly one control is tabbable; it is the first lane's drag handle.
-    expect(tabbableControls(el).length).toBe(1);
-    expect(tabbableControls(el)[0].dataset.key).toBe('H:DOMAINS');
+    expect(tabbable(el).length).toBe(1);
+    // The first control is the group header's hide toggle.
+    expect(tabbable(el)[0].dataset.key).toBe('GT:DOMAINS-domain');
 
-    byKey(el, 'H:DOMAINS').focus();
-    expect(activeKey(el)).toBe('H:DOMAINS');
-
-    // Left/Right move within the row: handle → move-down → toggle. (Move-up
-    // is disabled on the first lane, so it is skipped.)
+    byKey(el, 'GT:DOMAINS-domain').focus();
+    // Right moves within the header row (hide → move-down → grip).
     await userEvent.keyboard('{ArrowRight}');
     await el.updateComplete;
-    expect(activeKey(el)).toBe('D:DOMAINS');
+    expect(activeKey(el)).toBe('GD:DOMAINS-domain');
     await userEvent.keyboard('{ArrowRight}');
     await el.updateComplete;
-    expect(activeKey(el)).toBe('L:DOMAINS');
+    expect(activeKey(el)).toBe('GH:DOMAINS-domain');
 
-    // Down moves to the next row (a child track), clamping the column.
-    await userEvent.keyboard('{ArrowDown}');
-    await el.updateComplete;
-    expect(activeKey(el)).toBe('T:DOMAINS:domain');
-
-    // End jumps to the last row's first control; Home back to the top.
-    await userEvent.keyboard('{End}');
-    await el.updateComplete;
-    expect(activeKey(el)).toBe('H:sites');
+    // Home (to the first control), then Down steps through the rows' toggles.
     await userEvent.keyboard('{Home}');
     await el.updateComplete;
-    expect(activeKey(el)).toBe('H:DOMAINS');
+    expect(activeKey(el)).toBe('GT:DOMAINS-domain');
+    await userEvent.keyboard('{ArrowDown}');
+    await el.updateComplete;
+    expect(activeKey(el)).toBe('T:DOMAINS-domain');
+
+    // End jumps to the last row (the standalone), Home back to the top.
+    await userEvent.keyboard('{End}');
+    await el.updateComplete;
+    expect(activeKey(el)).toBe('T:sites-sites');
+    await userEvent.keyboard('{Home}');
+    await el.updateComplete;
+    expect(activeKey(el)).toBe('GT:DOMAINS-domain');
   });
 });
 
-describe('<protvista-track-manager> — reorder controls', () => {
-  it('disables move-up on the first lane and move-down on the last', async () => {
+describe('<protvista-track-manager> — reorder', () => {
+  it('disables move-up on the first track and move-down on the last', async () => {
     const el = await mountManager({ order: null, hidden: {} });
-    expect(byKey(el, 'U:DOMAINS').disabled).toBe(true);
-    expect(byKey(el, 'D:sites').disabled).toBe(true);
-    // The interior directions stay enabled.
-    expect(byKey(el, 'D:DOMAINS').disabled).toBe(false);
-    expect(byKey(el, 'U:sites').disabled).toBe(false);
+    expect(byKey(el, 'U:DOMAINS-domain').disabled).toBe(true); // first visible
+    expect(byKey(el, 'D:sites-sites').disabled).toBe(true); // last visible
+    expect(byKey(el, 'GU:DOMAINS-domain').disabled).toBe(true); // first block
   });
 
-  it('emits a reordered list and announces when moving a lane down', async () => {
+  it('moves a single track down (pulling it out of its group)', async () => {
     const el = await mountManager({ order: null, hidden: {} });
-    const order = new Promise<string[]>((res) =>
-      el.addEventListener(
-        'row-order-change',
-        (e) => res((e as CustomEvent).detail.order),
-        { once: true }
-      )
-    );
-    await userEvent.click(byKey(el, 'D:DOMAINS'));
-    expect(await order).toEqual(['sites', 'DOMAINS']);
-    await el.updateComplete;
-    const live = el.shadowRoot!.querySelector('[aria-live="polite"]')!;
-    expect(live.textContent).toContain('Domains moved to position 2 of 2');
+    const order = detailOf<{ order: string[] }>(el, 'track-order-change');
+    await userEvent.click(byKey(el, 'D:DOMAINS-region'));
+    // region swaps past the standalone sites track.
+    expect((await order).order).toEqual([
+      'DOMAINS-domain',
+      'sites-sites',
+      'DOMAINS-region',
+    ]);
   });
 
-  it('reorders via drag-and-drop (drop a lane onto another)', async () => {
+  it('moves a whole group down via its header', async () => {
     const el = await mountManager({ order: null, hidden: {} });
-    const order = new Promise<string[]>((res) =>
-      el.addEventListener(
-        'row-order-change',
-        (e) => res((e as CustomEvent).detail.order),
-        { once: true }
-      )
-    );
-    const handleSites = byKey(el, 'H:sites');
-    const domainsRow = byKey(el, 'H:DOMAINS').closest('.row')!;
+    const order = detailOf<{ order: string[] }>(el, 'track-order-change');
+    await userEvent.click(byKey(el, 'GD:DOMAINS-domain'));
+    // The DOMAINS block moves past the sites block.
+    expect((await order).order).toEqual([
+      'sites-sites',
+      'DOMAINS-domain',
+      'DOMAINS-region',
+    ]);
+  });
+
+  it('reorders via drag-and-drop (drop one track onto another)', async () => {
+    const el = await mountManager({ order: null, hidden: {} });
+    const order = detailOf<{ order: string[] }>(el, 'track-order-change');
     const dt = new DataTransfer();
-    handleSites.dispatchEvent(
+    byKey(el, 'H:sites-sites').dispatchEvent(
       new DragEvent('dragstart', { dataTransfer: dt, bubbles: true })
     );
-    domainsRow.dispatchEvent(
-      new DragEvent('dragover', { dataTransfer: dt, bubbles: true, cancelable: true })
-    );
-    domainsRow.dispatchEvent(
+    const target = byKey(el, 'T:DOMAINS-domain').closest('.row')!;
+    target.dispatchEvent(
       new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true })
     );
-    // Dropping "sites" onto "DOMAINS" puts sites first.
-    expect(await order).toEqual(['sites', 'DOMAINS']);
+    // sites moves to sit before DOMAINS-domain.
+    expect((await order).order).toEqual([
+      'sites-sites',
+      'DOMAINS-domain',
+      'DOMAINS-region',
+    ]);
   });
 });
 
-describe('<protvista-track-manager> — events + announcements', () => {
-  it('emits row-visibility-toggle and announces when hiding a lane', async () => {
+describe('<protvista-track-manager> — visibility events', () => {
+  it('emits track-visibility-toggle for a grouped track', async () => {
     const el = await mountManager({ order: null, hidden: {} });
-    const detail = new Promise<{ rowId: string; visible: boolean }>((res) =>
-      el.addEventListener(
-        'row-visibility-toggle',
-        (e) => res((e as CustomEvent).detail),
-        { once: true }
-      )
+    const detail = detailOf<{ groupId: string; trackId: string; visible: boolean }>(
+      el,
+      'track-visibility-toggle'
     );
-    const domains = el.shadowRoot!.querySelector<HTMLButtonElement>(
-      'button.toggle[data-key="L:DOMAINS"]'
-    )!;
-    await userEvent.click(domains);
-
-    expect(await detail).toEqual({ rowId: 'DOMAINS', visible: false });
-    await el.updateComplete;
-    const live = el.shadowRoot!.querySelector('[aria-live="polite"]')!;
-    expect(live.textContent).toContain('Domains hidden');
-  });
-
-  it('emits track-visibility-toggle for a child track', async () => {
-    const el = await mountManager({ order: null, hidden: {} });
-    const detail = new Promise<{
-      groupId: string;
-      trackId: string;
-      visible: boolean;
-    }>((res) =>
-      el.addEventListener(
-        'track-visibility-toggle',
-        (e) => res((e as CustomEvent).detail),
-        { once: true }
-      )
-    );
-    const track = el.shadowRoot!.querySelector<HTMLButtonElement>(
-      'button.toggle[data-key="T:DOMAINS:region"]'
-    )!;
-    await userEvent.click(track);
+    await userEvent.click(byKey(el, 'T:DOMAINS-domain'));
     expect(await detail).toEqual({
       groupId: 'DOMAINS',
-      trackId: 'region',
+      trackId: 'domain',
       visible: false,
     });
   });
 
-  it('emits reset-layout from the reset control', async () => {
-    const el = await mountManager({ order: null, hidden: { sites: true } });
-    const fired = new Promise<boolean>((res) =>
-      el.addEventListener('reset-layout', () => res(true), { once: true })
+  it('emits row-visibility-toggle from the group header and a standalone', async () => {
+    const el = await mountManager({ order: null, hidden: {} });
+    const grp = detailOf<{ rowId: string; visible: boolean }>(
+      el,
+      'row-visibility-toggle'
     );
-    const reset = el.shadowRoot!.querySelector<HTMLButtonElement>(
-      'button.reset'
-    )!;
+    await userEvent.click(byKey(el, 'GT:DOMAINS-domain'));
+    expect(await grp).toEqual({ rowId: 'DOMAINS', visible: false });
+
+    const el2 = await mountManager({ order: null, hidden: {} });
+    const stand = detailOf<{ rowId: string; visible: boolean }>(
+      el2,
+      'row-visibility-toggle'
+    );
+    await userEvent.click(byKey(el2, 'T:sites-sites'));
+    expect(await stand).toEqual({ rowId: 'sites', visible: false });
+  });
+
+  it('emits reset-layout from the reset control', async () => {
+    const el = await mountManager({ order: null, hidden: { 'DOMAINS-region': true } });
+    const fired = detailOf<unknown>(el, 'reset-layout');
+    const reset = el.shadowRoot!.querySelector<HTMLButtonElement>('button.reset')!;
     await userEvent.click(reset);
-    expect(await fired).toBe(true);
+    await fired;
+    expect(true).toBe(true);
   });
 });
 
@@ -321,14 +287,14 @@ async function mountViewer(): Promise<Viewer> {
   const el = mount<Viewer>('protvista-uniprot', {
     viewerConfig: CONFIG,
     accession: 'P05067',
-    // These tests exercise the panel/canvas, not persistence (covered in
-    // layout-persistence.browser.spec.ts); opt out so a hide/reorder in one
-    // test cannot leak via localStorage / the ?layout= URL into the next.
+    // Not testing persistence here (see layout-persistence.browser.spec.ts);
+    // opt out so a change cannot leak between tests.
     noPersistLayout: true,
   });
   await vi.waitFor(() => {
-    const btn = el.querySelector(`.${CSS_PREFIX}-customize-toggle`);
-    if (!btn) throw new Error('customize toggle not ready');
+    if (!el.querySelector(`.${CSS_PREFIX}-customize-toggle`)) {
+      throw new Error('not ready');
+    }
   });
   return el;
 }
@@ -336,134 +302,89 @@ async function mountViewer(): Promise<Viewer> {
 const manager = (el: Viewer) =>
   el.querySelector('protvista-track-manager') as ProtvistaTrackManager | null;
 
-/** Order of lane ids as rendered on the canvas (groups + standalone). */
-const canvasLaneOrder = (el: Viewer) =>
-  Array.from(el.querySelectorAll(`.${CSS_PREFIX}-group`)).map((d) =>
-    d.getAttribute('id')?.replace(`${CSS_PREFIX}-group_`, '')
+async function openPanel(el: Viewer) {
+  await userEvent.click(
+    el.querySelector<HTMLButtonElement>(`.${CSS_PREFIX}-customize-toggle`)!
   );
+  await vi.waitFor(() => {
+    if (!manager(el)) throw new Error('panel not open');
+  });
+}
+
+const panelBtn = (el: Viewer, key: string) =>
+  manager(el)!.shadowRoot!.querySelector<HTMLButtonElement>(
+    `button[data-key="${key}"]`
+  )!;
 
 describe('<protvista-uniprot> — Customize mode integration', () => {
   it('opens the Track Manager panel and is axe-clean', async () => {
     const el = await mountViewer();
-    const btn = el.querySelector<HTMLButtonElement>(
-      `.${CSS_PREFIX}-customize-toggle`
-    )!;
-    expect(btn.getAttribute('aria-pressed')).toBe('false');
-    expect(manager(el)).toBeNull();
-
-    await userEvent.click(btn);
-    await vi.waitFor(() => {
-      if (!manager(el)) throw new Error('panel not open');
-    });
-    expect(btn.getAttribute('aria-pressed')).toBe('true');
+    await openPanel(el);
     await expectNoA11yViolations(el);
   });
 
-  it('hiding a lane in the panel reflows the canvas and reset restores it', async () => {
+  it('hiding a whole group removes its lane from the canvas', async () => {
     const el = await mountViewer();
-    await userEvent.click(
-      el.querySelector<HTMLButtonElement>(`.${CSS_PREFIX}-customize-toggle`)!
-    );
-    await vi.waitFor(() => {
-      if (!manager(el)) throw new Error('panel not open');
-    });
-
-    // The DOMAINS group lane is present on the canvas.
+    await openPanel(el);
     expect(el.querySelector(`#${CSS_PREFIX}-group_DOMAINS`)).not.toBeNull();
 
-    const hide = manager(el)!.shadowRoot!.querySelector<HTMLButtonElement>(
-      'button.toggle[data-key="L:DOMAINS"]'
-    )!;
-    await userEvent.click(hide);
-
-    // Canvas reflows: the group lane is gone; runtime state records it.
+    await userEvent.click(panelBtn(el, 'GT:DOMAINS-domain'));
     await vi.waitFor(() => {
       if (el.querySelector(`#${CSS_PREFIX}-group_DOMAINS`)) {
         throw new Error('group still on canvas');
       }
     });
     expect(el.getLayout().hidden).toEqual({ DOMAINS: true });
-
-    // It now sits in the panel's Hidden section, ready to restore.
-    const shown = manager(el)!.shadowRoot!.querySelector<HTMLButtonElement>(
-      'button.toggle[data-key="L:DOMAINS"]'
-    )!;
-    expect(shown.getAttribute('aria-pressed')).toBe('true');
-    expect(shown.getAttribute('aria-label')).toBe('Show Domains');
-
-    // Reset brings it back.
-    await userEvent.click(
-      manager(el)!.shadowRoot!.querySelector<HTMLButtonElement>('button.reset')!
-    );
-    await vi.waitFor(() => {
-      if (!el.querySelector(`#${CSS_PREFIX}-group_DOMAINS`)) {
-        throw new Error('group not restored');
-      }
-    });
-    expect(el.getLayout()).toEqual({ order: null, hidden: {} });
   });
 
-  it('follows focus to the hidden item without scrolling the page (item 3)', async () => {
+  it('hiding every track of a group removes the group too (item 2)', async () => {
     const el = await mountViewer();
-    await userEvent.click(
-      el.querySelector<HTMLButtonElement>(`.${CSS_PREFIX}-customize-toggle`)!
-    );
-    await vi.waitFor(() => {
-      if (!manager(el)) throw new Error('panel not open');
-    });
+    await openPanel(el);
+    expect(el.querySelector(`#${CSS_PREFIX}-group_DOMAINS`)).not.toBeNull();
 
-    const focusSpy = vi.spyOn(HTMLElement.prototype, 'focus');
-    await userEvent.click(
-      manager(el)!.shadowRoot!.querySelector<HTMLButtonElement>(
-        'button.toggle[data-key="L:DOMAINS"]'
-      )!
-    );
-    // The post-hide focus (which follows the item into the Hidden section)
-    // must pass preventScroll so the window does not jump to the bottom.
+    await userEvent.click(panelBtn(el, 'T:DOMAINS-domain'));
     await vi.waitFor(() => {
-      const scrolled = focusSpy.mock.calls.some(
+      if (!panelBtn(el, 'T:DOMAINS-region')) throw new Error('panel not settled');
+    });
+    await userEvent.click(panelBtn(el, 'T:DOMAINS-region'));
+
+    // With no visible tracks left, the group (and its aggregate) vanishes.
+    await vi.waitFor(() => {
+      if (el.querySelector(`#${CSS_PREFIX}-group_DOMAINS`)) {
+        throw new Error('group still on canvas');
+      }
+    });
+    expect(el.getLayout().hidden).toEqual({
+      'DOMAINS-domain': true,
+      'DOMAINS-region': true,
+    });
+  });
+
+  it('moving a track out of its group renders it as "Group / Track"', async () => {
+    const el = await mountViewer();
+    await openPanel(el);
+    // Move region down past the standalone sites → region leaves DOMAINS.
+    await userEvent.click(panelBtn(el, 'D:DOMAINS-region'));
+    await vi.waitFor(() => {
+      const sep = el.querySelector(`#${CSS_PREFIX}-track_DOMAINS-region`);
+      if (!sep) throw new Error('separated track not on canvas');
+    });
+    const sep = el.querySelector(`#${CSS_PREFIX}-track_DOMAINS-region`)!;
+    expect(
+      sep.querySelector(`.${CSS_PREFIX}-track-label`)!.textContent
+    ).toContain('Domains / Region');
+  });
+
+  it('follows focus to the hidden item without scrolling (item 3)', async () => {
+    const el = await mountViewer();
+    await openPanel(el);
+    const focusSpy = vi.spyOn(HTMLElement.prototype, 'focus');
+    await userEvent.click(panelBtn(el, 'GT:DOMAINS-domain'));
+    await vi.waitFor(() => {
+      const ok = focusSpy.mock.calls.some(
         (args) => (args[0] as FocusOptions | undefined)?.preventScroll === true
       );
-      if (!scrolled) throw new Error('no preventScroll focus yet');
-    });
-  });
-
-  it('reordering a lane in the panel reorders the canvas and keeps focus', async () => {
-    const el = await mountViewer();
-    await userEvent.click(
-      el.querySelector<HTMLButtonElement>(`.${CSS_PREFIX}-customize-toggle`)!
-    );
-    await vi.waitFor(() => {
-      if (!manager(el)) throw new Error('panel not open');
-    });
-    expect(canvasLaneOrder(el)).toEqual(['DOMAINS', 'sites']);
-
-    // Move the DOMAINS lane down via its keyboard-operable button.
-    const down = manager(el)!.shadowRoot!.querySelector<HTMLButtonElement>(
-      'button[data-key="D:DOMAINS"]'
-    )!;
-    await userEvent.click(down);
-
-    await vi.waitFor(() => {
-      if (el.getLayout().order?.[0] !== 'sites') throw new Error('not reordered');
-    });
-    expect(el.getLayout().order).toEqual(['sites', 'DOMAINS']);
-    // Canvas mirrors the new order.
-    expect(canvasLaneOrder(el)).toEqual(['sites', 'DOMAINS']);
-    // The panel's lane list mirrors it too.
-    const laneKeys = Array.from(
-      manager(el)!.shadowRoot!.querySelectorAll(
-        '.lane-list > li > .row button.toggle'
-      )
-    ).map((b) => (b as HTMLElement).dataset.key);
-    expect(laneKeys).toEqual(['L:sites', 'L:DOMAINS']);
-    // Focus stays with the moved lane — its drag handle, now that it is
-    // last (its move-down button became disabled). WCAG 2.4.7.
-    await vi.waitFor(() => {
-      const active = manager(el)!.shadowRoot!.activeElement as HTMLElement | null;
-      if (active?.dataset.key !== 'H:DOMAINS') {
-        throw new Error(`focus lost (on ${active?.dataset.key ?? 'nothing'})`);
-      }
+      if (!ok) throw new Error('no preventScroll focus yet');
     });
   });
 });

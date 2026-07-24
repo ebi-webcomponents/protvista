@@ -96,6 +96,15 @@ export default css`
     margin-right: 5px;
   }
 
+  /* A split group's non-collapsible bracket header: no caret, not clickable. */
+  protvista-uniprot .${p}-group-label--partial {
+    cursor: default;
+  }
+
+  protvista-uniprot .${p}-group-label--partial::before {
+    display: none;
+  }
+
   protvista-uniprot .${p}-track-label {
     background-color: var(--protvista-track-label-bg);
   }

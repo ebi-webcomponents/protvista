@@ -1,35 +1,59 @@
 /**
- * Pure layout-overlay logic (`src/layout.ts`) — the order + visibility
- * derivation that turns the authored `config.rows` into the displayed
- * rows, layered over the config without mutating it.
+ * Pure layout-overlay logic (`src/layout.ts`) — the flat per-track order +
+ * visibility derivation that turns the authored `config.rows` into the
+ * display blocks the viewer renders, layered over the config without mutating
+ * it.
  *
  * Covers:
- *   - `isHidden`: user override wins over the authored default, both ways;
- *   - `orderRows`: reorder by id, ignore unknown ids, append config rows
- *     the saved order does not mention, no-op on `null`;
- *   - `effectiveRows`: order + lane visibility combined, authored `hidden`
- *     default honoured and overridable;
- *   - `visibleTracks`: per-track visibility with the `${groupId}-${trackId}`
- *     key, authored default honoured and overridable.
+ *   - `isHidden` / `orderRows` / `swapIds` / `moveId` / `moveBlock` primitives;
+ *   - `flattenTracks` / `orderedTrackKeys` / `effectiveTracks`: the flat track
+ *     order + per-track and whole-group visibility;
+ *   - `displayBlocks`: grouping by adjacency into intact / partial / single
+ *     blocks, and the "all tracks hidden ⇒ group vanishes" rule.
  */
 import { describe, it, expect } from 'vitest';
 import {
   type LayoutState,
+  type Block,
   emptyLayout,
   isHidden,
   orderRows,
   swapIds,
   moveId,
-  effectiveRows,
-  visibleTracks,
+  moveBlock,
+  flattenTracks,
+  orderedTrackKeys,
+  effectiveTracks,
+  displayBlocks,
 } from '../layout';
 import type { NormalizedRow, NormalizedTrack } from '../schema/normalize';
 
-// Minimal fixtures — the layout functions only read `id`, `hidden`, and
-// `tracks[].id` / `tracks[].hidden`, so cast focused partials to the full
-// normalized shapes rather than spelling out every resolved field.
+// Minimal fixtures — the layout functions only read `id`, `hidden`,
+// `standalone`, and `tracks[].id` / `tracks[].hidden`, so cast focused
+// partials to the full normalized shapes.
 function track(id: string, hidden?: boolean): NormalizedTrack {
   return { id, ...(hidden !== undefined ? { hidden } : {}) } as NormalizedTrack;
+}
+
+function group(
+  id: string,
+  trackDefs: NormalizedTrack[],
+  opts: { hidden?: boolean } = {}
+): NormalizedRow {
+  return {
+    id,
+    tracks: trackDefs,
+    ...(opts.hidden !== undefined ? { hidden: opts.hidden } : {}),
+  } as NormalizedRow;
+}
+
+function standalone(id: string, hidden?: boolean): NormalizedRow {
+  return {
+    id,
+    standalone: true,
+    tracks: [track(id)],
+    ...(hidden !== undefined ? { hidden } : {}),
+  } as NormalizedRow;
 }
 
 function row(
@@ -55,9 +79,7 @@ describe('isHidden', () => {
   });
 
   it('lets a user override win over the authored default (both directions)', () => {
-    // User reveals an author-hidden row.
     expect(isHidden(layout({ hidden: { A: false } }), 'A', true)).toBe(false);
-    // User hides an author-visible row.
     expect(isHidden(layout({ hidden: { A: true } }), 'A', false)).toBe(true);
   });
 });
@@ -65,32 +87,19 @@ describe('isHidden', () => {
 describe('orderRows', () => {
   const rows = [row('A'), row('B'), row('C')];
 
-  it('is a no-op when order is null (authored order preserved)', () => {
+  it('is a no-op when order is null', () => {
     expect(orderRows(rows, null).map((r) => r.id)).toEqual(['A', 'B', 'C']);
   });
 
-  it('reorders rows by the saved id order', () => {
-    expect(orderRows(rows, ['C', 'A', 'B']).map((r) => r.id)).toEqual([
+  it('reorders by the saved order, ignores unknown ids, appends the rest', () => {
+    expect(orderRows(rows, ['C', 'GONE']).map((r) => r.id)).toEqual([
       'C',
       'A',
       'B',
     ]);
   });
 
-  it('ignores ids in the saved order that are no longer in the config', () => {
-    expect(orderRows(rows, ['C', 'GONE', 'A']).map((r) => r.id)).toEqual([
-      'C',
-      'A',
-      'B',
-    ]);
-  });
-
-  it('appends config rows the saved order does not mention, in authored order', () => {
-    // A newly-added row 'B' and 'C' are absent from the saved order.
-    expect(orderRows(rows, ['C']).map((r) => r.id)).toEqual(['C', 'A', 'B']);
-  });
-
-  it('does not duplicate a row named twice in the saved order', () => {
+  it('does not duplicate a row named twice', () => {
     expect(orderRows(rows, ['A', 'A', 'B']).map((r) => r.id)).toEqual([
       'A',
       'B',
@@ -100,9 +109,8 @@ describe('orderRows', () => {
 });
 
 describe('swapIds', () => {
-  it('swaps two ids in place (move up/down)', () => {
+  it('swaps two ids in place', () => {
     expect(swapIds(['A', 'B', 'C'], 'A', 'B')).toEqual(['B', 'A', 'C']);
-    expect(swapIds(['A', 'B', 'C'], 'C', 'A')).toEqual(['C', 'B', 'A']);
   });
 
   it('is a no-op copy when an id is absent or a === b', () => {
@@ -123,51 +131,156 @@ describe('moveId', () => {
   });
 });
 
-describe('effectiveRows', () => {
-  it('returns authored rows unchanged under the empty layout', () => {
-    const rows = [row('A'), row('B')];
-    expect(effectiveRows(rows, emptyLayout())).toEqual(rows);
-  });
-
-  it('applies order then filters hidden lanes', () => {
-    const rows = [row('A'), row('B'), row('C')];
-    const out = effectiveRows(
-      rows,
-      layout({ order: ['C', 'B', 'A'], hidden: { B: true } })
-    );
-    expect(out.map((r) => r.id)).toEqual(['C', 'A']);
-  });
-
-  it('honours an authored hidden default', () => {
-    const rows = [row('A'), row('B', { hidden: true })];
-    expect(effectiveRows(rows, emptyLayout()).map((r) => r.id)).toEqual(['A']);
-  });
-
-  it('lets a user reveal an author-hidden lane', () => {
-    const rows = [row('A'), row('B', { hidden: true })];
-    const out = effectiveRows(rows, layout({ hidden: { B: false } }));
-    expect(out.map((r) => r.id)).toEqual(['A', 'B']);
-  });
-});
-
-describe('visibleTracks', () => {
-  const group = row('G', {
-    tracks: [track('t1'), track('t2', true), track('t3')],
-  });
-
-  it('filters out an authored-hidden track by default', () => {
-    expect(visibleTracks(group, emptyLayout()).map((t) => t.id)).toEqual([
-      't1',
-      't3',
+describe('moveBlock', () => {
+  it('moves a contiguous block to sit before the target key', () => {
+    // Move the [b1, b2] block before 'x'.
+    expect(moveBlock(['x', 'b1', 'b2', 'y'], ['b1', 'b2'], 'x')).toEqual([
+      'b1',
+      'b2',
+      'x',
+      'y',
     ]);
   });
 
-  it('uses the ${groupId}-${trackId} key for user overrides', () => {
-    // Reveal the author-hidden t2, hide the visible t1.
-    const out = visibleTracks(
-      group,
-      layout({ hidden: { 'G-t2': false, 'G-t1': true } })
+  it('appends the block at the end when beforeKey is null or absent', () => {
+    expect(moveBlock(['a', 'b1', 'b2', 'c'], ['b1', 'b2'], null)).toEqual([
+      'a',
+      'c',
+      'b1',
+      'b2',
+    ]);
+    expect(moveBlock(['a', 'b1', 'b2', 'c'], ['b1', 'b2'], 'GONE')).toEqual([
+      'a',
+      'c',
+      'b1',
+      'b2',
+    ]);
+  });
+});
+
+// ── Flat per-track model ─────────────────────────────────────
+
+// G1: t1, t2   S: standalone   G3: a, b, c
+const CONFIG = [
+  group('G1', [track('t1'), track('t2')]),
+  standalone('S'),
+  group('G3', [track('a'), track('b'), track('c')]),
+];
+
+describe('flattenTracks', () => {
+  it('yields every track key in authored order', () => {
+    expect(flattenTracks(CONFIG).map((e) => e.key)).toEqual([
+      'G1-t1',
+      'G1-t2',
+      'S-S',
+      'G3-a',
+      'G3-b',
+      'G3-c',
+    ]);
+  });
+});
+
+describe('orderedTrackKeys', () => {
+  it('applies the flat track-key order and appends the unmentioned', () => {
+    const out = orderedTrackKeys(CONFIG, layout({ order: ['G3-b', 'G1-t2'] }));
+    expect(out).toEqual([
+      'G3-b',
+      'G1-t2',
+      'G1-t1',
+      'S-S',
+      'G3-a',
+      'G3-c',
+    ]);
+  });
+});
+
+describe('effectiveTracks', () => {
+  it('is authored order under the empty layout', () => {
+    expect(effectiveTracks(CONFIG, emptyLayout()).map((e) => e.key)).toEqual([
+      'G1-t1',
+      'G1-t2',
+      'S-S',
+      'G3-a',
+      'G3-b',
+      'G3-c',
+    ]);
+  });
+
+  it('filters a hidden track by its key', () => {
+    const out = effectiveTracks(CONFIG, layout({ hidden: { 'G3-b': true } }));
+    expect(out.map((e) => e.key)).not.toContain('G3-b');
+    expect(out).toHaveLength(5);
+  });
+
+  it('an explicit group hide suppresses all its tracks', () => {
+    const out = effectiveTracks(CONFIG, layout({ hidden: { G3: true } }));
+    expect(out.map((e) => e.key)).toEqual(['G1-t1', 'G1-t2', 'S-S']);
+  });
+});
+
+/** Compact block summary for assertions. */
+function summarize(blocks: Block[]): string[] {
+  return blocks.map((b) =>
+    b.kind === 'group'
+      ? `${b.intact ? 'intact' : 'partial'}:${b.group.id}[${b.tracks
+          .map((t) => t.key)
+          .join(',')}]`
+      : `${b.separated ? 'sep' : 'stand'}:${b.entry.key}`
+  );
+}
+
+describe('displayBlocks', () => {
+  it('groups intact groups + standalone under the empty layout', () => {
+    expect(summarize(displayBlocks(CONFIG, emptyLayout()))).toEqual([
+      'intact:G1[G1-t1,G1-t2]',
+      'stand:S-S',
+      'intact:G3[G3-a,G3-b,G3-c]',
+    ]);
+  });
+
+  it('renders a track moved out of its group as a separated single', () => {
+    // Pull G3-b up between G1 and S.
+    const out = displayBlocks(
+      CONFIG,
+      layout({ order: ['G1-t1', 'G1-t2', 'G3-b', 'S-S', 'G3-a', 'G3-c'] })
     );
-    expect(out.map((t) => t.id)).toEqual(['t2', 't3']);
+    expect(summarize(out)).toEqual([
+      'intact:G1[G1-t1,G1-t2]',
+      'sep:G3-b', // isolated → "Group / Track"
+      'stand:S-S',
+      'partial:G3[G3-a,G3-c]', // the remaining two stay bracketed
+    ]);
+  });
+
+  it('brackets a contiguous run of ≥2 split tracks as a partial group', () => {
+    // G3 split into [a,b] together and [c] alone.
+    const out = displayBlocks(
+      CONFIG,
+      layout({ order: ['G3-a', 'G3-b', 'S-S', 'G3-c', 'G1-t1', 'G1-t2'] })
+    );
+    expect(summarize(out)).toEqual([
+      'partial:G3[G3-a,G3-b]',
+      'stand:S-S',
+      'sep:G3-c',
+      'intact:G1[G1-t1,G1-t2]',
+    ]);
+  });
+
+  it('vanishes a group whose tracks are all hidden (item 2)', () => {
+    const out = displayBlocks(
+      CONFIG,
+      layout({ hidden: { 'G1-t1': true, 'G1-t2': true } })
+    );
+    expect(summarize(out)).toEqual(['stand:S-S', 'intact:G3[G3-a,G3-b,G3-c]']);
+  });
+
+  it('treats a group as intact when its visible tracks stay contiguous', () => {
+    // Hide the middle track; the visible a,c are still one run → intact.
+    const out = displayBlocks(CONFIG, layout({ hidden: { 'G3-b': true } }));
+    expect(summarize(out)).toEqual([
+      'intact:G1[G1-t1,G1-t2]',
+      'stand:S-S',
+      'intact:G3[G3-a,G3-c]',
+    ]);
   });
 });

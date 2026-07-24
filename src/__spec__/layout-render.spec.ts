@@ -1,12 +1,13 @@
 /**
  * Render-level coverage for the runtime layout overlay: the `_layout`
- * state (row order + visibility) flowing through `<protvista-uniprot>`'s
- * keyed-`repeat` render loop.
+ * state (flat per-track order + visibility) flowing through
+ * `<protvista-uniprot>`'s keyed-`repeat` block render loop.
  *
  * Complements the pure-logic tests in `layout.spec.ts` by asserting the
  * actual rendered DOM: an authored-`hidden` lane/track is absent from the
- * output, a user `_layout` overlay reorders the lane blocks and hides /
- * reveals lanes, and the default (empty) overlay reproduces authored order.
+ * output, a user `_layout` overlay reorders groups and splits a track out as
+ * a "Group / Track" row, and the default (empty) overlay reproduces authored
+ * order.
  *
  * Mirrors `render-target.spec.ts`: build an instance with frozen state
  * (never appended to the document, so `connectedCallback`/`_init` stays
@@ -120,13 +121,18 @@ describe('layout overlay — authored hidden default', () => {
   });
 });
 
+// Full-block track-key orders (each lane is a group of two tracks).
+const keys = (id: 'A' | 'B' | 'C') => [`${id}-${id}t1`, `${id}-${id}t2`];
+
 describe('layout overlay — user order + visibility', () => {
-  it('reorders the lane blocks by _layout.order', () => {
-    const el = buildInstance({ _layout: { order: ['C', 'A', 'B'], hidden: {} } });
+  it('reorders whole intact groups by moving their track keys as a block', () => {
+    const el = buildInstance({
+      _layout: { order: [...keys('C'), ...keys('A'), ...keys('B')], hidden: {} },
+    });
     expect(laneIds(renderInto(el))).toEqual(['C', 'A', 'B']);
   });
 
-  it('hides a lane the user toggled off (override on an author-visible lane)', () => {
+  it('hides a lane the user toggled off (group hide override)', () => {
     const el = buildInstance({ _layout: { order: null, hidden: { A: true } } });
     expect(laneIds(renderInto(el))).toEqual(['B', 'C']);
   });
@@ -139,10 +145,79 @@ describe('layout overlay — user order + visibility', () => {
     expect(laneIds(renderInto(el))).toEqual(['A', 'B', 'C']);
   });
 
-  it('combines order and hidden: reorder then drop the hidden lane', () => {
+  it('combines order and hidden: reorder then drop the group-hidden lane', () => {
     const el = buildInstance({
-      _layout: { order: ['C', 'B', 'A'], hidden: { B: true } },
+      _layout: {
+        order: [...keys('C'), ...keys('B'), ...keys('A')],
+        hidden: { B: true },
+      },
     });
     expect(laneIds(renderInto(el))).toEqual(['C', 'A']);
+  });
+
+  it('renders a partial group bracket for a split group\'s contiguous run', () => {
+    // Group G (x, y, z); move z out after a standalone, leaving [x, y] together.
+    const canvas = 'nightingale-track-canvas' as const;
+    const trk = (id: string) => ({
+      id,
+      label: id,
+      component: canvas,
+      rendering: {},
+      data: [{ from: 'url' as const, url: 'stub://x' }],
+    });
+    const config = {
+      version: '1.0' as const,
+      sources: {},
+      defaults: { rendering: {} },
+      rows: [
+        { id: 'G', label: 'Gee', component: canvas, rendering: {}, tracks: [trk('x'), trk('y'), trk('z')] },
+        { id: 'S', label: 'Ess', component: canvas, rendering: {}, standalone: true, tracks: [trk('S')] },
+      ],
+    } as unknown as NormalizedConfig;
+    const data: Record<string, unknown> = {
+      G: [{ type: 'DOMAIN', start: 1, end: 9 }],
+      'G-x': [{ type: 'DOMAIN', start: 1, end: 3 }],
+      'G-y': [{ type: 'DOMAIN', start: 4, end: 6 }],
+      'G-z': [{ type: 'DOMAIN', start: 7, end: 9 }],
+      'S-S': [{ type: 'DOMAIN', start: 1, end: 9 }],
+    };
+    const el = buildInstance({
+      config,
+      data,
+      openGroups: ['G'],
+      _layout: { order: ['G-x', 'G-y', 'S-S', 'G-z'], hidden: {} },
+    });
+    const target = renderInto(el);
+    // A non-collapsible partial bracket header, plus x and y as tracks.
+    expect(
+      target.querySelector(`.${CSS_PREFIX}-group-label--partial`)
+    ).not.toBeNull();
+    expect(target.querySelector(`#${CSS_PREFIX}-track_x`)).not.toBeNull();
+    expect(target.querySelector(`#${CSS_PREFIX}-track_y`)).not.toBeNull();
+    // z is isolated → a separated "Gee / z" row.
+    const z = target.querySelector(`#${CSS_PREFIX}-track_G-z`);
+    expect(z).not.toBeNull();
+    expect(z!.querySelector(`.${CSS_PREFIX}-track-label`)!.textContent).toContain(
+      'Gee / z'
+    );
+  });
+
+  it('renders a track moved out of its group as an individual "Group / Track" row', () => {
+    // Split A: pull At2 out (after B), leaving At1 also isolated.
+    const el = buildInstance({
+      _layout: {
+        order: ['A-At1', ...keys('B'), 'A-At2', ...keys('C')],
+        hidden: {},
+      },
+    });
+    const target = renderInto(el);
+    // A no longer has an intact group wrapper; B and C still do.
+    expect(laneIds(target)).toEqual(['B', 'C']);
+    // Its tracks render as standalone rows labelled "A / At1" and "A / At2".
+    const sep = target.querySelector(`#${CSS_PREFIX}-track_A-At2`);
+    expect(sep).not.toBeNull();
+    expect(sep!.querySelector(`.${CSS_PREFIX}-track-label`)!.textContent).toContain(
+      'A / At2'
+    );
   });
 });

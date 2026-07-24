@@ -674,7 +674,7 @@ export type AdapterName = KnownAdapterName | (string & {});
 // ─────────────────────────────────────────────────────────────
 
 /**
- * User-driven layout overlay: row order plus per-row/track visibility,
+ * User-driven layout overlay: track order plus per-row/track visibility,
  * held in the viewer and layered over the config without mutating it (the
  * config is the initial mount; runtime UI state lives in the component).
  * Returned by `getLayout()` and carried as the `detail` of every
@@ -683,8 +683,9 @@ export type AdapterName = KnownAdapterName | (string & {});
  */
 export interface ViewerLayout {
   /**
-   * Effective row order as a list of row ids. `null` means "authored
-   * order" (no reordering applied).
+   * Effective track order as a flat list of `${groupId}-${trackId}` keys.
+   * `null` means "authored order" (no reordering applied). Grouping on screen
+   * is derived from adjacency, not stored.
    */
   order: string[] | null;
   /**
@@ -764,11 +765,13 @@ export interface ProtvistaRuntimeAPI {
   // `ViewerLayout`, so an embedder can persist and restore it.
 
   /**
-   * Reorder the top-level rows (lanes) by id. Ids not in the config are
-   * ignored; rows the list omits keep their authored position, appended
-   * after — so a saved order survives config edits.
+   * Reorder the tracks by their `${groupId}-${trackId}` keys. Grouping is
+   * derived from adjacency (adjacent same-group tracks render under the group
+   * header; a track moved away renders as "Group / Track"). Keys not in the
+   * config are ignored; tracks the list omits keep their authored position,
+   * appended after — so a saved order survives config edits.
    */
-  setRowOrder(order: string[]): void;
+  setTrackOrder(order: string[]): void;
 
   /** Show or hide a whole lane (a group or a standalone track) by row id. */
   setRowVisibility(rowId: string, visible: boolean): void;

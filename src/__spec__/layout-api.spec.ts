@@ -1,5 +1,5 @@
 /**
- * Runtime layout API on `<protvista-uniprot>`: `setRowOrder`,
+ * Runtime layout API on `<protvista-uniprot>`: `setTrackOrder`,
  * `setRowVisibility`, `setTrackVisibility`, `resetLayout`, `getLayout`,
  * and the `protvista-layout-change` event.
  *
@@ -61,7 +61,7 @@ function makeData() {
 }
 
 interface Api {
-  setRowOrder(order: string[]): void;
+  setTrackOrder(order: string[]): void;
   setRowVisibility(rowId: string, visible: boolean): void;
   setTrackVisibility(groupId: string, trackId: string, visible: boolean): void;
   resetLayout(): void;
@@ -112,18 +112,31 @@ function trackIds(): string[] {
   ).map((d) => d.getAttribute('id')?.replace(`${CSS_PREFIX}-track_`, '') ?? '');
 }
 
-describe('setRowOrder', () => {
-  it('reorders the overlay, the DOM, and emits the new order', () => {
-    el.setRowOrder(['C', 'A', 'B']);
-    expect(el.getLayout().order).toEqual(['C', 'A', 'B']);
+// Full-block track-key orders (each lane is a group of two tracks).
+const keys = (id: 'A' | 'B' | 'C') => [`${id}-${id}t1`, `${id}-${id}t2`];
+
+describe('setTrackOrder', () => {
+  it('reorders whole groups (moving their track keys) and emits the order', () => {
+    const order = [...keys('C'), ...keys('A'), ...keys('B')];
+    el.setTrackOrder(order);
+    expect(el.getLayout().order).toEqual(order);
     expect(laneIds()).toEqual(['C', 'A', 'B']);
     expect(events).toHaveLength(1);
-    expect(events[0].order).toEqual(['C', 'A', 'B']);
+    expect(events[0].order).toEqual(order);
+  });
+
+  it('splits a track out of its group ("Group / Track")', () => {
+    // Put a B track between A's two tracks — A is no longer intact.
+    el.setTrackOrder(['A-At1', ...keys('B'), 'A-At2', ...keys('C')]);
+    expect(laneIds()).toEqual(['B', 'C']);
+    // Each split-out A track renders on its own.
+    expect(trackIds()).toContain('A-At2');
   });
 
   it('does not emit when the order is unchanged', () => {
-    el.setRowOrder(['C', 'A', 'B']);
-    el.setRowOrder(['C', 'A', 'B']);
+    const order = [...keys('C'), ...keys('A'), ...keys('B')];
+    el.setTrackOrder(order);
+    el.setTrackOrder(order);
     expect(events).toHaveLength(1);
   });
 });
@@ -164,7 +177,7 @@ describe('setTrackVisibility', () => {
 
 describe('resetLayout', () => {
   it('restores authored order + visibility and emits once', () => {
-    el.setRowOrder(['C', 'A', 'B']);
+    el.setTrackOrder([...keys('C'), ...keys('A'), ...keys('B')]);
     el.setRowVisibility('B', false);
     events.length = 0;
 
