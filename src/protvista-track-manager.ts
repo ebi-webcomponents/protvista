@@ -36,7 +36,7 @@ import {
   moveBlock,
   orderedTrackKeys,
   effectiveTracks,
-  displayBlocks,
+  panelBlocks,
 } from './layout';
 import { renderLabel } from './tooltips/resolve';
 
@@ -57,7 +57,6 @@ const gHide = (k: string) => `GT:${k}`;
 const gUp = (k: string) => `GU:${k}`;
 const gDown = (k: string) => `GD:${k}`;
 const gGrip = (k: string) => `GH:${k}`;
-const show = (k: string) => `S:${k}`;
 
 /** The first (anchor) track key of a display block. */
 const blockAnchor = (block: Block): string =>
@@ -228,38 +227,17 @@ export class ProtvistaTrackManager extends LitElement {
       color: var(--protvista-color-text-muted, #4a5056);
     }
 
-    .hidden {
-      margin-top: 0.75rem;
-      padding-top: 0.5rem;
-      border-top: 1px solid var(--protvista-color-border, #c5c8cc);
-    }
-
-    .hidden__title {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      font-weight: 600;
-      color: var(--protvista-color-text-muted, #4a5056);
-      margin-bottom: 0.25rem;
-    }
-
-    .hidden__badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 1.25rem;
-      height: 1.25rem;
-      padding: 0 0.35rem;
-      border-radius: 999px;
-      background: var(--protvista-color-accent, #0053d6);
-      color: #ffffff;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-
-    .empty {
+    /* A hidden track stays in place, marked by a muted, italic label (the
+       eye-slash icon + "Show" action word carry the state too — never colour
+       alone). The toggle button keeps full contrast. */
+    .row--hidden > .row__label {
       color: var(--protvista-color-text-muted, #4a5056);
       font-style: italic;
+    }
+
+    .panel__count {
+      color: var(--protvista-color-text-muted, #4a5056);
+      font-size: 0.85em;
     }
 
     .visually-hidden {
@@ -301,7 +279,10 @@ export class ProtvistaTrackManager extends LitElement {
 
   override render() {
     const rows = this.rows as NormalizedRow[];
-    const blocks = displayBlocks(rows, this.layout);
+    // The panel lists *every* track (visible + hidden) in place; the canvas
+    // (`displayBlocks`) still drops the hidden ones. `effective` is the
+    // visible-only order that per-track reorder navigates.
+    const blocks = panelBlocks(rows, this.layout);
     const effective = effectiveTracks(rows, this.layout);
     this._blocks = blocks;
     this._effective = effective;
@@ -309,27 +290,26 @@ export class ProtvistaTrackManager extends LitElement {
 
     const effIndex = new Map(effective.map((e, i) => [e.key, i]));
     const total = effective.length;
+    const hiddenCount = this._flatTrackCount() - total;
 
-    // Hidden items, unified: a whole hidden group once, a hidden standalone by
-    // its row label, and a group's individually-hidden track as "Group / Track".
-    const hiddenItems = this._hiddenItems(rows);
-
-    // Build the roving grid (focusable control keys per DOM row).
+    // Build the roving grid (focusable control keys per DOM row). A hidden row
+    // contributes only its toggle; a fully-hidden group header likewise.
     const grid: string[][] = [];
     blocks.forEach((block, bi) => {
       if (block.kind === 'group') {
         const anchor = blockAnchor(block);
         const gk = [gHide(anchor)];
-        if (bi > 0) gk.push(gUp(anchor));
-        if (bi < blocks.length - 1) gk.push(gDown(anchor));
-        gk.push(gGrip(anchor));
+        if (this._anyVisible(block)) {
+          if (bi > 0) gk.push(gUp(anchor));
+          if (bi < blocks.length - 1) gk.push(gDown(anchor));
+          gk.push(gGrip(anchor));
+        }
         grid.push(gk);
         for (const e of block.tracks) grid.push(this._trackKeys(e, effIndex, total));
       } else {
         grid.push(this._trackKeys(block.entry, effIndex, total));
       }
     });
-    for (const item of hiddenItems) grid.push([item.key]);
     this._grid = grid;
 
     const allKeys = grid.flat();
@@ -345,40 +325,19 @@ export class ProtvistaTrackManager extends LitElement {
           <button type="button" class="reset" @click=${this._onReset}>
             Reset to default
           </button>
+          ${hiddenCount > 0
+            ? html`<span class="panel__count">· ${hiddenCount} hidden</span>`
+            : nothing}
         </div>
 
         <div class="lists" @keydown=${this._onKeyDown}>
-          ${blocks.length === 0
-            ? html`<p class="empty">All tracks are hidden.</p>`
-            : html`<ul class="block-list">
-                ${repeat(
-                  blocks,
-                  (b) => blockAnchor(b) + (b.kind === 'group' ? ':g' : ''),
-                  (b, bi) => this._renderBlock(b, bi, effIndex, total, focusKey)
-                )}
-              </ul>`}
-          ${hiddenItems.length > 0
-            ? html`<section class="hidden" aria-label="Hidden tracks">
-                <div class="hidden__title">
-                  <span>Hidden tracks</span>
-                  <span class="hidden__badge">${hiddenItems.length}</span>
-                </div>
-                <ul class="hidden-list">
-                  ${repeat(
-                    hiddenItems,
-                    (item) => item.key,
-                    (item) => html`<li>
-                      ${this._renderHiddenRow(
-                        item.key,
-                        item.label,
-                        focusKey,
-                        item.onShow
-                      )}
-                    </li>`
-                  )}
-                </ul>
-              </section>`
-            : nothing}
+          <ul class="block-list">
+            ${repeat(
+              blocks,
+              (b) => blockAnchor(b) + (b.kind === 'group' ? ':g' : ''),
+              (b, bi) => this._renderBlock(b, bi, effIndex, total, focusKey)
+            )}
+          </ul>
         </div>
 
         <div class="visually-hidden" aria-live="polite">
@@ -388,11 +347,39 @@ export class ProtvistaTrackManager extends LitElement {
     `;
   }
 
+  /** Total number of tracks in the config (visible + hidden). */
+  private _flatTrackCount(): number {
+    return (this.rows as NormalizedRow[]).reduce(
+      (n, r) => n + r.tracks.length,
+      0
+    );
+  }
+
+  /** Whether a track (or standalone) is currently hidden on the canvas. */
+  private _entryHidden(entry: TrackEntry): boolean {
+    if (entry.group.standalone) {
+      return this._hidden(entry.group.id, entry.group.hidden);
+    }
+    return (
+      this._hidden(entry.key, entry.track.hidden) ||
+      this._hidden(entry.group.id, entry.group.hidden)
+    );
+  }
+
+  /** Whether a group block has at least one visible track. */
+  private _anyVisible(block: Block): boolean {
+    return block.kind === 'group'
+      ? block.tracks.some((e) => !this._entryHidden(e))
+      : !this._entryHidden(block.entry);
+  }
+
   private _trackKeys(
     entry: TrackEntry,
     effIndex: Map<string, number>,
     total: number
   ): string[] {
+    // A hidden row is Show-only — no reorder controls.
+    if (this._entryHidden(entry)) return [tHide(entry.key)];
     const ei = effIndex.get(entry.key) ?? 0;
     const keys = [tHide(entry.key)];
     if (ei > 0) keys.push(tUp(entry.key));
@@ -424,47 +411,53 @@ export class ProtvistaTrackManager extends LitElement {
       const label = block.separated
         ? this._separatedLabel(entry)
         : this._labelText(entry.track.label);
+      const hidden = this._entryHidden(entry);
       const onToggle = block.separated
-        ? () => this._setTrackVisible(entry.group, entry.track, false)
-        : () => this._setRowVisible(entry.group, false);
+        ? () => this._setTrackVisible(entry.group, entry.track, hidden, tHide(entry.key))
+        : () => this._setRowVisible(entry.group, hidden, tHide(entry.key));
       return html`<li>
-        ${this._renderTrackRow(entry, label, onToggle, effIndex, total, focusKey)}
+        ${this._renderTrackRow(entry, label, hidden, onToggle, effIndex, total, focusKey)}
       </li>`;
     }
 
     const anchor = blockAnchor(block);
     const name = this._labelText(block.group.label);
+    const fullyHidden = !this._anyVisible(block);
     return html`<li>
       <div
-        class="row row--group"
+        class="row row--group ${fullyHidden ? 'row--hidden' : ''}"
         @dragover=${this._onDragOver}
         @dragenter=${this._onDragEnter}
         @dragleave=${this._onDragLeave}
         @drop=${(e: DragEvent) => this._onDrop(e, anchor)}
       >
         <span class="controls">
-          ${this._toggleBtn(gHide(anchor), name, false, focusKey, () =>
-            this._setRowVisible(block.group, false)
+          ${this._toggleBtn(gHide(anchor), name, fullyHidden, focusKey, () =>
+            this._setRowVisible(block.group, fullyHidden, gHide(anchor))
           )}
-          ${this._moveBtn(
-            gUp(anchor),
-            `Move ${name} up`,
-            bi === 0,
-            false,
-            focusKey,
-            () => this._moveBlockBy(bi, -1)
-          )}
-          ${this._moveBtn(
-            gDown(anchor),
-            `Move ${name} down`,
-            bi === this._blocks.length - 1,
-            true,
-            focusKey,
-            () => this._moveBlockBy(bi, 1)
-          )}
-          ${this._gripBtn(gGrip(anchor), `Reorder ${name}`, focusKey, () =>
-            blockKeys(block)
-          )}
+          ${fullyHidden
+            ? nothing
+            : html`
+                ${this._moveBtn(
+                  gUp(anchor),
+                  `Move ${name} up`,
+                  bi === 0,
+                  false,
+                  focusKey,
+                  () => this._moveBlockBy(bi, -1)
+                )}
+                ${this._moveBtn(
+                  gDown(anchor),
+                  `Move ${name} down`,
+                  bi === this._blocks.length - 1,
+                  true,
+                  focusKey,
+                  () => this._moveBlockBy(bi, 1)
+                )}
+                ${this._gripBtn(gGrip(anchor), `Reorder ${name}`, focusKey, () =>
+                  blockKeys(block)
+                )}
+              `}
         </span>
         <span class="row__label" title=${name}>${name}</span>
       </div>
@@ -472,17 +465,20 @@ export class ProtvistaTrackManager extends LitElement {
         ${repeat(
           block.tracks,
           (e) => e.key,
-          (e) =>
-            html`<li>
+          (e) => {
+            const eh = this._entryHidden(e);
+            return html`<li>
               ${this._renderTrackRow(
                 e,
                 this._labelText(e.track.label),
-                () => this._setTrackVisible(e.group, e.track, false),
+                eh,
+                () => this._setTrackVisible(e.group, e.track, eh, tHide(e.key)),
                 effIndex,
                 total,
                 focusKey
               )}
-            </li>`
+            </li>`;
+          }
         )}
       </ul>
     </li>`;
@@ -491,6 +487,7 @@ export class ProtvistaTrackManager extends LitElement {
   private _renderTrackRow(
     entry: TrackEntry,
     label: string,
+    hidden: boolean,
     onToggle: () => void,
     effIndex: Map<string, number>,
     total: number,
@@ -500,48 +497,37 @@ export class ProtvistaTrackManager extends LitElement {
     const ei = effIndex.get(key) ?? 0;
     return html`
       <div
-        class="row"
+        class="row ${hidden ? 'row--hidden' : ''}"
         @dragover=${this._onDragOver}
         @dragenter=${this._onDragEnter}
         @dragleave=${this._onDragLeave}
         @drop=${(e: DragEvent) => this._onDrop(e, key)}
       >
         <span class="controls">
-          ${this._toggleBtn(tHide(key), label, false, focusKey, onToggle)}
-          ${this._moveBtn(
-            tUp(key),
-            `Move ${label} up`,
-            ei === 0,
-            false,
-            focusKey,
-            () => this._moveTrackBy(entry, -1)
-          )}
-          ${this._moveBtn(
-            tDown(key),
-            `Move ${label} down`,
-            ei === total - 1,
-            true,
-            focusKey,
-            () => this._moveTrackBy(entry, 1)
-          )}
-          ${this._gripBtn(tGrip(key), `Reorder ${label}`, focusKey, () => [key])}
-        </span>
-        <span class="row__label" title=${label}>${label}</span>
-      </div>
-    `;
-  }
-
-  /** A "Hidden tracks" section row: label + a Show toggle. */
-  private _renderHiddenRow(
-    key: string,
-    label: string,
-    focusKey: string,
-    onShow: () => void
-  ) {
-    return html`
-      <div class="row">
-        <span class="controls">
-          ${this._toggleBtn(key, label, true, focusKey, onShow)}
+          ${this._toggleBtn(tHide(key), label, hidden, focusKey, onToggle)}
+          ${hidden
+            ? nothing
+            : html`
+                ${this._moveBtn(
+                  tUp(key),
+                  `Move ${label} up`,
+                  ei === 0,
+                  false,
+                  focusKey,
+                  () => this._moveTrackBy(entry, -1)
+                )}
+                ${this._moveBtn(
+                  tDown(key),
+                  `Move ${label} down`,
+                  ei === total - 1,
+                  true,
+                  focusKey,
+                  () => this._moveTrackBy(entry, 1)
+                )}
+                ${this._gripBtn(tGrip(key), `Reorder ${label}`, focusKey, () => [
+                  key,
+                ])}
+              `}
         </span>
         <span class="row__label" title=${label}>${label}</span>
       </div>
@@ -793,55 +779,21 @@ export class ProtvistaTrackManager extends LitElement {
   }
 
   // ── Visibility ──────────────────────────────────────────────
-
-  /** Every currently-hidden item, ready for the "Hidden tracks" section. */
-  private _hiddenItems(
-    rows: NormalizedRow[]
-  ): { key: string; label: string; onShow: () => void }[] {
-    const items: { key: string; label: string; onShow: () => void }[] = [];
-    for (const row of rows) {
-      // A standalone row is its own track — keyed by the row id.
-      if (row.standalone) {
-        if (this._hidden(row.id, row.hidden)) {
-          items.push({
-            key: show(row.id),
-            label: this._labelText(row.tracks[0]?.label ?? row.label),
-            onShow: () => this._setRowVisible(row, true),
-          });
-        }
-        continue;
-      }
-      // A whole hidden group appears once.
-      if (this._hidden(row.id, row.hidden)) {
-        items.push({
-          key: show(row.id),
-          label: this._labelText(row.label),
-          onShow: () => this._setRowVisible(row, true),
-        });
-        continue;
-      }
-      // Otherwise, each individually-hidden track ("Group / Track").
-      for (const track of row.tracks) {
-        const key = `${row.id}-${track.id}`;
-        if (this._hidden(key, track.hidden)) {
-          items.push({
-            key: show(key),
-            label: `${this._labelText(row.label)} / ${this._labelText(track.label)}`,
-            onShow: () => this._setTrackVisible(row, track, true),
-          });
-        }
-      }
-    }
-    return items;
-  }
+  // A hidden track stays in place; its toggle key is stable, so after a
+  // hide/show focus stays on the same (now "Show" / "Hide") button. `_toggle*`
+  // pass that key so `_focusAfterSettle` re-focuses it in place — no jump.
 
   /** Show/hide a whole lane (a group header or a standalone row) by row id. */
-  private _setRowVisible(row: NormalizedRow, visible: boolean) {
+  private _setRowVisible(
+    row: NormalizedRow,
+    visible: boolean,
+    focusKey: string
+  ) {
     const name = this._labelText(
       row.standalone ? (row.tracks[0]?.label ?? row.label) : row.label
     );
     this._announce(name, visible);
-    if (!visible) this._focusAfterSettle(show(row.id));
+    this._focusAfterSettle(focusKey);
     this.dispatchEvent(
       new CustomEvent('row-visibility-toggle', {
         detail: { rowId: row.id, visible },
@@ -855,10 +807,11 @@ export class ProtvistaTrackManager extends LitElement {
   private _setTrackVisible(
     group: NormalizedRow,
     track: NormalizedRow['tracks'][number],
-    visible: boolean
+    visible: boolean,
+    focusKey: string
   ) {
     this._announce(this._labelText(track.label), visible);
-    if (!visible) this._focusAfterSettle(show(`${group.id}-${track.id}`));
+    this._focusAfterSettle(focusKey);
     this.dispatchEvent(
       new CustomEvent('track-visibility-toggle', {
         detail: { groupId: group.id, trackId: track.id, visible },

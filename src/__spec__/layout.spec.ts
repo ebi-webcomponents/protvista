@@ -23,8 +23,10 @@ import {
   moveBlock,
   flattenTracks,
   orderedTrackKeys,
+  orderedEntries,
   effectiveTracks,
   displayBlocks,
+  panelBlocks,
 } from '../layout';
 import type { NormalizedRow, NormalizedTrack } from '../schema/normalize';
 
@@ -282,5 +284,49 @@ describe('displayBlocks', () => {
       'stand:S-S',
       'intact:G3[G3-a,G3-c]',
     ]);
+  });
+});
+
+describe('orderedEntries', () => {
+  it('includes hidden tracks in the full order', () => {
+    const out = orderedEntries(
+      CONFIG,
+      layout({ hidden: { 'G1-t1': true, G3: true } })
+    );
+    expect(out.map((e) => e.key)).toEqual([
+      'G1-t1',
+      'G1-t2',
+      'S-S',
+      'G3-a',
+      'G3-b',
+      'G3-c',
+    ]);
+  });
+});
+
+describe('panelBlocks', () => {
+  it('keeps a hidden track in place within its group (unlike displayBlocks)', () => {
+    const l = layout({ hidden: { 'G1-t1': true } });
+    // The canvas drops the hidden track…
+    expect(summarize(displayBlocks(CONFIG, l))).toContain('intact:G1[G1-t2]');
+    // …the panel keeps it in place.
+    expect(summarize(panelBlocks(CONFIG, l))).toEqual([
+      'intact:G1[G1-t1,G1-t2]',
+      'stand:S-S',
+      'intact:G3[G3-a,G3-b,G3-c]',
+    ]);
+  });
+
+  it('keeps a fully-hidden group in the list so it stays recoverable', () => {
+    const l = layout({ hidden: { G3: true } });
+    // The canvas removes the whole group…
+    expect(summarize(displayBlocks(CONFIG, l))).toEqual([
+      'intact:G1[G1-t1,G1-t2]',
+      'stand:S-S',
+    ]);
+    // …the panel still lists it (dimmed, in place).
+    expect(summarize(panelBlocks(CONFIG, l))).toContain(
+      'intact:G3[G3-a,G3-b,G3-c]'
+    );
   });
 });

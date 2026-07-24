@@ -205,15 +205,27 @@ export type Block =
   | { kind: 'group'; group: NormalizedRow; tracks: TrackEntry[]; intact: boolean }
   | { kind: 'single'; entry: TrackEntry; separated: boolean };
 
-/** Group the effective tracks into display blocks (see `Block`). */
-export function displayBlocks(
+/** The full ordered track list (visible + hidden), overlay applied. */
+export function orderedEntries(
   rows: NormalizedRow[],
   layout: LayoutState
-): Block[] {
-  const entries = effectiveTracks(rows, layout);
-  const visibleCount = new Map<string, number>();
+): TrackEntry[] {
+  const byKey = new Map(flattenTracks(rows).map((e) => [e.key, e]));
+  return orderedTrackKeys(rows, layout)
+    .map((key) => byKey.get(key))
+    .filter((e): e is TrackEntry => e !== undefined);
+}
+
+/**
+ * Group a list of ordered track entries into display blocks (see `Block`),
+ * classifying each maximal same-group run against how many of that group's
+ * tracks are present in the list. Shared by the canvas (`displayBlocks`,
+ * visible tracks only) and the panel (`panelBlocks`, every track).
+ */
+function groupIntoBlocks(entries: TrackEntry[]): Block[] {
+  const countByGroup = new Map<string, number>();
   for (const e of entries) {
-    visibleCount.set(e.group.id, (visibleCount.get(e.group.id) ?? 0) + 1);
+    countByGroup.set(e.group.id, (countByGroup.get(e.group.id) ?? 0) + 1);
   }
 
   const blocks: Block[] = [];
@@ -224,10 +236,10 @@ export function displayBlocks(
     while (j < entries.length && entries[j].group.id === groupId) j++;
     const run = entries.slice(i, j);
     const group = run[0].group;
-    const n = visibleCount.get(groupId) ?? run.length;
+    const n = countByGroup.get(groupId) ?? run.length;
 
     if (run.length === n) {
-      // All the group's visible tracks are contiguous → intact.
+      // All the group's tracks (in this list) are contiguous → intact.
       if (group.standalone) {
         blocks.push({ kind: 'single', entry: run[0], separated: false });
       } else {
@@ -241,4 +253,27 @@ export function displayBlocks(
     i = j;
   }
   return blocks;
+}
+
+/**
+ * The blocks the **canvas** renders: derived from the visible tracks only, so
+ * a hidden track drops out and the group reflows.
+ */
+export function displayBlocks(
+  rows: NormalizedRow[],
+  layout: LayoutState
+): Block[] {
+  return groupIntoBlocks(effectiveTracks(rows, layout));
+}
+
+/**
+ * The blocks the **Track Manager panel** renders: every track (visible +
+ * hidden), grouped the same way, so a hidden track stays in place in its
+ * group (the row marks its own hidden state). The canvas still hides them.
+ */
+export function panelBlocks(
+  rows: NormalizedRow[],
+  layout: LayoutState
+): Block[] {
+  return groupIntoBlocks(orderedEntries(rows, layout));
 }

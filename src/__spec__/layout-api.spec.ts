@@ -156,11 +156,11 @@ describe('setRowVisibility', () => {
     expect(events).toHaveLength(1);
   });
 
-  it('re-shows a hidden lane', () => {
+  it('re-shows a hidden lane (clearing the override, since B is not authored hidden)', () => {
     el.setRowVisibility('B', false);
     el.setRowVisibility('B', true);
     expect(laneIds()).toEqual(['A', 'B', 'C']);
-    expect(el.getLayout().hidden).toEqual({ B: false });
+    expect(el.getLayout().hidden).toEqual({});
     expect(events).toHaveLength(2);
   });
 });

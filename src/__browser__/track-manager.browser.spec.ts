@@ -84,12 +84,12 @@ afterEach(() => {
 });
 
 describe('<protvista-track-manager> — accessibility semantics', () => {
-  it('has no axe violations (visible + hidden sections)', async () => {
+  it('has no axe violations (with a hidden track shown in place)', async () => {
     const el = await mountManager({ order: null, hidden: { 'DOMAINS-region': true } });
     await expectNoA11yViolations(el);
   });
 
-  it('labels the group, track, and hidden toggles with aria-pressed', async () => {
+  it('labels the group and track toggles with aria-pressed', async () => {
     const el = await mountManager({ order: null, hidden: { 'DOMAINS-region': true } });
     // The group header hide toggle.
     const group = byKey(el, 'GT:DOMAINS-domain');
@@ -98,10 +98,31 @@ describe('<protvista-track-manager> — accessibility semantics', () => {
     // A visible track toggle.
     const domain = byKey(el, 'T:DOMAINS-domain');
     expect(domain.getAttribute('aria-label')).toBe('Hide Domain');
-    // The hidden region track lives in the Hidden section as "Group / Track".
-    const shown = byKey(el, 'S:DOMAINS-region');
-    expect(shown.getAttribute('aria-pressed')).toBe('true');
-    expect(shown.getAttribute('aria-label')).toBe('Show Domains / Region');
+    // The hidden region track stays in place with a Show toggle (same key).
+    const region = byKey(el, 'T:DOMAINS-region');
+    expect(region.getAttribute('aria-pressed')).toBe('true');
+    expect(region.getAttribute('aria-label')).toBe('Show Region');
+  });
+
+  it('keeps a hidden track in place (dimmed, Show-only), no bottom section', async () => {
+    const el = await mountManager({ order: null, hidden: { 'DOMAINS-region': true } });
+    // No separate "Hidden tracks" section.
+    expect(
+      el.shadowRoot!.querySelector('section[aria-label="Hidden tracks"]')
+    ).toBeNull();
+    // The region row is dimmed and offers only a Show toggle (no reorder).
+    const region = byKey(el, 'T:DOMAINS-region');
+    expect(region.closest('.row')!.classList.contains('row--hidden')).toBe(true);
+    expect(
+      el.shadowRoot!.querySelector('button[data-key="U:DOMAINS-region"]')
+    ).toBeNull();
+    expect(
+      el.shadowRoot!.querySelector('button[data-key="H:DOMAINS-region"]')
+    ).toBeNull();
+    // The header shows a count.
+    expect(el.shadowRoot!.querySelector('.panel__count')!.textContent).toContain(
+      '1 hidden'
+    );
   });
 
   it('groups the Reset control beside the title', async () => {
@@ -358,6 +379,16 @@ describe('<protvista-uniprot> — Customize mode integration', () => {
       'DOMAINS-domain': true,
       'DOMAINS-region': true,
     });
+
+    // The fully-hidden group still lists a header ("Show"); clicking it brings
+    // the whole group — both individually-hidden tracks — back to the canvas.
+    await userEvent.click(panelBtn(el, 'GT:DOMAINS-domain'));
+    await vi.waitFor(() => {
+      if (!el.querySelector(`#${CSS_PREFIX}-group_DOMAINS`)) {
+        throw new Error('group not restored');
+      }
+    });
+    expect(el.getLayout().hidden).toEqual({});
   });
 
   it('moving a track out of its group renders it as "Group / Track"', async () => {

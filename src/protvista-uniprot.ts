@@ -491,9 +491,33 @@ class ProtvistaUniprot extends LitElement {
     this._commitLayout({ ...this._layout, order: next });
   }
 
-  /** Show or hide a whole lane (a group or a standalone track) by row id. */
+  /**
+   * Show or hide a whole lane (a group or a standalone track) by row id.
+   * Showing a group also reveals any per-track hides within it, so "show
+   * group" fully reveals a group whose tracks were hidden individually.
+   */
   setRowVisibility(rowId: string, visible: boolean): void {
-    this._setHidden(rowId, !visible);
+    if (!visible) {
+      this._setHidden(rowId, true);
+      return;
+    }
+    const group = this.config?.rows.find((r) => r.id === rowId);
+    const hidden = { ...this._layout.hidden };
+    // Reveal a key: an explicit `false` override when the config authored it
+    // hidden, otherwise just drop any user hide so it reverts to the default.
+    const reveal = (key: string, authored?: boolean) => {
+      if (authored) hidden[key] = false;
+      else delete hidden[key];
+    };
+    reveal(rowId, group?.hidden);
+    for (const track of group?.tracks ?? []) {
+      reveal(`${rowId}-${track.id}`, track.hidden);
+    }
+    const cur = this._layout.hidden;
+    const changed =
+      Object.keys(hidden).length !== Object.keys(cur).length ||
+      Object.keys(hidden).some((k) => hidden[k] !== cur[k]);
+    if (changed) this._commitLayout({ ...this._layout, hidden });
   }
 
   /** Show or hide an individual track within a group. */
