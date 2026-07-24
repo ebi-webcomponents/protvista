@@ -1,22 +1,23 @@
 /**
  * Lighthouse CI config.
  *
- * `lhci autorun` will boot `vite preview` against the demo build, run
+ * `lhci autorun` will boot `vite preview` against the site build, run
  * Lighthouse N times against each URL, then write reports under
  * bench/results/lighthouse/.
  *
  * Edit `collect.url` to change scenarios. Each query string is a UniProt
- * accession; bench.html (a minimal, stable harness — not the richer
- * demo.html) reads `?accession=` and renders that protein.
+ * accession; bench.html (a minimal, stable harness, deliberately separate
+ * from the richer playground) reads `?accession=` and renders that protein.
  */
 module.exports = {
   ci: {
     collect: {
-      // Built artefact lives in `demo/` (see vite.demo.config.mjs).
-      // --strictPort makes startup fail loudly if 4173 is busy instead of
-      // silently moving to another port that the URLs below won't match.
+      // Built artefact lives in `site/` (see vite.bench.config.mjs; the
+      // `bench:lighthouse` script builds bench.html, which is enough for the
+      // harness). --strictPort makes startup fail loudly if 4173 is busy
+      // instead of silently moving to a port the URLs below won't match.
       startServerCommand:
-        'npx vite preview --config vite.demo.config.mjs --port 4173 --strictPort',
+        'npx vite preview --config vite.bench.config.mjs --port 4173 --strictPort',
       startServerReadyPattern: 'Local:',
       // The component emits `protvista:*` performance marks/measures
       // unconditionally; Lighthouse captures them via its user-timings

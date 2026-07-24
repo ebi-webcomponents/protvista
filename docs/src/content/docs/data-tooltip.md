@@ -1,4 +1,6 @@
-# Authoring `dataTooltip`
+---
+title: Authoring dataTooltip
+---
 
 `dataTooltip` controls the per-datapoint tooltip shown when a user clicks a feature on a track. It has three authoring forms, listed here from least to most expressive. Pick the simplest one that works — the rendering pipeline is the same for all three.
 

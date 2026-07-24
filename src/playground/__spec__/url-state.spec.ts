@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
   encodeState,
   decodeState,
+  accessionFromSearch,
   DEFAULT_ACCESSION,
   type PlaygroundState,
 } from '../url-state';
@@ -66,5 +67,21 @@ describe('decodeState edge cases', () => {
 
   it('returns null for a malformed config payload', () => {
     expect(decodeState('#accession=P05067&config=@@not-base64@@')).toBeNull();
+  });
+});
+
+describe('accessionFromSearch', () => {
+  it('reads an accession from a query string', () => {
+    expect(accessionFromSearch('?accession=P12345')).toBe('P12345');
+  });
+
+  it('trims surrounding whitespace', () => {
+    expect(accessionFromSearch('?accession=%20P1%20')).toBe('P1');
+  });
+
+  it('returns null when absent, empty, or unrelated', () => {
+    expect(accessionFromSearch('')).toBeNull();
+    expect(accessionFromSearch('?accession=')).toBeNull();
+    expect(accessionFromSearch('?foo=bar')).toBeNull();
   });
 });

@@ -1,6 +1,6 @@
 /**
  * Drift test for the paired example embedded in
- * `docs/configuration-vs-data.md`. That page hand-copies the config and
+ * `docs/src/content/docs/configuration-vs-data.md`. That page hand-copies the config and
  * payload from the `examples/csv` example into fenced `yaml`/`csv` blocks.
  * The adapter-reference fixture-drift test only reads the *real* CSV; nothing
  * pins the doc's embedded copy to the file, so `examples/csv/*` could change
@@ -21,8 +21,8 @@ const fenced = (md: string, lang: string) => {
   return m[1];
 };
 
-describe('docs/configuration-vs-data.md embedded example stays in sync', () => {
-  const doc = read('docs/configuration-vs-data.md');
+describe('docs/src/content/docs/configuration-vs-data.md embedded example stays in sync', () => {
+  const doc = read('docs/src/content/docs/configuration-vs-data.md');
 
   it("the csv block matches examples/csv/hotspots.csv verbatim", () => {
     const file = read('examples/csv/hotspots.csv');

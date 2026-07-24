@@ -1,11 +1,13 @@
-# Configuration vs data: what you configure, what a provider supplies
+---
+title: Configuration vs data
+---
 
 ProtVista draws a deliberate line between two things, and knowing which side of the line you're on saves a lot of confusion when you bring your own data.
 
-- **Viewer configuration** — *what to show and how*. The rows and tracks, where each track's data comes from, and how it's rendered. You author this as a YAML/JSON config, and it's validated by the [config JSON Schema](../public/schema/v1/config.schema.json).
-- **Track payloads** — *the data itself*. The shape each track actually consumes (a list of feature records, an API response, …). A **data provider** supplies this — either an EBI API you point at, or a file you author. The config schema names adapters and kinds but **does not** define payload shapes; those are documented in the [adapter reference](./adapter-reference.md).
+- **Viewer configuration** — *what to show and how*. The rows and tracks, where each track's data comes from, and how it's rendered. You author this as a YAML/JSON config, and it's validated by the [config JSON Schema](https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json).
+- **Track payloads** — *the data itself*. The shape each track actually consumes (a list of feature records, an API response, …). A **data provider** supplies this — either an EBI API you point at, or a file you author. The config schema names adapters and kinds but **does not** define payload shapes; those are documented in the [adapter reference](/protvista/adapter-reference).
 
-This is the **Intent / Representation** split. The normative definition lives in [`specs/config-approach.md`](../specs/config-approach.md); this page is the user-facing version.
+This is the **Intent / Representation** split. The normative definition lives in [`specs/config-approach.md`](https://github.com/ebi-webcomponents/protvista/blob/next/specs/config-approach.md); this page is the user-facing version.
 
 ## The boundary at a glance
 
@@ -36,13 +38,13 @@ flowchart TB
 **What a data provider supplies (Representation)**
 
 - The actual payload each track consumes — for a built-in kind, an EBI API response the adapter transforms; for bring-your-own-data, a file whose fields you author.
-- The per-adapter shapes are documented in the [adapter reference](./adapter-reference.md). Bring-your-own-data authors care about the generic **feature record** (`type`, `start`, `end`, optional `description`/`score`); a machine-readable schema is served at [`feature-record.schema.json`](../public/schema/v1/feature-record.schema.json).
+- The per-adapter shapes are documented in the [adapter reference](/protvista/adapter-reference). Bring-your-own-data authors care about the generic **feature record** (`type`, `start`, `end`, optional `description`/`score`); a machine-readable schema is served at [`feature-record.schema.json`](https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json).
 
 The **bridge** between the two sides is the `data` descriptor plus the `kind`: your config declares *where* the data is and *which* adapter (directly, or via the kind) turns it into a payload the track renders.
 
 ## A paired example
 
-Configuration and payload, side by side — the [`examples/csv`](../examples/csv) example. The config is what **you configure**; the CSV is the **payload you supply**.
+Configuration and payload, side by side — the [`examples/csv`](https://github.com/ebi-webcomponents/protvista/tree/next/examples/csv) example. The config is what **you configure**; the CSV is the **payload you supply**.
 
 `config.yaml` — Intent (a standalone bring-your-own-data track):
 
@@ -70,9 +72,9 @@ The config never describes the CSV's columns — that contract belongs to the pa
 
 ## Where to go next
 
-- [Adapter reference](./adapter-reference.md) — the expected payload shape for every built-in kind and adapter.
-- [`specs/config-approach.md`](../specs/config-approach.md) — the normative Intent/Representation definition and every config field.
-- [`specs/generic-format-adapters.md`](../specs/generic-format-adapters.md) — the normative bring-your-own-data format contract.
-- [`examples/`](../examples) — runnable, CI-validated config + data pairs (CSV, TSV, JSON, BED, inline).
+- [Adapter reference](/protvista/adapter-reference) — the expected payload shape for every built-in kind and adapter.
+- [`specs/config-approach.md`](https://github.com/ebi-webcomponents/protvista/blob/next/specs/config-approach.md) — the normative Intent/Representation definition and every config field.
+- [`specs/generic-format-adapters.md`](https://github.com/ebi-webcomponents/protvista/blob/next/specs/generic-format-adapters.md) — the normative bring-your-own-data format contract.
+- [`examples/`](https://github.com/ebi-webcomponents/protvista/tree/next/examples) — runnable, CI-validated config + data pairs (CSV, TSV, JSON, BED, inline).
 
-_Licensed under [CC BY 4.0](../LICENSE-docs)._
+_Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

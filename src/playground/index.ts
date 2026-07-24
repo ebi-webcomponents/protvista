@@ -9,8 +9,8 @@
  * accession) round-trips through the URL hash for shareable links.
  *
  * The `<protvista-uniprot>` custom element is registered by the
- * component `<script>` entry in playground.html (the same pattern the
- * demo/bench pages use). Registration must NOT rely on the bare import
+ * component `<script>` in the playground page (the same pattern the
+ * other Pages entries use). Registration must NOT rely on the bare import
  * below alone: the package declares `"sideEffects": false`, so a bundler
  * is free to tree-shake a side-effect-only import out of the production
  * build. The import is kept so the element is also defined when this
@@ -23,10 +23,18 @@ import { createEditor, type PlaygroundEditor } from './editor';
 import { createDiagnosticsView } from './diagnostics-view';
 import { computeDiagnostics, type PlaygroundDiagnostic } from './lint';
 import { initSplitter } from './splitter';
-import { PRESETS, DEFAULT_PRESET_ID, getPreset } from './presets';
+import {
+  PRESETS,
+  DEV_PRESETS,
+  DEFAULT_PRESET_ID,
+  getPreset,
+  isDevPreset,
+  type Preset,
+} from './presets';
 import {
   readHash,
   writeHash,
+  accessionFromSearch,
   DEFAULT_ACCESSION,
   type PlaygroundState,
 } from './url-state';
@@ -53,6 +61,7 @@ const errorList = $<HTMLUListElement>('errors');
 const previewHost = $<HTMLElement>('preview');
 const previewStale = $<HTMLElement>('preview-stale');
 const editorHost = $<HTMLElement>('editor');
+const presetDesc = $<HTMLElement>('preset-desc');
 
 /** Id of the preset currently loaded; used to keep shared links short. */
 let activePresetId = DEFAULT_PRESET_ID;
@@ -67,13 +76,42 @@ let updateSeq = 0;
 let lastRendered: { text: string; accession: string } | null = null;
 
 // ── Preset picker ─────────────────────────────────────────────
+// The dev playground (`/protvista/playground?dev`) surfaces an extra "Edge cases"
+// group of tricky proteins for eyeballing odd/rich rendering — otherwise it is
+// the same page. A shared link to a dev preset auto-enables the mode so the
+// picker always contains the active preset.
 const CUSTOM_OPTION = 'custom';
-for (const preset of PRESETS) {
-  const option = document.createElement('option');
-  option.value = preset.id;
-  option.textContent = preset.label;
-  presetSelect.append(option);
+const restoredForMode = readHash();
+const isDev =
+  new URLSearchParams(window.location.search).has('dev') ||
+  (restoredForMode?.preset != null && isDevPreset(restoredForMode.preset));
+
+function addPresetOptions(
+  parent: HTMLElement,
+  presets: readonly Preset[]
+): void {
+  for (const preset of presets) {
+    const option = document.createElement('option');
+    option.value = preset.id;
+    option.textContent = preset.label;
+    parent.append(option);
+  }
 }
+
+if (isDev) {
+  const examples = document.createElement('optgroup');
+  examples.label = 'Config examples';
+  addPresetOptions(examples, PRESETS);
+  presetSelect.append(examples);
+  const edge = document.createElement('optgroup');
+  edge.label = 'Edge cases (dev) — default config, tricky proteins';
+  addPresetOptions(edge, DEV_PRESETS);
+  presetSelect.append(edge);
+  document.title = `${document.title} — dev examples`;
+} else {
+  addPresetOptions(presetSelect, PRESETS);
+}
+
 const customOption = document.createElement('option');
 customOption.value = CUSTOM_OPTION;
 customOption.textContent = 'Custom (edited)';
@@ -131,8 +169,9 @@ function setStale(stale: boolean): void {
 /** Reflect edited/pristine state in the preset picker. */
 function syncPicker(text: string): void {
   const preset = getPreset(activePresetId);
-  presetSelect.value =
-    preset && text === preset.config ? activePresetId : CUSTOM_OPTION;
+  const pristine = !!preset && text === preset.config;
+  presetSelect.value = pristine ? activePresetId : CUSTOM_OPTION;
+  presetDesc.textContent = pristine ? (preset?.description ?? '') : '';
 }
 
 async function computeSafe(
@@ -269,9 +308,14 @@ function initialState(): { text: string; accession: string; presetId: string } {
   const preset =
     (restored?.preset && getPreset(restored.preset)) ||
     getPreset(DEFAULT_PRESET_ID)!;
+  // A bare `?accession=` query seeds the accession when the hash carries no
+  // state of its own (a full shareable link lives in the hash and wins).
+  const queryAccession = restored
+    ? null
+    : accessionFromSearch(window.location.search);
   return {
     text: preset.config,
-    accession: restored?.accession ?? preset.accession,
+    accession: restored?.accession ?? queryAccession ?? preset.accession,
     presetId: preset.id,
   };
 }

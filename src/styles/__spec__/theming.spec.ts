@@ -112,9 +112,12 @@ describe('datatable defaults stay in sync with the registry', () => {
   });
 });
 
-describe('docs/theming.md stays in sync with the registry', () => {
+describe('theming docs stay in sync with the registry', () => {
   // Vitest runs from the repo root, so resolve the docs path from cwd.
-  const docs = readFileSync(join(process.cwd(), 'docs/theming.md'), 'utf8');
+  const docs = readFileSync(
+    join(process.cwd(), 'docs/src/content/docs/theming.md'),
+    'utf8'
+  );
 
   it('documents every token name and its default value', () => {
     for (const t of TOKENS) {

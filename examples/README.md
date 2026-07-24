@@ -31,8 +31,8 @@ TSV, JSON, BED) are documented in
 [`specs/generic-format-adapters.md`](../specs/generic-format-adapters.md).
 The expected payload shape for every built-in kind and adapter — plus
 the config-vs-payload boundary — is in
-[`docs/adapter-reference.md`](../docs/adapter-reference.md) and
-[`docs/configuration-vs-data.md`](../docs/configuration-vs-data.md).
+[the adapter reference](https://ebi-webcomponents.github.io/protvista/adapter-reference) and
+[configuration vs data](https://ebi-webcomponents.github.io/protvista/configuration-vs-data).
 The full config schema is documented in
 [`specs/config-approach.md`](../specs/config-approach.md), which is
 the normative source these examples are drawn from.
@@ -63,8 +63,8 @@ Point the `config-src` attribute at any example's config file:
 <protvista-uniprot config-src="./examples/basic/config.yaml"></protvista-uniprot>
 ```
 
-or during local development (`yarn start`), edit `index.html` to add
-the tag above and browse to it.
+or paste the config into the [playground](https://ebi-webcomponents.github.io/protvista/playground/)
+to see it render live (run `yarn docs:dev` and open `/protvista/playground` locally).
 
 **Path-resolution caveat.** `<protvista-uniprot>` fetches `config-src`
 itself relative to the hosting page, but everything *inside* the

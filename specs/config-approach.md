@@ -879,10 +879,10 @@ Accessibility is a grant-level commitment (see the OMP) and is baked into the sc
 
 Rich, stateful, product-specific tooltips (evidence icons, taxonomy lookups, cross-links into an app's own routing, React components) are not a config concern. The library offers exactly two paths for the per-datapoint tooltip surface, and there is no in-between — no programmatic per-`kind` override registry ships:
 
-1. **Declarative tooltips (library-owned).** Authored in YAML as `dataTooltip` (`kind: fields` or `kind: markdown`, or the bare-string shorthand) and rendered by the library's built-in Floating-UI click popover. See [`docs/data-tooltip.md`](../docs/data-tooltip.md).
+1. **Declarative tooltips (library-owned).** Authored in YAML as `dataTooltip` (`kind: fields` or `kind: markdown`, or the bare-string shorthand) and rendered by the library's built-in Floating-UI click popover. See [Author tooltips](https://ebi-webcomponents.github.io/protvista/data-tooltip).
 2. **Consumer-owned tooltips (host-owned).** The React host sets `notooltip` on the element, listens for the Nightingale `change` event, and renders its own overlay at the reported coordinates. This is the canonical path for React adopters and the contract is normative below.
 
-A tutorial-flavoured walkthrough with a copy-pasteable minimal example lives at [`docs/react-integration.md`](../docs/react-integration.md); this section is the normative contract.
+A tutorial-flavoured walkthrough with a copy-pasteable minimal example lives at [Rich tooltips in React](https://ebi-webcomponents.github.io/protvista/react-integration); this section is the normative contract.
 
 ### The `notooltip` attribute
 
@@ -916,7 +916,7 @@ Two interaction edge cases worth knowing:
 
 ### React 19 note
 
-The mount/unmount of the `change` listener is naturally expressed as a single ref callback that returns its cleanup function (React 19). Prefer that shape over the older split-`useEffect` mount/unmount pair; new adopters should not copy the split form as canonical. The worked example in [`docs/react-integration.md`](../docs/react-integration.md) shows both.
+The mount/unmount of the `change` listener is naturally expressed as a single ref callback that returns its cleanup function (React 19). Prefer that shape over the older split-`useEffect` mount/unmount pair; new adopters should not copy the split form as canonical. The worked example in [Rich tooltips in React](https://ebi-webcomponents.github.io/protvista/react-integration) shows both.
 
 ## Security and trust model
 

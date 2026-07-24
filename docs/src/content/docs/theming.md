@@ -1,4 +1,6 @@
-# Theming ProtVista
+---
+title: Theming ProtVista
+---
 
 `<protvista-uniprot>` exposes a documented styling API built on two
 native web standards, so you can match the viewer to your application

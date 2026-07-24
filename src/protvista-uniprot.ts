@@ -55,6 +55,7 @@ import type { NormalizedConfig, NormalizedTrack } from './schema/normalize';
 import { renderingToAttrs } from './renderer/render-helpers';
 
 import loaderIcon from './icons/spinner.svg';
+import { inlineSvg } from './icons/inline';
 import protvistaStyles from './styles/protvista-styles';
 import loaderStyles from './styles/loader-styles';
 import errorStyles from './styles/error-styles';
@@ -1591,7 +1592,7 @@ class ProtvistaUniprot extends LitElement {
     }
     if (this.loading) {
       return html`<div class="protvista-loader">
-        ${svg`${unsafeHTML(loaderIcon)}`}
+        ${svg`${unsafeHTML(inlineSvg(loaderIcon))}`}
       </div>`;
     }
     // Derive error visibility once for this render — every group/track

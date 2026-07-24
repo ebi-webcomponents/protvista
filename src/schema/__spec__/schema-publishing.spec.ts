@@ -91,6 +91,7 @@ const IGNORE_DIR_NAMES = new Set([
   'node_modules',
   'dist',
   'demo',
+  'site',
   'coverage',
   'build',
   '.git',

@@ -11,6 +11,7 @@ import downloadIcon from './icons/download.svg';
 import externalLinkIcon from './icons/external-link.svg';
 
 import loaderIcon from './icons/spinner.svg';
+import { inlineSvg } from './icons/inline';
 import loaderStyles from './styles/loader-styles';
 import { injectStyleOnce, installTokenDefaults } from './styles/inject';
 
@@ -349,7 +350,7 @@ const sourceDownloadLink = (downloadUrl: string) =>
     class="cell-link"
   >
     Source
-    <span class="cell-link__icon">${svg`${unsafeHTML(downloadIcon)}`}</span>
+    <span class="cell-link__icon">${svg`${unsafeHTML(inlineSvg(downloadIcon))}`}</span>
   </a>`;
 
 const foldseekLink = (accession: string, sourceDB: string) => {
@@ -364,7 +365,7 @@ const foldseekLink = (accession: string, sourceDB: string) => {
   >
     Foldseek
     <span class="cell-link__icon cell-link__icon--sm"
-      >${svg`${unsafeHTML(externalLinkIcon)}`}</span
+      >${svg`${unsafeHTML(inlineSvg(externalLinkIcon))}`}</span
     >
   </a>`;
 };
@@ -795,7 +796,7 @@ class ProtvistaUniprotStructure extends LitElement {
             : nothing}
           ${this.loading
             ? html`<div class="protvista-loader">
-                ${svg`${unsafeHTML(loaderIcon)}`}
+                ${svg`${unsafeHTML(inlineSvg(loaderIcon))}`}
               </div>`
             : nothing}
           ${!this.data && !this.loading

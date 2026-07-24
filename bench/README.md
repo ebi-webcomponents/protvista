@@ -1,7 +1,7 @@
 # Performance benchmarks
 
 1. **Library bundle size** — raw + gzipped bytes from `yarn build`'s `dist/` output. Catches accidental dependency bloat in shippable code.
-2. **Lighthouse CI** — runs the demo (`yarn build:demo`, served by `vite preview`) against a fixed list of UniProt accessions. Captures LCP, TBT, CLS, Speed Index, and the overall Performance score.
+2. **Lighthouse CI** — runs the site build (`yarn site:build`, served by `vite preview`) against a fixed list of UniProt accessions. Captures LCP, TBT, CLS, Speed Index, and the overall Performance score.
 3. **Custom milestones** — `<protvista-uniprot>` emits three `performance.mark()` calls at lifecycle transitions (`script-start` in `connectedCallback`, `data-loaded` after fetch resolves, `first-render` after Lit commits the manager to the DOM) plus three `performance.measure()` calls between them. Lighthouse's user-timings audit captures these automatically, so they appear next to the headline metrics in `summary.md`.
 
 `fetch-and-parse` (script-start → data-loaded), `render` (data-loaded → first-render), and `total` (script-start → first-render) are the durations surfaced in the report.
@@ -71,7 +71,7 @@ Treat any single-metric delta under ~5% as noise unless it's consistent across a
 
 ## Editing scenarios
 
-Scenarios are defined in `bench/lighthouserc.cjs` under `ci.collect.url`. Each query string is a UniProt accession — `bench.html` (a minimal, stable harness kept separate from the richer `demo.html`) reads `?accession=` and renders that protein. Add or remove URLs there.
+Scenarios are defined in `bench/lighthouserc.cjs` under `ci.collect.url`. Each query string is a UniProt accession — `bench.html` (a minimal, stable harness kept deliberately separate from the richer playground) reads `?accession=` and renders that protein. Add or remove URLs there.
 
 ## Files
 
