@@ -30,11 +30,16 @@ line 59 ("allow *library users* to customise"). It is deliberately
   for non-technical end-users (ROADMAP line 60), and
 - the **non-coding bench scientists** the Starter Kit targets.
 
-Theming here is a write-CSS surface *by design*: overriding a token or a
-`::part` rule is a developer action. The registry (`src/styles/tokens.ts`)
-is nonetheless the **substrate** a future no-code styling panel can drive
-— it can enumerate the typed tokens and write overrides via
-`host.style.setProperty(...)` — so building that panel does not require
+Theming here is primarily a write-CSS surface *by design*: overriding a
+token or a `::part` rule is a developer action. The registry
+(`src/styles/tokens.ts`) is the **substrate** — it can enumerate the typed
+tokens and write overrides via `host.style.setProperty(...)`. A no-code
+subset of that is already exposed through the config `theme:` block
+(`ThemeConfig` — `labelColor` / `accentColor`), which the component
+applies via exactly that `host.style.setProperty(...)` mechanism at mount;
+because it is inline on the host, a config `theme` takes precedence over
+ordinary page CSS (a host overrides it with `!important`). A fuller
+no-code styling panel can drive the remaining tokens the same way without
 re-plumbing anything here.
 
 ## Purpose

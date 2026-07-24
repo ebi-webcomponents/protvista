@@ -448,6 +448,40 @@ class ProtvistaUniprot extends LitElement {
   }
 
   /**
+   * Apply author-set chrome colours from `config.theme` as inline
+   * `--protvista-*` custom properties on the host. Because they are set
+   * *inline on this element*, a config `theme` takes precedence over the
+   * `:where(:root)` token defaults AND ordinary page CSS — an inherited
+   * `:root` value or an element-selector rule both lose to an inline
+   * declaration (see the precedence note in src/styles/inject.ts). A host
+   * that must override a config theme uses `!important` (or sets the token
+   * inline itself). A no-code theming shortcut — the tokens are documented
+   * in docs/theming.md.
+   *
+   * Clears every token it manages up front, then sets what the theme
+   * supplies, so a re-init (accession change / retry) with a
+   * removed-or-narrowed theme can't leave stale inline values on the host.
+   */
+  private applyTheme(theme: NormalizedConfig['theme']) {
+    for (const token of [
+      '--protvista-group-label-bg',
+      '--protvista-track-label-bg',
+      '--protvista-color-accent',
+    ]) {
+      this.style.removeProperty(token);
+    }
+    if (!theme) return;
+    if (theme.labelColor) {
+      // The row-label side panel: group + track label backgrounds.
+      this.style.setProperty('--protvista-group-label-bg', theme.labelColor);
+      this.style.setProperty('--protvista-track-label-bg', theme.labelColor);
+    }
+    if (theme.accentColor) {
+      this.style.setProperty('--protvista-color-accent', theme.accentColor);
+    }
+  }
+
+  /**
    * Define the components the resolved config actually references. Walks
    * every group's and track's resolved `component`, looks the
    * constructor up in the registry, and defines the tag via
@@ -926,6 +960,7 @@ class ProtvistaUniprot extends LitElement {
           this.accession = normalized.accession;
         }
         this.config = normalized;
+        this.applyTheme(normalized.theme);
         // Define the components this config references (built-in or
         // consumer-registered) now that the resolved set is known. Runs
         // once per fresh config; re-inits (accession change / retry)

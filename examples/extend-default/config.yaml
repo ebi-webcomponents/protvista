@@ -23,7 +23,7 @@
 accession: P05067
 extends: /src/default-config.yaml
 
-groups:
+rows:
   - id: MY_LAB
     label: My lab
     tracks:

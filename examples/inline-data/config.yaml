@@ -3,7 +3,12 @@
 # sequence fetch is gated on it regardless of where track data comes
 # from. See examples/README.md.
 accession: P05067
-groups:
+# `theme` recolours the viewer chrome from the config — no CSS needed.
+# `labelColor` sets the row-label side panel; `accentColor` (optional)
+# sets focus rings / the datatable active-row marker. See docs/theming.md.
+theme:
+  labelColor: '#e8f5e9'
+rows:
   - id: MY_ANNOTATIONS
     label: My custom annotations
     tracks:

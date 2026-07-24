@@ -5,8 +5,7 @@
   "description": "Declarative configuration for a ProtVista viewer instance (v1). Source-of-truth JSON Schema, authored in lockstep with src/schema/types.ts.",
 
   "type": "object",
-  "$comment": "Exactly one of `rows` / `groups` must be present. `groups` is the deprecated spelling of `rows`, kept for one cycle so existing configs keep validating in editors; the loader folds it into `rows` and warns. `oneOf` (not `anyOf`) is what makes setting BOTH a schema failure — the runtime alias resolver catches that case earlier and reports it with a clearer message.",
-  "oneOf": [{ "required": ["rows"] }, { "required": ["groups"] }],
+  "required": ["rows"],
   "additionalProperties": false,
   "properties": {
     "$schema": { "type": "string" },
@@ -40,14 +39,9 @@
       "description": "Promote every non-fatal warning (empty sequence, per-track fetch failure, setTrackData misuse) to a mount-level failure shown in the viewer's error panel. Default false.",
       "type": "boolean"
     },
+    "theme": { "$ref": "#/$defs/ThemeConfig" },
     "rows": {
       "description": "Ordered list of rows: each is either a group of tracks (has `tracks`) or a standalone track (has `data`, no `tracks`). Mixed freely; declaration order preserved.",
-      "type": "array",
-      "items": { "$ref": "#/$defs/TopLevelEntry" }
-    },
-    "groups": {
-      "description": "DEPRECATED — renamed to `rows`. Folded into `rows` on load, with a one-time console warning. Will be removed before the v5 schema is published. Setting both `rows` and `groups` is an error.",
-      "deprecated": true,
       "type": "array",
       "items": { "$ref": "#/$defs/TopLevelEntry" }
     }
@@ -55,7 +49,6 @@
 
   "$defs": {
     "TopLevelEntry": {
-      "$comment": "One row. Shared by `rows` and its deprecated `groups` alias so the two spellings cannot drift apart — they must validate identically for the alias to be safe.",
       "description": "A group of tracks (has `tracks`) or a standalone track (has `data`, no `tracks`).",
       "oneOf": [
         { "$ref": "#/$defs/GroupConfig" },
@@ -69,6 +62,24 @@
       "additionalProperties": false,
       "properties": {
         "rendering": { "$ref": "#/$defs/RenderingOptions" }
+      }
+    },
+
+    "ThemeConfig": {
+      "description": "Viewer-wide chrome colours, applied as --protvista-* custom properties on the host. A no-code way to recolour the viewer from the config (see docs/theming.md for the underlying tokens).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "labelColor": {
+          "description": "Background of the row-label side panel (group + track labels).",
+          "type": "string",
+          "minLength": 1
+        },
+        "accentColor": {
+          "description": "Primary accent — focus rings and the datatable active-row marker.",
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
 

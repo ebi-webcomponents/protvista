@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ProtVista configuration playground</title>
+    <meta
+      name="description"
+      content="Edit a ProtVista YAML/JSON config with live validation and a live viewer preview. Share your setup with a link."
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #1a1a2e;
+        --muted: #55566a;
+        --accent: #0b6bcb;
+        --line: #e2e4ee;
+        --bg: #f7f8fc;
+        --err: #b3261e;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Open Sans', system-ui, sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        margin: 0;
+        /* Fill the viewport with a definite height (flex column handles a
+           wrapped header, no magic number) and hide page overflow, so each
+           pane scrolls internally and independently rather than the whole
+           page growing with the config. */
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+      }
+      header.bar {
+        flex: none;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem 1.25rem;
+        padding: 0.75rem 1.25rem;
+        border-bottom: 1px solid var(--line);
+        background: #fff;
+      }
+      header.bar h1 {
+        font-size: 1.1rem;
+        margin: 0;
+        margin-right: auto;
+      }
+      header.bar a.home {
+        color: var(--accent);
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+      .field {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.9rem;
+      }
+      .field label {
+        color: var(--muted);
+      }
+      select,
+      input,
+      button {
+        font: inherit;
+        font-size: 0.9rem;
+        padding: 0.35rem 0.55rem;
+        border: 1px solid var(--line);
+        border-radius: 0.35rem;
+        background: #fff;
+        color: inherit;
+      }
+      input#accession {
+        width: 7rem;
+      }
+      button#run {
+        cursor: pointer;
+        font-weight: 700;
+        color: #fff;
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      button#run:hover {
+        filter: brightness(1.08);
+      }
+      :focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 1px;
+      }
+      main {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: grid;
+        /* Left pane | draggable splitter | right pane. The fr weights are
+           set by splitter.ts; default to an even split. */
+        grid-template-columns: var(--left, 1fr) 8px var(--right, 1fr);
+        background: var(--bg);
+      }
+      main.dragging {
+        cursor: col-resize;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .splitter {
+        background: var(--line);
+        cursor: col-resize;
+        touch-action: none;
+      }
+      .splitter:hover,
+      .splitter:focus-visible {
+        background: var(--accent);
+        outline: none;
+      }
+      section.pane {
+        background: var(--bg);
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        /* Grid items default to min-height:auto; 0 lets the pane shrink so
+           its editor/preview child owns the scroll. */
+        min-height: 0;
+        overflow: hidden;
+      }
+      .pane h2 {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+        margin: 0;
+        padding: 0.6rem 1rem;
+        border-bottom: 1px solid var(--line);
+        background: #fff;
+      }
+      #editor {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        background: #fff;
+      }
+      .cm-editor {
+        height: 100%;
+      }
+      #preview {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        padding: 0.5rem 1rem 2rem;
+        background: #fff;
+      }
+      #preview.stale {
+        opacity: 0.55;
+      }
+      #preview-stale {
+        flex: none;
+        margin: 0;
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--err);
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+      }
+      #preview-stale[hidden] {
+        display: none;
+      }
+      .errors {
+        /* Fixed footer of the config pane — always visible at the bottom,
+           regardless of how far the editor above is scrolled. */
+        flex: none;
+        border-top: 1px solid var(--line);
+        background: #fff;
+        padding: 0.5rem 1rem;
+      }
+      #error-summary {
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin: 0;
+      }
+      #errors {
+        margin: 0.35rem 0 0;
+        padding-left: 1.1rem;
+        font-size: 0.85rem;
+        color: var(--err);
+        /* Only the list scrolls; the summary line stays pinned above it. */
+        max-height: 9rem;
+        overflow: auto;
+      }
+      #errors:empty {
+        display: none;
+      }
+      #errors li {
+        margin: 0.15rem 0;
+      }
+      @media (max-width: 760px) {
+        /* Stack the panes and let the page scroll normally. */
+        body {
+          height: auto;
+          overflow: visible;
+        }
+        main {
+          grid-template-columns: 1fr;
+        }
+        .splitter {
+          display: none;
+        }
+        section.pane {
+          overflow: visible;
+        }
+        #editor,
+        #preview {
+          height: 60vh;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="bar">
+      <h1>Configuration playground</h1>
+
+      <div class="field">
+        <label for="preset">Preset</label>
+        <select id="preset" aria-label="Configuration preset"></select>
+      </div>
+
+      <div class="field">
+        <label for="accession">Accession</label>
+        <input
+          id="accession"
+          type="text"
+          value="P05067"
+          spellcheck="false"
+          autocomplete="off"
+        />
+      </div>
+
+      <button id="run" type="button" title="Update the preview (Ctrl/Cmd+Enter)">
+        <span aria-hidden="true">▶</span> Run
+      </button>
+      <a class="home" href="./index.html">← Home</a>
+    </header>
+
+    <main id="panels">
+      <section class="pane" aria-label="Config editor">
+        <h2>Config (YAML or JSON)</h2>
+        <div id="editor"></div>
+        <div
+          class="errors"
+          role="region"
+          aria-label="Validation results"
+          aria-live="polite"
+        >
+          <p id="error-summary">Loading…</p>
+          <ul id="errors"></ul>
+        </div>
+      </section>
+
+      <div
+        class="splitter"
+        id="splitter"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize panels"
+        aria-valuemin="15"
+        aria-valuemax="85"
+        aria-valuenow="50"
+        tabindex="0"
+      ></div>
+
+      <section class="pane" aria-label="Live preview">
+        <h2>Preview</h2>
+        <p id="preview-stale" role="status" hidden>
+          <span aria-hidden="true">▶</span> Preview is out of date — press
+          <strong>Run</strong> (Ctrl/Cmd+Enter) to update it. Fix any errors
+          listed on the left first.
+        </p>
+        <div id="preview"></div>
+      </section>
+    </main>
+
+    <!-- Registers the <protvista-uniprot> custom element. This page entry is
+         the reliable registration point: a bare side-effect import alone can
+         be tree-shaken because package.json sets "sideEffects": false. -->
+    <script type="module" src="./src/protvista-uniprot.ts"></script>
+    <script type="module" src="./src/playground/index.ts"></script>
+  </body>
+</html>

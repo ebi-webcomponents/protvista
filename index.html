@@ -1,14 +1,16 @@
 <!DOCTYPE html>
-<html class="no-js" lang="">
+<html class="no-js" lang="en">
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
-    <title>protvista-uniprot</title>
-    <meta name="description" content="" />
+    <title>ProtVista — protvista-uniprot</title>
+    <meta
+      name="description"
+      content="ProtVista: an embeddable protein feature viewer web component. Try the playground, read the docs, or start your own project."
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <!-- Place favicon.ico in the root directory -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -16,60 +18,223 @@
       rel="stylesheet"
     />
     <style>
+      :root {
+        --ink: #1a1a2e;
+        --muted: #55566a;
+        --accent: #0b6bcb;
+        --line: #e2e4ee;
+        --bg: #f7f8fc;
+      }
+      * {
+        box-sizing: border-box;
+      }
       body {
-        font-family: 'Open Sans', sans-serif;
+        font-family: 'Open Sans', system-ui, sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        margin: 0;
+        line-height: 1.55;
+      }
+      .wrap {
+        max-width: 62rem;
+        margin: 0 auto;
+        padding: 2.5rem 1.25rem 4rem;
+      }
+      header h1 {
+        font-size: 2rem;
+        margin: 0 0 0.35rem;
+      }
+      header p.lede {
+        color: var(--muted);
+        font-size: 1.1rem;
+        margin: 0 0 2rem;
+        max-width: 46rem;
+      }
+      h2 {
+        font-size: 1.15rem;
+        margin: 2.5rem 0 1rem;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+        gap: 1rem;
+      }
+      a.card {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 0.6rem;
+        padding: 1.1rem 1.2rem;
+        transition:
+          border-color 0.15s ease,
+          box-shadow 0.15s ease,
+          transform 0.15s ease;
+      }
+      a.card:hover,
+      a.card:focus-visible {
+        border-color: var(--accent);
+        box-shadow: 0 4px 16px rgba(11, 107, 203, 0.12);
+        transform: translateY(-2px);
+      }
+      a.card:focus-visible {
+        outline: 3px solid rgba(11, 107, 203, 0.4);
+        outline-offset: 2px;
+      }
+      a.card .title {
+        font-weight: 700;
+        font-size: 1.05rem;
+        margin-bottom: 0.3rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      a.card .desc {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      a.card .badge {
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        border: 1px solid var(--line);
+        border-radius: 1rem;
+        padding: 0.05rem 0.5rem;
+      }
+      footer {
+        margin-top: 3.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+      footer a {
+        color: var(--accent);
       }
     </style>
   </head>
 
   <body>
-    <div>
-      <!-- NOTE: for all of the following with no config-src → falls back to bundled src/default-config.yaml -->
-      <!-- Accession is read from ?accession= (default P05067). Used by the
-           bench/ workflow to swap scenarios without duplicating HTML. -->
-      <!-- A track whose data is *broken* — unreachable (blocked / offline /
-           DNS / CORS), an HTTP 5xx, or an unparseable body — shows a ⚠
-           badge (with a Retry for the recoverable ones). A track whose
-           data is merely *missing* — an HTTP 4xx such as a 404 "no data
-           for this accession" — is hidden like an empty response. All
-           broken failures also fire a bubbling `protvista-error` event.
-           Add `strict` in config to promote them to the mount-level
-           error panel. -->
-      <protvista-uniprot id="pv"></protvista-uniprot>
-      <script>
-        const params = new URLSearchParams(location.search);
-        document
-          .getElementById('pv')
-          .setAttribute('accession', params.get('accession') || 'P05067');
-      </script>
-      <!-- Good multimer -->
-      <!-- <protvista-uniprot accession="Q55DI5"></protvista-uniprot> -->
-      <!-- No features -->
-      <!-- <protvista-uniprot accession="A0A2K5ULD0"></protvista-uniprot> -->
-      <!-- Not all features -->
-      <!-- <protvista-uniprot accession="P41892"></protvista-uniprot> -->
-      <!-- Out of date alphafold -->
-      <!-- <protvista-uniprot accession="O75319"></protvista-uniprot> -->
-      <!-- AlphaMissense data -->
-      <!-- <protvista-uniprot accession="P07550"></protvista-uniprot> -->
-      <!-- HPP -->
-      <!-- <protvista-uniprot accession="Q9BXU3"></protvista-uniprot> -->
-      <!-- PTM related -->
-      <!-- <protvista-uniprot accession="Q653S1"></protvista-uniprot> -->
-      <!-- <protvista-uniprot accession="B9FXV5"></protvista-uniprot> -->
-      <!-- <protvista-uniprot-structure
-        accession="O74109"
-      ></protvista-uniprot-structure> -->
-      <!-- No AlphaFold confidence -->
-      <!-- <protvista-uniprot accession="P27958"></protvista-uniprot> -->
-       <!-- 3D beacons -->
-      <!-- <protvista-uniprot accession="P38398"></protvista-uniprot> -->
-      <!-- <protvista-uniprot accession="P02768"></protvista-uniprot> -->
-      <!-- <protvista-uniprot accession="Q9H221"></protvista-uniprot> -->
-      <!-- RNA-editing -->
-      <!-- <protvista-uniprot accession="B7Z6K7"></protvista-uniprot> -->
-    </div>
+    <div class="wrap">
+      <header>
+        <h1>ProtVista</h1>
+        <p class="lede">
+          An embeddable protein feature viewer web component
+          (<code>&lt;protvista-uniprot&gt;</code>). Point it at a UniProt
+          accession, or drive it with your own declarative configuration and
+          data.
+        </p>
+      </header>
 
-    <script type="module" src="./src/protvista-uniprot.ts"></script>
+      <h2>Try it</h2>
+      <nav class="cards" aria-label="Interactive tools">
+        <a class="card" href="./playground.html">
+          <div class="title">Configuration playground</div>
+          <div class="desc">
+            Edit a YAML/JSON config with live validation and see the viewer
+            re-render as you type. Share your setup with a link.
+          </div>
+        </a>
+        <a class="card" href="./demo.html?accession=P05067">
+          <div class="title">Live demo</div>
+          <div class="desc">
+            The default UniProt viewer. Swap proteins with
+            <code>?accession=</code>.
+          </div>
+        </a>
+      </nav>
+
+      <h2>Learn</h2>
+      <nav class="cards" aria-label="Documentation">
+        <a
+          class="card"
+          href="https://github.com/ebi-webcomponents/protvista-uniprot#configuration"
+        >
+          <div class="title">
+            User guide <span class="badge">soon</span>
+          </div>
+          <div class="desc">
+            Embedding the viewer, authoring a config, built-in track kinds, and
+            loading your own data. (Currently the README Configuration section.)
+          </div>
+        </a>
+        <a
+          class="card"
+          href="https://github.com/ebi-webcomponents/protvista-uniprot#configuration"
+        >
+          <div class="title">
+            Tutorial <span class="badge">soon</span>
+          </div>
+          <div class="desc">
+            Step by step: embed ProtVista on your site and load your own
+            CSV/TSV/JSON data.
+          </div>
+        </a>
+        <a
+          class="card"
+          href="https://github.com/ebi-webcomponents/protvista-uniprot/blob/main/docs/theming.md"
+        >
+          <div class="title">Theming</div>
+          <div class="desc">
+            Style the viewer with CSS custom properties and
+            <code>::part</code>.
+          </div>
+        </a>
+        <a
+          class="card"
+          href="https://github.com/ebi-webcomponents/protvista-uniprot/blob/main/docs/data-tooltip.md"
+        >
+          <div class="title">Tooltips</div>
+          <div class="desc">
+            Author <code>dataTooltip</code> templates for your tracks.
+          </div>
+        </a>
+      </nav>
+
+      <h2>Start your own</h2>
+      <nav class="cards" aria-label="Starter resources">
+        <a
+          class="card"
+          href="https://github.com/ebi-webcomponents/protvista-starter-kit"
+        >
+          <div class="title">
+            Starter Kit <span class="badge">repo</span>
+          </div>
+          <div class="desc">
+            A no-build template — “Use this template”, edit
+            <code>config.yaml</code>, drop your data in <code>data/</code>.
+          </div>
+        </a>
+        <a
+          class="card"
+          href="https://github.com/ebi-webcomponents/protvista-uniprot"
+        >
+          <div class="title">
+            Source <span class="badge">GitHub</span>
+          </div>
+          <div class="desc">
+            The component source, schema, and issue tracker.
+          </div>
+        </a>
+      </nav>
+
+      <footer>
+        <p>
+          Code licensed under the MIT License. Documentation and training
+          materials licensed under
+          <a href="https://creativecommons.org/licenses/by/4.0/"
+            >CC BY 4.0</a
+          >.
+        </p>
+        <p>
+          This work was supported by the Research Software Maintenance Fund,
+          managed by the Software Sustainability Institute and funded by UKRI
+          grant reference AH/Z000114/1.
+        </p>
+      </footer>
+    </div>
   </body>
 </html>

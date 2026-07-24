@@ -251,20 +251,26 @@ describe.each(discoverExamples())('example: $name', ({ dir, configPath }) => {
     // the real template (see `hasRenderableData` gating in
     // `protvista-uniprot.ts`), so this doesn't assert every declared
     // group renders — just that the example's own data produced at
-    // least one real, populated group/track.
+    // least one real, populated track row. `.pv-group__track` is an
+    // expanded grouped track; `.pv-group--standalone` is a standalone
+    // track row. (Deliberately NOT `.pv-track-content`, which the
+    // always-present navigation lane also emits.)
     expect(
-      target.querySelectorAll(`.${CSS_PREFIX}-group`).length
-    ).toBeGreaterThan(0);
-    expect(
-      target.querySelectorAll(`.${CSS_PREFIX}-group__track`).length
+      target.querySelectorAll(
+        `.${CSS_PREFIX}-group__track, .${CSS_PREFIX}-group--standalone`
+      ).length
     ).toBeGreaterThan(0);
 
     // And, specifically, every track the example authored itself —
     // not just "some" track anywhere in an inherited base config —
-    // rendered its own row.
+    // rendered its own row. Match on `data-id` (present on the content
+    // lane of both grouped and standalone tracks; the `id=` form is
+    // grouped-only).
     for (const { trackId, key } of findLocalTracks(config)) {
-      const node = target.querySelector(`#${CSS_PREFIX}-track_${trackId}`);
-      expect(node, `#${CSS_PREFIX}-track_${trackId} (${key}) should render`).not.toBeNull();
+      const node = target.querySelector(
+        `[data-id="${CSS_PREFIX}-track_${trackId}"]`
+      );
+      expect(node, `${CSS_PREFIX}-track_${trackId} (${key}) should render`).not.toBeNull();
     }
   });
 });

@@ -199,14 +199,10 @@ export interface ProtvistaViewerConfig {
   rows: TopLevelEntry[];
 
   /**
-   * @deprecated Renamed to {@link rows}. `groups:` misnamed the list
-   * once it started holding standalone tracks alongside real groups.
-   * Still accepted — it is folded into `rows:` on load, with a
-   * one-time console warning — but it will be removed before the v5
-   * schema is published. Setting both `rows:` and `groups:` is a
-   * validation error.
+   * Optional viewer-wide chrome colours (a no-code theming shortcut).
+   * @see {@link ThemeConfig}
    */
-  groups?: TopLevelEntry[];
+  theme?: ThemeConfig;
 }
 
 /**
@@ -223,6 +219,29 @@ export type TopLevelEntry = GroupConfig | TrackConfig;
 export interface ConfigDefaults {
   /** Default rendering options inherited by every track. */
   rendering?: RenderingOptions;
+}
+
+/**
+ * Viewer-wide chrome colours — a no-code way to recolour the viewer from
+ * the config, for authors who don't want to write CSS. Each field maps to
+ * a `--protvista-*` design token that the component sets inline on the
+ * host at mount — so a config `theme` takes precedence over the token
+ * defaults and ordinary page CSS (a host overrides it only with
+ * `!important`). See `docs/theming.md` for the full token surface.
+ * Distinct from `ColorScaleConfig.theme`, which is a per-track
+ * data-encoding ramp, not viewer chrome.
+ */
+export interface ThemeConfig {
+  /**
+   * Background of the row-label side panel (group + track labels).
+   * → `--protvista-group-label-bg` / `--protvista-track-label-bg`.
+   */
+  labelColor?: string;
+  /**
+   * Primary accent — focus rings and the datatable active-row marker.
+   * → `--protvista-color-accent`.
+   */
+  accentColor?: string;
 }
 
 export interface GroupConfig {

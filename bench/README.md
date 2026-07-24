@@ -71,7 +71,7 @@ Treat any single-metric delta under ~5% as noise unless it's consistent across a
 
 ## Editing scenarios
 
-Scenarios are defined in `bench/lighthouserc.cjs` under `ci.collect.url`. Each query string is a UniProt accession — `index.html` reads `?accession=` and renders that protein. Add or remove URLs there.
+Scenarios are defined in `bench/lighthouserc.cjs` under `ci.collect.url`. Each query string is a UniProt accession — `bench.html` (a minimal, stable harness kept separate from the richer `demo.html`) reads `?accession=` and renders that protein. Add or remove URLs there.
 
 ## Files
 
