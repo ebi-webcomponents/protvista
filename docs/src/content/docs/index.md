@@ -15,7 +15,7 @@ hero:
       variant: primary
     - text: Check out the Starter Kit
       link: https://github.com/ebi-webcomponents/protvista-starter-kit
-      icon: setting
+      icon: seti:notebook
       variant: primary
 ---
 
