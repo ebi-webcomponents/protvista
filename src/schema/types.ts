@@ -277,6 +277,16 @@ export interface GroupConfig {
   /** Ordered list of tracks within the group. Display order preserved. */
   tracks: TrackConfig[];
 
+  /**
+   * Ship this row hidden by default. An initial-mount default only:
+   * the row is absent from the first render, but stays in the Track
+   * Manager's "Hidden tracks" section so a user can reveal it. Runtime
+   * user toggles (`setRowVisibility`, the show/hide control) layer over
+   * this default and win. Layout state is never written back to config
+   * (see `specs/config-approach.md`). Defaults to `false`.
+   */
+  hidden?: boolean;
+
   /** Group-level rendering defaults; individual tracks inherit these. */
   rendering?: RenderingOptions;
 }
@@ -402,6 +412,16 @@ export interface TrackConfig {
    * variant filter). This is a UI concern, not a data concern.
    */
   filterUI?: 'nightingale-filter';
+
+  /**
+   * Ship this track hidden by default. An initial-mount default only:
+   * the track is absent from the first render, but stays in the Track
+   * Manager's "Hidden tracks" section so a user can reveal it. Runtime
+   * user toggles (`setTrackVisibility`, the show/hide control) layer over
+   * this default and win. Layout state is never written back to config
+   * (see `specs/config-approach.md`). Defaults to `false`.
+   */
+  hidden?: boolean;
 
   /** Track-level rendering overrides; merged on top of group defaults. */
   rendering?: RenderingOptions;

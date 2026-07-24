@@ -102,6 +102,10 @@
           "type": "array",
           "items": { "$ref": "#/$defs/TrackConfig" }
         },
+        "hidden": {
+          "type": "boolean",
+          "description": "Ship this row hidden by default (initial mount only). The row is absent from the first render but stays in the Track Manager's 'Hidden tracks' section so a user can reveal it; runtime user toggles layer over this default. Layout state is never written back to config. Defaults to false."
+        },
         "rendering": { "$ref": "#/$defs/RenderingOptions" }
       }
     },
@@ -137,6 +141,10 @@
         "dataTooltip": { "$ref": "#/$defs/DataTooltip" },
         "filter": { "type": "string", "minLength": 1 },
         "filterUI": { "const": "nightingale-filter" },
+        "hidden": {
+          "type": "boolean",
+          "description": "Ship this track hidden by default (initial mount only). The track is absent from the first render but stays in the Track Manager's 'Hidden tracks' section so a user can reveal it; runtime user toggles layer over this default. Layout state is never written back to config. Defaults to false."
+        },
         "rendering": { "$ref": "#/$defs/RenderingOptions" }
       }
     },

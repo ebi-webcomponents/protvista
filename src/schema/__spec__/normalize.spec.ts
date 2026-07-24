@@ -1201,3 +1201,73 @@ describe('normalizeConfig — standalone top-level tracks', () => {
     expect(out.rows[0].rendering.colorScale).toBeUndefined();
   });
 });
+
+// ─────────────────────────────────────────────────────────────
+// hidden — authored initial-mount default
+// ─────────────────────────────────────────────────────────────
+
+describe('normalizeConfig — hidden default', () => {
+  it('carries a group-level hidden through to the NormalizedRow', () => {
+    const out = normalizeConfig(
+      cfg({
+        sources: { features: 'https://x' },
+        rows: [
+          {
+            id: 'DOMAINS',
+            hidden: true,
+            tracks: [track({ id: 'domain', kind: 'features', data: 'features' })],
+          },
+        ],
+      })
+    );
+    expect(out.rows[0].hidden).toBe(true);
+  });
+
+  it('carries a track-level hidden through to the NormalizedTrack', () => {
+    const out = normalizeConfig(
+      cfg({
+        sources: { features: 'https://x' },
+        rows: [
+          {
+            id: 'DOMAINS',
+            tracks: [
+              track({ id: 'domain', kind: 'features', data: 'features' }),
+              track({ id: 'region', kind: 'features', data: 'features', hidden: true }),
+            ],
+          },
+        ],
+      })
+    );
+    expect(out.rows[0].tracks[0].hidden).toBeUndefined();
+    expect(out.rows[0].tracks[1].hidden).toBe(true);
+  });
+
+  it('mirrors a standalone track hidden onto its synthetic wrapper row and track', () => {
+    const out = normalizeConfig(
+      cfg({
+        sources: { features: 'https://x' },
+        rows: [
+          { id: 'signal_peptide', kind: 'features', data: 'features', hidden: true },
+        ],
+      })
+    );
+    expect(out.rows[0].hidden).toBe(true);
+    expect(out.rows[0].tracks[0].hidden).toBe(true);
+  });
+
+  it('leaves hidden undefined when not authored (visible by default)', () => {
+    const out = normalizeConfig(
+      cfg({
+        sources: { features: 'https://x' },
+        rows: [
+          {
+            id: 'DOMAINS',
+            tracks: [track({ id: 'domain', kind: 'features', data: 'features' })],
+          },
+        ],
+      })
+    );
+    expect(out.rows[0].hidden).toBeUndefined();
+    expect(out.rows[0].tracks[0].hidden).toBeUndefined();
+  });
+});

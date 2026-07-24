@@ -294,6 +294,26 @@ describe('JSON Schema — fine-grained acceptance', () => {
     }
   });
 
+  it('accepts a boolean `hidden` on both a group and a track', () => {
+    expectValid({
+      sources: { x: 'https://x' },
+      rows: [
+        {
+          id: 'C',
+          hidden: true,
+          tracks: [{ id: 't', kind: 'features', data: 'x', hidden: false }],
+        },
+      ],
+    });
+  });
+
+  it('accepts a boolean `hidden` on a standalone top-level track', () => {
+    expectValid({
+      sources: { x: 'https://x' },
+      rows: [{ id: 's', kind: 'features', data: 'x', hidden: true }],
+    });
+  });
+
   it('accepts `extends` as both a single string and an array', () => {
     // Schema-shape test: strings are accepted regardless of whether
     // they are URLs, file paths, or (resolver-supplied) preset names.
@@ -378,6 +398,21 @@ describe('JSON Schema — rejection cases', () => {
         ],
       },
       /inlineData/
+    );
+  });
+
+  it('rejects a non-boolean `hidden`', () => {
+    expectInvalid(
+      {
+        sources: { x: 'https://x' },
+        rows: [
+          {
+            id: 'C',
+            tracks: [{ id: 't', kind: 'features', data: 'x', hidden: 'yes' }],
+          },
+        ],
+      },
+      /hidden|boolean/
     );
   });
 
