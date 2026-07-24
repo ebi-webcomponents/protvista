@@ -79,10 +79,17 @@ import {
   visibleTracks,
 } from './layout';
 
+// The Track Manager ("Customize layout" panel). Side-effect import so the
+// `@customElement('protvista-track-manager')` decorator registers the tag
+// used in `render()`.
+import './protvista-track-manager';
+
 import loaderIcon from './icons/spinner.svg';
+import slidersIcon from './icons/sliders.svg';
 import protvistaStyles from './styles/protvista-styles';
 import loaderStyles from './styles/loader-styles';
 import errorStyles from './styles/error-styles';
+import configPanelStyles from './styles/config-panel-styles';
 import { CSS_PREFIX } from './styles/css-prefix';
 import { injectStyleOnce, installTokenDefaults } from './styles/inject';
 
@@ -215,6 +222,11 @@ class ProtvistaUniprot extends LitElement {
    * re-render, which the `updated()` gate turns into a data re-push.
    */
   private _layout: LayoutState;
+  /**
+   * Whether the "Customize layout" mode is active (the Track Manager panel
+   * is open). Internal reactive state (`state: true`, no attribute).
+   */
+  private _customizeMode: boolean;
   private nostructure: boolean;
   /**
    * Opt out of the built-in click tooltip. Consumers rendering a React overlay typically set this.
@@ -384,6 +396,7 @@ class ProtvistaUniprot extends LitElement {
     registerBuiltinComponents(this.registry);
     this.openGroups = [];
     this._layout = emptyLayout();
+    this._customizeMode = false;
     this.nostructure = false;
     this.hasData = false;
     this.loading = true;
@@ -513,6 +526,7 @@ class ProtvistaUniprot extends LitElement {
       data: { type: Object },
       openGroups: { type: Array },
       _layout: { state: true },
+      _customizeMode: { state: true },
       config: { type: Object },
       viewerConfig: { type: Object },
       // HTML attribute form is kebab-case: `config-src="./my-config.yaml"`.
@@ -535,6 +549,7 @@ class ProtvistaUniprot extends LitElement {
     injectStyleOnce('loader', loaderStyles.toString());
     injectStyleOnce('viewer', protvistaStyles.toString());
     injectStyleOnce('error', errorStyles.toString());
+    injectStyleOnce('config-panel', configPanelStyles.toString());
   }
 
   /**
@@ -1737,6 +1752,65 @@ class ProtvistaUniprot extends LitElement {
     return visibleTracks(group, this._layout);
   }
 
+  // ── "Customize layout" chrome ───────────────────────────────
+  // A toolbar toggle opens the Track Manager panel (a separate shadow-DOM
+  // component). The panel is the accessible source of truth; it emits
+  // intent events that route to the layout API, whose state change flows
+  // back to both the canvas and the panel (single source of truth).
+
+  private _toggleCustomizeMode = () => {
+    this._customizeMode = !this._customizeMode;
+  };
+
+  private _renderCustomizeToolbar() {
+    return html`
+      <div class="${CSS_PREFIX}-toolbar">
+        <button
+          type="button"
+          class="${CSS_PREFIX}-customize-toggle"
+          aria-pressed="${this._customizeMode}"
+          aria-controls="${CSS_PREFIX}-track-manager"
+          @click="${this._toggleCustomizeMode}"
+        >
+          <span class="${CSS_PREFIX}-customize-toggle__icon" aria-hidden="true"
+            >${svg`${unsafeHTML(slidersIcon)}`}</span
+          >
+          Customize layout
+        </button>
+      </div>
+    `;
+  }
+
+  private _renderTrackManager() {
+    return html`
+      <protvista-track-manager
+        id="${CSS_PREFIX}-track-manager"
+        .rows="${this.config?.rows ?? []}"
+        .layout="${this._layout}"
+        accession="${this.accession ?? ''}"
+        @row-visibility-toggle="${this._onRowVisibilityToggle}"
+        @track-visibility-toggle="${this._onTrackVisibilityToggle}"
+        @reset-layout="${this._onResetLayout}"
+      ></protvista-track-manager>
+    `;
+  }
+
+  private _onRowVisibilityToggle = (
+    e: CustomEvent<{ rowId: string; visible: boolean }>
+  ) => {
+    this.setRowVisibility(e.detail.rowId, e.detail.visible);
+  };
+
+  private _onTrackVisibilityToggle = (
+    e: CustomEvent<{ groupId: string; trackId: string; visible: boolean }>
+  ) => {
+    this.setTrackVisibility(e.detail.groupId, e.detail.trackId, e.detail.visible);
+  };
+
+  private _onResetLayout = () => {
+    this.resetLayout();
+  };
+
   render() {
     // Suspend still wins over everything (unchanged semantics).
     if (this.suspend) {
@@ -1771,6 +1845,8 @@ class ProtvistaUniprot extends LitElement {
       }
     }
     return html`
+      ${this._renderCustomizeToolbar()}
+      ${this._customizeMode ? this._renderTrackManager() : ''}
       <nightingale-manager
         reflected-attributes="length display-start display-end highlight activefilters filters"
       >

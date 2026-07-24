@@ -95,6 +95,8 @@ cascades everywhere it is used.
 | `--protvista-color-surface` | color | `#ffffff` | Surface/background for popovers and panels. |
 | `--protvista-color-border` | color | `#c5c8cc` | Default border for popovers and panels. |
 | `--protvista-color-disabled` | color | `#808080` | Disabled controls. |
+| `--protvista-color-bg-hover` | color | `#f1f7ff` | Background of hovered interactive chrome (buttons, list rows). |
+| `--protvista-color-bg-active` | color | `#e6f3ff` | Background of an active/pressed control (toggle buttons). |
 | `--protvista-radius` | length | `4px` | Corner radius for popovers and controls. |
 | `--protvista-shadow-popover` | shadow | `0 4px 12px rgb(0 0 0 / 0.15)` | Drop shadow for floating popovers. |
 

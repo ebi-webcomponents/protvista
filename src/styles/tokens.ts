@@ -112,6 +112,20 @@ const GLOBAL_TOKENS: TokenDef[] = [
     description: 'Colour for disabled controls.',
   },
   {
+    name: '--protvista-color-bg-hover',
+    group: 'global',
+    type: 'color',
+    default: '#f1f7ff',
+    description: 'Background of hovered interactive chrome (buttons, list rows).',
+  },
+  {
+    name: '--protvista-color-bg-active',
+    group: 'global',
+    type: 'color',
+    default: '#e6f3ff',
+    description: 'Background of an active/pressed control (toggle buttons).',
+  },
+  {
     name: '--protvista-radius',
     group: 'global',
     type: 'length',
