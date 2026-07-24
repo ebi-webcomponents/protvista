@@ -119,6 +119,15 @@ describe('<protvista-track-manager> — accessibility semantics', () => {
     expect(hidden).not.toBeNull();
     expect(hidden.querySelector('.hidden__badge')!.textContent).toContain('1');
   });
+
+  it('groups the Reset control beside the title (not pushed to the far edge)', async () => {
+    const el = await mountManager({ order: null, hidden: {} });
+    const head = el.shadowRoot!.querySelector<HTMLElement>('.panel__head')!;
+    // Title first, Reset immediately after, clustered to the left.
+    expect(head.children[0].classList.contains('panel__title')).toBe(true);
+    expect(head.children[1].classList.contains('reset')).toBe(true);
+    expect(getComputedStyle(head).justifyContent).toBe('flex-start');
+  });
 });
 
 describe('<protvista-track-manager> — roving-tabindex grid keyboard', () => {
@@ -286,6 +295,7 @@ const CONFIG = {
 type Viewer = HTMLElement & {
   viewerConfig?: unknown;
   accession?: string;
+  noPersistLayout?: boolean;
   getLayout(): ViewerLayout;
 };
 
@@ -311,6 +321,10 @@ async function mountViewer(): Promise<Viewer> {
   const el = mount<Viewer>('protvista-uniprot', {
     viewerConfig: CONFIG,
     accession: 'P05067',
+    // These tests exercise the panel/canvas, not persistence (covered in
+    // layout-persistence.browser.spec.ts); opt out so a hide/reorder in one
+    // test cannot leak via localStorage / the ?layout= URL into the next.
+    noPersistLayout: true,
   });
   await vi.waitFor(() => {
     const btn = el.querySelector(`.${CSS_PREFIX}-customize-toggle`);
@@ -387,6 +401,31 @@ describe('<protvista-uniprot> — Customize mode integration', () => {
       }
     });
     expect(el.getLayout()).toEqual({ order: null, hidden: {} });
+  });
+
+  it('follows focus to the hidden item without scrolling the page (item 3)', async () => {
+    const el = await mountViewer();
+    await userEvent.click(
+      el.querySelector<HTMLButtonElement>(`.${CSS_PREFIX}-customize-toggle`)!
+    );
+    await vi.waitFor(() => {
+      if (!manager(el)) throw new Error('panel not open');
+    });
+
+    const focusSpy = vi.spyOn(HTMLElement.prototype, 'focus');
+    await userEvent.click(
+      manager(el)!.shadowRoot!.querySelector<HTMLButtonElement>(
+        'button.toggle[data-key="L:DOMAINS"]'
+      )!
+    );
+    // The post-hide focus (which follows the item into the Hidden section)
+    // must pass preventScroll so the window does not jump to the bottom.
+    await vi.waitFor(() => {
+      const scrolled = focusSpy.mock.calls.some(
+        (args) => (args[0] as FocusOptions | undefined)?.preventScroll === true
+      );
+      if (!scrolled) throw new Error('no preventScroll focus yet');
+    });
   });
 
   it('reordering a lane in the panel reorders the canvas and keeps focus', async () => {

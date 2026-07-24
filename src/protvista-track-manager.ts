@@ -104,8 +104,8 @@ export class ProtvistaTrackManager extends LitElement {
     .panel__head {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
+      justify-content: flex-start;
+      gap: 0.75rem;
       margin-bottom: 0.5rem;
     }
 
@@ -604,7 +604,10 @@ export class ProtvistaTrackManager extends LitElement {
       const btn = this.renderRoot.querySelector<HTMLElement>(
         `[data-key="${CSS.escape(key)}"]`
       );
-      btn?.focus();
+      // preventScroll: hiding a track moves focus to its control in the
+      // Hidden section at the bottom; without this the page would scroll
+      // down to it. Focus still follows the item (WCAG 2.4.7), silently.
+      btn?.focus({ preventScroll: true });
     });
   }
 
@@ -755,7 +758,7 @@ export class ProtvistaTrackManager extends LitElement {
     const btn = this.renderRoot.querySelector<HTMLElement>(
       `[data-key="${CSS.escape(key)}"]`
     );
-    btn?.focus();
+    btn?.focus({ preventScroll: true });
   }
 }
 
