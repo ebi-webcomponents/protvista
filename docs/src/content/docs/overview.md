@@ -29,7 +29,9 @@ that to the right components, data adapters, and layout for you.
 
 ## Find your path
 
-- **New here?** Start with [Embed the viewer](/protvista/embed), then
+- **New here?** Take the end-to-end [Tutorial](/protvista/tutorial) — from an
+  empty page to a custom, themed viewer in four steps. For the pieces on their
+  own, see [Embed the viewer](/protvista/embed) then
   [Author a config](/protvista/configure).
 - **Bringing your own data?** Go straight to
   [Load your own data](/protvista/your-data).

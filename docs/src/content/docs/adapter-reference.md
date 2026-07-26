@@ -99,6 +99,5 @@ These adapters back the built-in semantic `kind`s. Their input is a response fro
 - [specs/config-approach.md](https://github.com/ebi-webcomponents/protvista/blob/next/specs/config-approach.md) — normative Intent/Representation split.
 - [specs/generic-format-adapters.md](https://github.com/ebi-webcomponents/protvista/blob/next/specs/generic-format-adapters.md) — normative generic-format contract.
 - [examples/](https://github.com/ebi-webcomponents/protvista/tree/next/examples) — runnable, CI-validated config + data pairs.
-- Shape-correct mocks (#150) and React integration (#155) track downstream ownership of these shapes.
 
 _Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._
