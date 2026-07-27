@@ -1,11 +1,12 @@
 /**
- * Runtime layout API on `<protvista-uniprot>`: `setTrackOrder`,
- * `setRowVisibility`, `setTrackVisibility`, `resetLayout`, `getLayout`,
- * and the `protvista-layout-change` event.
+ * Runtime layout API on `<protvista-uniprot>`: `setRowOrder`,
+ * `setTrackOrder`, `setRowVisibility`, `setTrackVisibility`, `resetLayout`,
+ * `getLayout`, `getConfig`, and the `protvista-layout-change` event.
  *
- * Asserts each call (a) updates the overlay `getLayout()` reports, (b) is
- * reflected by the render loop's DOM output, and (c) dispatches exactly one
- * bubbling `protvista-layout-change` carrying the new overlay — while a
+ * The config is the source of truth, so each call is asserted to (a) rewrite
+ * `config.rows`, (b) show up in the render loop's DOM output, (c) be
+ * reported by `getLayout()` as a patch against the authored baseline, and
+ * (d) dispatch exactly one bubbling `protvista-layout-change` — while a
  * no-op call emits nothing. Mirrors `render-target.spec.ts`: a detached
  * instance with frozen state, rendered into a throwaway target (the
  * `@nightingale-elements/*` packages are stubbed via `setupFiles`).
@@ -13,7 +14,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render } from 'lit';
 import type { NormalizedConfig } from '../schema/normalize';
-import type { ViewerLayout } from '../schema/types';
+import type { LayoutPatch, ProtvistaViewerConfig } from '../schema/types';
 import { CSS_PREFIX } from '../styles/css-prefix';
 import '../protvista-uniprot';
 
@@ -61,17 +62,20 @@ function makeData() {
 }
 
 interface Api {
-  setTrackOrder(order: string[]): void;
+  setRowOrder(order: string[]): void;
+  setTrackOrder(rowId: string, order: string[]): void;
   setRowVisibility(rowId: string, visible: boolean): void;
   setTrackVisibility(groupId: string, trackId: string, visible: boolean): void;
   resetLayout(): void;
-  getLayout(): ViewerLayout;
+  getLayout(): LayoutPatch;
+  getConfig(): ProtvistaViewerConfig | undefined;
+  config: NormalizedConfig;
   render(): unknown;
   addEventListener: HTMLElement['addEventListener'];
 }
 
 let el: Api;
-let events: ViewerLayout[];
+let events: LayoutPatch[];
 
 beforeEach(() => {
   const node = document.createElement('protvista-uniprot') as unknown as Record<
@@ -91,7 +95,7 @@ beforeEach(() => {
 
   events = [];
   el.addEventListener('protvista-layout-change', (e) => {
-    events.push((e as CustomEvent<ViewerLayout>).detail);
+    events.push((e as CustomEvent<LayoutPatch>).detail);
   });
 });
 
@@ -99,9 +103,9 @@ beforeEach(() => {
 function laneIds(): string[] {
   const target = document.createElement('div');
   render(el.render(), target);
-  return Array.from(
-    target.querySelectorAll(`div.${CSS_PREFIX}-group`)
-  ).map((d) => d.getAttribute('id')?.replace(`${CSS_PREFIX}-group_`, '') ?? '');
+  return Array.from(target.querySelectorAll(`div.${CSS_PREFIX}-group`)).map(
+    (d) => d.getAttribute('id')?.replace(`${CSS_PREFIX}-group_`, '') ?? ''
+  );
 }
 
 function trackIds(): string[] {
@@ -112,32 +116,41 @@ function trackIds(): string[] {
   ).map((d) => d.getAttribute('id')?.replace(`${CSS_PREFIX}-track_`, '') ?? '');
 }
 
-// Full-block track-key orders (each lane is a group of two tracks).
-const keys = (id: 'A' | 'B' | 'C') => [`${id}-${id}t1`, `${id}-${id}t2`];
+const rowIds = () => el.config.rows.map((r) => r.id);
 
-describe('setTrackOrder', () => {
-  it('reorders whole groups (moving their track keys) and emits the order', () => {
-    const order = [...keys('C'), ...keys('A'), ...keys('B')];
-    el.setTrackOrder(order);
-    expect(el.getLayout().order).toEqual(order);
+describe('setRowOrder', () => {
+  it('reorders the rows, the DOM, and emits the new order', () => {
+    el.setRowOrder(['C', 'A', 'B']);
+    expect(rowIds()).toEqual(['C', 'A', 'B']);
     expect(laneIds()).toEqual(['C', 'A', 'B']);
     expect(events).toHaveLength(1);
-    expect(events[0].order).toEqual(order);
+    expect(events[0].order).toEqual(['C', 'A', 'B']);
   });
 
-  it('splits a track out of its group ("Group / Track")', () => {
-    // Put a B track between A's two tracks — A is no longer intact.
-    el.setTrackOrder(['A-At1', ...keys('B'), 'A-At2', ...keys('C')]);
-    expect(laneIds()).toEqual(['B', 'C']);
-    // Each split-out A track renders on its own.
-    expect(trackIds()).toContain('A-At2');
+  it('ignores unknown ids and appends the ones it omits', () => {
+    el.setRowOrder(['zzz', 'C']);
+    expect(rowIds()).toEqual(['C', 'A', 'B']);
   });
 
   it('does not emit when the order is unchanged', () => {
-    const order = [...keys('C'), ...keys('A'), ...keys('B')];
-    el.setTrackOrder(order);
-    el.setTrackOrder(order);
+    el.setRowOrder(['C', 'A', 'B']);
+    el.setRowOrder(['C', 'A', 'B']);
     expect(events).toHaveLength(1);
+  });
+});
+
+describe('setTrackOrder', () => {
+  it('reorders tracks within their row only', () => {
+    el.setTrackOrder('A', ['At2', 'At1']);
+    expect(el.config.rows[0].tracks.map((t) => t.id)).toEqual(['At2', 'At1']);
+    // The row order itself is untouched.
+    expect(rowIds()).toEqual(['A', 'B', 'C']);
+    expect(events[0].tracks).toEqual({ A: ['At2', 'At1'] });
+  });
+
+  it('is a no-op for an unknown row', () => {
+    el.setTrackOrder('zzz', ['At2', 'At1']);
+    expect(events).toHaveLength(0);
   });
 });
 
@@ -156,36 +169,52 @@ describe('setRowVisibility', () => {
     expect(events).toHaveLength(1);
   });
 
-  it('re-shows a hidden lane (clearing the override, since B is not authored hidden)', () => {
+  it('re-shows a hidden lane, leaving no trace in the patch', () => {
     el.setRowVisibility('B', false);
     el.setRowVisibility('B', true);
     expect(laneIds()).toEqual(['A', 'B', 'C']);
     expect(el.getLayout().hidden).toEqual({});
     expect(events).toHaveLength(2);
   });
+
+  it('showing a row also clears per-track hides inside it', () => {
+    el.setTrackVisibility('A', 'At1', false);
+    el.setTrackVisibility('A', 'At2', false);
+    expect(laneIds()).not.toContain('A');
+
+    el.setRowVisibility('A', true);
+    expect(laneIds()).toContain('A');
+    expect(el.getLayout().hidden).toEqual({});
+  });
 });
 
 describe('setTrackVisibility', () => {
-  it('hides one track within a group using the composite key', () => {
+  it('hides one track within a group', () => {
     el.setTrackVisibility('A', 'At2', false);
     expect(el.getLayout().hidden).toEqual({ 'A-At2': true });
     expect(trackIds()).toContain('At1');
     expect(trackIds()).not.toContain('At2');
     expect(events).toHaveLength(1);
   });
+
+  it('hiding every track of a group removes the whole lane', () => {
+    el.setTrackVisibility('A', 'At1', false);
+    el.setTrackVisibility('A', 'At2', false);
+    expect(laneIds()).toEqual(['B', 'C']);
+  });
 });
 
 describe('resetLayout', () => {
   it('restores authored order + visibility and emits once', () => {
-    el.setTrackOrder([...keys('C'), ...keys('A'), ...keys('B')]);
+    el.setRowOrder(['C', 'A', 'B']);
     el.setRowVisibility('B', false);
     events.length = 0;
 
     el.resetLayout();
-    expect(el.getLayout()).toEqual({ order: null, hidden: {} });
+    expect(el.getLayout()).toEqual({ order: null, tracks: {}, hidden: {} });
     expect(laneIds()).toEqual(['A', 'B', 'C']);
     expect(events).toHaveLength(1);
-    expect(events[0]).toEqual({ order: null, hidden: {} });
+    expect(events[0]).toEqual({ order: null, tracks: {}, hidden: {} });
   });
 
   it('is a no-op (no event) when already at the authored default', () => {
@@ -200,8 +229,16 @@ describe('getLayout', () => {
     const snapshot = el.getLayout();
     snapshot.hidden.B = false;
     snapshot.order = ['zzz'];
-    // Internal state is untouched by mutating the returned copy.
     expect(el.getLayout().hidden).toEqual({ B: true });
     expect(el.getLayout().order).toBeNull();
+  });
+});
+
+// The reason the config is the source of truth: an arranged view has to be
+// exportable, so an imported dataset can be saved with its arrangement.
+describe('getConfig', () => {
+  it('is undefined until a config has been loaded through the pipeline', () => {
+    // This fixture assigns `config` directly, so there is no authored source.
+    expect(el.getConfig()).toBeUndefined();
   });
 });

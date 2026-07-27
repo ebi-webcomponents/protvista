@@ -118,12 +118,12 @@ export interface NormalizedRow {
   rendering: RenderingOptions;
   tracks: NormalizedTrack[];
   /**
-   * Authored initial-mount default: when `true`, this row starts hidden
-   * (absent from the first render, present in the Track Manager's
-   * "Hidden tracks" section). Runtime user toggles layer over it and
-   * win; layout state is never written back to config. `undefined`
-   * means visible. On a standalone row this mirrors the wrapped track's
-   * authored `hidden`.
+   * When `true`, this row is not rendered. `undefined` means visible.
+   *
+   * The same field an author writes and a user toggles: customize mode
+   * rewrites it in place, so a hidden row's state is in the config and
+   * `getConfig()` exports it. On a standalone row it mirrors the wrapped
+   * track's `hidden`.
    */
   hidden?: boolean;
   /**
@@ -158,9 +158,9 @@ export interface NormalizedTrack {
   filter?: string;
   filterUI?: 'nightingale-filter';
   /**
-   * Authored initial-mount default: when `true`, this track starts
-   * hidden. Runtime user toggles layer over it and win; layout state is
-   * never written back to config. `undefined` means visible.
+   * When `true`, this track is not rendered. `undefined` means visible.
+   * The same field an author writes and a user toggles — see
+   * `NormalizedRow.hidden`.
    */
   hidden?: boolean;
   /** Resolved cascade: defaults → group → kind preset → track. */

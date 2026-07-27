@@ -1,279 +1,329 @@
 /**
- * Runtime layout overlay: the pure order + visibility logic that turns the
- * pristine normalized `config.rows` into the rows the viewer actually
- * displays. Kept out of the component so it is unit-testable in isolation
- * and reused by the render loop, the runtime API, and persistence.
+ * Layout transforms: the pure order + visibility logic behind the viewer's
+ * customize mode. Kept out of the component so it is unit-testable in
+ * isolation and reused by the render loop, the runtime API, and persistence.
  *
- * The overlay never mutates the config (per `specs/config-approach.md`: the
- * config is the initial mount, runtime UI state lives in the viewer). An
- * empty overlay (`order: null`, `hidden: {}`) reproduces the authored
- * layout exactly, so a user who changes nothing sees no difference.
+ * **The config is the source of truth.** Every transform here maps a
+ * `NormalizedRow[]` to a new `NormalizedRow[]` — a reorder moves entries in
+ * `config.rows` / `row.tracks`, and a show/hide writes the same `hidden`
+ * field an author can set in config. Nothing is layered on top at render
+ * time, so what the user arranged *is* the config, and can be exported and
+ * re-loaded (see `src/schema/denormalize.ts`).
+ *
+ * Movement is two-level and stays within the shape config can express: rows
+ * reorder among rows, tracks reorder within their own row. A track cannot
+ * leave its group.
+ *
+ * Inputs are never mutated — each transform returns fresh arrays/objects, so
+ * the pristine baseline the viewer keeps for "reset to default" stays intact
+ * and Lit's identity dirty-check fires on the result.
  */
 import type { NormalizedRow, NormalizedTrack } from './schema/normalize';
-import type { ViewerLayout } from './schema/types';
+import type { LayoutPatch } from './schema/types';
 
-/**
- * The runtime layout overlay. Structurally the public `ViewerLayout`
- * contract (`getLayout()` / the `protvista-layout-change` event `detail`);
- * aliased here so the render/logic code reads in layout terms.
- */
-export type LayoutState = ViewerLayout;
+export type { LayoutPatch };
 
-/** The empty overlay: authored order, no visibility overrides. */
-export function emptyLayout(): LayoutState {
-  return { order: null, hidden: {} };
+/** The global key for a track: `${rowId}-${trackId}`. Also the data-push key. */
+export function trackKey(rowId: string, trackId: string): string {
+  return `${rowId}-${trackId}`;
+}
+
+/** The empty patch: authored order, no visibility overrides. */
+export function emptyPatch(): LayoutPatch {
+  return { order: null, tracks: {}, hidden: {} };
+}
+
+/** Whether a patch would leave the authored config untouched. */
+export function isDefaultPatch(patch: LayoutPatch): boolean {
+  return (
+    patch.order === null &&
+    Object.keys(patch.tracks).length === 0 &&
+    Object.keys(patch.hidden).length === 0
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Visibility queries
+// ─────────────────────────────────────────────────────────────
+
+/** The tracks of a row that are not hidden. */
+export function visibleTracks(row: NormalizedRow): NormalizedTrack[] {
+  return row.tracks.filter((t) => !t.hidden);
 }
 
 /**
- * Resolve whether a lane or track is hidden: an explicit user choice in
- * `layout.hidden` wins, otherwise the authored `hidden` default.
- *
- * @param key   Row id (a lane) or `${groupId}-${trackId}` (a track).
- * @param authoredDefault The config-authored `hidden` for that row/track.
+ * Whether a row renders nothing: hidden outright, or left with no visible
+ * track (hiding every track of a group empties it, so the group header and
+ * its aggregate go too).
  */
-export function isHidden(
-  layout: LayoutState,
-  key: string,
-  authoredDefault?: boolean
-): boolean {
-  const override = layout.hidden[key];
-  return override !== undefined ? override : !!authoredDefault;
+export function isRowHidden(row: NormalizedRow): boolean {
+  return !!row.hidden || visibleTracks(row).length === 0;
+}
+
+/** One row to render, paired with the tracks that survive its hides. */
+export interface DisplayRow {
+  row: NormalizedRow;
+  tracks: NormalizedTrack[];
+}
+
+/** The rows the canvas renders, in config order, hidden ones dropped. */
+export function displayRows(rows: NormalizedRow[]): DisplayRow[] {
+  return rows
+    .filter((row) => !isRowHidden(row))
+    .map((row) => ({ row, tracks: visibleTracks(row) }));
 }
 
 /**
- * Apply an order overlay to a list of id-bearing items. Items named in
- * `order` come first, in that order, ignoring ids no longer present; any
- * items `order` does not mention keep their original relative position and
- * are appended after. Returns the input unchanged when `order` is `null`.
+ * How many things the user has hidden, counted as the units they toggled: a
+ * hidden row counts once (not once per track it contains), and individually
+ * hidden tracks inside a still-visible row count one each. This is the number
+ * the "N hidden" badge shows.
+ */
+export function hiddenCount(rows: NormalizedRow[]): number {
+  let n = 0;
+  for (const row of rows) {
+    if (isRowHidden(row)) n += 1;
+    else n += row.tracks.filter((t) => t.hidden).length;
+  }
+  return n;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Order transforms
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Move the item at `from` to sit at index `to` in a copy of `items`. `to` is
+ * the destination index in the *resulting* list, so `to === items.length - 1`
+ * puts the item last. Out-of-range indices clamp; a no-op returns a copy.
+ */
+function moveAt<T>(items: readonly T[], from: number, to: number): T[] {
+  const out = items.slice();
+  if (from < 0 || from >= out.length) return out;
+  const clamped = Math.max(0, Math.min(out.length - 1, to));
+  if (clamped === from) return out;
+  const [moved] = out.splice(from, 1);
+  out.splice(clamped, 0, moved);
+  return out;
+}
+
+/**
+ * Move a row to index `to` among the rows. Unknown `rowId` is a no-op copy.
+ * `to` is an index into the full row list including hidden rows, which is
+ * what the customize-mode UI works in (hidden rows stay in place as stubs).
+ */
+export function moveRow(
+  rows: NormalizedRow[],
+  rowId: string,
+  to: number
+): NormalizedRow[] {
+  return moveAt(rows, rows.findIndex((r) => r.id === rowId), to);
+}
+
+/**
+ * Move a track to index `to` within its own row. Unknown `rowId` / `trackId`
+ * is a no-op copy. Cross-row moves are deliberately not expressible — see the
+ * module header.
+ */
+export function moveTrack(
+  rows: NormalizedRow[],
+  rowId: string,
+  trackId: string,
+  to: number
+): NormalizedRow[] {
+  return rows.map((row) => {
+    if (row.id !== rowId) return row;
+    const from = row.tracks.findIndex((t) => t.id === trackId);
+    if (from === -1) return row;
+    return { ...row, tracks: moveAt(row.tracks, from, to) };
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Visibility transforms
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Show or hide a whole row. Showing also clears any per-track hides inside
+ * it, so "show group" fully reveals a group whose tracks were hidden
+ * individually rather than leaving it visible but empty.
  *
- * This graceful handling means a saved layout survives config edits: a
+ * A standalone row *is* its single track, so both flags are kept in step —
+ * whichever control the user reaches, the exported config reads the same.
+ */
+export function setRowHidden(
+  rows: NormalizedRow[],
+  rowId: string,
+  hidden: boolean
+): NormalizedRow[] {
+  return rows.map((row) => {
+    if (row.id !== rowId) return row;
+    if (hidden) {
+      return row.standalone
+        ? { ...row, hidden: true, tracks: row.tracks.map(hide) }
+        : { ...row, hidden: true };
+    }
+    return { ...row, hidden: false, tracks: row.tracks.map(show) };
+  });
+}
+
+/**
+ * Show or hide one track within a row. Hiding the last visible track of a
+ * group empties the row (`isRowHidden`); showing a track inside a row that
+ * was hidden outright also reveals the row, so the track the user asked for
+ * actually appears.
+ */
+export function setTrackHidden(
+  rows: NormalizedRow[],
+  rowId: string,
+  trackId: string,
+  hidden: boolean
+): NormalizedRow[] {
+  return rows.map((row) => {
+    if (row.id !== rowId) return row;
+    const tracks = row.tracks.map((t) =>
+      t.id === trackId ? (hidden ? hide(t) : show(t)) : t
+    );
+    const next: NormalizedRow = { ...row, tracks };
+    if (!hidden && row.hidden) next.hidden = false;
+    if (row.standalone) next.hidden = hidden;
+    return next;
+  });
+}
+
+const hide = <T extends { hidden?: boolean }>(x: T): T => ({
+  ...x,
+  hidden: true,
+});
+const show = <T extends { hidden?: boolean }>(x: T): T => ({
+  ...x,
+  hidden: false,
+});
+
+// ─────────────────────────────────────────────────────────────
+// Patch: diff against the authored baseline, and re-apply
+// ─────────────────────────────────────────────────────────────
+//
+// The config is what renders, but persisting a whole config into
+// localStorage and a `?layout=` URL would be far too heavy. So the viewer
+// keeps the pristine normalized rows as a baseline and stores only the diff:
+// which rows moved, which tracks moved within their row, and what the user
+// showed or hid. `applyPatch` replays that diff onto the baseline at mount.
+
+/**
+ * Reorder id-bearing items by an id list. Items named in `order` come first,
+ * in that order, ignoring ids no longer present; items `order` does not
+ * mention keep their relative position and are appended after.
+ *
+ * This graceful handling is what lets a saved layout survive config edits: a
  * removed row simply drops out, a newly-added row appears at the end.
  */
-export function orderRows<T extends { id: string }>(
-  rows: T[],
-  order: string[] | null
+function orderByIds<T extends { id: string }>(
+  items: readonly T[],
+  order: string[] | null | undefined
 ): T[] {
-  if (!order) return rows;
-  const byId = new Map(rows.map((r) => [r.id, r]));
+  if (!order) return items.slice();
+  const byId = new Map(items.map((i) => [i.id, i]));
   const seen = new Set<string>();
   const result: T[] = [];
   for (const id of order) {
-    const row = byId.get(id);
-    if (row && !seen.has(id)) {
-      result.push(row);
+    const item = byId.get(id);
+    if (item && !seen.has(id)) {
+      result.push(item);
       seen.add(id);
     }
   }
-  for (const row of rows) {
-    if (!seen.has(row.id)) {
-      result.push(row);
-      seen.add(row.id);
-    }
+  for (const item of items) {
+    if (!seen.has(item.id)) result.push(item);
   }
   return result;
 }
 
-/**
- * Return a copy of `ids` with the positions of `a` and `b` swapped. Used by
- * the move-up / move-down controls (swap a lane with its visible neighbour).
- * A no-op copy when either id is absent or `a === b`.
- */
-export function swapIds(ids: string[], a: string, b: string): string[] {
-  const ia = ids.indexOf(a);
-  const ib = ids.indexOf(b);
-  if (ia === -1 || ib === -1 || ia === ib) return ids.slice();
-  const out = ids.slice();
-  out[ia] = b;
-  out[ib] = a;
-  return out;
-}
+const sameIds = (a: readonly { id: string }[], b: readonly { id: string }[]) =>
+  a.length === b.length && a.every((x, i) => x.id === b[i].id);
 
 /**
- * Move `movedId` to sit immediately before `targetId`. Used by drag-and-drop
- * (drop a lane onto another). A no-op copy when either id is absent or they
- * are equal.
+ * Whether two row lists arrange the same things the same way — same row
+ * order, same track order within each row, same visibility. The viewer uses
+ * this to drop no-op edits (dragging a row back where it started, toggling a
+ * track to the state it already had) before they reach the change event, so
+ * `protvista-layout-change` only ever fires on a real change.
  */
-export function moveId(
-  ids: string[],
-  movedId: string,
-  targetId: string
-): string[] {
-  if (movedId === targetId) return ids.slice();
-  if (ids.indexOf(movedId) === -1 || ids.indexOf(targetId) === -1) {
-    return ids.slice();
-  }
-  const out = ids.filter((id) => id !== movedId);
-  out.splice(out.indexOf(targetId), 0, movedId);
-  return out;
+export function sameArrangement(
+  a: readonly NormalizedRow[],
+  b: readonly NormalizedRow[]
+): boolean {
+  if (!sameIds(a, b)) return false;
+  return a.every((row, i) => {
+    const other = b[i];
+    if (!!row.hidden !== !!other.hidden) return false;
+    if (!sameIds(row.tracks, other.tracks)) return false;
+    return row.tracks.every((t, j) => !!t.hidden === !!other.tracks[j].hidden);
+  });
 }
 
 /**
- * Move the contiguous set `blockKeys` (kept in their given order) to sit
- * immediately before `beforeKey`, or at the end when `beforeKey` is `null` or
- * absent. Used to move a whole group block past its neighbour while leaving
- * the other keys (including hidden tracks) in place.
+ * The diff from the authored baseline to the current rows: the patch that,
+ * replayed onto `base` by `applyPatch`, reproduces `current`. Returns the
+ * empty patch when nothing was customized, which is what lets the viewer
+ * clear its stored layout instead of persisting a no-op.
  */
-export function moveBlock(
-  allKeys: string[],
-  blockKeys: string[],
-  beforeKey: string | null
-): string[] {
-  const moving = new Set(blockKeys);
-  const rest = allKeys.filter((k) => !moving.has(k));
-  const idx = beforeKey === null ? -1 : rest.indexOf(beforeKey);
-  const at = idx === -1 ? rest.length : idx;
-  return [...rest.slice(0, at), ...blockKeys, ...rest.slice(at)];
-}
+export function diffLayout(
+  base: NormalizedRow[],
+  current: NormalizedRow[]
+): LayoutPatch {
+  const patch = emptyPatch();
+  if (!sameIds(base, current)) patch.order = current.map((r) => r.id);
 
-// ─────────────────────────────────────────────────────────────
-// Flat per-track model
-// ─────────────────────────────────────────────────────────────
-//
-// Order is a flat list of track keys (`${groupId}-${trackId}`); grouping is
-// derived from adjacency, not stored. Same-group tracks that stay adjacent
-// render together under the group header; a track moved away from its
-// siblings renders on its own as "Group / Track".
+  const baseById = new Map(base.map((r) => [r.id, r]));
+  for (const row of current) {
+    const from = baseById.get(row.id);
+    // A row absent from the baseline has no authored state to diff against;
+    // `order` already carries its position and its hides read as authored.
+    if (!from) continue;
 
-/** The global key for a track: `${groupId}-${trackId}`. */
-export function trackKey(groupId: string, trackId: string): string {
-  return `${groupId}-${trackId}`;
-}
-
-export interface TrackEntry {
-  group: NormalizedRow;
-  track: NormalizedTrack;
-  /** Global `${groupId}-${trackId}` key (data-push, hidden, and order key). */
-  key: string;
-}
-
-/** Every track in authored order, flattened out of the rows. */
-export function flattenTracks(rows: NormalizedRow[]): TrackEntry[] {
-  const out: TrackEntry[] = [];
-  for (const group of rows) {
-    for (const track of group.tracks) {
-      out.push({ group, track, key: trackKey(group.id, track.id) });
+    if (!sameIds(from.tracks, row.tracks)) {
+      patch.tracks[row.id] = row.tracks.map((t) => t.id);
     }
-  }
-  return out;
-}
+    if (!!row.hidden !== !!from.hidden) patch.hidden[row.id] = !!row.hidden;
 
-/** The full flat order of every track key (visible + hidden), overlay applied. */
-export function orderedTrackKeys(
-  rows: NormalizedRow[],
-  layout: LayoutState
-): string[] {
-  return orderRows(
-    flattenTracks(rows).map((e) => ({ id: e.key })),
-    layout.order
-  ).map((x) => x.id);
-}
-
-/**
- * The tracks to display, in effective order, with hidden ones removed. A
- * track is hidden when it (or its whole group) is hidden — so an explicit
- * group hide, or hiding every track of a group, empties the group entirely.
- */
-export function effectiveTracks(
-  rows: NormalizedRow[],
-  layout: LayoutState
-): TrackEntry[] {
-  const byKey = new Map(flattenTracks(rows).map((e) => [e.key, e]));
-  return orderedTrackKeys(rows, layout)
-    .map((key) => byKey.get(key))
-    .filter((e): e is TrackEntry => e !== undefined)
-    .filter(
-      (e) =>
-        // A whole-group hide suppresses every track. A standalone row *is*
-        // its track, so it is controlled by the row id alone (its separate
-        // per-track key is not consulted, avoiding a two-key tangle).
-        !isHidden(layout, e.group.id, e.group.hidden) &&
-        (e.group.standalone || !isHidden(layout, e.key, e.track.hidden))
-    );
-}
-
-/**
- * One displayed unit on the canvas / in the panel.
- *
- * - `group` intact: all of a real group's visible tracks are contiguous →
- *   render the collapsible header + aggregate + tracks.
- * - `group` partial (`intact:false`): a run of ≥2 tracks of a split group →
- *   a label-only bracket header + the tracks, always expanded, no aggregate.
- * - `single`: one track — a standalone (`separated:false`, its own label) or a
- *   track isolated from a multi-track group (`separated:true`, "Group / Track").
- */
-export type Block =
-  | { kind: 'group'; group: NormalizedRow; tracks: TrackEntry[]; intact: boolean }
-  | { kind: 'single'; entry: TrackEntry; separated: boolean };
-
-/** The full ordered track list (visible + hidden), overlay applied. */
-export function orderedEntries(
-  rows: NormalizedRow[],
-  layout: LayoutState
-): TrackEntry[] {
-  const byKey = new Map(flattenTracks(rows).map((e) => [e.key, e]));
-  return orderedTrackKeys(rows, layout)
-    .map((key) => byKey.get(key))
-    .filter((e): e is TrackEntry => e !== undefined);
-}
-
-/**
- * Group a list of ordered track entries into display blocks (see `Block`),
- * classifying each maximal same-group run against how many of that group's
- * tracks are present in the list. Shared by the canvas (`displayBlocks`,
- * visible tracks only) and the panel (`panelBlocks`, every track).
- */
-function groupIntoBlocks(entries: TrackEntry[]): Block[] {
-  const countByGroup = new Map<string, number>();
-  for (const e of entries) {
-    countByGroup.set(e.group.id, (countByGroup.get(e.group.id) ?? 0) + 1);
-  }
-
-  const blocks: Block[] = [];
-  let i = 0;
-  while (i < entries.length) {
-    const groupId = entries[i].group.id;
-    let j = i + 1;
-    while (j < entries.length && entries[j].group.id === groupId) j++;
-    const run = entries.slice(i, j);
-    const group = run[0].group;
-    const n = countByGroup.get(groupId) ?? run.length;
-
-    if (run.length === n) {
-      // All the group's tracks (in this list) are contiguous → intact.
-      if (group.standalone) {
-        blocks.push({ kind: 'single', entry: run[0], separated: false });
-      } else {
-        blocks.push({ kind: 'group', group, tracks: run, intact: true });
+    // A standalone row's track hide is the row hide; recording both would
+    // double-count and let the two drift apart in storage.
+    if (row.standalone) continue;
+    const trackById = new Map(from.tracks.map((t) => [t.id, t]));
+    for (const track of row.tracks) {
+      const fromTrack = trackById.get(track.id);
+      if (fromTrack && !!track.hidden !== !!fromTrack.hidden) {
+        patch.hidden[trackKey(row.id, track.id)] = !!track.hidden;
       }
-    } else if (run.length >= 2) {
-      blocks.push({ kind: 'group', group, tracks: run, intact: false });
-    } else {
-      blocks.push({ kind: 'single', entry: run[0], separated: true });
     }
-    i = j;
   }
-  return blocks;
+  return patch;
 }
 
 /**
- * The blocks the **canvas** renders: derived from the visible tracks only, so
- * a hidden track drops out and the group reflows.
+ * Replay a saved patch onto the authored baseline. Unknown ids are ignored
+ * and unmentioned rows/tracks keep their authored order and visibility, so a
+ * layout saved before a config edit still restores what it can.
  */
-export function displayBlocks(
-  rows: NormalizedRow[],
-  layout: LayoutState
-): Block[] {
-  return groupIntoBlocks(effectiveTracks(rows, layout));
-}
-
-/**
- * The blocks the **Track Manager panel** renders: every track (visible +
- * hidden), grouped the same way, so a hidden track stays in place in its
- * group (the row marks its own hidden state). The canvas still hides them.
- */
-export function panelBlocks(
-  rows: NormalizedRow[],
-  layout: LayoutState
-): Block[] {
-  return groupIntoBlocks(orderedEntries(rows, layout));
+export function applyPatch(
+  base: NormalizedRow[],
+  patch: LayoutPatch
+): NormalizedRow[] {
+  return orderByIds(base, patch.order).map((row) => {
+    const tracks = orderByIds(row.tracks, patch.tracks[row.id]).map((track) => {
+      const override = patch.hidden[trackKey(row.id, track.id)];
+      return override === undefined ? track : { ...track, hidden: override };
+    });
+    const rowOverride = patch.hidden[row.id];
+    const next: NormalizedRow = { ...row, tracks };
+    if (rowOverride !== undefined) {
+      next.hidden = rowOverride;
+      // Keep a standalone row and its single track in step (see `diffLayout`).
+      if (row.standalone) {
+        next.tracks = tracks.map((t) => ({ ...t, hidden: rowOverride }));
+      }
+    }
+    return next;
+  });
 }

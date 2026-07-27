@@ -88,9 +88,10 @@ function renderPreview(configText: string, accession: string): void {
   previewHost.textContent = '';
   const element = document.createElement('protvista-uniprot') as PreviewElement;
   // Property set (not attribute) before connection so the mount-time
-  // pipeline parses the raw YAML/JSON string directly. Recreating the
-  // element per render sidesteps the component's intentional decision
-  // not to re-init on a `viewerConfig` change (see protvista-uniprot.ts).
+  // pipeline parses the raw YAML/JSON string directly. `setConfig()` would
+  // also work now that it re-inits properly, but a fresh element per Run is
+  // what a playground wants: it clears any error panel, tooltip, or
+  // structure-viewer state left over from the previous config.
   element.viewerConfig = configText;
   element.setAttribute('accession', accession);
   previewHost.append(element);

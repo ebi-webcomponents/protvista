@@ -104,7 +104,7 @@
         },
         "hidden": {
           "type": "boolean",
-          "description": "Ship this row hidden by default (initial mount only). The row is absent from the first render but stays in the Track Manager's 'Hidden tracks' section so a user can reveal it; runtime user toggles layer over this default. Layout state is never written back to config. Defaults to false."
+          "description": "Ship this row hidden. The row is absent from the render but is listed as a stub in customize mode so a user can reveal it. This is the same field the show/hide control writes, so an author's choice and a user's are the same state and getConfig() exports whichever is current. Defaults to false."
         },
         "rendering": { "$ref": "#/$defs/RenderingOptions" }
       }
@@ -143,7 +143,7 @@
         "filterUI": { "const": "nightingale-filter" },
         "hidden": {
           "type": "boolean",
-          "description": "Ship this track hidden by default (initial mount only). The track is absent from the first render but stays in the Track Manager's 'Hidden tracks' section so a user can reveal it; runtime user toggles layer over this default. Layout state is never written back to config. Defaults to false."
+          "description": "Ship this track hidden. The track is absent from the render but is listed as a stub in customize mode so a user can reveal it. This is the same field the show/hide control writes, so an author's choice and a user's are the same state and getConfig() exports whichever is current. Defaults to false."
         },
         "rendering": { "$ref": "#/$defs/RenderingOptions" }
       }

@@ -8,7 +8,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 
 import '../protvista-uniprot';
-import type { ViewerLayout } from '../schema/types';
+import type { LayoutPatch } from '../schema/types';
 import {
   STORAGE_PREFIX,
   LAYOUT_PARAM,
@@ -35,7 +35,7 @@ type Viewer = HTMLElement & {
   viewerConfig?: unknown;
   accession?: string;
   noPersistLayout?: boolean;
-  getLayout(): ViewerLayout;
+  getLayout(): LayoutPatch;
   setRowVisibility(rowId: string, visible: boolean): void;
   resetLayout(): void;
 };
@@ -57,7 +57,7 @@ function stubFetch() {
   );
 }
 
-/** Mount a viewer and wait until its config has loaded (toolbar present). */
+/** Mount a viewer and wait until its config has loaded (the toggle is up). */
 async function mountViewer(props: Partial<Viewer> = {}): Promise<Viewer> {
   const el = mount<Viewer>('protvista-uniprot', {
     viewerConfig: CONFIG,
@@ -99,7 +99,7 @@ afterEach(() => {
 });
 
 describe('layout persistence — save', () => {
-  it('writes the overlay to localStorage and the ?layout= URL on change', async () => {
+  it('writes the patch to localStorage and the ?layout= URL on change', async () => {
     const el = await mountViewer();
     expect(storedEntries()).toHaveLength(0);
     expect(urlLayout()).toBeNull();
@@ -114,7 +114,7 @@ describe('layout persistence — save', () => {
 });
 
 describe('layout persistence — restore', () => {
-  it('restores a saved overlay on a fresh mount (from localStorage)', async () => {
+  it('restores a saved patch on a fresh mount (from localStorage)', async () => {
     const el1 = await mountViewer();
     el1.setRowVisibility('DOMAINS', false);
     // Clear the URL so this exercises the localStorage path specifically.
@@ -130,13 +130,21 @@ describe('layout persistence — restore', () => {
     el1.setRowVisibility('DOMAINS', false); // localStorage: hidden DOMAINS
 
     // A different layout in the URL should take precedence.
-    const urlToken = encodeLayout({ order: ['sites', 'DOMAINS'], hidden: {} });
+    const urlToken = encodeLayout({
+      order: ['sites', 'DOMAINS'],
+      tracks: {},
+      hidden: {},
+    });
     const url = new URL(originalHref);
     url.searchParams.set(LAYOUT_PARAM, urlToken);
     window.history.replaceState(window.history.state, '', url);
 
     const el2 = await mountViewer();
-    expect(el2.getLayout()).toEqual({ order: ['sites', 'DOMAINS'], hidden: {} });
+    expect(el2.getLayout()).toEqual({
+      order: ['sites', 'DOMAINS'],
+      tracks: {},
+      hidden: {},
+    });
   });
 });
 
@@ -163,7 +171,7 @@ describe('layout persistence — no-persist-layout opt-out', () => {
 
     // A viewer with the opt-out attribute ignores the seeded layout…
     const el2 = await mountViewer({ noPersistLayout: true });
-    expect(el2.getLayout()).toEqual({ order: null, hidden: {} });
+    expect(el2.getLayout()).toEqual({ order: null, tracks: {}, hidden: {} });
 
     // …and does not write when the user changes the layout.
     const before = localStorage.getItem(seededKey);

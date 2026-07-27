@@ -137,6 +137,38 @@ export async function loadConfig(
   input: unknown,
   opts: LoadConfigOptions = {}
 ): Promise<NormalizedConfig> {
+  return (await loadConfigWithSource(input, opts)).config;
+}
+
+/**
+ * The result of `loadConfigWithSource`: the normalized config the renderer
+ * consumes, paired with the authored object it came from.
+ */
+export interface LoadedConfig {
+  config: NormalizedConfig;
+  /**
+   * The validated authored config, after `extends` resolution and accession
+   * injection but *before* normalization — so it still reads the way an
+   * author would write it, without the resolved rendering cascade, the
+   * synthetic standalone wrappers, or the filled-in labels.
+   *
+   * The viewer keeps this as the baseline for `getConfig()`, so a config
+   * exported after the user rearranges the layout stays close to the input
+   * rather than ballooning into a fully-explicit dump.
+   */
+  authored: ProtvistaViewerConfig;
+}
+
+/**
+ * `loadConfig`, but also returning the authored config the normalized one was
+ * derived from. Separate entry point so the common case keeps the simpler
+ * return type and only the viewer (which needs to export edited configs)
+ * pays attention to the source object.
+ */
+export async function loadConfigWithSource(
+  input: unknown,
+  opts: LoadConfigOptions = {}
+): Promise<LoadedConfig> {
   const registry = opts.registry ?? createRegistry();
 
   const parsed = await parseInput(input, opts.format ?? 'auto');
@@ -165,7 +197,8 @@ export async function loadConfig(
   // `validateConfig` has proven `withAccession` conforms to the
   // schema, so the cast below is sound. TypeScript's inability to
   // narrow from `ValidationResult` to the config type is expected.
-  return normalizeConfig(withAccession as ProtvistaViewerConfig, { registry });
+  const authored = withAccession as ProtvistaViewerConfig;
+  return { config: normalizeConfig(authored, { registry }), authored };
 }
 
 /**
