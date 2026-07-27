@@ -69,7 +69,7 @@ The element wraps these stages in `loadConfig()` (`src/schema/load.ts`) and `_in
 
 ### 1. Parse
 
-`parseConfigText()` accepts a YAML or JSON string and returns a plain JS object. YAML uses `js-yaml` with `SAFE_SCHEMA` (no `!!js/function`, no surprise tag handlers). The parser is pure — no I/O, no validation.
+`parseConfigText()` accepts a YAML or JSON string and returns a plain JS object. YAML uses `js-yaml` with `CORE_SCHEMA` (no `!!js/function`, no surprise tag handlers). The parser is pure — no I/O, no validation.
 
 ### 2. Extends
 

@@ -20,8 +20,9 @@ export type ParseFormat = 'auto' | 'json' | 'yaml';
  * YAML by the leading non-whitespace character.
  *
  * @throws `SyntaxError` if the string is neither valid JSON nor valid
- *   YAML. The underlying parser's error is re-thrown unchanged so
- *   callers see line/column information.
+ *   YAML, or if it holds no document at all (blank, whitespace, or
+ *   comments only). A parser error is re-thrown unchanged so callers
+ *   see line/column information.
  */
 export async function parseConfigText(
   text: string,
@@ -49,19 +50,38 @@ function detectFormat(text: string): 'json' | 'yaml' {
 
 /**
  * Lazy-load `js-yaml` and parse. Uses `load` (not `loadAll`) because
- * the config schema is defined for a single root document. Pins the
- * `SAFE_SCHEMA` explicitly — `js-yaml`'s default has historically
- * been `DEFAULT_FULL_SCHEMA` in some versions, which permits
- * `!!js/function` / `!!js/regexp` tags that construct arbitrary JS
- * objects. Configs are authored input, not trusted code, so we ask
- * for the explicit SAFE option and don't rely on the library's
- * version-dependent default.
+ * the config schema is defined for a single root document.
+ *
+ * Pins `CORE_SCHEMA` explicitly — the narrowest schema `js-yaml`
+ * offers (the failsafe types plus `null` / bool / int / float). It
+ * carries no `!!js/function` or `!!js/regexp` tags that would
+ * construct arbitrary JS objects, and no merge keys or timestamps.
+ * Configs are authored input, not trusted code, so we name the schema
+ * rather than relying on the library's version-dependent default.
+ *
+ * `SAFE_SCHEMA` is kept in the lookup below only as a zero-cost guard:
+ * neither the pinned 4.x nor 5.x exports that name, so the `??` has
+ * always fallen through to `CORE_SCHEMA`.
  */
 async function parseYaml(text: string): Promise<unknown> {
+  // A document with no content — blank, whitespace, or comments only —
+  // is version-dependent upstream: `js-yaml` 4.x returns `undefined` /
+  // `null`, 5.x throws. Pin the contract here so it belongs to this
+  // parser rather than to whichever major is installed. A bare `---`
+  // counts as content and still parses to `null`, as it does in both.
+  const hasContent = text.split('\n').some((line) => {
+    const trimmed = line.trim();
+    return trimmed !== '' && !trimmed.startsWith('#');
+  });
+  if (!hasContent) {
+    throw new SyntaxError('expected a document, but the input is empty');
+  }
   const mod = await import('js-yaml');
-  // Both CJS (`mod.default.load`) and ESM (`mod.load`) need to
-  // resolve; tolerate either. Most bundlers settle on one or the
-  // other depending on `esModuleInterop` / `allowSyntheticDefaultImports`.
+  // Two concrete shapes reach here, so tolerate either: native Node
+  // ESM hands back the namespace directly (`mod.load`), while esbuild
+  // pre-bundling — `js-yaml` is in `optimizeDeps.include` for both the
+  // browser test project and the docs playground — can apply CJS
+  // interop and nest it (`mod.default.load`).
   type YamlModule = {
     load: (text: string, opts?: { schema?: unknown }) => unknown;
     SAFE_SCHEMA?: unknown;
@@ -69,12 +89,9 @@ async function parseYaml(text: string): Promise<unknown> {
   const yaml: YamlModule =
     typeof (mod as { load?: unknown }).load === 'function'
       ? (mod as unknown as YamlModule)
-      : (mod as { default: YamlModule }).default;
-  // Some versions export `CORE_SCHEMA` / `DEFAULT_SCHEMA` instead of
-  // `SAFE_SCHEMA`; falling back to the library default (no opts) if
-  // neither is reachable keeps this forward-compatible. The current
-  // shipped `js-yaml` (4.x) exports `CORE_SCHEMA` — which is already
-  // safe (no function/regexp tags) — via the same module namespace.
+      : (mod as unknown as { default: YamlModule }).default;
+  // Falling back to the library default (no opts) if neither name is
+  // reachable keeps this forward-compatible across another rename.
   const schema =
     (yaml as { SAFE_SCHEMA?: unknown; CORE_SCHEMA?: unknown }).SAFE_SCHEMA ??
     (yaml as { CORE_SCHEMA?: unknown }).CORE_SCHEMA;

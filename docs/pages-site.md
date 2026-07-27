@@ -14,7 +14,7 @@ The site is built by **Astro + Starlight** (the docs, including the playground) 
 
 Adding a **doc page** = one markdown file under `docs/src/content/docs/` (with `title:` frontmatter) + a sidebar entry in `docs/astro.config.mjs`. The playground is a native Astro page under `docs/src/pages/`.
 
-Two build-tooling notes. (1) The repo pins a `js-yaml` 5.x whose ESM entry has **no `default` export**, which several Astro/Starlight internals import as a default; a `postinstall` step (`scripts/patch-js-yaml.mjs`) appends one (the library uses named imports, so it is unaffected). (2) Mermaid fenced blocks are rendered by the `astro-mermaid` integration.
+Two build-tooling notes. (1) `js-yaml` is pinned to **4.3.0**, matching the `^4.1.1` that `astro`, `@astrojs/starlight`, and `@astrojs/internal-helpers` all declare, so the whole tree dedupes to one copy. **Bumping it to 5.x breaks the docs build**: 5.x's ESM entry drops the `default` export that those Astro internals import, and also removes `Type`, `DEFAULT_SCHEMA`, and several loader/dumper options they rely on. No released or prerelease Astro version accepts 5.x; upstream publishes 4.x under a `v4-legacy` tag. (2) Mermaid fenced blocks are rendered by the `astro-mermaid` integration.
 
 The bench build copies `public/` into `site/` (Vite's default `copyPublicDir`), so the published JSON Schema at `public/schema/v1/config.schema.json` is served at `/schema/v1/config.schema.json` — matching the `$schema` URL in `src/default-config.yaml`. Astro copies `docs/public/` (e.g. `llms.txt`) likewise. Keep `copyPublicDir` on: dropping `public/` 404s the schema external editors resolve for autocomplete.
 

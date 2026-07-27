@@ -59,7 +59,7 @@ jobs:
 
       # Builds the Astro + Starlight docs (incl. the playground page) + the bench
       # page into site/. Requires astro, @astrojs/starlight, astro-mermaid,
-      # mermaid and sharp in devDependencies; a postinstall patches js-yaml.
+      # mermaid and sharp in devDependencies.
       - name: Build site
         if: github.ref == 'refs/heads/next' && github.event_name == 'push'
         run: yarn site:build

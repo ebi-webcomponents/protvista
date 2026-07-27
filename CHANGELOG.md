@@ -183,3 +183,34 @@ Two fixes make the per-track error surfacing actually reach the screen:
   error-correlation pass, suppressing *all* badges and events. (Hardening
   those parsers at the source is tracked in
   `specs/alphafold-alphamissense-adapter-hardening.md`.)
+
+### Fixed — `js-yaml` pinned to 4.x; install-time patch removed
+
+A routine dependency refresh had bumped `js-yaml` to 5.2.1, a major that
+replaced the package's named/default export shape and removed `Type`,
+`DEFAULT_SCHEMA`, and several loader/dumper options. `astro`,
+`@astrojs/starlight`, and `@astrojs/internal-helpers` all declare
+`js-yaml ^4.1.1`, so the docs build broke on the missing `default`
+export, and a `postinstall` step had been added to write one into the
+installed package inside `node_modules`.
+
+`js-yaml` is now pinned to **4.3.0**, which satisfies that same
+`^4.1.1` range — the tree dedupes to a single copy and the patch is
+gone, along with the `postinstall` hook and `scripts/patch-js-yaml.mjs`.
+This also removes two hazards: writing into `node_modules` corrupts the
+shared global store under package managers that hardlink from it (pnpm),
+and because `scripts/` is not in `files`, publishing with a `postinstall`
+would have failed every consumer's install on a missing file.
+
+One behavioural change follows. A YAML document with no content — blank,
+whitespace, or comments only — is handled differently by the two majors
+(4.x returns `undefined`/`null`, 5.x throws). `parseConfigText` now pins
+this itself and rejects with a `SyntaxError`, so the contract no longer
+depends on which `js-yaml` is installed. A bare `---` still parses to
+`null` and is rejected by validation, as before.
+
+Also corrected: the parser was documented as pinning `SAFE_SCHEMA`, a
+name that exists in no shipped `js-yaml`. It has always used
+`CORE_SCHEMA` — the narrowest schema available, with no `!!js/*` tags —
+which is what the docs and constraint C4 now say, and what a new test
+asserts.
