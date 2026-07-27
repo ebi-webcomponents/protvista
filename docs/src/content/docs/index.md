@@ -25,8 +25,8 @@ sequence. Give it a UniProt **accession** and an optional YAML/JSON **config**;
 it fetches, draws, and lays out the rest.
 
 New here? The end-to-end **[Tutorial](/protvista/tutorial)** takes you from an
-empty page to a custom, themed viewer in four steps. Or pick a starting point
-above, or read the **[Overview](/protvista/overview)** for what it does, who it's
-for, and where to go next.
+empty page to a custom, themed viewer in four steps. Otherwise pick a starting
+point above, or read the **[Overview](/protvista/overview)** for what it does,
+who it's for, and where to go next.
 
 _Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

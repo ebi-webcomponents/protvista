@@ -21,15 +21,32 @@ can also work in your own page served by any static file server or your app's de
 server, or use the [playground](/protvista/playground/) for the config-only
 steps. No build tooling is required.
 
+:::note
+These docs describe the **unreleased 5.0 config surface** (`rows:`, `kind:`,
+`extends:`). The current npm release, `protvista-uniprot@4.9.3`, predates it and
+will not read the configs below — Step 1 shows how to get a matching build.
+:::
+
 ## Step 1: Add the component and point it at an accession
 
 `<protvista-uniprot>` is a **web component**: a custom element that works in any
-page with no build step. Load it once and drop the tag in with an accession:
+page with no bundler or framework. Load it once and drop the tag in with an
+accession:
 
 ```html
 <script type="module" src="./protvista-uniprot.mjs"></script>
 
 <protvista-uniprot accession="P05067"></protvista-uniprot>
+```
+
+`protvista-uniprot.mjs` is the component's built ES-module bundle. Until 5.0 is
+published to npm, build it from source and copy it next to your page:
+
+```sh
+git clone https://github.com/ebi-webcomponents/protvista
+cd protvista
+yarn install && yarn build
+# then copy dist/protvista-uniprot.mjs next to your HTML page
 ```
 
 That single attribute gives you the **full default UniProt viewer** for the
@@ -45,8 +62,8 @@ Swap the accession in the header to view any other protein.
      track groups. Capture from the running site; needs descriptive alt text. -->
 
 
-[Embed the viewer](/protvista/embed) covers the npm install path and every
-attribute (`config-src`, `notooltip`, `nostructure`, …).
+[Embed the viewer](/protvista/embed) covers both ways to load the component and
+every attribute (`config-src`, `notooltip`, `nostructure`, …).
 
 ## Step 2: Add your own track from a CSV
 
@@ -181,6 +198,14 @@ protvista-uniprot {
   --protvista-group-label-bg: #efe6f5;
 }
 ```
+
+:::caution
+The two levers are not additive: a config `theme:` **wins**. `labelColor` and
+`accentColor` are applied as inline styles on the element, so they override page
+CSS targeting the same tokens — including both tokens in the example above. Pick
+one lever, or force the CSS with `!important`. See
+[No-code theming from the config](/protvista/theming#no-code-theming-from-the-config).
+:::
 
 [Theme the viewer](/protvista/theming) lists every token and the datatable
 `::part` hooks.
