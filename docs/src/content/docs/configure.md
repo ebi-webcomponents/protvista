@@ -151,7 +151,16 @@ rows:
 repository root (e.g. the dev server, `yarn start`). A deployed site does not
 serve `src/`, so an embedder who copies this verbatim gets a 404. For anything
 beyond local development, point `extends` at your own hosted copy of the config,
-or at a stable published URL.
+or at the published package on a CDN:
+
+```yaml
+extends: https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0/src/default-config.yaml
+```
+
+That path is served straight from the npm tarball, so pin an exact version — a
+config written against one release is not guaranteed to merge cleanly into
+another. It resolves once 5.0.0 is published; see the release note on the
+[tutorial](/protvista/tutorial).
 :::
 
 ## Where to go next

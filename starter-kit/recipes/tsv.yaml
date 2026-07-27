@@ -1,0 +1,25 @@
+# Bring-your-own TSV instead of CSV, and put the track inside a named
+# group rather than leaving it standalone.
+#
+# The `.tsv` extension on `data:` infers the tab-separated parser, the
+# same way `.csv` infers the comma-separated one. The columns are
+# identical either way: type, start, end, description, and an optional
+# score.
+#
+# `rows:` here holds a group (it has `tracks:`), so the viewer draws a
+# collapsible "My lab" header with the track nested under it. Compare
+# with config.yaml, where a single standalone track needs no group.
+#
+# To use this recipe, copy it over config.yaml — or open
+# index.html?config=recipes/tsv.yaml to preview it without editing
+# anything.
+$schema: https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json
+accession: P05067
+rows:
+  - id: MY_LAB
+    label: My lab
+    tracks:
+      - id: hotspots
+        kind: features
+        data: ./data/hotspots.tsv
+        description: Hotspot regions identified by our lab's pipeline

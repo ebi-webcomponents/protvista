@@ -14,6 +14,24 @@ This is meant to become the single source of truth that the
 playground, Starter Kit, tutorial, and docs eventually all point at,
 rather than each maintaining their own divergent samples.
 
+Two consumers are pinned to these samples by tests, so changing one
+here surfaces immediately rather than silently:
+
+- **The tutorial** embeds `csv/` and `extend-default/` verbatim in
+  fenced code blocks; `src/__spec__/tutorial-doc.spec.ts` asserts they
+  still match.
+- **The Starter Kit** (`starter-kit/`, published to the standalone
+  template repository) ships the same shapes as its `config.yaml` and
+  `recipes/`, adapted to a flat `data/` folder.
+  `src/__spec__/starter-kit.spec.ts` runs those through the same
+  load → data → render pipeline this directory gets, and asserts its
+  three sample data files are byte-identical to `csv/hotspots.csv`,
+  `tsv/hotspots.tsv` and `extend-default/hotspots.csv` — so editing a
+  sample here fails that suite rather than leaving the kit stale. The
+  configs themselves are authored separately (the kit's paths and
+  comments differ), so a change to a `config.yaml` here does not
+  propagate automatically.
+
 ## What's here
 
 | Directory | Demonstrates |

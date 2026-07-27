@@ -62,6 +62,33 @@ describe('JSON Schema — hosting invariants', () => {
   });
 });
 
+describe('npm distribution — files the Starter Kit fetches from the CDN', () => {
+  // The Starter Kit (`starter-kit/`, published to
+  // ebi-webcomponents/protvista-starter-kit) ships a recipe whose
+  // `extends:` points at
+  // https://cdn.jsdelivr.net/npm/protvista-uniprot@<version>/src/default-config.yaml
+  //
+  // jsDelivr serves that path straight out of the npm tarball, so it
+  // exists only while `src` stays in package.json `files`. Trimming
+  // that to `["dist"]` is an obvious-looking size win — the tarball
+  // carries all of src/**/*.ts as dead weight — and it would silently
+  // 404 every Starter Kit copy in the wild, with nothing else in this
+  // repo failing. Hence this test.
+  const pkg = JSON.parse(
+    readFileSync(resolve(process.cwd(), 'package.json'), 'utf8')
+  ) as { files?: string[] };
+
+  it('publishes `src`, which the Starter Kit `extends:` URL resolves into', () => {
+    expect(pkg.files).toContain('src');
+  });
+
+  it('still ships the config that URL points at', () => {
+    expect(
+      statOrNull(resolve(process.cwd(), 'src/default-config.yaml'))
+    ).not.toBeNull();
+  });
+});
+
 // ─────────────────────────────────────────────────────────────
 // Repo-wide placeholder scan. Walks the whole repository tree from the
 // root (so root-level files like `index.html` and `package.json` are
