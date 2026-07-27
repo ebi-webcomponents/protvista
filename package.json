@@ -30,7 +30,6 @@
     "bench:summary": "node bench/summarize.mjs",
     "cdn:clear": "./scripts/clearCDNcaches.sh"
   },
-  "main": "dist/protvista-uniprot.js",
   "module": "dist/protvista-uniprot.mjs",
   "types": "dist/types/index.d.ts",
   "exports": {
@@ -38,7 +37,6 @@
       "import": "./dist/protvista-uniprot.mjs"
     }
   },
-  "sideEffects": false,
   "keywords": [],
   "author": "Xavier Watkins &lt;xwatkins@ebi.ac.uk&gt;",
   "license": "MIT",

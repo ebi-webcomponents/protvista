@@ -3,10 +3,14 @@
  *
  * Exposes both the type surface (for authoring / editor tooling)
  * and the runtime pieces needed to ingest a config (validator,
- * loader, normalizer, registry). The runtime surface is
- * tree-shakeable — consumers that only need the types pay no bundle
- * cost for the runtime (Ajv, js-yaml, normalize) because none of
- * these re-exports run side-effects at load time.
+ * loader, normalizer, registry). The type surface costs nothing at
+ * runtime: `export type` re-exports are erased at compile time, so an
+ * importer naming only types never pulls in Ajv or js-yaml.
+ *
+ * That is narrower than it sounds for *package* consumers. `exports` has
+ * no schema subpath, and the package entry (`src/index.ts`) imports the
+ * component unconditionally — so anything reached through the
+ * `protvista-uniprot` specifier carries the whole bundle regardless.
  */
 
 // ── Type surface ─────────────────────────────────────────────

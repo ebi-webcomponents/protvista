@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+### Fixed — packaging: `import 'protvista-uniprot'` survives bundling
+
+The package declared `"sideEffects": false`, promising bundlers that no
+module here does anything on load. That was untrue: `<protvista-uniprot>` is
+registered by a `@customElement` decorator, so evaluating the entry module
+*is* the registration. The promise let production bundlers delete the
+documented binding-less `import 'protvista-uniprot';`, after which the tag
+silently stayed undefined and the element rendered as an empty box. Dev
+servers evaluate eagerly, so it only ever surfaced in a shipped build. The
+field is now removed, restoring the default assumption that a module may
+act on load.
+
+Consequence worth knowing: importing only the named exports
+(`filterConfig`, `colorConfig`, `ProtvistaUniprotStructure`) can no longer
+shake the component out, so those consumers now pay the full bundle. A
+side-effect-free `./config` subpath export would restore that, but is not
+yet implemented.
+
+Also in this release:
+
+- Removed the `main` field. It pointed at `dist/protvista-uniprot.js`, which
+  no build has emitted since the move to Vite (ES output only) — any
+  resolver falling through to it got a missing file. `module` and `exports`
+  cover every live resolver.
+
 ### Breaking — `label` is now a Markdoc string; `helpPage` and `labelUrl` removed
 
 Group and track `label` is now a Markdoc **inline** source string rendered
