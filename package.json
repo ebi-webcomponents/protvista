@@ -2,6 +2,7 @@
   "name": "protvista-uniprot",
   "description": "ProtVista tool for the UniProt website",
   "version": "5.0.0",
+  "type": "module",
   "files": [
     "dist",
     "src"
@@ -34,8 +35,11 @@
   "types": "dist/types/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/protvista-uniprot.mjs"
-    }
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/protvista-uniprot.mjs",
+      "default": "./dist/protvista-uniprot.mjs"
+    },
+    "./package.json": "./package.json"
   },
   "keywords": [],
   "author": "Xavier Watkins &lt;xwatkins@ebi.ac.uk&gt;",

@@ -26,6 +26,16 @@ Also in this release:
   no build has emitted since the move to Vite (ES output only) — any
   resolver falling through to it got a missing file. `module` and `exports`
   cover every live resolver.
+- Added `types` and `default` conditions to `exports`. With only an `import`
+  condition, TypeScript on `moduleResolution: "bundler"` or `"node16"`
+  resolved *through* `exports` and never found `dist/types/index.d.ts`, so
+  consumers got no declarations.
+- Added `"type": "module"`. Everything shipped is ESM, but without the field
+  two things read as CommonJS: the lazy `import()` chunks Vite emits as
+  `dist/*.js`, which Node had to sniff and reparse (`MODULE_TYPELESS_PACKAGE_JSON`),
+  and `dist/types/*.d.ts`, which TypeScript treated as a CJS declaration
+  describing an ESM file — reported by `attw` as "masquerading as CJS" on
+  both `node16` resolution modes.
 
 ### Breaking — `label` is now a Markdoc string; `helpPage` and `labelUrl` removed
 
