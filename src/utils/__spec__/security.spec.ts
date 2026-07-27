@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { escapeHtml, sanitizeUrl } from '../security';
+import { escapeHtml, sanitizeUrl } from '../security.js';
 
 describe('escapeHtml', () => {
   it('escapes ampersands', () => {

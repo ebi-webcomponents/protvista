@@ -10,7 +10,7 @@
  */
 import { describe, it, expect } from 'vitest';
 // Registers the <protvista-uniprot> element (side-effect import).
-import '../protvista-uniprot';
+import '../protvista-uniprot.js';
 
 type TestableElement = HTMLElement & {
   viewerConfig?: unknown;

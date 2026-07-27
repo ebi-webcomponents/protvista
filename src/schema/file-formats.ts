@@ -17,7 +17,7 @@
  * (`features-json`) from delimited text (`bed`).
  */
 
-import type { KnownAdapterName } from './types';
+import type { KnownAdapterName } from './types.js';
 
 export interface DataFileFormat {
   /** The lower-cased extension including the dot, e.g. `.csv`. */

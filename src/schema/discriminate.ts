@@ -17,7 +17,7 @@
  * never drift between the three stages.
  */
 
-import type { GroupConfig, TopLevelEntry } from './types';
+import type { GroupConfig, TopLevelEntry } from './types.js';
 
 /**
  * True iff `entry` is a `GroupConfig` (has a `tracks` array) rather than

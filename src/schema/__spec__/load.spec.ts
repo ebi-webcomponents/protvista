@@ -18,9 +18,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { loadConfig } from '../load';
-import { ConfigValidationError } from '../errors';
-import { createRegistry } from '../registry';
+import { loadConfig } from '../load.js';
+import { ConfigValidationError } from '../errors.js';
+import { createRegistry } from '../registry.js';
 
 const minimalValidObject = () => ({
   rows: [

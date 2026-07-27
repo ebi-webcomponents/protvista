@@ -38,8 +38,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // globally via `src/__spec__/nightingale-mocks.ts`, wired through
 // `setupFiles` in `vite.config.mjs`. The side-effect import below
 // therefore reaches the stubs, not the real packages.
-import '../protvista-uniprot';
-import type { NormalizedConfig } from '../schema/normalize';
+import '../protvista-uniprot.js';
+import type { NormalizedConfig } from '../schema/normalize.js';
 
 type ProtvistaUniprotLike = HTMLElement & {
   config: NormalizedConfig | undefined;

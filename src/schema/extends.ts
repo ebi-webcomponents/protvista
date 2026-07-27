@@ -105,10 +105,10 @@ import type {
   RenderingOptions,
   ColorScaleConfig,
   ConfigDefaults,
-} from './types';
-import { isGroupConfig } from './discriminate';
-import { ConfigValidationError } from './errors';
-import { parseConfigText } from './parse';
+} from './types.js';
+import { isGroupConfig } from './discriminate.js';
+import { ConfigValidationError } from './errors.js';
+import { parseConfigText } from './parse.js';
 
 // ─────────────────────────────────────────────────────────────
 // Public surface

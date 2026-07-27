@@ -35,7 +35,7 @@ import basicConfig from '../../examples/basic/config.yaml?raw';
 import inlineDataConfig from '../../examples/inline-data/config.yaml?raw';
 import csvConfig from '../../examples/csv/config.yaml?raw';
 import jsonConfig from '../../examples/json/config.yaml?raw';
-import { DEFAULT_ACCESSION } from './url-state';
+import { DEFAULT_ACCESSION } from './url-state.js';
 
 // Repoint a file-backed example's page-relative data path at the sample data
 // served with the docs site (docs/public/sample-data/*, served at

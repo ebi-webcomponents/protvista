@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { inlineSvg } from '../inline';
+import { inlineSvg } from '../inline.js';
 
 describe('inlineSvg', () => {
   it('passes a string icon through unchanged', () => {

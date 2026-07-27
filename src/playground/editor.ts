@@ -13,7 +13,7 @@ import { Compartment } from '@codemirror/state';
 import { yaml } from '@codemirror/lang-yaml';
 import { json } from '@codemirror/lang-json';
 import { lintGutter, setDiagnostics, type Diagnostic } from '@codemirror/lint';
-import { detectFormat } from './format';
+import { detectFormat } from './format.js';
 
 /** Language compartment so YAML/JSON highlighting can be swapped live. */
 const languageConf = new Compartment();

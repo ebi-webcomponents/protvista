@@ -4,16 +4,16 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import NightingaleStructure, {
   type AlphaFoldPayload,
 } from '@nightingale-elements/nightingale-structure';
-import type { ColumnConfig } from './protvista-uniprot-datatable';
-import './protvista-uniprot-datatable';
-import { fetchAll, loadComponent } from './utils';
+import type { ColumnConfig } from './protvista-uniprot-datatable.js';
+import './protvista-uniprot-datatable.js';
+import { fetchAll, loadComponent } from './utils/index.js';
 import downloadIcon from './icons/download.svg';
 import externalLinkIcon from './icons/external-link.svg';
 
 import loaderIcon from './icons/spinner.svg';
-import { inlineSvg } from './icons/inline';
-import loaderStyles from './styles/loader-styles';
-import { injectStyleOnce, installTokenDefaults } from './styles/inject';
+import { inlineSvg } from './icons/inline.js';
+import loaderStyles from './styles/loader-styles.js';
+import { injectStyleOnce, installTokenDefaults } from './styles/inject.js';
 
 const PDBLinks = [
   { name: 'PDBe', link: 'https://www.ebi.ac.uk/pdbe-srv/view/entry/' },

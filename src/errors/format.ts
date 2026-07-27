@@ -9,12 +9,12 @@
  * Deliberately isolated in its own module with **no lit / DOM imports**
  * and a **type-only** import of `ValidationIssue`, so it compiles to a
  * standalone chunk. `<protvista-uniprot>` only ever pulls it in via a
- * dynamic `await import('./errors/format')` inside the config-error
+ * dynamic `await import('./errors/format.js')` inside the config-error
  * catch — the happy path never downloads it, keeping the error-surface
  * feature off the eagerly-loaded bundle budget.
  */
 
-import { formatValidationSummary, type ValidationIssue } from '../schema/errors';
+import { formatValidationSummary, type ValidationIssue } from '../schema/errors.js';
 
 /** One `path` heading and the issues filed under it. */
 export interface FormattedIssueGroup {

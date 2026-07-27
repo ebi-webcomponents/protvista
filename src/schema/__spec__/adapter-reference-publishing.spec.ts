@@ -23,7 +23,7 @@ import {
   ADAPTER_REFERENCE_MD_PATH,
   FEATURE_RECORD_SCHEMA_PATH,
   FEATURE_RECORD_SCHEMA_ID,
-} from '../adapters/render-adapter-reference';
+} from '../adapters/render-adapter-reference.js';
 
 const mdPath = resolve(process.cwd(), ADAPTER_REFERENCE_MD_PATH);
 const schemaPath = resolve(process.cwd(), FEATURE_RECORD_SCHEMA_PATH);

@@ -45,7 +45,7 @@
     // "noPropertyAccessFromIndexSignature": true,  /* Require undeclared properties from index signatures to use element accesses. */
 
     /* Module Resolution Options */
-    "moduleResolution": "bundler" /* Specify module resolution strategy: 'bundler' is the modern option for libraries consumed by bundlers. */,
+    "moduleResolution": "bundler" /* Kept deliberately, but relative imports in `src` still carry explicit `.js` extensions — see CONTRIBUTING. `bundler` permits extensionless specifiers; the emitted `.d.ts` reproduces whatever the source wrote, and extensionless ones fail to resolve for consumers on `node16`/`nodenext` (attw: "internal resolution error"). Writing extensions fixes the emitted declarations. Switching this to `NodeNext` to *enforce* them is not viable: several `@nightingale-elements` packages ship `"type": "module"` with extensionless relative imports in their own `.d.ts`, so their type exports vanish under Node ESM resolution. `src/__spec__/package-contract.spec.ts` enforces the convention instead. */,
     // "baseUrl": "./",                             /* Base directory to resolve non-absolute module names. */
     // "paths": {},                                 /* A series of entries which re-map imports to lookup locations relative to the 'baseUrl'. */
     // "rootDirs": [],                              /* List of root folders whose combined content represents the structure of the project at runtime. */

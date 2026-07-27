@@ -21,7 +21,7 @@ import { describe, it, expect } from 'vitest';
 import {
   colorScaleToAttrs,
   renderingToAttrs,
-} from '../render-helpers';
+} from '../render-helpers.js';
 
 describe('colorScaleToAttrs', () => {
   it('returns `{}` for undefined input (no rendering work to do)', () => {

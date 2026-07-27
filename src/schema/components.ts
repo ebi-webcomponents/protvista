@@ -27,7 +27,7 @@
  * the renderable half of `built-in-components.ts` stay in lockstep.
  */
 
-import type { KnownComponentName } from './types';
+import type { KnownComponentName } from './types.js';
 
 /**
  * Keyed by name so the `satisfies` below can demand exhaustiveness.

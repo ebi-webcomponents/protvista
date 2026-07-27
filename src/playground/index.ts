@@ -17,12 +17,12 @@
  * module is loaded in isolation (dev server, tests), but the HTML entry
  * is the guarantee.
  */
-import '../protvista-uniprot';
-import type { ValidationIssue } from '../schema';
-import { createEditor, type PlaygroundEditor } from './editor';
-import { createDiagnosticsView } from './diagnostics-view';
-import { computeDiagnostics, type PlaygroundDiagnostic } from './lint';
-import { initSplitter } from './splitter';
+import '../protvista-uniprot.js';
+import type { ValidationIssue } from '../schema/index.js';
+import { createEditor, type PlaygroundEditor } from './editor.js';
+import { createDiagnosticsView } from './diagnostics-view.js';
+import { computeDiagnostics, type PlaygroundDiagnostic } from './lint.js';
+import { initSplitter } from './splitter.js';
 import {
   PRESETS,
   DEV_PRESETS,
@@ -30,14 +30,14 @@ import {
   getPreset,
   isDevPreset,
   type Preset,
-} from './presets';
+} from './presets.js';
 import {
   readHash,
   writeHash,
   accessionFromSearch,
   DEFAULT_ACCESSION,
   type PlaygroundState,
-} from './url-state';
+} from './url-state.js';
 
 const DEBOUNCE_MS = 400;
 

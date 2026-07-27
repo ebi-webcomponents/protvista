@@ -22,9 +22,9 @@ import {
   registerBuiltinAdapters,
   RegistryCollisionError,
   type Registry,
-} from '../registry';
-import { BUILTIN_ADAPTERS } from '../adapters';
-import type { AdapterFunction, KnownAdapterName } from '../types';
+} from '../registry.js';
+import { BUILTIN_ADAPTERS } from '../adapters/index.js';
+import type { AdapterFunction, KnownAdapterName } from '../types.js';
 
 vi.mock('../adapters', () => {
   const table: ReadonlyArray<readonly [KnownAdapterName, AdapterFunction]> = [

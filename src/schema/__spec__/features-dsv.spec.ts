@@ -13,9 +13,9 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { parseDelimited, rowsToFeatureRecords } from '../adapters/dsv';
-import { featuresCsv } from '../adapters/features-csv';
-import { featuresTsv } from '../adapters/features-tsv';
+import { parseDelimited, rowsToFeatureRecords } from '../adapters/dsv.js';
+import { featuresCsv } from '../adapters/features-csv.js';
+import { featuresTsv } from '../adapters/features-tsv.js';
 
 // ─────────────────────────────────────────────────────────────
 // parseDelimited — RFC-4180 tokenizer

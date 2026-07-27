@@ -28,9 +28,9 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 
 // Registers <protvista-uniprot> only — the Nightingale tags are defined
 // by the element at runtime, which is exactly what's under test here.
-import '../protvista-uniprot';
-import type { NormalizedConfig } from '../schema/normalize';
-import type { SemanticKindDefinition } from '../schema/types';
+import '../protvista-uniprot.js';
+import type { NormalizedConfig } from '../schema/normalize.js';
+import type { SemanticKindDefinition } from '../schema/types.js';
 
 // `CSS.escape` (missing from this jsdom, needed by the mount lifecycle) is
 // polyfilled globally in `setup.ts`.

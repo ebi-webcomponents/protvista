@@ -62,6 +62,31 @@ All repository interactions and project events are expected to follow our [Code 
 5. Update documentation if applicable.
 6. Commit your changes with clear, descriptive messages.
 
+### Import extensions
+
+Relative imports in `src` carry the **emitted** extension:
+
+```ts
+import { fetchAll } from './utils/index.js'; // not './utils'
+import ProtvistaUniprot from './protvista-uniprot.js'; // not './protvista-uniprot'
+```
+
+`.js` is correct even though the file is `.ts` — it names the file the
+declaration will point at. `vite-plugin-dts` copies specifiers into the
+emitted `.d.ts` verbatim, and an extensionless one does not resolve for
+consumers using Node's ESM rules (`moduleResolution: "node16"`/`"nodenext"`),
+which silently degrades their types.
+
+The rule is about emitted declarations, so it applies to `src` only —
+`docs/` and `bench/` are not published and need not follow it.
+
+`moduleResolution` here is `"bundler"`, which tolerates both forms, so the
+compiler will not catch a missing extension — `src/__spec__/package-contract.spec.ts`
+does. Switching to `"NodeNext"` to enforce it at compile time is not
+currently possible: several `@nightingale-elements` packages declare
+`"type": "module"` while using extensionless relative imports in their own
+`.d.ts`, so their type exports disappear under Node ESM resolution.
+
 ### Commit Messages
 
 - Use present tense ("Add feature" not "Added feature").

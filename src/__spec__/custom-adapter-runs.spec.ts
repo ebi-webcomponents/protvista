@@ -10,9 +10,9 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { loadConfig } from '../schema/load';
-import { createRegistry } from '../schema/registry';
-import { loadProtvistaData } from '../load-data';
+import { loadConfig } from '../schema/load.js';
+import { createRegistry } from '../schema/registry.js';
+import { loadProtvistaData } from '../load-data.js';
 
 const makeConfig = (adapter: string) => ({
   rows: [

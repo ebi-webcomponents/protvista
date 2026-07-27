@@ -45,15 +45,15 @@ import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render } from 'lit';
 
-import { loadConfig } from '../schema/load';
-import type { NormalizedConfig } from '../schema/normalize';
-import { loadProtvistaData } from '../load-data';
-import { createRegistry } from '../schema/registry';
-import { CSS_PREFIX } from '../styles/css-prefix';
+import { loadConfig } from '../schema/load.js';
+import type { NormalizedConfig } from '../schema/normalize.js';
+import { loadProtvistaData } from '../load-data.js';
+import { createRegistry } from '../schema/registry.js';
+import { CSS_PREFIX } from '../styles/css-prefix.js';
 // Side-effect import: registers the `protvista-uniprot` custom
 // element. The data pipeline resolves adapters through a real registry
 // (seeded with every built-in), matching what the element does at runtime.
-import '../protvista-uniprot';
+import '../protvista-uniprot.js';
 
 // A registry seeded with all built-in adapters — the drift-proof
 // equivalent of the element's own runtime resolution.

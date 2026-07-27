@@ -22,7 +22,7 @@
 import type {
   ColorScaleConfig,
   RenderingOptions,
-} from '../schema/types';
+} from '../schema/types.js';
 
 /**
  * Canonical theme → legacy `(scale, colorRange)` strings.

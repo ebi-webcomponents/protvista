@@ -1,5 +1,5 @@
-import type { AdapterFunction } from '../types';
-import { renameProperties } from '../../utils';
+import type { AdapterFunction } from '../types.js';
+import { renameProperties } from '../../utils/index.js';
 
 type ProteomicsPtm = {
   name: string;

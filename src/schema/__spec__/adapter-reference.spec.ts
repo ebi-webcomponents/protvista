@@ -22,12 +22,12 @@ import {
   FEATURE_RECORD_FIELDS,
   type GenericAdapterDoc,
   type DomainAdapterDoc,
-} from '../adapters/adapter-reference';
-import { BUILTIN_ADAPTERS } from '../adapters';
-import { REQUIRED_COLUMNS } from '../adapters/dsv';
-import { DATA_FILE_FORMATS } from '../file-formats';
-import { featuresCsv } from '../adapters/features-csv';
-import { createRegistry } from '../registry';
+} from '../adapters/adapter-reference.js';
+import { BUILTIN_ADAPTERS } from '../adapters/index.js';
+import { REQUIRED_COLUMNS } from '../adapters/dsv.js';
+import { DATA_FILE_FORMATS } from '../file-formats.js';
+import { featuresCsv } from '../adapters/features-csv.js';
+import { createRegistry } from '../registry.js';
 
 const generic = ADAPTER_REFERENCE.filter(
   (d): d is GenericAdapterDoc => d.tier === 'generic'
