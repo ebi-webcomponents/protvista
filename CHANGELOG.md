@@ -52,6 +52,32 @@ Also in this release:
   `npm publish` would ship. `tsc` is now `noEmit` (`yarn test:types` is a
   check, not a build step) and the plugin owns `dist/types`. Declarations for
   test files are no longer shipped.
+- `files` is now `["dist"]`. The tarball previously carried 139 source files
+  — the entire test suite included — that no consumer could import, because
+  `exports` gates every subpath. The sourcemap already embeds the sources for
+  debugging. Unpacked size drops from ~1.15 MB to the build output alone.
+- Added `prepack` so `npm pack`/`npm publish` build first. `dist/` is
+  gitignored, so publishing without a prior `yarn build` shipped a package
+  whose every declared entry point was missing.
+- Dropped `core-js` and `lodash-es` from `dependencies` (and `@types/lodash-es`
+  from dev) — nothing in the codebase has referenced them since the move off
+  the Babel build.
+- Runtime dependencies now use caret ranges instead of exact pins. Exact pins
+  stop a consumer's resolver deduplicating, which for `lit` means a second
+  copy of `ReactiveElement` in the same page.
+- Added `repository`, `bugs`, `homepage` and `keywords`, and set
+  `publishConfig.tag` to `next` so a v5 publish cannot take the `latest` tag
+  from the 4.x production line.
+- `src/playground/**` is excluded from the emitted declarations. It is a
+  docs-site page rather than public API, and its types referenced `codemirror`
+  and `@codemirror/lint` — devDependencies a consumer cannot resolve.
+- `scripts/clearCDNcaches.sh` purged `dist/protvista-uniprot.js`, a pre-Vite
+  name no build emits, making the jsDelivr purge a no-op; it now purges the
+  `.mjs` entry and its map. Note the lazy `dist/*.js` chunks carry no content
+  hash and are still not purged.
+- `yarn test:pack` runs `publint` and `attw` against the packed tarball, and
+  CI runs it after the build. Nothing previously checked the exports map or
+  the emitted declarations the way a consumer resolves them.
 
 ### Breaking — `label` is now a Markdoc string; `helpPage` and `labelUrl` removed
 

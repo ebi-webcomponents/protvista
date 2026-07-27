@@ -57,6 +57,18 @@ jobs:
       - name: Build
         run: yarn build
 
+      # `moduleResolution: "bundler"` + `skipLibCheck` means nothing in the
+      # test job resolves this package the way a consumer will. publint and
+      # attw do, against the real tarball — they are the only guard on the
+      # exports map, `type`, and the emitted declarations.
+      - name: Check published package
+        run: yarn test:pack
+
+      # The dist/ assertions in package-contract.spec.ts skip unless a build
+      # exists; the test job never builds, so run them here where one does.
+      - name: Verify packaging contract against dist/
+        run: yarn vitest run --project unit src/__spec__/package-contract.spec.ts
+
       # Builds the Astro + Starlight docs (incl. the playground page) + the bench
       # page into site/. Requires astro, @astrojs/starlight, astro-mermaid,
       # mermaid and sharp in devDependencies.

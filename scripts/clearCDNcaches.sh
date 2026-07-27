@@ -6,7 +6,7 @@ curl -X POST \
   -H 'content-type: application/json' \
   -d '{
 "path": [
-"/npm/protvista-uniprot@latest/dist/protvista-uniprot.js",
-"/npm/protvista-uniprot@latest/dist/protvista-uniprot.js.map"
+"/npm/protvista-uniprot@latest/dist/protvista-uniprot.mjs",
+"/npm/protvista-uniprot@latest/dist/protvista-uniprot.mjs.map"
 ]
 }'

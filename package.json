@@ -4,10 +4,10 @@
   "version": "5.0.0",
   "type": "module",
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "scripts": {
+    "prepack": "yarn build",
     "build": "vite build",
     "start": "yarn docs:dev",
     "docs:dev": "astro dev --root docs",
@@ -18,6 +18,7 @@
     "schema:sync": "node scripts/sync-schema.mjs",
     "adapters:sync": "UPDATE_ADAPTER_REFERENCE=1 vitest run src/schema/__spec__/adapter-reference-publishing.spec.ts",
     "test": "npm-run-all --continue-on-error test:lint test:types test:unit test:browser",
+    "test:pack": "yarn build && publint --strict && attw --pack . --ignore-rules cjs-resolves-to-esm",
     "test:lint": "eslint 'src/**/*.ts' 'bench/**/*.{mjs,cjs}'",
     "test:types": "tsc",
     "test:unit": "vitest run --project unit",
@@ -41,29 +42,49 @@
     },
     "./package.json": "./package.json"
   },
-  "keywords": [],
-  "author": "Xavier Watkins &lt;xwatkins@ebi.ac.uk&gt;",
+  "keywords": [
+    "protvista",
+    "uniprot",
+    "protein",
+    "bioinformatics",
+    "sequence-viewer",
+    "genome-browser",
+    "web-components",
+    "custom-elements",
+    "lit",
+    "visualization"
+  ],
+  "author": "Xavier Watkins <xwatkins@ebi.ac.uk>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ebi-webcomponents/protvista.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ebi-webcomponents/protvista/issues"
+  },
+  "homepage": "https://ebi-webcomponents.github.io/protvista",
+  "publishConfig": {
+    "tag": "next"
+  },
   "dependencies": {
-    "@floating-ui/dom": "1.8.0",
-    "@markdoc/markdoc": "0.5.8",
-    "@nightingale-elements/nightingale-colored-sequence": "5.6.0",
-    "@nightingale-elements/nightingale-filter": "5.6.0",
-    "@nightingale-elements/nightingale-linegraph-track": "5.6.0",
-    "@nightingale-elements/nightingale-manager": "5.6.0",
-    "@nightingale-elements/nightingale-navigation": "5.6.0",
-    "@nightingale-elements/nightingale-sequence": "5.6.0",
-    "@nightingale-elements/nightingale-sequence-heatmap": "5.6.2",
-    "@nightingale-elements/nightingale-structure": "5.10.3",
-    "@nightingale-elements/nightingale-track-canvas": "5.6.0",
-    "@nightingale-elements/nightingale-variation-canvas": "5.10.1",
-    "ajv": "8.20.0",
-    "color-hash": "2.0.2",
-    "core-js": "3.49.0",
-    "js-yaml": "4.3.0",
-    "lit": "3.3.3",
-    "lodash-es": "4.18.1",
-    "timing-functions": "2.0.1"
+    "@floating-ui/dom": "^1.8.0",
+    "@markdoc/markdoc": "^0.5.8",
+    "@nightingale-elements/nightingale-colored-sequence": "^5.6.0",
+    "@nightingale-elements/nightingale-filter": "^5.6.0",
+    "@nightingale-elements/nightingale-linegraph-track": "^5.6.0",
+    "@nightingale-elements/nightingale-manager": "^5.6.0",
+    "@nightingale-elements/nightingale-navigation": "^5.6.0",
+    "@nightingale-elements/nightingale-sequence": "^5.6.0",
+    "@nightingale-elements/nightingale-sequence-heatmap": "^5.6.2",
+    "@nightingale-elements/nightingale-structure": "^5.10.3",
+    "@nightingale-elements/nightingale-track-canvas": "^5.6.0",
+    "@nightingale-elements/nightingale-variation-canvas": "^5.10.1",
+    "ajv": "^8.20.0",
+    "color-hash": "^2.0.2",
+    "js-yaml": "^4.3.0",
+    "lit": "^3.3.3",
+    "timing-functions": "^2.0.1"
   },
   "devDependencies": {
     "@astrojs/starlight": "^0.41.4",
@@ -75,8 +96,8 @@
     "@lhci/cli": "0.15.1",
     "@originjs/vite-plugin-commonjs": "1.0.3",
     "@types/color-hash": "2.0.0",
+    "@arethetypeswrong/cli": "0.18.5",
     "@types/js-yaml": "4.0.9",
-    "@types/lodash-es": "4.17.12",
     "@typescript-eslint/eslint-plugin": "8.65.0",
     "@typescript-eslint/parser": "8.65.0",
     "@vitest/browser": "4.1.5",
@@ -95,6 +116,7 @@
     "mermaid": "11.16.0",
     "npm-run-all": "4.1.5",
     "playwright": "1.61.1",
+    "publint": "0.3.16",
     "rollup-plugin-visualizer": "7.0.1",
     "sharp": "^0.35.3",
     "svg-inline-loader": "0.8.2",

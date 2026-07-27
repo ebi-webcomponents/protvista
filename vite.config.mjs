@@ -67,8 +67,8 @@ export default defineConfig({
     target: 'ES2021',
     sourcemap: true,
     // The lib build must not copy `public/` (the hosted JSON Schema) into
-    // `dist/`: the schema is served from GitHub Pages, its authored source
-    // already ships via the `src` entry in package.json `files`, and a
+    // `dist/`: the schema is served from GitHub Pages, it is inlined into the
+    // bundle at build time by `src/schema/validate.ts`, and a
     // `dist/schema/...` path would not match the schema's `$id`. The app
     // build (vite.bench.config.mjs) still copies it into `site/` for Pages.
     copyPublicDir: false,
