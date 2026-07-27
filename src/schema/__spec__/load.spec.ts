@@ -7,7 +7,9 @@
  *   - explicit `format` override;
  *   - successful round-trip to `NormalizedConfig`;
  *   - `ConfigValidationError` on semantic failure (with issues);
- *   - `SyntaxError` propagation from the underlying parser.
+ *   - `SyntaxError` propagation from the underlying parser;
+ *   - rejection of `!!js/function` (constraint C4);
+ *   - rejection of a document with no content.
  *
  * YAML tests rely on `js-yaml` being installed. They are `it.runIf`-
  * gated on its presence so the file still collects on a fresh
@@ -176,6 +178,37 @@ describe('loadConfig — YAML string input', () => {
     const fromJson = await loadConfig(minimalValidJson());
     const fromYaml = await loadConfig(minimalValidYaml());
     expect(fromYaml).toEqual(fromJson);
+  });
+
+  // Constraint C4: `CORE_SCHEMA` carries no `!!js/*` tags, so a config
+  // cannot construct arbitrary JS objects. This is a security boundary,
+  // so assert it rather than trusting the schema argument stays put.
+  it('rejects the `!!js/function` tag', async () => {
+    await expect(
+      loadConfig("rows: !!js/function 'function () { return 1; }'")
+    ).rejects.toThrow();
+  });
+
+  // A document with no content is version-dependent in js-yaml (4.x
+  // returns undefined/null, 5.x throws), so `parseYaml` pins it.
+  it('rejects a blank document', async () => {
+    await expect(loadConfig('')).rejects.toThrow(SyntaxError);
+  });
+
+  it('rejects a whitespace-only document', async () => {
+    await expect(loadConfig('   \n\n  ')).rejects.toThrow(SyntaxError);
+  });
+
+  it('rejects a comments-only document', async () => {
+    await expect(
+      loadConfig('# just a comment\n# and another')
+    ).rejects.toThrow(SyntaxError);
+  });
+
+  it('treats a bare `---` as a document, not as empty', async () => {
+    // Parses to `null`, which is a valid parse but an invalid config —
+    // so it must fail validation, not YAML syntax.
+    await expect(loadConfig('---')).rejects.toThrow(ConfigValidationError);
   });
 });
 
