@@ -36,6 +36,22 @@ Also in this release:
   and `dist/types/*.d.ts`, which TypeScript treated as a CJS declaration
   describing an ESM file — reported by `attw` as "masquerading as CJS" on
   both `node16` resolution modes.
+- This package's own declarations now resolve under `node16`/`nodenext`.
+  `moduleResolution: "bundler"` permits extensionless relative imports, the
+  emitted `.d.ts` reproduced them faithfully, and they then failed to resolve
+  for consumers using Node's ESM rules — degrading their types to errors.
+  Relative specifiers in `src` now carry explicit `.js` extensions, so what
+  is emitted is resolvable. No API change; imports of this package are
+  unaffected. Types re-exported from `@nightingale-elements` packages may
+  still degrade under Node ESM resolution — those ship the same defect
+  upstream; see the `moduleResolution` note in `tsconfig.json`.
+- The published `dist/` no longer carries two copies of the declarations.
+  `tsc` and `vite-plugin-dts` were both emitting them, into different trees
+  because the plugin's output directory was misconfigured, so `dist/` shipped
+  both — and `yarn test` after `yarn build` changed what a subsequent
+  `npm publish` would ship. `tsc` is now `noEmit` (`yarn test:types` is a
+  check, not a build step) and the plugin owns `dist/types`. Declarations for
+  test files are no longer shipped.
 
 ### Breaking — `label` is now a Markdoc string; `helpPage` and `labelUrl` removed
 

@@ -30,8 +30,26 @@ export default defineConfig({
             },
           }),
           dts({
-            outDir: 'dist/types',
-            insertTypesEntry: true,
+            // `outDirs`, not `outDir` — the singular form is not an option
+            // this plugin reads, so it silently fell back to Vite's
+            // `build.outDir` and scattered declarations across `dist/`.
+            outDirs: 'dist/types',
+            // The mirrored `src/index.ts` lands at `dist/types/index.d.ts`,
+            // which is already where package.json `types` points — so there
+            // is no separate entry stub to insert.
+            insertTypesEntry: false,
+            // Type-checked (tsconfig `include`) but not shipped. The
+            // playground is a docs-site page, not public API — `src/index.ts`
+            // does not export it, and its declarations would drag
+            // `codemirror`/`@codemirror/lint` (devDependencies) into the
+            // published types, where a consumer cannot resolve them.
+            exclude: [
+              'node_modules/**',
+              'src/**/__spec__/**',
+              'src/**/__tests__/**',
+              'src/**/__browser__/**',
+              'src/playground/**',
+            ],
           }),
         ]),
   ],
