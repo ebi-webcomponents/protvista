@@ -180,12 +180,17 @@ describe.skipIf(!pkg.module || !existsSync(resolve(root, pkg.module)))(
       expect(stray).toEqual([]);
     });
 
-    it('does not ship declarations for test files', () => {
-      const tests = distEntries().filter(
-        (rel) => rel.endsWith('.d.ts') && /__(spec|tests|browser)__/.test(rel)
+    it('does not ship declarations for test or playground files', () => {
+      // vite.config.mjs excludes both trees from the emitted declarations —
+      // the playground drags codemirror/@codemirror devDeps into the public
+      // types, which a consumer cannot resolve. Assert the shipped dist/ agrees.
+      const excluded = distEntries().filter(
+        (rel) =>
+          rel.endsWith('.d.ts') &&
+          /(__(spec|tests|browser)__|\/playground\/)/.test(rel)
       );
 
-      expect(tests).toEqual([]);
+      expect(excluded).toEqual([]);
     });
   }
 );

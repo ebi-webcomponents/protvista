@@ -4,10 +4,11 @@ on:
   push:
   pull_request:
 
+# Least privilege by default: only the deploy-pages job elevates to the
+# pages/id-token scopes GitHub Pages deployment needs. The test and build
+# jobs (build uploads the Pages artifact) run with read-only contents.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   test:
@@ -87,6 +88,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/next' && github.event_name == 'push'
+    permissions:
+      pages: write # create the Pages deployment
+      id-token: write # OIDC token deploy-pages verifies
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

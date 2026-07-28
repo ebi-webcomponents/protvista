@@ -11,3 +11,21 @@ updates:
     # compromised or broken release is not adopted the day it lands.
     cooldown:
       default-days: 7
+
+  # devDependencies are exact-pinned and runtime deps use caret ranges; let
+  # Dependabot advance both (lockfile security bumps included). Dev minor/patch
+  # updates are grouped into one PR to cap noise; the same 7-day cooldown
+  # applies.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    groups:
+      dev-minor-patch:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
