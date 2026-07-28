@@ -44,17 +44,30 @@ export default css`
     align-items: center;
   }
 
+  /* Rows are ruled, not spaced. The 0.1rem gap this replaces only read as a
+     separator because the labels were filled with colour; on a neutral
+     surface a hairline is what makes a row legible as a row, and it carries
+     the eye across from the label to the features on the same line. */
   protvista-uniprot .${p}-nav-container,
   protvista-uniprot .${p}-group__track {
     display: flex;
-    margin-bottom: 0.1rem;
+    border-bottom: 1px solid var(--protvista-track-border-color);
   }
 
   protvista-uniprot .${p}-group {
     display: none;
-    margin-bottom: 0.1rem;
+    border-bottom: 1px solid var(--protvista-track-border-color);
   }
 
+  /* The closing ruler row ends the grid, so it takes no rule of its own — a
+     trailing hairline under the last row reads as an unfinished table. */
+  protvista-uniprot .${p}-nav-container--footer {
+    border-bottom: 0;
+  }
+
+  /* The one vertical rule in the viewer. It marks where the label column
+     ends and the sequence coordinate space begins — the boundary the eye
+     needs — and is the reason no other vertical divider is required. */
   protvista-uniprot .${p}-group-label,
   protvista-uniprot .${p}-track-label,
   protvista-uniprot .${p}-nav-track-label,
@@ -63,11 +76,21 @@ export default css`
     max-width: var(--protvista-label-width);
     padding: 0.5em;
     line-height: normal;
+    border-right: 1px solid var(--protvista-track-border-color);
+    background-color: var(--protvista-track-label-bg);
   }
 
+  /* A group header reads as a header through weight and a slightly recessed
+     surface, not through a saturated fill — chrome stays neutral so colour
+     can mean data. */
   protvista-uniprot .${p}-group-label {
     background-color: var(--protvista-group-label-bg);
+    font-weight: 600;
     cursor: pointer;
+  }
+
+  protvista-uniprot .${p}-group-label:hover {
+    background-color: var(--protvista-color-bg-hover);
   }
 
   protvista-uniprot .${p}-group-label::before {
@@ -103,14 +126,6 @@ export default css`
 
   protvista-uniprot .${p}-group-label--partial::before {
     display: none;
-  }
-
-  protvista-uniprot .${p}-track-label {
-    background-color: var(--protvista-track-label-bg);
-  }
-
-  protvista-uniprot nightingale-track-canvas {
-    border-top: 1px solid var(--protvista-track-border-color);
   }
 
   protvista-uniprot nightingale-navigation .handle {

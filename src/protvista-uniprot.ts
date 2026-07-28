@@ -2771,7 +2771,9 @@ class ProtvistaUniprot extends LitElement {
           (display) => display.row.id,
           (display, i) => this._renderRow(display, i, rows.length)
         )}
-        <div class="${CSS_PREFIX}-nav-container">
+        <div
+          class="${CSS_PREFIX}-nav-container ${CSS_PREFIX}-nav-container--footer"
+        >
           <div class="${CSS_PREFIX}-credits"></div>
           <div class="${CSS_PREFIX}-track-content">
             <nightingale-sequence
