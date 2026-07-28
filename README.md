@@ -179,7 +179,8 @@ The viewer renders a single collapsible group "Domains" (label title-cased from 
 
 ### Learning more
 
-- **User guide.** The task-oriented [ProtVista user guide](https://ebi-webcomponents.github.io/protvista/) — embedding the viewer, authoring a config, built-in track kinds, loading your own data (CSV/TSV/JSON/BED), troubleshooting, and escape hatches. Rendered from [`docs/`](./docs) and the best starting point for newcomers.
+- **Tutorial.** The guided [end-to-end tutorial](https://ebi-webcomponents.github.io/protvista/tutorial) — add the component, point it at an accession, add your own track from a CSV, `extends` the default viewer, and theme it. The best starting point for newcomers.
+- **User guide.** The task-oriented [ProtVista user guide](https://ebi-webcomponents.github.io/protvista/) — embedding the viewer, authoring a config, built-in track kinds, loading your own data (CSV/TSV/JSON/BED), troubleshooting, and escape hatches. Rendered from [`docs/`](./docs).
 - **Configuration vs data.** [Configuration vs data](https://ebi-webcomponents.github.io/protvista/configuration-vs-data) explains the boundary between what your config controls and what a data provider must supply — the Intent/Representation split, with a diagram and a paired example.
 - **Schema reference.** [`specs/config-approach.md`](./specs/config-approach.md) documents every field (`rows`, `tracks`, `sources`, `defaults`, `extends`, `kind`, `data`, `rendering`, `dataTooltip`) with worked examples and edge-case semantics. This is the normative source.
 - **Canonical default.** [`src/default-config.yaml`](./src/default-config.yaml) is the UniProt viewer itself, authored in the new schema. Useful as a reference.

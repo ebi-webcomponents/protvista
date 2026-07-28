@@ -160,9 +160,6 @@ export function renderReferenceMarkdown(
   lines.push(
     `- [examples/](${GITHUB_TREE}/examples) — runnable, CI-validated config + data pairs.`
   );
-  lines.push(
-    '- Shape-correct mocks (#150) and React integration (#155) track downstream ownership of these shapes.'
-  );
   lines.push('');
   lines.push(
     '_Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._'

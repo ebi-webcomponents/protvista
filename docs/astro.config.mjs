@@ -126,6 +126,7 @@ export default defineConfig({
           label: 'Getting started',
           items: [
             { label: 'Overview', link: '/overview' },
+            { label: 'Tutorial', link: '/tutorial' },
             { label: 'Embed the viewer', link: '/embed' },
             { label: 'Author a config', link: '/configure' },
           ],

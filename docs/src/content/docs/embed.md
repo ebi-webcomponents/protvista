@@ -34,6 +34,11 @@ then use the tag:
 <protvista-uniprot accession="P05067"></protvista-uniprot>
 ```
 
+`protvista-uniprot.mjs` is the built bundle. Until 5.0 is published, produce it
+from source with `yarn install && yarn build` in a clone of the
+[repository](https://github.com/ebi-webcomponents/protvista) and copy
+`dist/protvista-uniprot.mjs` next to your page.
+
 ### 2. As an npm package
 
 Install `protvista-uniprot` and import it once — the element self-registers as
@@ -47,6 +52,13 @@ import 'protvista-uniprot';
 ```html
 <protvista-uniprot accession="P05067"></protvista-uniprot>
 ```
+
+:::caution
+The published release is `protvista-uniprot@4.9.3`, which predates the config
+surface these docs describe (`rows:`, `kind:`, `extends:`). Until 5.0 ships,
+`npm install` gives you a viewer that will not read the configs in this guide —
+build from source as above.
+:::
 
 Either way, the tag behaves like any other HTML element — style it, size it,
 and place it wherever you like.

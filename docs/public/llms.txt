@@ -12,6 +12,7 @@ the "Representation". Documentation is licensed CC BY 4.0.
 
 ## User guide
 
+- [Tutorial](https://ebi-webcomponents.github.io/protvista/tutorial): the guided end-to-end path — add the component, point it at an accession, add your own track from a CSV, `extends` the default viewer, and theme it.
 - [Overview and audience router](https://ebi-webcomponents.github.io/protvista/overview): where to start as a researcher, data owner, or developer.
 - [Embed the viewer](https://ebi-webcomponents.github.io/protvista/embed): load the component (module script or npm) and the key attributes (`accession`, `config-src`, `viewerConfig`, `notooltip`, …).
 - [Author a config](https://ebi-webcomponents.github.io/protvista/configure): `accession`, `sources`, `rows`/`tracks`, `kind`, `data`, `filter`; the minimal config and `extends`.

@@ -122,3 +122,5 @@ const hostRef = (el: HTMLElement | null) => {
 ```
 
 Prefer this once you're on React 19 — don't copy the split mount/unmount `useEffect` shape as the canonical form.
+
+_Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._
