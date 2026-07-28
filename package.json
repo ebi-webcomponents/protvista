@@ -20,6 +20,7 @@
     "adapters:sync": "UPDATE_ADAPTER_REFERENCE=1 vitest run src/schema/__spec__/adapter-reference-publishing.spec.ts",
     "test": "npm-run-all --continue-on-error test:lint test:types test:unit test:browser",
     "test:pack": "yarn build && publint --strict && attw --pack . --ignore-rules cjs-resolves-to-esm",
+    "validate": "./scripts/validate-package.sh",
     "test:lint": "eslint 'src/**/*.ts' 'bench/**/*.{mjs,cjs}'",
     "test:types": "tsc",
     "test:unit": "vitest run --project unit",
