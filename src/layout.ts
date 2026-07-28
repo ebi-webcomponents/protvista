@@ -74,16 +74,27 @@ export function displayRows(rows: NormalizedRow[]): DisplayRow[] {
 }
 
 /**
- * How many things the user has hidden, counted as the units they toggled: a
- * hidden row counts once (not once per track it contains), and individually
- * hidden tracks inside a still-visible row count one each. This is the number
- * the "N hidden" badge shows.
+ * How many **tracks** are hidden — the number the "N hidden" badge shows.
+ *
+ * Counted per track, not per toggle: hiding a group of six and hiding one
+ * track are not both "1 hidden". The badge answers "how much of the data am
+ * I not seeing", so it has to count the things that would come back.
+ *
+ * @param isEmpty Optional predicate marking a track as having nothing to
+ *   draw. Those are excluded: they are absent because no data arrived, not
+ *   because the user hid them, and showing them would change nothing.
  */
-export function hiddenCount(rows: NormalizedRow[]): number {
+export function hiddenCount(
+  rows: NormalizedRow[],
+  isEmpty?: (rowId: string, trackId: string) => boolean
+): number {
   let n = 0;
   for (const row of rows) {
-    if (isRowHidden(row)) n += 1;
-    else n += row.tracks.filter((t) => t.hidden).length;
+    const rowHidden = !!row.hidden;
+    for (const track of row.tracks) {
+      if (isEmpty?.(row.id, track.id)) continue;
+      if (rowHidden || track.hidden) n += 1;
+    }
   }
   return n;
 }

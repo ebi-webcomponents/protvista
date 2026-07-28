@@ -106,10 +106,12 @@ describe('visibility queries', () => {
     expect(shown[0].tracks.map((t) => t.id)).toEqual(['a2']);
   });
 
-  it('counts a hidden row once, not once per track it contains', () => {
+  // The badge answers "how much of the data am I not seeing", so hiding a
+  // group of two and hiding one track must not both read as "1 hidden".
+  it('counts every track a hidden row contains', () => {
     const input = rows();
     input[0].hidden = true;
-    expect(hiddenCount(input)).toBe(1);
+    expect(hiddenCount(input)).toBe(2);
   });
 
   it('counts individually hidden tracks inside a visible row', () => {
@@ -117,6 +119,26 @@ describe('visibility queries', () => {
     input[0].tracks[0].hidden = true;
     input[1].tracks[0].hidden = true;
     expect(hiddenCount(input)).toBe(2);
+  });
+
+  it('counts a hidden standalone row as its one track', () => {
+    const input = rows();
+    input[2].hidden = true;
+    expect(hiddenCount(input)).toBe(1);
+  });
+
+  it('is zero when nothing is hidden', () => {
+    expect(hiddenCount(rows())).toBe(0);
+  });
+
+  // A track with no data is absent because none arrived, not because anyone
+  // hid it, and showing it would change nothing.
+  it('excludes tracks the caller marks as having nothing to draw', () => {
+    const input = rows();
+    input[0].hidden = true;
+    const isEmpty = (rowId: string, trackId: string) =>
+      rowId === 'A' && trackId === 'a2';
+    expect(hiddenCount(input, isEmpty)).toBe(1);
   });
 });
 

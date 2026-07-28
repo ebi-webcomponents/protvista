@@ -73,13 +73,18 @@ layout API, which rewrites the config, and per-config persistence. See
 - **axe:** no violations with the mode active on a mounted viewer.
 - **Real controls:** show/hide is a `<button>` with `aria-pressed` plus an
   action word ("Hide X" / "Show X") and an eye / slashed-eye icon, never
-  colour or icon alone. Every row and track exposes a drag handle plus
-  move-up/down buttons, so reorder never depends on a dragging gesture
-  (WCAG 2.5.7). Controls are at least 24×24 px (2.5.8).
+  colour or icon alone. Reordering is move-up/down buttons only — there is no
+  drag gesture to fail WCAG 2.5.7. Controls are at least 24×24 px (2.5.8).
+- **Dead ends removed:** a track with no data has its Show control disabled
+  and named "No data for X", rather than offering a press that visibly does
+  nothing. The "N hidden" badge is a button, not a `<span title>`, so the
+  explanation of how to undo a hide is reachable without a mouse.
 - **Announcements:** a polite live region announces each reorder ("… moved to
   position N of M"), hide, and show (4.1.3).
-- **Focus:** a visible focus ring on every control, and Done returns focus to
-  the Customize button that opened the mode (2.4.7).
+- **Focus:** a visible focus ring on every control; Done returns focus to the
+  Customize button that opened the mode, and a move that disables the button
+  you pressed hands focus to its opposite number rather than dropping it
+  (2.4.7).
 - **Nothing is displaced:** the Customize button lives in the empty label cell
   beside the navigation, so entering the mode does not move the visualization
   — a browser test pins that the manager's position is unchanged.

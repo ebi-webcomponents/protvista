@@ -171,12 +171,32 @@ describe('the Customize toggle', () => {
     expect(cell!.querySelector(`.${CSS_PREFIX}-customize-toggle`)).not.toBeNull();
   });
 
-  it('reports a hidden count outside customize mode', () => {
+  it('reports a hidden count outside customize mode, counted per track', () => {
     const el = buildInstance({ config: makeConfig({ B: true }) });
     const target = renderInto(el);
+    // B holds two tracks, so hiding the lane hides two.
     expect(
       target.querySelector(`.${CSS_PREFIX}-hidden-count`)!.textContent
-    ).toContain('1 hidden');
+    ).toContain('2 hidden');
+  });
+
+  it('makes the count a button that explains how to undo the hide', () => {
+    const target = renderInto(buildInstance({ config: makeConfig({ B: true }) }));
+    const badge = target.querySelector(`.${CSS_PREFIX}-hidden-count`)!;
+    expect(badge.tagName).toBe('BUTTON');
+    const hint = badge.getAttribute('title')!;
+    expect(hint).toContain('Customize');
+    expect(hint).toContain('Show');
+    // Also the accessible name, so the hint is not mouse-only.
+    expect(badge.getAttribute('aria-label')).toBe(hint);
+  });
+
+  it('leaves tracks with no data out of the count', () => {
+    const data = makeData();
+    delete data['A-At1'];
+    delete data['A-At2'];
+    const target = renderInto(buildInstance({ data }));
+    expect(target.querySelector(`.${CSS_PREFIX}-hidden-count`)).toBeNull();
   });
 
   it('shows no count when nothing is hidden', () => {
@@ -258,7 +278,6 @@ describe('customize mode', () => {
       'Hide A',
       'Move A up',
       'Move A down',
-      'Reorder A',
     ]);
   });
 
@@ -283,61 +302,33 @@ describe('customize mode', () => {
     expect(label.getAttribute('aria-expanded')).toBe('true');
   });
 
-  it('marks every row as a drop target for drag-to-reorder', () => {
+  // Reordering is button-only; nothing is draggable.
+  it('offers no drag affordance', () => {
     const target = renderInto(buildInstance({ _customizeMode: true }));
-    expect(
-      target.querySelector(`#${CSS_PREFIX}-group_A`)!.getAttribute('data-drop-row')
-    ).toBe('A');
-    const track = target.querySelector(`#${CSS_PREFIX}-track_At1`)!;
-    expect(track.getAttribute('data-drop-row')).toBe('A');
-    expect(track.getAttribute('data-drop-track')).toBe('At1');
+    expect(target.querySelector('[draggable="true"]')).toBeNull();
+    expect(target.querySelector('[data-drop-row]')).toBeNull();
   });
 
-  it('opens a placeholder gap at the pending drop index', () => {
-    const el = buildInstance({
-      _customizeMode: true,
-      _drag: { rowId: 'A', to: 2 },
-    });
-    const target = renderInto(el);
-    const gaps = target.querySelectorAll(`.${CSS_PREFIX}-drop-gap`);
-    expect(gaps).toHaveLength(1);
-    // The gap sits immediately before the row that would follow the drop.
-    expect(gaps[0].nextElementSibling!.id).toBe(`${CSS_PREFIX}-group_C`);
+  it('disables the Show toggle on a track with nothing to draw', () => {
+    const data = makeData();
+    delete data['A-At2'];
+    const target = renderInto(buildInstance({ data, _customizeMode: true }));
+    const toggle = target
+      .querySelector(`#${CSS_PREFIX}-track_At2`)!
+      .querySelector('button[aria-pressed]')!;
+    expect(toggle.hasAttribute('disabled')).toBe(true);
+    expect(toggle.getAttribute('aria-label')).toBe('No data for At2');
   });
 
-  it('offers a gap past the last row, so the final position is reachable', () => {
-    const el = buildInstance({
-      _customizeMode: true,
-      _drag: { rowId: 'A', to: 3 },
-    });
-    const target = renderInto(el);
-    expect(target.querySelectorAll(`.${CSS_PREFIX}-drop-gap`)).toHaveLength(1);
-  });
-
-  it('scopes a track drag’s gap to that row’s track list', () => {
-    const el = buildInstance({
-      _customizeMode: true,
-      // At1 (index 0) moving to the end of A's two tracks.
-      _drag: { rowId: 'A', trackId: 'At1', to: 2 },
-    });
-    const target = renderInto(el);
-    const gaps = target.querySelectorAll(`.${CSS_PREFIX}-drop-gap`);
-    expect(gaps).toHaveLength(1);
-    // It sits after A's last track, not among the rows.
-    expect(gaps[0].previousElementSibling!.id).toBe(`${CSS_PREFIX}-track_At2`);
-  });
-
-  // A gap where the row already sits promises a move the drop won't make.
-  it('shows no gap when the drop would leave the order unchanged', () => {
-    for (const to of [0, 1]) {
-      const el = buildInstance({
-        _customizeMode: true,
-        _drag: { rowId: 'A', to },
-      });
-      expect(
-        renderInto(el).querySelectorAll(`.${CSS_PREFIX}-drop-gap`)
-      ).toHaveLength(0);
-    }
+  it('keeps the Show toggle live on a track the user hid', () => {
+    const target = renderInto(
+      buildInstance({ config: makeConfig({}, true), _customizeMode: true })
+    );
+    const toggle = target
+      .querySelector(`#${CSS_PREFIX}-track_At2`)!
+      .querySelector('button[aria-pressed]')!;
+    expect(toggle.hasAttribute('disabled')).toBe(false);
+    expect(toggle.getAttribute('aria-label')).toBe('Show At2');
   });
 });
 
@@ -355,5 +346,30 @@ describe('the live region', () => {
     expect(
       target.querySelector(`.${CSS_PREFIX}-live-region`)!.textContent
     ).toContain('A moved to position 2 of 3.');
+  });
+});
+
+describe('the just-moved highlight', () => {
+  it('marks the row named by _movedKey', () => {
+    const target = renderInto(
+      buildInstance({ _customizeMode: true, _movedKey: 'B' })
+    );
+    const moved = target.querySelectorAll(`.${CSS_PREFIX}-row--moved`);
+    expect(moved).toHaveLength(1);
+    expect(moved[0].id).toBe(`${CSS_PREFIX}-group_B`);
+  });
+
+  it('marks a moved track by its composite key', () => {
+    const target = renderInto(
+      buildInstance({ _customizeMode: true, _movedKey: 'A-At2' })
+    );
+    const moved = target.querySelectorAll(`.${CSS_PREFIX}-row--moved`);
+    expect(moved).toHaveLength(1);
+    expect(moved[0].id).toBe(`${CSS_PREFIX}-track_At2`);
+  });
+
+  it('marks nothing when no move is pending', () => {
+    const target = renderInto(buildInstance({ _customizeMode: true }));
+    expect(target.querySelectorAll(`.${CSS_PREFIX}-row--moved`)).toHaveLength(0);
   });
 });

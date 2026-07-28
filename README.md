@@ -91,7 +91,7 @@ Reactive properties on the `<protvista-uniprot>` element (HTML attribute name in
 
 ### Layout (Customize layout)
 
-End users can reorder rows, reorder tracks within a group, and show/hide either, using controls that appear on the rows themselves in **Customize** mode; the same layout can be driven programmatically. A layout edit rewrites the viewer's config, so `getConfig()` exports exactly what the user arranged. Each method emits a `protvista-layout-change` event (see [Events](#events)).
+End users can reorder rows (with move-up/down buttons), reorder tracks within a group, and show/hide either, using controls that appear on the rows themselves in **Customize** mode; the same layout can be driven programmatically. A layout edit rewrites the viewer's config, so `getConfig()` exports exactly what the user arranged. Each method emits a `protvista-layout-change` event (see [Events](#events)).
 
 - `setRowOrder(order: string[])`: reorder the rows by id.
 - `setTrackOrder(rowId: string, order: string[])`: reorder the tracks within one row. Movement is two-level — a track cannot leave its group, because a nested config has no way to record where it went.

@@ -24,26 +24,33 @@ Each row and each track offers:
 
 - a **show/hide toggle** (an eye / slashed-eye icon paired with a "Hide" /
   "Show" action label);
-- **move-up / move-down** buttons and a **drag handle** to reorder it.
+- **move-up / move-down** buttons to reorder it.
 
-A group header carries the same controls and moves or hides the whole group.
+A group header carries the same controls, plus a collapse/expand button, and
+moves or hides the whole group at once.
+
+Reordering is by button, not by dragging. Buttons work the same for pointer,
+touch and keyboard, and they are the path WCAG 2.5.7 requires in any case. The
+row you moved is **briefly highlighted** afterwards, since a single press can
+carry it far enough to be hard to find again.
 
 Movement is **two-level**: rows reorder among rows, and a track reorders
-within its own group. A track cannot be dragged out of its group, because a
-nested config has no way to record where it went — an out-of-level drop is
-refused rather than silently reinterpreted. Hiding every track of a group
-removes the group (and its aggregate summary) from the canvas.
+within its own group. A track cannot leave its group, because a nested config
+has no way to record where it went. Hiding every track of a group removes the
+group (and its aggregate summary) from the canvas.
 
-While dragging, a **placeholder gap** opens up where the row will land, sized
-to the row being moved, so the outcome is legible before you let go. Dropping
-below a row's midpoint places the row after it, which is how the position past
-the last row is reached.
+Rows that are hidden stay in place as dimmed **stubs** — the label and its
+controls with an empty track area — so hiding is never a one-way door. Tracks
+whose **data never arrived** appear the same way, but their Show control is
+**disabled** and reads "No data": showing them would change nothing, since
+there is nothing to draw.
 
-Rows that are hidden — and tracks whose data never arrived — stay in place as
-dimmed **stubs**: the label and its controls with an empty track area. Hiding
-is never a one-way door. Outside customize mode a **"N hidden"** count sits
-beside the Customize button, and if everything is hidden the viewer says so
-and offers a reset rather than rendering an empty frame.
+Outside customize mode a **"N hidden"** button sits beside the Customize
+button. It counts *tracks*, so hiding a group of six reads "6 hidden" rather
+than "1", and it leaves out tracks that are empty for want of data. Its
+tooltip explains how to bring them back, and pressing it opens customize mode.
+If everything is hidden the viewer says so and offers a reset rather than
+rendering an empty frame.
 
 **Reset** (enabled only once something has changed) restores the authored
 layout; **Done** leaves the mode and returns focus to the Customize button.
@@ -53,8 +60,9 @@ Changes apply and persist live, so there is no separate save step.
 
 Customize mode is built to WCAG 2.1 AA:
 
-- **Keyboard**: reordering always has a non-drag path (the move-up/down
-  buttons), so it never depends on a dragging gesture (2.5.7).
+- **Keyboard**: reordering is by button, so it never depends on a dragging
+  gesture (2.5.7). Focus stays on the moved row, moving to the opposite
+  button when the one you pressed becomes disabled at an end.
 - **Screen readers**: real `<button>` controls with accessible names ("Hide
   Domains", "Move Domains up"); the toggle carries `aria-pressed`; a polite
   live region announces each move ("Domains moved to position 2 of 12"), hide,
@@ -63,7 +71,8 @@ Customize mode is built to WCAG 2.1 AA:
 - **No colour-only state**: show/hide state is carried by the icon shape *and*
   the action word, never colour alone (1.4.1).
 - **Target size**: every control is at least 24×24 px (2.5.8).
-- **Motion**: the drag placeholder respects `prefers-reduced-motion`.
+- **Motion**: the just-moved highlight keeps its outline but drops its fade
+  under `prefers-reduced-motion`.
 
 ## Authoring a row or track hidden (`hidden`)
 

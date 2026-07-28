@@ -1,12 +1,11 @@
 /**
  * End-to-end coverage for "Customize layout" on `<protvista-uniprot>` in a
- * real browser: the inline per-row controls, their keyboard and pointer
- * operation, drag-to-reorder, and the accessibility contract from #173.
+ * real browser: the inline per-row controls, their operation, and the
+ * accessibility contract from #173.
  *
  * A real mount is what makes this worth running in a browser rather than
- * jsdom — focus actually moves, `aria-pressed` is actually computed, drag
- * events actually carry a `dataTransfer`, and axe has a real layout to
- * inspect. The pure ordering logic is covered in `src/__spec__/layout.spec.ts`
+ * jsdom — focus actually moves, `aria-pressed` and `disabled` are actually
+ * computed, and axe has a real layout to inspect. The pure ordering logic is covered in `src/__spec__/layout.spec.ts`
  * and the render output in `layout-render.spec.ts`; this file is about
  * whether a person can drive the thing.
  */
@@ -26,6 +25,8 @@ const CONFIG = {
       tracks: [
         { id: 'domain', kind: 'features', data: 'https://example.org/a.json' },
         { id: 'region', kind: 'features', data: 'https://example.org/b.json' },
+        // Served an empty array, so this one never has anything to draw.
+        { id: 'empty', kind: 'features', data: 'https://example.org/empty.json' },
       ],
     },
     {
@@ -51,6 +52,7 @@ type Viewer = HTMLElement & {
   openGroups?: string[];
   getLayout(): LayoutPatch;
   setRowVisibility(rowId: string, visible: boolean): void;
+  setTrackVisibility(groupId: string, trackId: string, visible: boolean): void;
   updateComplete: Promise<unknown>;
 };
 
@@ -61,7 +63,9 @@ function stubFetch() {
       const url = String(input);
       const body = url.includes('/proteins/api/proteins/')
         ? { sequence: { sequence: 'MSEQENCE' } }
-        : [{ type: 'DOMAIN', start: 1, end: 5 }];
+        : url.includes('empty.json')
+          ? []
+          : [{ type: 'DOMAIN', start: 1, end: 5 }];
       return { ok: true, status: 200, json: async () => body } as unknown as Response;
     })
   );
@@ -137,46 +141,6 @@ function trackControl(
 
 const liveRegionText = (el: Viewer) =>
   el.querySelector(`.${CSS_PREFIX}-live-region`)!.textContent!.trim();
-
-/**
- * A `clientY` just below or just above `target`'s midpoint — which is the
- * line the drop index is computed against. Offsetting from the midpoint
- * rather than using a fraction of the height keeps this correct even though
- * the stubbed Nightingale elements give the rows no real height here.
- */
-function midpointY(target: Element, half: 'upper' | 'lower'): number {
-  const rect = target.getBoundingClientRect();
-  return rect.top + rect.height / 2 + (half === 'lower' ? 1 : -1);
-}
-
-/** Fire a drag sequence from `source` onto the given half of `target`. */
-async function dragOnto(
-  el: Viewer,
-  source: Element,
-  target: Element,
-  half: 'upper' | 'lower'
-): Promise<void> {
-  const dataTransfer = new DataTransfer();
-  source.dispatchEvent(
-    new DragEvent('dragstart', { bubbles: true, dataTransfer })
-  );
-  await el.updateComplete;
-
-  target.dispatchEvent(
-    new DragEvent('dragover', {
-      bubbles: true,
-      cancelable: true,
-      dataTransfer,
-      clientY: midpointY(target, half),
-    })
-  );
-  await el.updateComplete;
-
-  target.dispatchEvent(
-    new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer })
-  );
-  await el.updateComplete;
-}
 
 beforeEach(() => {
   stubFetch();
@@ -391,121 +355,116 @@ describe('move up / down', () => {
   });
 });
 
-describe('drag to reorder', () => {
-  it('opens a placeholder gap where the row would land', async () => {
+// Tracks with no data are absent from the canvas whatever the toggle says, so
+// offering a working Show would be a button that visibly does nothing.
+describe('tracks with no data', () => {
+  it('disables the Show toggle and says why', async () => {
     const el = await mountViewer();
     await enterCustomize(el);
-    const grip = control(el, 'DOMAINS', 'Reorder');
-    const dataTransfer = new DataTransfer();
-
-    grip.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer }));
-    await el.updateComplete;
-
-    const target = el.querySelector(`#${CSS_PREFIX}-group_sites`)!;
-    target.dispatchEvent(
-      new DragEvent('dragover', {
-        bubbles: true,
-        cancelable: true,
-        dataTransfer,
-        clientY: midpointY(target, 'lower'),
-      })
-    );
-    await el.updateComplete;
-
-    expect(el.querySelectorAll(`.${CSS_PREFIX}-drop-gap`)).toHaveLength(1);
+    const toggle = trackControl(el, 'empty', 'No data');
+    expect(toggle.disabled).toBe(true);
+    expect(toggle.getAttribute('aria-label')).toBe('No data for Empty');
+    expect(toggle.getAttribute('title')).toContain('No data');
+    // Not "Hide" — the track is not shown, and it is not the user's doing.
+    expect(toggle.textContent!.trim()).toBe('No data');
   });
 
-  // The old top-edge marker only ever inserted *before* a row, so the last
-  // position could not be reached by dragging at all.
-  it('can drop past the last row', async () => {
+  it('leaves its move controls working', async () => {
     const el = await mountViewer();
     await enterCustomize(el);
-    await dragOnto(
-      el,
-      control(el, 'DOMAINS', 'Reorder'),
-      el.querySelector(`#${CSS_PREFIX}-group_sites`)!,
-      'lower'
-    );
-    expect(laneIds(el)).toEqual(['PTM', 'sites', 'DOMAINS']);
+    expect(trackControl(el, 'empty', 'Move Empty up').disabled).toBe(false);
   });
 
-  it('drops before a row when the pointer is in its upper half', async () => {
+  it('is left out of the hidden count', async () => {
     const el = await mountViewer();
-    await enterCustomize(el);
-    await dragOnto(
-      el,
-      control(el, 'sites', 'Reorder'),
-      el.querySelector(`#${CSS_PREFIX}-group_PTM`)!,
-      'upper'
-    );
-    expect(laneIds(el)).toEqual(['DOMAINS', 'sites', 'PTM']);
+    // Only the dataless track exists in a hidden state, so nothing is
+    // *user*-hidden and the badge should not appear at all.
+    expect(el.querySelector(`.${CSS_PREFIX}-hidden-count`)).toBeNull();
+  });
+});
+
+describe('the hidden count', () => {
+  const badge = (el: Viewer) =>
+    el.querySelector<HTMLButtonElement>(`.${CSS_PREFIX}-hidden-count`);
+
+  // Hiding a group of several and hiding one track are not both "1 hidden";
+  // the badge answers "how much am I not seeing".
+  it('counts tracks, not toggles, when a whole group is hidden', async () => {
+    const el = await mountViewer();
+    el.setRowVisibility('DOMAINS', false);
+    await el.updateComplete;
+    // DOMAINS holds three tracks, one of which has no data and is excluded.
+    expect(badge(el)!.textContent).toContain('2 hidden');
   });
 
-  // A nested config cannot express a track that left its group, so the drop
-  // is refused rather than silently reinterpreted.
-  it('refuses to drop a track outside its own group', async () => {
+  it('counts an individually hidden track as one', async () => {
     const el = await mountViewer();
-    await enterCustomize(el);
-    const grip = trackControl(el, 'domain', 'Reorder');
-
-    const dataTransfer = new DataTransfer();
-    grip.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer }));
+    el.setTrackVisibility('DOMAINS', 'domain', false);
     await el.updateComplete;
-
-    const foreign = el.querySelector(`#${CSS_PREFIX}-track_glyco`)!;
-    const over = new DragEvent('dragover', {
-      bubbles: true,
-      cancelable: true,
-      dataTransfer,
-      clientY: midpointY(foreign, 'lower'),
-    });
-    foreign.dispatchEvent(over);
-    await el.updateComplete;
-
-    // Not accepted, and no gap offered.
-    expect(over.defaultPrevented).toBe(false);
-    expect(el.querySelectorAll(`.${CSS_PREFIX}-drop-gap`)).toHaveLength(0);
+    expect(badge(el)!.textContent).toContain('1 hidden');
   });
 
-  // The old implementation drove its marker from dragenter/dragleave, which
-  // fire as the pointer crosses a row's own children — so it flickered.
-  it('keeps the gap steady while the pointer crosses a row’s children', async () => {
+  it('explains how to bring the tracks back', async () => {
     const el = await mountViewer();
-    await enterCustomize(el);
-    const grip = control(el, 'DOMAINS', 'Reorder');
-    const dataTransfer = new DataTransfer();
-    grip.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer }));
+    el.setRowVisibility('PTM', false);
+    await el.updateComplete;
+    const hint = badge(el)!.getAttribute('title')!;
+    expect(hint).toContain('Customize');
+    expect(hint).toContain('Show');
+    // The same text is the accessible name, so the hint is not mouse-only.
+    expect(badge(el)!.getAttribute('aria-label')).toBe(hint);
+  });
+
+  it('opens customize mode when pressed', async () => {
+    const el = await mountViewer();
+    el.setRowVisibility('PTM', false);
     await el.updateComplete;
 
-    const target = el.querySelector(`#${CSS_PREFIX}-group_sites`)!;
-    const clientY = midpointY(target, 'lower');
-    const label = target.querySelector(`.${CSS_PREFIX}-track-label`)!;
+    badge(el)!.click();
+    await el.updateComplete;
+    expect(toggle(el).getAttribute('aria-pressed')).toBe('true');
+  });
+});
 
-    for (const node of [target, label, target.querySelector('button')!, label]) {
-      node.dispatchEvent(
-        new DragEvent('dragover', {
-          bubbles: true,
-          cancelable: true,
-          dataTransfer,
-          clientY,
-        })
+describe('the just-moved highlight', () => {
+  it('marks the row that moved', async () => {
+    const el = await mountViewer();
+    await enterCustomize(el);
+    control(el, 'PTM', 'Move Modifications down').click();
+    await el.updateComplete;
+
+    const moved = el.querySelectorAll(`.${CSS_PREFIX}-row--moved`);
+    expect(moved).toHaveLength(1);
+    expect(moved[0].id).toBe(`${CSS_PREFIX}-group_PTM`);
+  });
+
+  it('marks only the most recent move', async () => {
+    const el = await mountViewer();
+    await enterCustomize(el);
+    control(el, 'PTM', 'Move Modifications down').click();
+    await el.updateComplete;
+    control(el, 'DOMAINS', 'Move Domains down').click();
+    await el.updateComplete;
+
+    const moved = el.querySelectorAll(`.${CSS_PREFIX}-row--moved`);
+    expect(moved).toHaveLength(1);
+    expect(moved[0].id).toBe(`${CSS_PREFIX}-group_DOMAINS`);
+  });
+
+  // The pressed button is disabled once the row lands at an end, so focus
+  // has to go somewhere rather than fall back to <body>.
+  it('hands focus to the opposite move button at the ends', async () => {
+    const el = await mountViewer();
+    await enterCustomize(el);
+    const down = control(el, 'PTM', 'Move Modifications down');
+    down.click();
+    await el.updateComplete;
+
+    expect(down.disabled).toBe(true);
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(
+        control(el, 'PTM', 'Move Modifications up')
       );
-      await el.updateComplete;
-      expect(el.querySelectorAll(`.${CSS_PREFIX}-drop-gap`)).toHaveLength(1);
-    }
-  });
-
-  it('clears the gap when the drag ends without a drop', async () => {
-    const el = await mountViewer();
-    await enterCustomize(el);
-    const grip = control(el, 'DOMAINS', 'Reorder');
-    const dataTransfer = new DataTransfer();
-    grip.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer }));
-    await el.updateComplete;
-
-    grip.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer }));
-    await el.updateComplete;
-    expect(el.querySelectorAll(`.${CSS_PREFIX}-drop-gap`)).toHaveLength(0);
-    expect(laneIds(el)).toEqual(['DOMAINS', 'PTM', 'sites']);
+    });
   });
 });

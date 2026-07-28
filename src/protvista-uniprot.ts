@@ -103,7 +103,6 @@ import slidersIcon from './icons/sliders.svg';
 import eyeIcon from './icons/eye.svg';
 import eyeSlashIcon from './icons/eye-slash.svg';
 import chevronUpIcon from './icons/chevron-up.svg';
-import gripIcon from './icons/grip.svg';
 import protvistaStyles from './styles/protvista-styles';
 import loaderStyles from './styles/loader-styles';
 import errorStyles from './styles/error-styles';
@@ -228,21 +227,11 @@ const hasRenderableData = (value: unknown): boolean => {
 };
 
 /**
- * An in-progress drag in customize mode.
- *
- * `rowId`-only means a whole row is moving among the rows; with `trackId` set
- * it is a track moving within that row. The two levels never mix — a drop is
- * rejected outright when the levels don't match (see `_onRowDragOver`),
- * because a nested config has no way to say a track left its group.
- *
- * `to` is the index the drop would land at *within that level*, and is what
- * positions the placeholder gap.
+ * How long a just-moved row stays highlighted. Long enough to find the row
+ * after a move that scrolled it out of view, short enough not to linger over
+ * the next one.
  */
-interface DragState {
-  rowId: string;
-  trackId?: string;
-  to: number;
-}
+const MOVED_HIGHLIGHT_MS = 2000;
 
 /** Monotonic per-page counter giving each element a unique id nonce. */
 let protvistaInstanceSeq = 0;
@@ -277,11 +266,14 @@ class ProtvistaUniprot extends LitElement {
    */
   private _announcement = '';
   /**
-   * The row/track currently being dragged, and the index the drop would land
-   * at. Drives the placeholder gap that opens up to show where the row will
-   * go — a static drop line was too easy to lose track of mid-drag.
+   * The row or track (`rowId` or `${rowId}-${trackId}`) most recently moved,
+   * briefly highlighted so the user can see where it landed. A row can travel
+   * far enough in one press to be easy to lose, and the live-region
+   * announcement only helps people who hear it.
    */
-  private _drag: DragState | null = null;
+  private _movedKey: string | null = null;
+  /** Timer clearing `_movedKey`; re-armed on each move. */
+  private _movedTimer?: ReturnType<typeof setTimeout>;
   /**
    * Opt out of layout persistence. When present as the `no-persist-layout`
    * attribute, a customized layout is neither restored on mount nor saved
@@ -718,7 +710,7 @@ class ProtvistaUniprot extends LitElement {
       openGroups: { type: Array },
       _customizeMode: { state: true },
       _announcement: { state: true },
-      _drag: { state: true },
+      _movedKey: { state: true },
       noPersistLayout: {
         type: Boolean,
         reflect: true,
@@ -1875,17 +1867,10 @@ class ProtvistaUniprot extends LitElement {
       enabled: () => !this.notooltip,
     });
 
-    // Drag-to-reorder is handled once here rather than per row: a drag's
-    // events fire on whichever descendant is under the pointer, so listening
-    // on the host is both cheaper and immune to a row's own children
-    // interrupting the gesture. Both handlers no-op unless a drag is active.
-    this.addEventListener('dragover', this._onHostDragOver);
-    this.addEventListener('drop', this._onHostDrop);
   }
 
   disconnectedCallback() {
-    this.removeEventListener('dragover', this._onHostDragOver);
-    this.removeEventListener('drop', this._onHostDrop);
+    clearTimeout(this._movedTimer);
     this._tooltipController?.dispose();
     this._tooltipController = undefined;
     // Cancel every still-running fetch batch so the detached element
@@ -1964,9 +1949,10 @@ class ProtvistaUniprot extends LitElement {
     const attrs = renderingToAttrs(track.rendering);
     return html`
       <div
-        class="${CSS_PREFIX}-group ${CSS_PREFIX}-group--standalone"
+        class="${CSS_PREFIX}-group ${CSS_PREFIX}-group--standalone ${this._movedClass(
+          group.id
+        )}"
         id="${CSS_PREFIX}-group_${group.id}"
-        data-drop-row="${group.id}"
       >
         <div
           class="${CSS_PREFIX}-track-label"
@@ -2034,8 +2020,7 @@ class ProtvistaUniprot extends LitElement {
       : row.standalone
         ? this.renderStandaloneTrack(row, index, total)
         : this._renderGroupBlock(row, tracks, index, total);
-    return html`${this._renderDropGap(index)}${body ||
-    this._renderRowStub(row, index, total)}`;
+    return body || this._renderRowStub(row, index, total);
   }
 
   /**
@@ -2072,9 +2057,8 @@ class ProtvistaUniprot extends LitElement {
     const expanded = this.openGroups.includes(group.id);
     return html`
       <div
-        class="${CSS_PREFIX}-group"
+        class="${CSS_PREFIX}-group ${this._movedClass(group.id)}"
         id="${CSS_PREFIX}-group_${group.id}"
-        data-drop-row="${group.id}"
       >
         ${this._customizeMode
           ? // While customizing, the label cell holds real buttons, so it
@@ -2130,7 +2114,7 @@ class ProtvistaUniprot extends LitElement {
             tracks,
             (t) => t.id,
             (t, i) => this._renderExpandedTrack(group, t, i, tracks.length)
-          )}${this._renderDropGap(tracks.length, group.id)}`
+          )}`
         : ''}
     `;
   }
@@ -2180,12 +2164,11 @@ class ProtvistaUniprot extends LitElement {
     }
     const attrs = renderingToAttrs(track.rendering);
     return html`
-      ${this._renderDropGap(index, group.id)}
       <div
-        class="${CSS_PREFIX}-group__track"
+        class="${CSS_PREFIX}-group__track ${this._movedClass(
+          trackKey(group.id, track.id)
+        )}"
         id="${CSS_PREFIX}-track_${track.id}"
-        data-drop-row="${group.id}"
-        data-drop-track="${track.id}"
       >
         <div class="${CSS_PREFIX}-track-label" title="${track.description ?? ''}">
           ${this._renderTrackControls(group, track, index, total)}${(track.filterUI ===
@@ -2229,9 +2212,10 @@ class ProtvistaUniprot extends LitElement {
   private _renderRowStub(row: NormalizedRow, index: number, total: number) {
     return html`
       <div
-        class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-row--stub ${CSS_PREFIX}-row--hidden"
+        class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-row--stub ${CSS_PREFIX}-row--hidden ${this._movedClass(
+          row.id
+        )}"
         id="${CSS_PREFIX}-group_${row.id}"
-        data-drop-row="${row.id}"
       >
         <div class="${CSS_PREFIX}-track-label" title="${row.description ?? ''}">
           ${this._renderRowControls(row, index, total)}${unsafeHTML(
@@ -2251,12 +2235,11 @@ class ProtvistaUniprot extends LitElement {
     total: number
   ) {
     return html`
-      ${this._renderDropGap(index, group.id)}
       <div
-        class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-row--stub ${CSS_PREFIX}-row--hidden"
+        class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-row--stub ${CSS_PREFIX}-row--hidden ${this._movedClass(
+          trackKey(group.id, track.id)
+        )}"
         id="${CSS_PREFIX}-track_${track.id}"
-        data-drop-row="${group.id}"
-        data-drop-track="${track.id}"
       >
         <div class="${CSS_PREFIX}-track-label" title="${track.description ?? ''}">
           ${this._renderTrackControls(group, track, index, total)}${unsafeHTML(
@@ -2289,7 +2272,7 @@ class ProtvistaUniprot extends LitElement {
 
   private _toggleCustomizeMode = () => {
     this._customizeMode = !this._customizeMode;
-    this._drag = null;
+    this._movedKey = null;
     this._announcement = this._customizeMode
       ? 'Customize layout on. Use the controls on each row to reorder, show, or hide it.'
       : 'Customize layout off.';
@@ -2302,7 +2285,11 @@ class ProtvistaUniprot extends LitElement {
    * the button sits in the same column as the per-row controls it turns on.
    */
   private _renderCustomizeToggle() {
-    const hidden = hiddenCount(this.config?.rows ?? []);
+    // Counted per track, and excluding tracks that have nothing to draw —
+    // those are missing because no data arrived, not because anyone hid them.
+    const hidden = hiddenCount(this.config?.rows ?? [], (rowId, trackId) =>
+      this._trackIsEmpty(rowId, trackId)
+    );
     return html`
       <button
         type="button"
@@ -2315,13 +2302,36 @@ class ProtvistaUniprot extends LitElement {
         >
         Customize
       </button>
-      ${hidden > 0
-        ? html`<span class="${CSS_PREFIX}-hidden-count"
-            >${hidden} hidden</span
-          >`
-        : ''}
+      ${hidden > 0 ? this._renderHiddenCount(hidden) : ''}
     `;
   }
+
+  /**
+   * The "N hidden" badge. A button, not a label: it explains how to get the
+   * tracks back, and a plain `<span title>` would put that explanation out of
+   * reach of anyone not using a mouse. Pressing it opens customize mode,
+   * which is where the Show controls are.
+   */
+  private _renderHiddenCount(hidden: number) {
+    const noun = hidden === 1 ? 'track is' : 'tracks are';
+    const hint = `${hidden} ${noun} hidden. Open Customize and press Show on a row to bring it back.`;
+    return html`
+      <button
+        type="button"
+        class="${CSS_PREFIX}-hidden-count"
+        title="${hint}"
+        aria-label="${hint}"
+        @click="${this._openCustomizeMode}"
+      >
+        ${hidden} hidden
+      </button>
+    `;
+  }
+
+  /** Enter customize mode (idempotent — the badge must never close it). */
+  private _openCustomizeMode = () => {
+    if (!this._customizeMode) this._toggleCustomizeMode();
+  };
 
   /** Reset / Done, shown beside the toggle only while customizing. */
   private _renderCustomizeActions() {
@@ -2373,13 +2383,16 @@ class ProtvistaUniprot extends LitElement {
   // ── Per-row controls ────────────────────────────────────────
   // Every control is a real <button> with a text label, never a bare icon on
   // a <div>: the eye glyph is paired with the word "Hide"/"Show" so state is
-  // never carried by shape or colour alone (WCAG 1.4.1), and move up/down
-  // buttons give reordering a pointer-free path, which drag alone cannot
-  // (WCAG 2.5.7 Dragging Movements).
+  // never carried by shape or colour alone (WCAG 1.4.1).
+  //
+  // Reordering is move-up/move-down only — there is no drag. Buttons are the
+  // path that works for keyboard, touch and pointer alike (and the one WCAG
+  // 2.5.7 requires anyway), and the moved row is highlighted afterwards so
+  // the result is easy to find.
 
   /**
    * Controls for a whole row: collapse/expand (groups only, see
-   * `_renderGroupBlock`), hide/show, move up/down, drag grip.
+   * `_renderGroupBlock`), hide/show, move up/down.
    */
   private _renderRowControls(
     row: NormalizedRow,
@@ -2390,26 +2403,23 @@ class ProtvistaUniprot extends LitElement {
     if (!this._customizeMode) return '';
     const name = this._labelText(row.label);
     const hidden = isRowHidden(row);
+    // Nothing to draw anywhere in the row: showing it would change nothing,
+    // so the toggle says why instead of offering a no-op.
+    const empty = row.tracks.every((t) => this._trackIsEmpty(row.id, t.id));
     return html`
-      <span
-        class="${CSS_PREFIX}-row-controls"
-        draggable="${this._customizeMode}"
-        @dragstart="${(e: DragEvent) => this._onDragStart(e, row.id)}"
-        @dragend="${this._onDragEnd}"
-      >
+      <span class="${CSS_PREFIX}-row-controls">
         ${expanded === undefined
           ? ''
           : this._collapseButton(row, name, expanded)}
-        ${this._toggleButton(hidden, name, () =>
+        ${this._toggleButton(hidden, name, empty, () =>
           this.setRowVisibility(row.id, hidden)
         )}
-        ${this._moveButton(-1, name, index, total, () =>
-          this._moveRowBy(row, index, -1)
+        ${this._moveButton(-1, name, index, total, (b) =>
+          this._moveRowBy(row, index, -1, b)
         )}
-        ${this._moveButton(1, name, index, total, () =>
-          this._moveRowBy(row, index, 1)
+        ${this._moveButton(1, name, index, total, (b) =>
+          this._moveRowBy(row, index, 1, b)
         )}
-        ${this._gripButton(name)}
       </span>
     `;
   }
@@ -2424,26 +2434,30 @@ class ProtvistaUniprot extends LitElement {
     if (!this._customizeMode) return '';
     const name = this._labelText(track.label);
     const hidden = !!track.hidden;
+    const empty = this._trackIsEmpty(group.id, track.id);
     return html`
-      <span
-        class="${CSS_PREFIX}-row-controls"
-        draggable="${this._customizeMode}"
-        @dragstart="${(e: DragEvent) =>
-          this._onDragStart(e, group.id, track.id)}"
-        @dragend="${this._onDragEnd}"
-      >
-        ${this._toggleButton(hidden, name, () =>
+      <span class="${CSS_PREFIX}-row-controls">
+        ${this._toggleButton(hidden, name, empty, () =>
           this.setTrackVisibility(group.id, track.id, hidden)
         )}
-        ${this._moveButton(-1, name, index, total, () =>
-          this._moveTrackBy(group, track, index, -1)
+        ${this._moveButton(-1, name, index, total, (b) =>
+          this._moveTrackBy(group, track, index, -1, b)
         )}
-        ${this._moveButton(1, name, index, total, () =>
-          this._moveTrackBy(group, track, index, 1)
+        ${this._moveButton(1, name, index, total, (b) =>
+          this._moveTrackBy(group, track, index, 1, b)
         )}
-        ${this._gripButton(name)}
       </span>
     `;
+  }
+
+  /**
+   * Whether a track has nothing to draw — no data arrived and no error to
+   * report. Such a track is absent from the canvas no matter what the user
+   * does, so customize mode shows it but offers no working Show.
+   */
+  private _trackIsEmpty(rowId: string, trackId: string): boolean {
+    const key = trackKey(rowId, trackId);
+    return !hasRenderableData(this.data[key]) && !this._trackErrors.has(key);
   }
 
   /**
@@ -2474,15 +2488,27 @@ class ProtvistaUniprot extends LitElement {
   /**
    * The show/hide toggle. `aria-pressed` carries the state for assistive
    * tech; the visible word carries it for everyone else.
+   *
+   * `empty` disables it: a track with no data is absent from the canvas
+   * whatever the toggle says, so an enabled Show would be a button that
+   * visibly does nothing. The reason goes in the accessible name and the
+   * tooltip rather than being left for the user to work out.
    */
-  private _toggleButton(hidden: boolean, name: string, onClick: () => void) {
+  private _toggleButton(
+    hidden: boolean,
+    name: string,
+    empty: boolean,
+    onClick: () => void
+  ) {
     const action = hidden ? 'Show' : 'Hide';
     return html`
       <button
         type="button"
         class="${CSS_PREFIX}-row-control"
         aria-pressed="${hidden}"
-        aria-label="${action} ${name}"
+        aria-label="${empty ? `No data for ${name}` : `${action} ${name}`}"
+        title="${empty ? 'No data available for this track' : ''}"
+        ?disabled="${empty}"
         @click="${(e: Event) => {
           e.stopPropagation();
           onClick();
@@ -2490,8 +2516,10 @@ class ProtvistaUniprot extends LitElement {
         }}"
       >
         <span class="${CSS_PREFIX}-row-control__icon" aria-hidden="true"
-          >${svg`${unsafeHTML(hidden ? eyeSlashIcon : eyeIcon)}`}</span
-        ><span class="${CSS_PREFIX}-row-control__text">${action}</span>
+          >${svg`${unsafeHTML(hidden || empty ? eyeSlashIcon : eyeIcon)}`}</span
+        ><span class="${CSS_PREFIX}-row-control__text"
+          >${empty ? 'No data' : action}</span
+        >
       </button>
     `;
   }
@@ -2502,7 +2530,7 @@ class ProtvistaUniprot extends LitElement {
     name: string,
     index: number,
     total: number,
-    onClick: () => void
+    onClick: (button: HTMLButtonElement) => void
   ) {
     const atEnd = dir === -1 ? index === 0 : index === total - 1;
     return html`
@@ -2516,7 +2544,7 @@ class ProtvistaUniprot extends LitElement {
         ?disabled="${atEnd}"
         @click="${(e: Event) => {
           e.stopPropagation();
-          onClick();
+          onClick(e.currentTarget as HTMLButtonElement);
         }}"
       >
         <span aria-hidden="true">${svg`${unsafeHTML(chevronUpIcon)}`}</span>
@@ -2524,46 +2552,38 @@ class ProtvistaUniprot extends LitElement {
     `;
   }
 
-  /**
-   * The drag handle. A real button, so it is reachable and announced even
-   * though its own gesture is pointer-only — the move buttons beside it are
-   * the keyboard path.
-   */
-  private _gripButton(name: string) {
-    return html`
-      <button
-        type="button"
-        class="${CSS_PREFIX}-row-control ${CSS_PREFIX}-row-grip"
-        aria-label="Reorder ${name}"
-        @click="${(e: Event) => e.stopPropagation()}"
-      >
-        <span aria-hidden="true">${svg`${unsafeHTML(gripIcon)}`}</span>
-      </button>
-    `;
-  }
-
-  /** Move a row by one position and announce where it landed. */
-  private _moveRowBy(row: NormalizedRow, index: number, delta: -1 | 1): void {
+  /** Move a row by one position, highlight it, and announce where it landed. */
+  private _moveRowBy(
+    row: NormalizedRow,
+    index: number,
+    delta: -1 | 1,
+    button: HTMLButtonElement
+  ): void {
     if (!this.config) return;
     const total = this.config.rows.length;
     const to = index + delta;
     if (to < 0 || to >= total) return;
     this._commitRows(moveRow(this.config.rows, row.id, to));
+    this._markMoved(row.id);
+    this._keepFocusAfterMove(button);
     this._announceMove(this._labelText(row.label), to, total);
   }
 
-  /** Move a track within its group by one position and announce it. */
+  /** Move a track within its group by one position, highlight, and announce. */
   private _moveTrackBy(
     group: NormalizedRow,
     track: NormalizedTrack,
     index: number,
-    delta: -1 | 1
+    delta: -1 | 1,
+    button: HTMLButtonElement
   ): void {
     if (!this.config) return;
     const total = group.tracks.length;
     const to = index + delta;
     if (to < 0 || to >= total) return;
     this._commitRows(moveTrack(this.config.rows, group.id, track.id, to));
+    this._markMoved(trackKey(group.id, track.id));
+    this._keepFocusAfterMove(button);
     this._announceMove(this._labelText(track.label), to, total);
   }
 
@@ -2571,131 +2591,43 @@ class ProtvistaUniprot extends LitElement {
     this._announce(`${name} moved to position ${to + 1} of ${total}.`);
   }
 
-  // ── Drag to reorder ─────────────────────────────────────────
-  // Two deliberate choices here, both fixing what a per-row
-  // `dragenter`/`dragleave` pair gets wrong:
-  //
-  //   * Only `dragover` is used. Enter/leave fire as the pointer crosses
-  //     between a row's own children (the controls, the buttons, the label),
-  //     so any marker they drive flickers on and off mid-drag. `dragover`
-  //     fires continuously for whatever is under the pointer, so the drop
-  //     index only changes when it genuinely changes.
-  //   * The drop index comes from the pointer against each row's midpoint,
-  //     not "before the row under the pointer". That makes the position after
-  //     the last row reachable, which insert-before alone never is.
-  //
-  // The feedback is a placeholder gap that opens where the row will land,
-  // rather than a thin line: the space it makes is the same size as the thing
-  // being moved, so the result is legible before the drop.
+  /**
+   * Mark a row/track as just-moved so it can be highlighted, and arm the
+   * timer that clears the mark.
+   *
+   * Reordering is button-only, and a row can travel a long way in one press —
+   * far enough to leave the viewport, and always far enough to lose track of
+   * visually. The announcement covers screen-reader users; this covers
+   * everyone else.
+   */
+  private _markMoved(key: string): void {
+    this._movedKey = key;
+    clearTimeout(this._movedTimer);
+    this._movedTimer = setTimeout(() => {
+      this._movedKey = null;
+    }, MOVED_HIGHLIGHT_MS);
+  }
 
-  /** Delegated on the host, so a row's children can't break the drag. */
-  private _onHostDragOver = (e: DragEvent) => {
-    const drag = this._drag;
-    if (!drag || !this.config) return;
-    const target = (e.target as Element | null)?.closest?.(
-      '[data-drop-row]'
-    ) as HTMLElement | null;
-    if (!target) return;
-
-    const rowId = target.dataset.dropRow as string;
-    const trackId = target.dataset.dropTrack;
-    // A track lands only among its own group's tracks. A nested config cannot
-    // say "this track now lives between two groups", so a cross-group drop is
-    // refused outright rather than silently reinterpreted.
-    if (drag.trackId !== undefined && (trackId === undefined || rowId !== drag.rowId)) {
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'none';
-      return;
-    }
-
-    // Accepting the drop requires cancelling the event's default.
-    e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-
-    const list = this._dragList(drag);
-    // An expanded group occupies several DOM rows, and every one of them
-    // carries the group's id — so a row-level drag can be dropped anywhere
-    // over the group, not only on its header.
-    const over = list.findIndex(
-      (i) => i.id === (drag.trackId !== undefined ? trackId : rowId)
-    );
-    if (over === -1) return;
-    const rect = target.getBoundingClientRect();
-    const to = e.clientY > rect.top + rect.height / 2 ? over + 1 : over;
-    if (to !== drag.to) this._drag = { ...drag, to };
-  };
-
-  private _onHostDrop = (e: DragEvent) => {
-    const drag = this._drag;
-    if (!drag || !this.config) return;
-    e.preventDefault();
-    const list = this._dragList(drag);
-    const id = drag.trackId ?? drag.rowId;
-    const from = list.findIndex((i) => i.id === id);
-    this._drag = null;
-    if (from === -1) return;
-    // `drag.to` is an insertion index in the list *including* the dragged
-    // item; the move helpers take the destination index after its removal.
-    const to = Math.min(list.length - 1, from < drag.to ? drag.to - 1 : drag.to);
-    if (to === from) return;
-
-    if (drag.trackId) {
-      this._commitRows(
-        moveTrack(this.config.rows, drag.rowId, drag.trackId, to)
-      );
-    } else {
-      this._commitRows(moveRow(this.config.rows, drag.rowId, to));
-    }
-    const moved = list[from] as { label?: string; id: string };
-    this._announceMove(
-      this._labelText(moved.label ?? moved.id),
-      to,
-      list.length
-    );
-  };
-
-  private _onDragStart = (e: DragEvent, rowId: string, trackId?: string) => {
-    if (!this._customizeMode) return;
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = 'move';
-      // Firefox will not start a drag without payload, even an unused one.
-      e.dataTransfer.setData('text/plain', trackId ?? rowId);
-    }
-    const list = this._dragList({ rowId, trackId, to: 0 });
-    const from = list.findIndex((i) => i.id === (trackId ?? rowId));
-    this._drag = { rowId, trackId, to: Math.max(0, from) };
-  };
-
-  private _onDragEnd = () => {
-    this._drag = null;
-  };
-
-  /** The list a drag moves within: a row's tracks, or the rows themselves. */
-  private _dragList(drag: DragState): readonly { id: string }[] {
-    if (!this.config) return [];
-    if (!drag.trackId) return this.config.rows;
-    return this.config.rows.find((r) => r.id === drag.rowId)?.tracks ?? [];
+  /** The just-moved highlight class for a row/track, if it is the one. */
+  private _movedClass(key: string): string {
+    return this._movedKey === key ? `${CSS_PREFIX}-row--moved` : '';
   }
 
   /**
-   * The placeholder gap, rendered before the row/track at `index` when that
-   * is where the drop would land. `rowId` scopes it to a track drag inside
-   * that row; omitted, it belongs to a row-level drag.
+   * Keep focus usable after a move. The move buttons live inside a keyed
+   * row, so the element itself survives the reorder and keeps focus — except
+   * when the row lands at an end and the button the user just pressed becomes
+   * disabled. Hand focus to its opposite number so the keyboard path doesn't
+   * dead-end.
    */
-  private _renderDropGap(index: number, rowId?: string) {
-    const drag = this._drag;
-    if (!drag || drag.to !== index) return '';
-    const matches = rowId
-      ? drag.trackId !== undefined && drag.rowId === rowId
-      : drag.trackId === undefined;
-    if (!matches) return '';
-    // No gap where the row already is: both the slot before it and the slot
-    // after it leave the order unchanged, and opening space for a move that
-    // will not happen reads as a promise the drop won't keep.
-    const from = this._dragList(drag).findIndex(
-      (i) => i.id === (drag.trackId ?? drag.rowId)
-    );
-    if (drag.to === from || drag.to === from + 1) return '';
-    return html`<div class="${CSS_PREFIX}-drop-gap" aria-hidden="true"></div>`;
+  private _keepFocusAfterMove(button: HTMLButtonElement): void {
+    void this.updateComplete.then(() => {
+      if (!button.disabled) return;
+      const sibling = button.parentElement?.querySelector<HTMLButtonElement>(
+        `.${CSS_PREFIX}-row-control--move:not([disabled])`
+      );
+      sibling?.focus({ preventScroll: true });
+    });
   }
 
   render() {
@@ -2776,11 +2708,6 @@ class ProtvistaUniprot extends LitElement {
           (display) => display.row.id,
           (display, i) => this._renderRow(display, i, rows.length)
         )}
-        ${
-          // The drop target past the last row. Without it the final position
-          // is unreachable by drag, since every other gap sits *before* a row.
-          this._renderDropGap(rows.length)
-        }
         <div class="${CSS_PREFIX}-nav-container">
           <div class="${CSS_PREFIX}-credits"></div>
           <div class="${CSS_PREFIX}-track-content">
