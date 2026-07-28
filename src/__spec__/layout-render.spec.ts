@@ -177,7 +177,7 @@ describe('the Customize toggle', () => {
     // B holds two tracks, so hiding the lane hides two.
     expect(
       target.querySelector(`.${CSS_PREFIX}-hidden-count`)!.textContent
-    ).toContain('2 hidden');
+    ).toContain('2 tracks hidden');
   });
 
   it('makes the count a button that explains how to undo the hide', () => {
@@ -186,7 +186,8 @@ describe('the Customize toggle', () => {
     expect(badge.tagName).toBe('BUTTON');
     const hint = badge.getAttribute('title')!;
     expect(hint).toContain('Customize');
-    expect(hint).toContain('Show');
+    // Names the control that undoes it — a switch, not a Show button.
+    expect(hint).toContain('switch');
     // Also the accessible name, so the hint is not mouse-only.
     expect(badge.getAttribute('aria-label')).toBe(hint);
   });

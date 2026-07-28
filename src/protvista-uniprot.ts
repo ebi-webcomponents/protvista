@@ -2332,8 +2332,9 @@ class ProtvistaUniprot extends LitElement {
    * which is where the Show controls are.
    */
   private _renderHiddenCount(hidden: number) {
-    const noun = hidden === 1 ? 'track is' : 'tracks are';
-    const hint = `${hidden} ${noun} hidden. Open Customize and press Show on a row to bring it back.`;
+    const noun = hidden === 1 ? 'track' : 'tracks';
+    const label = `${hidden} ${noun} hidden`;
+    const hint = `${label}. Open Customize and switch a row back on to restore it.`;
     return html`
       <button
         type="button"
@@ -2342,7 +2343,7 @@ class ProtvistaUniprot extends LitElement {
         aria-label="${hint}"
         @click="${this._onHiddenCountClick}"
       >
-        ${hidden} hidden
+        ${label}
       </button>
     `;
   }
@@ -2747,8 +2748,16 @@ class ProtvistaUniprot extends LitElement {
       >
         <div class="${CSS_PREFIX}-nav-container">
           <div class="${CSS_PREFIX}-nav-track-label">
-            ${this._renderCustomizeToggle()}
-            ${this._customizeMode ? this._renderCustomizeActions() : ''}
+            <div class="${CSS_PREFIX}-toolbar-row">
+              ${this._renderCustomizeToggle()}
+            </div>
+            <div
+              class="${CSS_PREFIX}-toolbar-row ${this._customizeMode
+                ? ''
+                : `${CSS_PREFIX}-toolbar-row--reserved`}"
+            >
+              ${this._renderCustomizeActions()}
+            </div>
           </div>
           <div class="${CSS_PREFIX}-track-content">
             <nightingale-navigation

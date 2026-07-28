@@ -333,7 +333,7 @@ describe('show / hide', () => {
     await el.updateComplete;
     expect(
       el.querySelector(`.${CSS_PREFIX}-hidden-count`)!.textContent
-    ).toContain('1 hidden');
+    ).toContain('1 track hidden');
   });
 
   it('says so instead of rendering an empty frame when everything is hidden', async () => {
@@ -429,14 +429,15 @@ describe('the hidden count', () => {
     el.setRowVisibility('DOMAINS', false);
     await el.updateComplete;
     // DOMAINS holds three tracks, one of which has no data and is excluded.
-    expect(badge(el)!.textContent).toContain('2 hidden');
+    expect(badge(el)!.textContent).toContain('2 tracks hidden');
   });
 
   it('counts an individually hidden track as one', async () => {
     const el = await mountViewer();
     el.setTrackVisibility('DOMAINS', 'domain', false);
     await el.updateComplete;
-    expect(badge(el)!.textContent).toContain('1 hidden');
+    // Singular, so it reads as a sentence rather than a stat.
+    expect(badge(el)!.textContent).toContain('1 track hidden');
   });
 
   it('explains how to bring the tracks back', async () => {
@@ -445,7 +446,7 @@ describe('the hidden count', () => {
     await el.updateComplete;
     const hint = badge(el)!.getAttribute('title')!;
     expect(hint).toContain('Customize');
-    expect(hint).toContain('Show');
+    expect(hint).toContain('switch');
     // The same text is the accessible name, so the hint is not mouse-only.
     expect(badge(el)!.getAttribute('aria-label')).toBe(hint);
   });

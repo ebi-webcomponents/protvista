@@ -24,12 +24,35 @@ const p = unsafeCSS(CSS_PREFIX);
 export default css`
   /* The label column doubles as the customize toolbar: the toggle sits in the
      empty cell beside the navigation, in the same column as the per-row
-     controls it reveals. */
+     controls it reveals.
+
+     Stacked in rows rather than left to wrap: what is on screen (Customize,
+     and the count of what is not) belongs on one line, and the actions that
+     change it on the next. Letting them wrap put Done alone on a second row
+     at some widths and not others. */
   protvista-uniprot .${p}-nav-track-label {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.3rem;
+  }
+
+  protvista-uniprot .${p}-toolbar-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.3rem;
+  }
+
+  /* The actions row is always laid out, and merely made invisible outside
+     customize mode, so entering the mode adds no height and the navigation
+     ruler does not step down. Reserving it with a min-height would mean
+     hard-coding a number that has to track the buttons' own metrics;
+     visibility does it exactly, and takes them out of the tab order and the
+     accessibility tree while it is at it. */
+  protvista-uniprot .${p}-toolbar-row--reserved {
+    visibility: hidden;
   }
 
   protvista-uniprot .${p}-customize-toggle,

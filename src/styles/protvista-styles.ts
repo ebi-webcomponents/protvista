@@ -65,9 +65,6 @@ export default css`
     border-bottom: 0;
   }
 
-  /* The one vertical rule in the viewer. It marks where the label column
-     ends and the sequence coordinate space begins — the boundary the eye
-     needs — and is the reason no other vertical divider is required. */
   protvista-uniprot .${p}-group-label,
   protvista-uniprot .${p}-track-label,
   protvista-uniprot .${p}-nav-track-label,
@@ -80,8 +77,20 @@ export default css`
     max-width: var(--protvista-label-width);
     padding: 0.5em;
     line-height: normal;
-    border-right: 1px solid var(--protvista-track-border-color);
     background-color: var(--protvista-track-label-bg);
+  }
+
+  /* The one vertical rule in the viewer: it marks where the label column ends
+     and the sequence coordinate space begins, which is the boundary the eye
+     needs, and is why no other vertical divider is required.
+
+     It belongs to the data rows only. Carrying it through the navigation
+     spacer above and the credits cell below drew a line into space where
+     there is no row to divide, which read as a stray stroke rather than as
+     structure. */
+  protvista-uniprot .${p}-group-label,
+  protvista-uniprot .${p}-track-label {
+    border-right: 1px solid var(--protvista-track-border-color);
   }
 
   /* A track inside a group is indented to show it belongs to the header
