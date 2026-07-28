@@ -60,7 +60,9 @@ const globToRegExp = (glob: string) => {
       return token.replace(/[.+^${}()|[\]\\]/g, '\\$&');
     }
   );
-  return new RegExp(`^${body}$`);
+  // ReDoS-safe: this compiles only author-controlled globs — the test cases
+  // below and package.json's `sideEffects` array — never runtime/user input.
+  return new RegExp(`^${body}$`); // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
 };
 
 /** Every authored module under `src/`, excluding test-only trees. */

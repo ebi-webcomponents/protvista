@@ -1,0 +1,9 @@
+version: 2
+updates:
+  # The workflow pins actions to commit SHAs, which do not receive security
+  # or feature updates on their own. Let Dependabot open PRs that advance each
+  # pin (and its trailing `# vX` comment) as new releases ship.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
