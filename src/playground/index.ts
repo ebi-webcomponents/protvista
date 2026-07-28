@@ -8,21 +8,19 @@
  * mounted preview element. The whole session (preset or custom text +
  * accession) round-trips through the URL hash for shareable links.
  *
- * The `<protvista-uniprot>` custom element is registered by the
- * component `<script>` in the playground page (the same pattern the
- * other Pages entries use). Registration must NOT rely on the bare import
- * below alone: the package declares `"sideEffects": false`, so a bundler
- * is free to tree-shake a side-effect-only import out of the production
- * build. The import is kept so the element is also defined when this
- * module is loaded in isolation (dev server, tests), but the HTML entry
- * is the guarantee.
+ * The bare import below is what registers `<protvista-uniprot>` — the
+ * `@customElement` decorator runs on module evaluation. It is load-bearing,
+ * not decorative: deleting it leaves the preview an undefined tag. The
+ * package no longer claims `"sideEffects": false`, so bundlers keep it.
+ * The playground page also imports the component from its own `<script>`,
+ * which is redundant but harmless (ESM evaluates the module once).
  */
-import '../protvista-uniprot';
-import type { ValidationIssue } from '../schema';
-import { createEditor, type PlaygroundEditor } from './editor';
-import { createDiagnosticsView } from './diagnostics-view';
-import { computeDiagnostics, type PlaygroundDiagnostic } from './lint';
-import { initSplitter } from './splitter';
+import '../protvista-uniprot.js';
+import type { ValidationIssue } from '../schema/index.js';
+import { createEditor, type PlaygroundEditor } from './editor.js';
+import { createDiagnosticsView } from './diagnostics-view.js';
+import { computeDiagnostics, type PlaygroundDiagnostic } from './lint.js';
+import { initSplitter } from './splitter.js';
 import {
   PRESETS,
   DEV_PRESETS,
@@ -30,14 +28,14 @@ import {
   getPreset,
   isDevPreset,
   type Preset,
-} from './presets';
+} from './presets.js';
 import {
   readHash,
   writeHash,
   accessionFromSearch,
   DEFAULT_ACCESSION,
   type PlaygroundState,
-} from './url-state';
+} from './url-state.js';
 
 const DEBOUNCE_MS = 400;
 

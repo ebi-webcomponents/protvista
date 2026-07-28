@@ -29,9 +29,9 @@ import {
   loadProtvistaData,
   type AdapterMap,
   type CustomTrackData,
-} from '../load-data';
-import type { TooltipSpec } from '../tooltips/types';
-import { ACCESSION, makeConfig } from './fixtures';
+} from '../load-data.js';
+import type { TooltipSpec } from '../tooltips/types.js';
+import { ACCESSION, makeConfig } from './fixtures.js';
 
 // The `from: custom` branch short-circuits before URL fetch, so fetchOne
 // should never be consulted. A spying stub lets tests assert that.

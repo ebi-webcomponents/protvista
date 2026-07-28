@@ -12,11 +12,11 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { loadConfig } from '../schema/load';
-import { createRegistry } from '../schema/registry';
-import { loadProtvistaData, type AdapterMap } from '../load-data';
-import { featuresCsv } from '../schema/adapters/features-csv';
-import { featuresJson } from '../schema/adapters/features-json';
+import { loadConfig } from '../schema/load.js';
+import { createRegistry } from '../schema/registry.js';
+import { loadProtvistaData, type AdapterMap } from '../load-data.js';
+import { featuresCsv } from '../schema/adapters/features-csv.js';
+import { featuresJson } from '../schema/adapters/features-json.js';
 
 const CSV = 'type,start,end,description\nDOMAIN,10,25,Kinase domain';
 

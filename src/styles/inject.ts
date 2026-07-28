@@ -1,4 +1,4 @@
-import { tokenDefaultsBlock } from './tokens';
+import { tokenDefaultsBlock } from './tokens.js';
 
 /**
  * Shared light-DOM stylesheet injection.

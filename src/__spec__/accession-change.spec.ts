@@ -38,8 +38,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // structure sub-component + the SVG icon import are registered
 // globally via `src/__spec__/nightingale-mocks.ts`, wired through
 // `setupFiles` in `vite.config.mjs`.
-import '../protvista-uniprot';
-import type { NormalizedConfig } from '../schema/normalize';
+import '../protvista-uniprot.js';
+import type { NormalizedConfig } from '../schema/normalize.js';
 
 // Widen the `updated()` signature to `Map<string, unknown>` for
 // testing: the component types it as `Map<string, string>`, but the

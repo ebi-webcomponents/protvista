@@ -31,14 +31,14 @@
  * `__unfiltered` keys as inert baselines, not live renderer payload.
  */
 
-import type { NormalizedConfig, NormalizedTrack } from './schema/normalize';
+import type { NormalizedConfig, NormalizedTrack } from './schema/normalize.js';
 import {
   TEXT_BODY_ADAPTERS,
   GENERIC_FILE_ADAPTERS,
-} from './schema/file-formats';
-import { resolveTooltip } from './tooltips/resolve';
-import { tooltipDefaults } from './tooltips/defaults';
-import type { TooltipContext, TooltipSpec } from './tooltips/types';
+} from './schema/file-formats.js';
+import { resolveTooltip } from './tooltips/resolve.js';
+import { tooltipDefaults } from './tooltips/defaults.js';
+import type { TooltipContext, TooltipSpec } from './tooltips/types.js';
 
 /**
  * Minimal shape the loader needs from an adapter: a function of the raw

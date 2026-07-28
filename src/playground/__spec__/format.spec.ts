@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectFormat } from '../format';
+import { detectFormat } from '../format.js';
 
 describe('detectFormat', () => {
   it('detects JSON by a leading { or [ (after whitespace)', () => {

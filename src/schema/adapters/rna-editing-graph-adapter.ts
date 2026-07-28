@@ -1,5 +1,5 @@
-import type { AdapterFunction } from '../types';
-import { RnaEditing } from './types/rna-editing';
+import type { AdapterFunction } from '../types.js';
+import { RnaEditing } from './types/rna-editing.js';
 
 export const rnaEditingGraphAdapter: AdapterFunction = (raw) => {
   const data = raw as RnaEditing;

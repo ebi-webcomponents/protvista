@@ -30,7 +30,7 @@ import type {
   KnownAdapterName,
   KnownSemanticKind,
   KnownComponentName,
-} from '../types';
+} from '../types.js';
 
 /** One documented field of a generic bring-your-own-data payload. */
 export interface FieldDoc {

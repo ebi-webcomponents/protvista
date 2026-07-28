@@ -4,14 +4,14 @@
  * broken seed can never reach the playground UI.
  */
 import { describe, it, expect } from 'vitest';
-import { loadConfig } from '../../schema/load';
-import { createRegistry } from '../../schema/registry';
+import { loadConfig } from '../../schema/load.js';
+import { createRegistry } from '../../schema/registry.js';
 import {
   ALL_PRESETS,
   DEFAULT_PRESET_ID,
   getPreset,
   isDevPreset,
-} from '../presets';
+} from '../presets.js';
 
 describe('presets', () => {
   it('exposes the default preset', () => {

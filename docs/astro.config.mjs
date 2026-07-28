@@ -64,7 +64,6 @@ export default defineConfig({
         'lit/directives/unsafe-html.js',
         'timing-functions',
         'color-hash',
-        'lodash-es',
         'ajv',
         'js-yaml',
         '@floating-ui/dom',

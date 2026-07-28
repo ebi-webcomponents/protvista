@@ -4,7 +4,7 @@ import {
   colorConfig,
   getFilteredVariants,
   VariantsForFilter,
-} from '../filter-config';
+} from '../filter-config.js';
 
 const transformedVariantPositions = [
   {

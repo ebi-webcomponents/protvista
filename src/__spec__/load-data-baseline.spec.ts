@@ -65,13 +65,13 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
-import { loadConfig } from '../schema/load';
-import type { NormalizedConfig } from '../schema/normalize';
+import { loadConfig } from '../schema/load.js';
+import type { NormalizedConfig } from '../schema/normalize.js';
 import {
   loadProtvistaData,
   UNFILTERED_SUFFIX,
   type AdapterMap,
-} from '../load-data';
+} from '../load-data.js';
 
 const REFERENCE_ACCESSION = 'P05067';
 

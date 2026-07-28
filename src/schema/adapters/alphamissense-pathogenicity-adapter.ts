@@ -1,6 +1,6 @@
 import type { AlphaFoldPayload } from '@nightingale-elements/nightingale-structure';
 
-import type { AdapterFunction } from '../types';
+import type { AdapterFunction } from '../types.js';
 
 // from color scale B:0,H:0.1132,V:0.2264,L:0.3395,A:0.4527,l:0.5895,h:0.7264,p:0.8632,P:1
 const certainlyBenign = 0;

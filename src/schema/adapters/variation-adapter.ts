@@ -7,7 +7,7 @@ import {
   VariationDatum,
 } from '@nightingale-elements/nightingale-variation-canvas';
 
-import type { AdapterFunction } from '../types';
+import type { AdapterFunction } from '../types.js';
 
 export type TransformedVariant = VariationDatum & Variant;
 

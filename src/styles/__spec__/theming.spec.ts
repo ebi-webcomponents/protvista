@@ -8,12 +8,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { TOKENS, tokenDefaults } from '../tokens';
-import { installTokenDefaults } from '../inject';
+import { TOKENS, tokenDefaults } from '../tokens.js';
+import { installTokenDefaults } from '../inject.js';
 import {
   ProtvistaUniprotDatatable,
   type ColumnConfig,
-} from '../../protvista-uniprot-datatable';
+} from '../../protvista-uniprot-datatable.js';
 
 /**
  * Resolve a registry default to the literal it ultimately renders as: a

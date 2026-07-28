@@ -14,7 +14,7 @@ import {
   findRowFromEvent,
   safeDisplayValue,
   type FilterableColumn,
-} from '../protvista-uniprot-datatable';
+} from '../protvista-uniprot-datatable.js';
 
 type Row = {
   id: string;

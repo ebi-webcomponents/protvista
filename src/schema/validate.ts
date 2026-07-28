@@ -45,17 +45,17 @@ import type {
   TrackConfig,
   DataSourceDescriptor,
   ColorScaleConfig,
-} from './types';
-import { isGroupConfig } from './discriminate';
-import type { Registry } from './registry';
-import { RENDERABLE_COMPONENT_NAMES } from './components';
-import { isPlainObject, isSet } from './shape';
-import { dataFileFormatForPath } from './file-formats';
+} from './types.js';
+import { isGroupConfig } from './discriminate.js';
+import type { Registry } from './registry.js';
+import { RENDERABLE_COMPONENT_NAMES } from './components.js';
+import { isPlainObject, isSet } from './shape.js';
+import { dataFileFormatForPath } from './file-formats.js';
 import type {
   ValidationIssue,
   ValidationResult,
   ValidationIssueCode,
-} from './errors';
+} from './errors.js';
 
 // ─────────────────────────────────────────────────────────────
 // Ajv instance (memoised)
@@ -696,5 +696,5 @@ function listQuoted(values: Iterable<string>): string {
 }
 
 // Re-export ValidationIssueCode for callers that want to switch on
-// `issue.code` without importing from './errors' directly.
+// `issue.code` without importing from './errors.js' directly.
 export type { ValidationIssueCode };

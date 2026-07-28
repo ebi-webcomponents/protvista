@@ -4,19 +4,20 @@ on:
   push:
   pull_request:
 
+# Least privilege by default: only the deploy-pages job elevates to the
+# pages/id-token scopes GitHub Pages deployment needs. The test and build
+# jobs (build uploads the Pages artifact) run with read-only contents.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24"
           cache: "yarn"
@@ -44,9 +45,9 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24"
           cache: "yarn"
@@ -54,19 +55,31 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Build
-        run: yarn build
+      # `moduleResolution: "bundler"` + `skipLibCheck` means nothing in the
+      # test job resolves this package the way a consumer will. publint and
+      # attw do, against the real tarball — they are the only guard on the
+      # exports map, `type`, and the emitted declarations. `test:pack` builds
+      # first (`yarn build && …`), so it owns the build for the steps below;
+      # a separate Build step would only rebuild the same output.
+      - name: Check published package
+        run: yarn test:pack
+
+      # The dist/ assertions in package-contract.spec.ts skip unless a build
+      # exists; the test job never builds, so run them here against the dist/
+      # that the step above produced.
+      - name: Verify packaging contract against dist/
+        run: yarn vitest run --project unit src/__spec__/package-contract.spec.ts
 
       # Builds the Astro + Starlight docs (incl. the playground page) + the bench
       # page into site/. Requires astro, @astrojs/starlight, astro-mermaid,
-      # mermaid and sharp in devDependencies; a postinstall patches js-yaml.
+      # mermaid and sharp in devDependencies.
       - name: Build site
         if: github.ref == 'refs/heads/next' && github.event_name == 'push'
         run: yarn site:build
 
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/next' && github.event_name == 'push'
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:
           path: site/
 
@@ -75,10 +88,13 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/next' && github.event_name == 'push'
+    permissions:
+      pages: write # create the Pages deployment
+      id-token: write # OIDC token deploy-pages verifies
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5

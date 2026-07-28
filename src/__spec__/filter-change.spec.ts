@@ -22,8 +22,8 @@
 
 import { describe, it, expect, vi } from 'vitest';
 
-import '../protvista-uniprot';
-import { UNFILTERED_SUFFIX } from '../load-data';
+import '../protvista-uniprot.js';
+import { UNFILTERED_SUFFIX } from '../load-data.js';
 
 type FilterDef = {
   name: string;

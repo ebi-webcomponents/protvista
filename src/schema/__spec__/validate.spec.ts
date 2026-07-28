@@ -11,10 +11,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { validateConfig } from '../validate';
-import { createRegistry } from '../registry';
-import type { ProtvistaViewerConfig } from '../types';
-import type { ValidationIssue } from '../errors';
+import { validateConfig } from '../validate.js';
+import { createRegistry } from '../registry.js';
+import type { ProtvistaViewerConfig } from '../types.js';
+import type { ValidationIssue } from '../errors.js';
 
 const freshRegistry = () => {
   const r = createRegistry();

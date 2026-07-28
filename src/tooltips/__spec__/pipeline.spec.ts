@@ -37,9 +37,9 @@
  * resolver inputs the test exercises.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { loadProtvistaData, type AdapterMap } from '../../load-data';
-import type { TooltipSpec } from '../types';
-import { ACCESSION, makeConfig } from '../../__spec__/fixtures';
+import { loadProtvistaData, type AdapterMap } from '../../load-data.js';
+import type { TooltipSpec } from '../types.js';
+import { ACCESSION, makeConfig } from '../../__spec__/fixtures.js';
 
 const fetchOne = vi.fn(async (url: string) => ({ url })); // payload is irrelevant — adapters below ignore it
 

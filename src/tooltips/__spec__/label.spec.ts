@@ -17,7 +17,7 @@
  *   - repeated renders of the same label are memoized (parse/warn once).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderLabel, __resetLabelCache } from '../resolve';
+import { renderLabel, __resetLabelCache } from '../resolve.js';
 
 function htmlFragment(html: string): HTMLDivElement {
   const doc = new DOMParser().parseFromString(html, 'text/html');

@@ -12,7 +12,7 @@ import {
   accessionFromSearch,
   DEFAULT_ACCESSION,
   type PlaygroundState,
-} from '../url-state';
+} from '../url-state.js';
 
 const roundTrip = (state: PlaygroundState) =>
   decodeState(`#${encodeState(state)}`);

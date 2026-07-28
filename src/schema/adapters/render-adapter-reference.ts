@@ -16,7 +16,7 @@ import {
   type GenericAdapterDoc,
   type DomainAdapterDoc,
   type FieldDoc,
-} from './adapter-reference';
+} from './adapter-reference.js';
 
 const PAGES_BASE = 'https://ebi-webcomponents.github.io/protvista';
 const GITHUB_BLOB = 'https://github.com/ebi-webcomponents/protvista/blob/next';

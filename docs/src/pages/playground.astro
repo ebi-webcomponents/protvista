@@ -90,9 +90,11 @@
       </section>
     </main>
 
-    <!-- Client-only: registers <protvista-uniprot> then runs the controller.
-         Imported from the library source at the repo root (see fs.allow in
-         astro.config.mjs). Astro bundles this as a client script. -->
+    <!-- Client-only: runs the playground controller, which itself imports
+         and registers <protvista-uniprot>. Imported from the library source
+         at the repo root (see fs.allow in astro.config.mjs); Astro bundles
+         this as a client script. The explicit component import is therefore
+         redundant, but keeps this page's registration greppable. -->
     <script>
       import '../../../src/protvista-uniprot';
       import '../../../src/playground/index';

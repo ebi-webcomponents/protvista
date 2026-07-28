@@ -1,5 +1,5 @@
 import { css, unsafeCSS } from 'lit';
-import { CSS_PREFIX } from './css-prefix';
+import { CSS_PREFIX } from './css-prefix.js';
 
 /**
  * Styles for the user-facing error surfaces: the mount-level alert panel

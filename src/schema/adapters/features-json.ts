@@ -30,8 +30,8 @@
  * the delimited adapters' non-string guard.
  */
 
-import type { AdapterFunction } from '../types';
-import type { FeatureRecord } from './dsv';
+import type { AdapterFunction } from '../types.js';
+import type { FeatureRecord } from './dsv.js';
 
 const FORMAT_LABEL = 'features-json';
 

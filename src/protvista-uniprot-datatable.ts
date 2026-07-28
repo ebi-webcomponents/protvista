@@ -17,7 +17,7 @@ import {
   resolvePath,
   safeDisplayValue,
   type Filters,
-} from './utils/protvista-uniprot-datatable';
+} from './utils/protvista-uniprot-datatable.js';
 
 export interface ColumnConfig<T extends Record<string, unknown>> {
   label: string;

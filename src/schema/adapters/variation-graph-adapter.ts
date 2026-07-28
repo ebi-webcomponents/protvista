@@ -1,4 +1,4 @@
-import type { AdapterFunction } from '../types';
+import type { AdapterFunction } from '../types.js';
 
 type VariationFeature = {
   genomicLocation?: string[];

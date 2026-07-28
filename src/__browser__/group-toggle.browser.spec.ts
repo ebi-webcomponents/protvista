@@ -11,10 +11,10 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
-import '../protvista-uniprot';
-import { CSS_PREFIX } from '../styles/css-prefix';
-import { mount } from './mount';
-import { expectNoA11yViolations } from './axe';
+import '../protvista-uniprot.js';
+import { CSS_PREFIX } from '../styles/css-prefix.js';
+import { mount } from './mount.js';
+import { expectNoA11yViolations } from './axe.js';
 
 const TOGGLE = `.${CSS_PREFIX}-group-label[data-group-toggle="g"]`;
 

@@ -10,11 +10,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createRegistry } from '../schema/registry';
-import { featuresCsv } from '../schema/adapters/features-csv';
-import { featuresTsv } from '../schema/adapters/features-tsv';
-import { featuresJson } from '../schema/adapters/features-json';
-import { bed } from '../schema/adapters/bed';
+import { createRegistry } from '../schema/registry.js';
+import { featuresCsv } from '../schema/adapters/features-csv.js';
+import { featuresTsv } from '../schema/adapters/features-tsv.js';
+import { featuresJson } from '../schema/adapters/features-json.js';
+import { bed } from '../schema/adapters/bed.js';
 
 describe('built-in registry — generic-format adapters', () => {
   const registry = createRegistry();

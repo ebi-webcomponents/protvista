@@ -8,7 +8,7 @@
  * mental model.
  */
 
-import type { NormalizedConfig, NormalizedTrack } from '../schema/normalize';
+import type { NormalizedConfig, NormalizedTrack } from '../schema/normalize.js';
 
 /**
  * Canonical accession used across loader and setTrackData tests. Kept

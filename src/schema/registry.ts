@@ -51,7 +51,7 @@
  * BUILTIN_TRANSFORM_OPERATORS) is left as future work.
  */
 
-import { BUILTIN_ADAPTERS } from './adapters';
+import { BUILTIN_ADAPTERS } from './adapters/index.js';
 import type {
   SemanticKindDefinition,
   AdapterFunction,
@@ -59,7 +59,7 @@ import type {
   KnownSemanticKind,
   KnownComponentName,
   KnownAdapterName,
-} from './types';
+} from './types.js';
 
 // ─────────────────────────────────────────────────────────────
 // Public Registry interface

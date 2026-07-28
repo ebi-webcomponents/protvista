@@ -22,11 +22,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import '../protvista-uniprot';
-import { loadConfig } from '../schema/load';
-import type { Registry } from '../schema/registry';
-import type { NormalizedConfig, NormalizedTrack } from '../schema/normalize';
-import type { SemanticKindDefinition } from '../schema/types';
+import '../protvista-uniprot.js';
+import { loadConfig } from '../schema/load.js';
+import type { Registry } from '../schema/registry.js';
+import type { NormalizedConfig, NormalizedTrack } from '../schema/normalize.js';
+import type { SemanticKindDefinition } from '../schema/types.js';
 
 type RegistrationHarness = HTMLElement & {
   registry: Registry;

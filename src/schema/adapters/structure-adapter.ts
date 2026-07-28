@@ -1,4 +1,4 @@
-import type { AdapterFunction } from '../types';
+import type { AdapterFunction } from '../types.js';
 
 const featureType = 'PDBE_COVER';
 const featureCategory = 'STRUCTURE_COVERAGE';

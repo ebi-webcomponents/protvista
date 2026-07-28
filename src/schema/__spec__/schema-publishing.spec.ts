@@ -15,7 +15,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseConfigText } from '../parse';
+import { parseConfigText } from '../parse.js';
 
 // Canonical GitHub Pages URL. The path segment is the *repo* name
 // (`protvista`, already renamed from `protvista-uniprot` — the npm
