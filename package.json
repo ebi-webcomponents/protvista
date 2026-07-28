@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "prepack": "yarn build",
+    "prepublishOnly": "yarn test:pack",
     "build": "vite build",
     "start": "yarn docs:dev",
     "docs:dev": "astro dev --root docs",

@@ -87,6 +87,17 @@ currently possible: several `@nightingale-elements` packages declare
 `"type": "module"` while using extensionless relative imports in their own
 `.d.ts`, so their type exports disappear under Node ESM resolution.
 
+### Dependency versions
+
+Runtime `dependencies` use caret ranges (`^1.2.3`); `devDependencies` are
+pinned to exact versions. The asymmetry is deliberate: caret ranges let a
+consumer's package manager dedupe our runtime deps (`lit`, `ajv`, the
+`@nightingale-elements/*` packages) against their own copy instead of
+bundling a duplicate, while exact devDeps plus the committed `yarn.lock`
+keep CI and local builds reproducible. Don't "fix" the inconsistency by
+pinning runtime deps exact — that reintroduces duplicate copies in consumer
+bundles. The lockfile is the source of truth for the exact versions.
+
 ### Commit Messages
 
 - Use present tense ("Add feature" not "Added feature").

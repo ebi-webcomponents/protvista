@@ -116,6 +116,13 @@ describe('package.json packaging contract', () => {
   });
 
   it('declares the entry points bundlers and TypeScript resolve through', () => {
+    // The top-level `module`/`types` are redundant with the `exports`
+    // `import`/`types` conditions for any modern resolver, but kept
+    // deliberately: they are the legacy node10 fallback *and* this spec's
+    // canonical source for the built entry/declaration paths — asserted
+    // here, gated on by the dist/ describe below, and flattened into its
+    // `declared` list. Drop them only together with those references; do
+    // not let one copy drift out of step with `exports`.
     expect(typeof pkg.module).toBe('string');
     expect(pkg.exports?.['.']).toBeTypeOf('object');
     expect(pkg.exports['.']).not.toBeNull();
@@ -141,6 +148,32 @@ describe('package.json packaging contract', () => {
     if (conditions.includes('default')) {
       expect(conditions[conditions.length - 1]).toBe('default');
     }
+  });
+});
+
+describe('globToRegExp models the webpack/Vite sideEffects glob subset', () => {
+  // `globToRegExp` only runs inside the allowlist test above, which skips
+  // while this package ships no `sideEffects` array — so without these cases
+  // the hand-rolled matcher has zero executing coverage and a regression
+  // would surface only once a future maintainer reintroduces an allowlist.
+  // Pin the semantics now: leading `./` optional, a slash-free pattern
+  // implicitly `**/`-prefixed, `*`/`?` do not cross `/`, and `**` spans
+  // segments but only as a whole segment.
+  const cases: [string, string, boolean][] = [
+    ['*.mjs', 'dist/protvista-uniprot.mjs', true], // slash-free => **/ prefix
+    ['*.mjs', 'protvista-uniprot.mjs', true],
+    ['./dist/protvista-uniprot.mjs', 'dist/protvista-uniprot.mjs', true], // leading ./ optional
+    ['dist/*.mjs', 'dist/protvista-uniprot.mjs', true],
+    ['dist/*.mjs', 'dist/chunks/a.mjs', false], // * does not cross /
+    ['dist/**', 'dist/a.mjs', true], // ** spans segments
+    ['dist/**', 'dist/chunks/a.mjs', true],
+    ['a?b.js', 'axb.js', true],
+    ['a?b.js', 'a/b.js', false], // ? does not cross /
+    ['dist/x.mjs', 'dist/y.mjs', false],
+  ];
+
+  it.each(cases)('%s ~ %s => %s', (glob, path, expected) => {
+    expect(globToRegExp(glob).test(path)).toBe(expected);
   });
 });
 
