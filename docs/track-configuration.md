@@ -6,65 +6,68 @@ interaction and accessibility design in
 [`specs/track-configurability-design.md`](../specs/track-configurability-design.md)
 (issue [#199](https://github.com/ebi-webcomponents/protvista/issues/199)).
 
-The customized layout is **viewer-held runtime state layered over the
-config**. The authored config is never mutated: it describes the initial
-mount, and any user reordering/hiding lives in the component (per
-[`specs/config-approach.md`](../specs/config-approach.md)).
+**The config is the source of truth.** A user's edits are written into the
+viewer's configuration — reordering a row moves it in `rows:`, hiding a track
+sets the same `hidden:` field an author could have written. Nothing is layered
+on top at render time, so `getConfig()` exports exactly what the user
+arranged, ready to be saved, shared, or handed back to `setConfig()`. That
+matters most for imported data, which has no authored config to fall back on.
 
-## The "Customize layout" panel
+## Customize mode
 
-A **Customize layout** button in the viewer toolbar opens the **Track
-Manager**: a list of every track in the viewer, grouped by adjacency. It is
-the accessible source of truth; the canvas mirrors it.
+A **Customize** button sits in the label column beside the navigation, above
+the first row. Pressing it turns each row's label cell into a control cluster.
+Nothing overlays or displaces the visualization — the tracks stay exactly
+where they are, so you watch them reflow as you arrange them.
 
-Every track offers, all clustered on the left:
+Each row and each track offers:
 
 - a **show/hide toggle** (an eye / slashed-eye icon paired with a "Hide" /
   "Show" action label);
 - **move-up / move-down** buttons and a **drag handle** to reorder it.
 
-A group header carries the same controls and reorders or hides the whole
-group at once.
+A group header carries the same controls and moves or hides the whole group.
 
-Reordering is **per track**, and grouping is **derived from adjacency**: a
-group's tracks that stay next to each other render together under the group
-header, while a track moved away from its siblings renders on its own as
-**"Group / Track"**. A group keeps its collapsible aggregate summary while
-its tracks are all together; once they are split apart it shows its tracks
-individually. Hiding every track of a group removes the group (and its
-summary) from the canvas.
+Movement is **two-level**: rows reorder among rows, and a track reorders
+within its own group. A track cannot be dragged out of its group, because a
+nested config has no way to record where it went — an out-of-level drop is
+refused rather than silently reinterpreted. Hiding every track of a group
+removes the group (and its aggregate summary) from the canvas.
 
-A hidden track **stays in place** in the list, dimmed, with just a **"Show"**
-toggle (its move/drag controls return once it is shown), so it is easy to
-find and bring back in context; a **count** in the panel header shows how
-many are hidden. A whole hidden group stays listed too, so it is never lost.
+While dragging, a **placeholder gap** opens up where the row will land, sized
+to the row being moved, so the outcome is legible before you let go. Dropping
+below a row's midpoint places the row after it, which is how the position past
+the last row is reached.
 
-A **Reset to default** button (enabled only once the layout has been edited)
-restores the authored layout, and a **Done** button closes the panel.
+Rows that are hidden — and tracks whose data never arrived — stay in place as
+dimmed **stubs**: the label and its controls with an empty track area. Hiding
+is never a one-way door. Outside customize mode a **"N hidden"** count sits
+beside the Customize button, and if everything is hidden the viewer says so
+and offers a reset rather than rendering an empty frame.
+
+**Reset** (enabled only once something has changed) restores the authored
+layout; **Done** leaves the mode and returns focus to the Customize button.
 Changes apply and persist live, so there is no separate save step.
 
 ### Accessibility
 
-The panel is built to WCAG 2.1 AA:
+Customize mode is built to WCAG 2.1 AA:
 
-- **Keyboard**: a roving-tabindex grid. Up/Down move between rows,
-  Left/Right between a row's controls; the whole list is a single tab stop.
-  Reorder always has a non-drag path (the move-up/down buttons), so it never
-  depends on a dragging gesture.
-- **Screen readers**: real `<button>` controls with accessible names; the
-  toggle carries `aria-pressed`; an `aria-live` region announces each move
-  ("Domains moved to position 2 of 12"), hide, and show.
-- **Focus**: a visible focus ring on every control, and focus follows an
-  item when it moves or is hidden/shown, without scrolling the page.
-- **No colour-only state**: the show/hide state is conveyed by the icon
-  shape and the action word, never colour alone.
-- **Motion**: drag styling respects `prefers-reduced-motion`.
+- **Keyboard**: reordering always has a non-drag path (the move-up/down
+  buttons), so it never depends on a dragging gesture (2.5.7).
+- **Screen readers**: real `<button>` controls with accessible names ("Hide
+  Domains", "Move Domains up"); the toggle carries `aria-pressed`; a polite
+  live region announces each move ("Domains moved to position 2 of 12"), hide,
+  and show (4.1.3).
+- **Focus**: a visible focus ring on every control (2.4.7).
+- **No colour-only state**: show/hide state is carried by the icon shape *and*
+  the action word, never colour alone (1.4.1).
+- **Target size**: every control is at least 24×24 px (2.5.8).
+- **Motion**: the drag placeholder respects `prefers-reduced-motion`.
 
-## Authoring a track hidden by default (`hidden`)
+## Authoring a row or track hidden (`hidden`)
 
-A config can ship a group or track hidden on first mount by setting
-`hidden: true`. This is an initial-mount default only; a user's runtime
-toggle layers over it and wins, and it is never written back to the config.
+A config can ship a group or track hidden by setting `hidden: true`:
 
 ```yaml
 rows:
@@ -78,14 +81,18 @@ rows:
         kind: features
         filter: CHAIN
         data: features
-        hidden: true # present in the Track Manager, hidden on the canvas
+        hidden: true # a stub in customize mode, absent from the canvas
   - id: EXPERIMENTAL_NOTES
-    hidden: true # whole group hidden by default
+    hidden: true # whole group hidden
     tracks:
       - id: notes
         kind: features
         data: features
 ```
+
+This is not an initial-mount-only default: it is the same field the show/hide
+control writes. An author's choice and a user's are the same state, and
+`getConfig()` exports whichever is current.
 
 ## Runtime API
 
@@ -96,45 +103,50 @@ embedder can save and restore a view.
 ```ts
 const viewer = document.querySelector('protvista-uniprot');
 
-// Reorder tracks by their `${groupId}-${trackId}` keys. Grouping is derived
-// from adjacency, so putting a group's keys next to each other renders them
-// under its header, and separating a key renders it as "Group / Track".
-// Unknown keys are ignored; tracks the list omits keep their authored
-// position, appended after.
-viewer.setTrackOrder([
-  'DOMAINS_AND_SITES-domain',
-  'VARIATION-variants',
-  'DOMAINS_AND_SITES-region',
-]);
+// Reorder the rows by id. Unknown ids are ignored; rows the list omits keep
+// their authored position, appended after.
+viewer.setRowOrder(['VARIATION', 'DOMAINS_AND_SITES', 'MOLECULE_PROCESSING']);
+
+// Reorder the tracks within one row (row id, then track ids).
+viewer.setTrackOrder('DOMAINS_AND_SITES', ['region', 'domain']);
 
 // Show or hide a whole lane (a group or a standalone track).
+// Showing a group also clears any per-track hides inside it.
 viewer.setRowVisibility('MOLECULE_PROCESSING', false);
 
 // Show or hide one track within a group (group id, track id).
 viewer.setTrackVisibility('MOLECULE_PROCESSING', 'chain', false);
 
-// Restore the authored layout (drops every reorder + show/hide override).
+// Restore the authored config (drops every reorder + show/hide).
 viewer.resetLayout();
 
-// Read the current overlay (safe to keep / serialize).
-const layout = viewer.getLayout();
-// → { order: string[] | null, hidden: Record<string, boolean> }
+// Export the arranged view as an authored config — save it, share it, or
+// hand it straight back to setConfig().
+const config = viewer.getConfig();
+await viewer.setConfig(config);
+
+// Read the compact diff from the authored config (safe to keep / serialize).
+const patch = viewer.getLayout();
+// → { order: string[] | null, tracks: Record<string, string[]>,
+//     hidden: Record<string, boolean> }
 
 viewer.addEventListener('protvista-layout-change', (e) => {
-  // e.detail is the same ViewerLayout shape as getLayout()
-  console.log(e.detail.order, e.detail.hidden);
+  // e.detail is the same LayoutPatch shape as getLayout()
+  console.log(e.detail.order, e.detail.tracks, e.detail.hidden);
 });
 ```
 
-In `getLayout()` / the event `detail`, `order` is a flat list of
-`${groupId}-${trackId}` track keys (`null` when no reorder has been applied),
-and `hidden` maps a row id (a whole lane) or a `groupId-trackId` composite (a
-track) to an explicit user choice that overrides the authored `hidden`
-default.
+`getConfig()` and `getLayout()` answer two different questions. `getConfig()`
+returns the whole arranged configuration, in the shape it was authored — that
+is the artifact to save or share. `getLayout()` returns only the **diff** from
+the authored config: which rows moved (`order`), which tracks moved within
+their row (`tracks`), and what was shown or hidden (`hidden`, keyed by row id
+or the `groupId-trackId` composite). The diff exists because it is small
+enough to put in a URL.
 
 ## Persistence and sharing
 
-A customized layout persists automatically:
+A customized layout persists automatically, as that compact patch:
 
 - **localStorage**, keyed per config (a hash of the config's row + track
   ids), so a user's layout survives a reload in the same browser and applies
@@ -143,7 +155,12 @@ A customized layout persists automatically:
   so the exact view can be sent by link.
 
 On mount the restore precedence is **`?layout=` URL > localStorage >
-authored default**. "Reset to default" clears both stores.
+authored default**, and the patch is replayed onto the authored config before
+the first render. "Reset to default" clears both stores.
+
+A saved patch tolerates the config changing underneath it: unknown ids are
+ignored, and rows or tracks it does not mention keep their authored position
+and visibility. Editing a config does not throw away users' arrangements.
 
 Set the **`no-persist-layout`** attribute to opt out entirely. A viewer with
 this attribute neither restores a saved/shared layout nor writes one, which

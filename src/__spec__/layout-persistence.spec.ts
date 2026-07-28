@@ -13,7 +13,7 @@ import {
   decodeLayout,
   STORAGE_PREFIX,
 } from '../layout-persistence';
-import { emptyLayout } from '../layout';
+import { emptyPatch } from '../layout';
 import type { NormalizedRow } from '../schema/normalize';
 
 const track = (id: string) => ({ id }) as NormalizedRow['tracks'][number];
@@ -41,24 +41,35 @@ describe('configIdentity', () => {
 });
 
 describe('isDefaultLayout', () => {
-  it('is true only for the empty overlay', () => {
-    expect(isDefaultLayout(emptyLayout())).toBe(true);
-    expect(isDefaultLayout({ order: ['A'], hidden: {} })).toBe(false);
-    expect(isDefaultLayout({ order: null, hidden: { A: true } })).toBe(false);
+  it('is true only for the empty patch (nothing to persist)', () => {
+    expect(isDefaultLayout(emptyPatch())).toBe(true);
+    expect(isDefaultLayout({ ...emptyPatch(), order: ['A'] })).toBe(false);
+    expect(isDefaultLayout({ ...emptyPatch(), tracks: { A: ['t1'] } })).toBe(
+      false
+    );
+    expect(isDefaultLayout({ ...emptyPatch(), hidden: { A: true } })).toBe(
+      false
+    );
   });
 });
 
 describe('encodeLayout / decodeLayout', () => {
-  it('round-trips an overlay', () => {
-    const layout = { order: ['C', 'A', 'B'], hidden: { A: true, 'A-t2': false } };
-    expect(decodeLayout(encodeLayout(layout))).toEqual(layout);
+  it('round-trips a patch across all three fields', () => {
+    const patch = {
+      order: ['C', 'A', 'B'],
+      tracks: { A: ['t2', 't1'] },
+      hidden: { A: true, 'A-t2': false },
+    };
+    expect(decodeLayout(encodeLayout(patch))).toEqual(patch);
   });
 
-  it('round-trips the empty overlay', () => {
-    expect(decodeLayout(encodeLayout(emptyLayout()))).toEqual({
-      order: null,
-      hidden: {},
-    });
+  it('round-trips the empty patch', () => {
+    expect(decodeLayout(encodeLayout(emptyPatch()))).toEqual(emptyPatch());
+  });
+
+  it('round-trips non-ASCII ids without mangling them', () => {
+    const patch = { ...emptyPatch(), order: ['α', '中文'] };
+    expect(decodeLayout(encodeLayout(patch))).toEqual(patch);
   });
 
   it('returns null for a missing or malformed token', () => {
@@ -68,11 +79,21 @@ describe('encodeLayout / decodeLayout', () => {
     expect(decodeLayout(btoa('not json'))).toBeNull();
   });
 
+  // A hand-edited URL or a stale storage entry must never throw or inject a
+  // wrong-typed patch; bad entries are dropped one by one so a single bad key
+  // does not discard an otherwise good layout.
   it('sanitizes a tampered payload (wrong types dropped)', () => {
     const token = btoa(
-      JSON.stringify({ order: [1, 2], hidden: { A: true, B: 'yes', C: 1 } })
+      JSON.stringify({
+        order: [1, 2],
+        tracks: { A: ['t1'], B: 'nope' },
+        hidden: { A: true, B: 'yes', C: 1 },
+      })
     );
-    // Non-string order → null; only boolean hidden entries survive.
-    expect(decodeLayout(token)).toEqual({ order: null, hidden: { A: true } });
+    expect(decodeLayout(token)).toEqual({
+      order: null,
+      tracks: { A: ['t1'] },
+      hidden: { A: true },
+    });
   });
 });

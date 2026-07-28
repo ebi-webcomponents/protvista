@@ -91,15 +91,17 @@ Reactive properties on the `<protvista-uniprot>` element (HTML attribute name in
 
 ### Layout (Customize layout)
 
-End users can reorder tracks individually and show/hide tracks in the viewer via the **Customize layout** panel; the same layout can be driven programmatically. Each method emits a `protvista-layout-change` event (see [Events](#events)).
+End users can reorder rows, reorder tracks within a group, and show/hide either, using controls that appear on the rows themselves in **Customize** mode; the same layout can be driven programmatically. A layout edit rewrites the viewer's config, so `getConfig()` exports exactly what the user arranged. Each method emits a `protvista-layout-change` event (see [Events](#events)).
 
-- `setTrackOrder(order: string[])`: reorder tracks by their `${groupId}-${trackId}` keys. Grouping is derived from adjacency (adjacent same-group tracks render under the group header; a track moved away renders as "Group / Track").
+- `setRowOrder(order: string[])`: reorder the rows by id.
+- `setTrackOrder(rowId: string, order: string[])`: reorder the tracks within one row. Movement is two-level — a track cannot leave its group, because a nested config has no way to record where it went.
 - `setRowVisibility(rowId: string, visible: boolean)`: show/hide a whole lane (group or standalone track).
 - `setTrackVisibility(groupId: string, trackId: string, visible: boolean)`: show/hide one track within a group.
-- `resetLayout()`: restore the authored layout (drop every reorder + show/hide override).
-- `getLayout(): { order: string[] | null; hidden: Record<string, boolean> }`: read the current overlay.
+- `resetLayout()`: restore the authored config (drop every reorder + show/hide).
+- `getConfig(): ProtvistaViewerConfig | undefined`: the arranged view as an authored config — save it, share it, or hand it back to `setConfig()`.
+- `getLayout(): { order: string[] | null; tracks: Record<string, string[]>; hidden: Record<string, boolean> }`: the compact diff from the authored config, which is what persistence stores.
 
-A layout persists per-config in localStorage and in a shareable `?layout=` URL parameter. See [Track configuration](./docs/track-configuration.md) for the controls, the authored `hidden` default, accessibility, and persistence.
+A layout persists per-config in localStorage and in a shareable `?layout=` URL parameter. See [Track configuration](./docs/track-configuration.md) for the controls, the `hidden` field, accessibility, and persistence.
 
 ## Development
 

@@ -62,30 +62,32 @@ runs `test:browser` and `test:coverage` on every push/PR.
   live `aria-expanded`, and activates on **Enter/Space** as well as click.
 - **axe:** no violations over the group.
 
-### Track Manager — "Customize layout" (`src/__browser__/track-manager.browser.spec.ts`)
+### "Customize layout" mode (`src/__browser__/customize-mode.browser.spec.ts`)
 
 The track-configuration UI ([issue #199](https://github.com/ebi-webcomponents/protvista/issues/199))
-is now built: an end user can reorder and show/hide each track individually
-in the viewer (`<protvista-track-manager>`), with grouping derived from
-adjacency, backed by the runtime layout API and per-config persistence. See
+is now built: an end user can reorder rows, reorder tracks within a group, and
+show/hide either, directly on the rows themselves — backed by the runtime
+layout API, which rewrites the config, and per-config persistence. See
 [`docs/track-configuration.md`](./track-configuration.md).
 
-- **axe:** no violations on the panel, in isolation and mounted in the viewer.
+- **axe:** no violations with the mode active on a mounted viewer.
 - **Real controls:** show/hide is a `<button>` with `aria-pressed` plus an
   action word ("Hide X" / "Show X") and an eye / slashed-eye icon, never
-  colour or icon alone. Every track (and each group header) exposes a drag
-  handle plus move-up/down buttons, so reorder never depends on a dragging
-  gesture (WCAG 2.5.7).
-- **Keyboard:** a roving-tabindex grid. Up/Down move between rows,
-  Left/Right between a row's controls; one tab stop for the whole list.
-- **Announcements:** an `aria-live` region announces each reorder ("… moved
-  to position N of M"), hide, and show.
-- **Focus:** stays with an item when it is moved or hidden/shown, without
-  scrolling the page.
-- **Hidden in place:** a hidden track stays in its row rather than moving to a
-  separate section, dimmed with a muted italic label, an eye-slash icon, and a
-  "Show" action word, so its state never rides on colour or opacity alone and
-  its contrast holds.
+  colour or icon alone. Every row and track exposes a drag handle plus
+  move-up/down buttons, so reorder never depends on a dragging gesture
+  (WCAG 2.5.7). Controls are at least 24×24 px (2.5.8).
+- **Announcements:** a polite live region announces each reorder ("… moved to
+  position N of M"), hide, and show (4.1.3).
+- **Focus:** a visible focus ring on every control, and Done returns focus to
+  the Customize button that opened the mode (2.4.7).
+- **Nothing is displaced:** the Customize button lives in the empty label cell
+  beside the navigation, so entering the mode does not move the visualization
+  — a browser test pins that the manager's position is unchanged.
+- **Hidden in place:** a hidden row or track stays where it was as a dimmed
+  stub with a muted italic label, an eye-slash icon, and a "Show" action word,
+  so its state never rides on colour or opacity alone. Outside the mode a
+  "N hidden" count reports what is missing, and an all-hidden viewer says so
+  rather than rendering an empty frame.
 
 ## Known residual gaps (for the manual audit)
 

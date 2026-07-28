@@ -278,12 +278,13 @@ export interface GroupConfig {
   tracks: TrackConfig[];
 
   /**
-   * Ship this row hidden by default. An initial-mount default only:
-   * the row is absent from the first render, but stays in the Track
-   * Manager's "Hidden tracks" section so a user can reveal it. Runtime
-   * user toggles (`setRowVisibility`, the show/hide control) layer over
-   * this default and win. Layout state is never written back to config
-   * (see `specs/config-approach.md`). Defaults to `false`.
+   * Ship this row hidden. It is absent from the render, but customize
+   * mode still lists it as a stub so a user can reveal it.
+   *
+   * This is not an initial-mount-only default: `setRowVisibility` and the
+   * show/hide control write this very field, so a user's choice and an
+   * author's are the same state, and `getConfig()` exports whichever is
+   * current (see `specs/config-approach.md`). Defaults to `false`.
    */
   hidden?: boolean;
 
@@ -414,12 +415,13 @@ export interface TrackConfig {
   filterUI?: 'nightingale-filter';
 
   /**
-   * Ship this track hidden by default. An initial-mount default only:
-   * the track is absent from the first render, but stays in the Track
-   * Manager's "Hidden tracks" section so a user can reveal it. Runtime
-   * user toggles (`setTrackVisibility`, the show/hide control) layer over
-   * this default and win. Layout state is never written back to config
-   * (see `specs/config-approach.md`). Defaults to `false`.
+   * Ship this track hidden. It is absent from the render, but customize
+   * mode still lists it as a stub so a user can reveal it.
+   *
+   * As with `GroupConfig.hidden`, this is the same field
+   * `setTrackVisibility` and the show/hide control write — a user's choice
+   * and an author's are the same state (see `specs/config-approach.md`).
+   * Defaults to `false`.
    */
   hidden?: boolean;
 
@@ -674,25 +676,39 @@ export type AdapterName = KnownAdapterName | (string & {});
 // ─────────────────────────────────────────────────────────────
 
 /**
- * User-driven layout overlay: track order plus per-row/track visibility,
- * held in the viewer and layered over the config without mutating it (the
- * config is the initial mount; runtime UI state lives in the component).
- * Returned by `getLayout()` and carried as the `detail` of every
- * `protvista-layout-change` event, so an embedder can persist and restore
- * a customized view.
+ * The diff from the authored config to the user's customized one: which rows
+ * moved, which tracks moved within their row, and what was shown or hidden.
+ *
+ * A user's edits go into the config itself — the config is what renders, and
+ * `getConfig()` exports it. This patch exists because persisting a whole
+ * config to `localStorage` and a `?layout=` URL would be far too heavy: the
+ * viewer keeps the authored config as a baseline and stores only this diff,
+ * replaying it on mount. It is also the `detail` of every
+ * `protvista-layout-change` event, so an embedder can save and restore a
+ * customized view without handling a full config.
+ *
+ * Unknown ids are ignored on replay and unmentioned rows/tracks keep their
+ * authored order and visibility, so a patch saved before a config edit still
+ * restores what it can.
  */
-export interface ViewerLayout {
+export interface LayoutPatch {
   /**
-   * Effective track order as a flat list of `${groupId}-${trackId}` keys.
-   * `null` means "authored order" (no reordering applied). Grouping on screen
-   * is derived from adjacency, not stored.
+   * Row ids in the user's order. `null` means "authored order" (no row
+   * reordering applied).
    */
   order: string[] | null;
   /**
-   * Explicit show/hide choices, keyed by row id (a lane) or the
-   * `${groupId}-${trackId}` composite (a track within a group). A present
-   * value overrides the authored `hidden` default; an absent key falls
-   * back to it. `true` = hidden, `false` = shown.
+   * Per-row track order, keyed by row id, listing that row's track ids. A row
+   * absent from the map keeps its authored track order. Tracks reorder only
+   * within their own row — the config has no way to express a track that has
+   * left its group.
+   */
+  tracks: Record<string, string[]>;
+  /**
+   * Show/hide choices that differ from the config's authored `hidden`, keyed
+   * by row id (a whole lane) or the `${groupId}-${trackId}` composite (a
+   * track within a group). `true` = hidden, `false` = shown. A standalone row
+   * is recorded under its row id only, never both.
    */
   hidden: Record<string, boolean>;
 }
@@ -758,26 +774,43 @@ export interface ProtvistaRuntimeAPI {
   setTrackData(groupId: string, trackId: string, data: unknown): void;
 
   // ── Layout (row order + visibility) ─────────────────────────
-  // User-driven layout state, held in the viewer and layered over the
-  // config without mutating it (the config is the initial mount; runtime
-  // UI state lives in the component). Every mutation dispatches a bubbling
-  // `protvista-layout-change` CustomEvent whose `detail` is the new
-  // `ViewerLayout`, so an embedder can persist and restore it.
+  // Layout edits rewrite the viewer's config: a reorder moves entries in
+  // `rows` / `tracks`, a show/hide writes the same `hidden` field an author
+  // can set. The config is the source of truth for what renders, so
+  // `getConfig()` exports exactly what the user arranged. Every mutation
+  // dispatches a bubbling `protvista-layout-change` CustomEvent whose
+  // `detail` is a `LayoutPatch` — the compact diff from the authored config,
+  // which is also what the viewer persists.
+  //
+  // Movement is two-level: rows reorder among rows, tracks reorder within
+  // their own row. A track cannot leave its group, because a nested config
+  // has no way to say where it went.
 
   /**
-   * Reorder the tracks by their `${groupId}-${trackId}` keys. Grouping is
-   * derived from adjacency (adjacent same-group tracks render under the group
-   * header; a track moved away renders as "Group / Track"). Keys not in the
-   * config are ignored; tracks the list omits keep their authored position,
-   * appended after — so a saved order survives config edits.
+   * Reorder the rows by id. Ids not in the config are ignored; rows the list
+   * omits keep their authored position, appended after — so a saved order
+   * survives config edits.
    */
-  setTrackOrder(order: string[]): void;
+  setRowOrder(order: string[]): void;
 
-  /** Show or hide a whole lane (a group or a standalone track) by row id. */
+  /**
+   * Reorder the tracks within one row by id, with the same tolerance for
+   * unknown and omitted ids as `setRowOrder`.
+   *
+   * @param rowId — the row's (group's) `id`.
+   */
+  setTrackOrder(rowId: string, order: string[]): void;
+
+  /**
+   * Show or hide a whole lane (a group or a standalone track) by row id.
+   * Showing also clears any per-track hides inside it.
+   */
   setRowVisibility(rowId: string, visible: boolean): void;
 
   /**
-   * Show or hide an individual track within a group.
+   * Show or hide an individual track within a group. Hiding the last visible
+   * track of a group empties the row; showing a track inside a hidden row
+   * also reveals the row.
    *
    * @param groupId — the group's `id`.
    * @param trackId — the track's `id`.
@@ -785,22 +818,31 @@ export interface ProtvistaRuntimeAPI {
   setTrackVisibility(groupId: string, trackId: string, visible: boolean): void;
 
   /**
-   * Restore the authored layout: drop every reorder and show/hide override
-   * so the view returns to the config's initial mount.
+   * Restore the authored config: drop every reorder and show/hide so the view
+   * returns to its initial mount.
    */
   resetLayout(): void;
 
   /**
-   * A copy of the current layout overlay — safe to keep or serialize; the
-   * `protvista-layout-change` event carries the same shape.
+   * A copy of the current layout patch — the diff from the authored config,
+   * safe to keep or serialize. The `protvista-layout-change` event carries
+   * the same shape. For the full arranged config, use `getConfig()`.
    */
-  getLayout(): ViewerLayout;
+  getLayout(): LayoutPatch;
+
+  /**
+   * The viewer's current configuration in authored form, including whatever
+   * the user rearranged — suitable for saving, sharing, or handing straight
+   * back to `setConfig()`. Returns `undefined` before the config has loaded.
+   */
+  getConfig(): ProtvistaViewerConfig | undefined;
 
   /**
    * Replace the entire viewer configuration at runtime. Triggers a
-   * full re-render.
+   * full re-render (components re-registered, theme re-applied, data
+   * re-loaded).
    */
-  setConfig(config: ProtvistaViewerConfig): void;
+  setConfig(config: ProtvistaViewerConfig | string): void;
 
   /** Subscribe to viewer events (selection, zoom, data-loaded). */
   on(event: string, callback: (detail: unknown) => void): void;

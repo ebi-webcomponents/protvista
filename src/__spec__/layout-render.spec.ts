@@ -1,13 +1,13 @@
 /**
- * Render-level coverage for the runtime layout overlay: the `_layout`
- * state (flat per-track order + visibility) flowing through
- * `<protvista-uniprot>`'s keyed-`repeat` block render loop.
+ * Render-level coverage for layout: `config.rows` flowing through
+ * `<protvista-uniprot>`'s keyed-`repeat` row loop, and what customize mode
+ * adds on top of it.
  *
  * Complements the pure-logic tests in `layout.spec.ts` by asserting the
- * actual rendered DOM: an authored-`hidden` lane/track is absent from the
- * output, a user `_layout` overlay reorders groups and splits a track out as
- * a "Group / Track" row, and the default (empty) overlay reproduces authored
- * order.
+ * actual rendered DOM — that a `hidden` row or track is genuinely absent
+ * rather than merely blanked, that a reorder shows up in document order, and
+ * that customize mode keeps every row reachable (hidden and dataless rows
+ * come back as stubs) without displacing the visualization.
  *
  * Mirrors `render-target.spec.ts`: build an instance with frozen state
  * (never appended to the document, so `connectedCallback`/`_init` stays
@@ -24,7 +24,7 @@ import '../protvista-uniprot';
 const SEQ_LEN = 100;
 const SEQUENCE = 'M'.repeat(SEQ_LEN);
 
-/** Three single-track canvas lanes: A, B, C. */
+/** Three two-track canvas lanes: A, B, C. */
 function makeConfig(
   rowHidden: Partial<Record<'A' | 'B' | 'C', boolean>> = {},
   trackHidden = false
@@ -88,9 +88,15 @@ function buildInstance(overrides: Record<string, unknown> = {}) {
 }
 
 function laneIds(target: HTMLElement): string[] {
+  return Array.from(target.querySelectorAll(`div.${CSS_PREFIX}-group`)).map(
+    (d) => d.getAttribute('id')?.replace(`${CSS_PREFIX}-group_`, '') ?? ''
+  );
+}
+
+function trackIds(target: HTMLElement): string[] {
   return Array.from(
-    target.querySelectorAll(`div.${CSS_PREFIX}-group`)
-  ).map((d) => d.getAttribute('id')?.replace(`${CSS_PREFIX}-group_`, '') ?? '');
+    target.querySelectorAll(`.${CSS_PREFIX}-group__track`)
+  ).map((d) => d.getAttribute('id')?.replace(`${CSS_PREFIX}-track_`, '') ?? '');
 }
 
 function renderInto(el: any): HTMLDivElement {
@@ -99,125 +105,255 @@ function renderInto(el: any): HTMLDivElement {
   return target;
 }
 
-describe('layout overlay — authored hidden default', () => {
-  it('omits an authored-hidden lane from the rendered DOM', () => {
+describe('hidden rows and tracks', () => {
+  it('omits a hidden lane from the rendered DOM', () => {
     const el = buildInstance({ config: makeConfig({ B: true }) });
     expect(laneIds(renderInto(el))).toEqual(['A', 'C']);
   });
 
-  it('omits an authored-hidden track from an expanded lane, keeping siblings', () => {
+  it('omits a hidden track from an expanded lane, keeping its siblings', () => {
     const el = buildInstance({ config: makeConfig({}, true) });
-    const target = renderInto(el);
-    // Lane A still renders; its hidden t2 track is gone, t1 remains.
-    const trackIds = Array.from(
-      target.querySelectorAll(`.${CSS_PREFIX}-group__track`)
-    ).map((d) => d.getAttribute('id'));
-    expect(trackIds).toContain(`${CSS_PREFIX}-track_At1`);
-    expect(trackIds).not.toContain(`${CSS_PREFIX}-track_At2`);
+    const ids = trackIds(renderInto(el));
+    expect(ids).toContain('At1');
+    expect(ids).not.toContain('At2');
   });
 
-  it('renders all lanes in authored order under the empty overlay', () => {
+  it('renders all lanes in authored order when nothing is hidden', () => {
     expect(laneIds(renderInto(buildInstance()))).toEqual(['A', 'B', 'C']);
+  });
+
+  it('drops a lane whose every track is hidden', () => {
+    const config = makeConfig();
+    config.rows[0].tracks.forEach((t) => (t.hidden = true));
+    expect(laneIds(renderInto(buildInstance({ config })))).toEqual(['B', 'C']);
   });
 });
 
-// Full-block track-key orders (each lane is a group of two tracks).
-const keys = (id: 'A' | 'B' | 'C') => [`${id}-${id}t1`, `${id}-${id}t2`];
-
-describe('layout overlay — user order + visibility', () => {
-  it('reorders whole intact groups by moving their track keys as a block', () => {
-    const el = buildInstance({
-      _layout: { order: [...keys('C'), ...keys('A'), ...keys('B')], hidden: {} },
-    });
-    expect(laneIds(renderInto(el))).toEqual(['C', 'A', 'B']);
+describe('reordering', () => {
+  it('renders rows in config order', () => {
+    const config = makeConfig();
+    config.rows = [config.rows[2], config.rows[0], config.rows[1]];
+    expect(laneIds(renderInto(buildInstance({ config })))).toEqual([
+      'C',
+      'A',
+      'B',
+    ]);
   });
 
-  it('hides a lane the user toggled off (group hide override)', () => {
-    const el = buildInstance({ _layout: { order: null, hidden: { A: true } } });
-    expect(laneIds(renderInto(el))).toEqual(['B', 'C']);
+  it('renders a row’s tracks in that row’s track order', () => {
+    const config = makeConfig();
+    config.rows[0].tracks.reverse();
+    const ids = trackIds(renderInto(buildInstance({ config })));
+    expect(ids.slice(0, 2)).toEqual(['At2', 'At1']);
+  });
+});
+
+describe('the all-hidden empty state', () => {
+  it('shows a notice instead of an empty frame when every row is hidden', () => {
+    const config = makeConfig();
+    config.rows.forEach((r) => (r.hidden = true));
+    const target = renderInto(buildInstance({ config }));
+    const notice = target.querySelector(`.${CSS_PREFIX}-all-hidden`);
+    expect(notice).not.toBeNull();
+    expect(notice!.textContent).toContain('All tracks are hidden');
   });
 
-  it('reveals an author-hidden lane the user toggled on', () => {
+  it('is absent while any row is visible', () => {
+    const target = renderInto(buildInstance());
+    expect(target.querySelector(`.${CSS_PREFIX}-all-hidden`)).toBeNull();
+  });
+});
+
+describe('the Customize toggle', () => {
+  it('renders inside the nav label cell, so opening the mode cannot shift the viewer', () => {
+    const target = renderInto(buildInstance());
+    const cell = target.querySelector(`.${CSS_PREFIX}-nav-track-label`);
+    expect(cell!.querySelector(`.${CSS_PREFIX}-customize-toggle`)).not.toBeNull();
+  });
+
+  it('reports a hidden count outside customize mode', () => {
+    const el = buildInstance({ config: makeConfig({ B: true }) });
+    const target = renderInto(el);
+    expect(
+      target.querySelector(`.${CSS_PREFIX}-hidden-count`)!.textContent
+    ).toContain('1 hidden');
+  });
+
+  it('shows no count when nothing is hidden', () => {
+    const target = renderInto(buildInstance());
+    expect(target.querySelector(`.${CSS_PREFIX}-hidden-count`)).toBeNull();
+  });
+});
+
+describe('customize mode', () => {
+  it('adds no controls to the rows when off', () => {
+    const target = renderInto(buildInstance());
+    expect(target.querySelector(`.${CSS_PREFIX}-row-controls`)).toBeNull();
+  });
+
+  it('puts controls in every row’s label cell', () => {
+    const target = renderInto(buildInstance({ _customizeMode: true }));
+    const label = target.querySelector(`.${CSS_PREFIX}-group-label`)!;
+    expect(label.querySelector(`.${CSS_PREFIX}-row-controls`)).not.toBeNull();
+  });
+
+  // Without the panel, a row absent from the canvas would have no control to
+  // bring it back — hiding would be a one-way door.
+  it('keeps a hidden row reachable as a stub', () => {
     const el = buildInstance({
       config: makeConfig({ B: true }),
-      _layout: { order: null, hidden: { B: false } },
-    });
-    expect(laneIds(renderInto(el))).toEqual(['A', 'B', 'C']);
-  });
-
-  it('combines order and hidden: reorder then drop the group-hidden lane', () => {
-    const el = buildInstance({
-      _layout: {
-        order: [...keys('C'), ...keys('B'), ...keys('A')],
-        hidden: { B: true },
-      },
-    });
-    expect(laneIds(renderInto(el))).toEqual(['C', 'A']);
-  });
-
-  it('renders a partial group bracket for a split group\'s contiguous run', () => {
-    // Group G (x, y, z); move z out after a standalone, leaving [x, y] together.
-    const canvas = 'nightingale-track-canvas' as const;
-    const trk = (id: string) => ({
-      id,
-      label: id,
-      component: canvas,
-      rendering: {},
-      data: [{ from: 'url' as const, url: 'stub://x' }],
-    });
-    const config = {
-      version: '1.0' as const,
-      sources: {},
-      defaults: { rendering: {} },
-      rows: [
-        { id: 'G', label: 'Gee', component: canvas, rendering: {}, tracks: [trk('x'), trk('y'), trk('z')] },
-        { id: 'S', label: 'Ess', component: canvas, rendering: {}, standalone: true, tracks: [trk('S')] },
-      ],
-    } as unknown as NormalizedConfig;
-    const data: Record<string, unknown> = {
-      G: [{ type: 'DOMAIN', start: 1, end: 9 }],
-      'G-x': [{ type: 'DOMAIN', start: 1, end: 3 }],
-      'G-y': [{ type: 'DOMAIN', start: 4, end: 6 }],
-      'G-z': [{ type: 'DOMAIN', start: 7, end: 9 }],
-      'S-S': [{ type: 'DOMAIN', start: 1, end: 9 }],
-    };
-    const el = buildInstance({
-      config,
-      data,
-      openGroups: ['G'],
-      _layout: { order: ['G-x', 'G-y', 'S-S', 'G-z'], hidden: {} },
+      _customizeMode: true,
     });
     const target = renderInto(el);
-    // A non-collapsible partial bracket header, plus x and y as tracks.
+    const stub = target.querySelector(`#${CSS_PREFIX}-group_B`);
+    expect(stub).not.toBeNull();
+    expect(stub!.classList.contains(`${CSS_PREFIX}-row--stub`)).toBe(true);
+    expect(stub!.querySelector(`.${CSS_PREFIX}-row-controls`)).not.toBeNull();
+  });
+
+  it('offers Show (not Hide) on a hidden row', () => {
+    const el = buildInstance({
+      config: makeConfig({ B: true }),
+      _customizeMode: true,
+    });
+    const stub = renderInto(el).querySelector(`#${CSS_PREFIX}-group_B`)!;
+    const toggle = stub.querySelector('button[aria-pressed]')!;
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+    expect(toggle.getAttribute('aria-label')).toBe('Show B');
+    expect(toggle.textContent).toContain('Show');
+  });
+
+  it('keeps a track with no data reachable as a stub', () => {
+    const data = makeData();
+    delete data['A-At2'];
+    const target = renderInto(buildInstance({ data, _customizeMode: true }));
+    const stub = target.querySelector(`#${CSS_PREFIX}-track_At2`)!;
+    expect(stub.classList.contains(`${CSS_PREFIX}-row--stub`)).toBe(true);
+    expect(stub.querySelector(`.${CSS_PREFIX}-row-controls`)).not.toBeNull();
+  });
+
+  it('disables move-up on the first row and move-down on the last', () => {
+    const target = renderInto(buildInstance({ _customizeMode: true }));
+    const lanes = target.querySelectorAll(`div.${CSS_PREFIX}-group`);
+    const first = lanes[0].querySelectorAll(
+      `.${CSS_PREFIX}-group-label .${CSS_PREFIX}-row-control--move`
+    );
+    const last = lanes[lanes.length - 1].querySelectorAll(
+      `.${CSS_PREFIX}-group-label .${CSS_PREFIX}-row-control--move`
+    );
+    expect(first[0].hasAttribute('disabled')).toBe(true);
+    expect(first[1].hasAttribute('disabled')).toBe(false);
+    expect(last[1].hasAttribute('disabled')).toBe(true);
+  });
+
+  it('labels every control with the row it acts on', () => {
+    const target = renderInto(buildInstance({ _customizeMode: true }));
+    const labels = Array.from(
+      target
+        .querySelector(`#${CSS_PREFIX}-group_A`)!
+        .querySelectorAll(`.${CSS_PREFIX}-group-label button`)
+    ).map((b) => b.getAttribute('aria-label'));
+    expect(labels).toEqual([
+      'Collapse A',
+      'Hide A',
+      'Move A up',
+      'Move A down',
+      'Reorder A',
+    ]);
+  });
+
+  // Nesting buttons inside the role="button" group label is an axe violation
+  // and leaves the inner controls unreachable to some assistive tech, so
+  // collapse becomes its own button in the cluster while customizing.
+  it('does not leave the group label a button around buttons', () => {
+    const target = renderInto(buildInstance({ _customizeMode: true }));
+    const label = target.querySelector(`.${CSS_PREFIX}-group-label`)!;
+    expect(label.getAttribute('role')).toBeNull();
+    expect(label.hasAttribute('tabindex')).toBe(false);
+    const collapse = label.querySelector('[data-group-toggle]')!;
+    expect(collapse.tagName).toBe('BUTTON');
+    expect(collapse.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('keeps the group label a plain toggle outside customize mode', () => {
+    const label = renderInto(buildInstance()).querySelector(
+      `.${CSS_PREFIX}-group-label`
+    )!;
+    expect(label.getAttribute('role')).toBe('button');
+    expect(label.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('marks every row as a drop target for drag-to-reorder', () => {
+    const target = renderInto(buildInstance({ _customizeMode: true }));
     expect(
-      target.querySelector(`.${CSS_PREFIX}-group-label--partial`)
-    ).not.toBeNull();
-    expect(target.querySelector(`#${CSS_PREFIX}-track_x`)).not.toBeNull();
-    expect(target.querySelector(`#${CSS_PREFIX}-track_y`)).not.toBeNull();
-    // z is isolated → a separated "Gee / z" row.
-    const z = target.querySelector(`#${CSS_PREFIX}-track_G-z`);
-    expect(z).not.toBeNull();
-    expect(z!.querySelector(`.${CSS_PREFIX}-track-label`)!.textContent).toContain(
-      'Gee / z'
-    );
+      target.querySelector(`#${CSS_PREFIX}-group_A`)!.getAttribute('data-drop-row')
+    ).toBe('A');
+    const track = target.querySelector(`#${CSS_PREFIX}-track_At1`)!;
+    expect(track.getAttribute('data-drop-row')).toBe('A');
+    expect(track.getAttribute('data-drop-track')).toBe('At1');
   });
 
-  it('renders a track moved out of its group as an individual "Group / Track" row', () => {
-    // Split A: pull At2 out (after B), leaving At1 also isolated.
+  it('opens a placeholder gap at the pending drop index', () => {
     const el = buildInstance({
-      _layout: {
-        order: ['A-At1', ...keys('B'), 'A-At2', ...keys('C')],
-        hidden: {},
-      },
+      _customizeMode: true,
+      _drag: { rowId: 'A', to: 2 },
     });
     const target = renderInto(el);
-    // A no longer has an intact group wrapper; B and C still do.
-    expect(laneIds(target)).toEqual(['B', 'C']);
-    // Its tracks render as standalone rows labelled "A / At1" and "A / At2".
-    const sep = target.querySelector(`#${CSS_PREFIX}-track_A-At2`);
-    expect(sep).not.toBeNull();
-    expect(sep!.querySelector(`.${CSS_PREFIX}-track-label`)!.textContent).toContain(
-      'A / At2'
-    );
+    const gaps = target.querySelectorAll(`.${CSS_PREFIX}-drop-gap`);
+    expect(gaps).toHaveLength(1);
+    // The gap sits immediately before the row that would follow the drop.
+    expect(gaps[0].nextElementSibling!.id).toBe(`${CSS_PREFIX}-group_C`);
+  });
+
+  it('offers a gap past the last row, so the final position is reachable', () => {
+    const el = buildInstance({
+      _customizeMode: true,
+      _drag: { rowId: 'A', to: 3 },
+    });
+    const target = renderInto(el);
+    expect(target.querySelectorAll(`.${CSS_PREFIX}-drop-gap`)).toHaveLength(1);
+  });
+
+  it('scopes a track drag’s gap to that row’s track list', () => {
+    const el = buildInstance({
+      _customizeMode: true,
+      // At1 (index 0) moving to the end of A's two tracks.
+      _drag: { rowId: 'A', trackId: 'At1', to: 2 },
+    });
+    const target = renderInto(el);
+    const gaps = target.querySelectorAll(`.${CSS_PREFIX}-drop-gap`);
+    expect(gaps).toHaveLength(1);
+    // It sits after A's last track, not among the rows.
+    expect(gaps[0].previousElementSibling!.id).toBe(`${CSS_PREFIX}-track_At2`);
+  });
+
+  // A gap where the row already sits promises a move the drop won't make.
+  it('shows no gap when the drop would leave the order unchanged', () => {
+    for (const to of [0, 1]) {
+      const el = buildInstance({
+        _customizeMode: true,
+        _drag: { rowId: 'A', to },
+      });
+      expect(
+        renderInto(el).querySelectorAll(`.${CSS_PREFIX}-drop-gap`)
+      ).toHaveLength(0);
+    }
+  });
+});
+
+describe('the live region', () => {
+  it('is a polite status region so moves and toggles are announced', () => {
+    const target = renderInto(buildInstance());
+    const region = target.querySelector(`.${CSS_PREFIX}-live-region`)!;
+    expect(region.getAttribute('aria-live')).toBe('polite');
+    expect(region.getAttribute('role')).toBe('status');
+  });
+
+  it('carries the latest announcement', () => {
+    const el = buildInstance({ _announcement: 'A moved to position 2 of 3.' });
+    const target = renderInto(el);
+    expect(
+      target.querySelector(`.${CSS_PREFIX}-live-region`)!.textContent
+    ).toContain('A moved to position 2 of 3.');
   });
 });
