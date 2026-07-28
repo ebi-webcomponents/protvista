@@ -264,16 +264,26 @@ describe('customize mode', () => {
     expect(row.classList.contains(`${CSS_PREFIX}-row--stub`)).toBe(true);
   });
 
-  it('offers Show (not Hide) on a hidden row', () => {
+  // The switch reports state directly: off means not drawn. Its name is the
+  // purpose and stays put as the state flips.
+  it('turns the switch off on a hidden row', () => {
     const el = buildInstance({
       config: makeConfig({ B: true }),
       _customizeMode: true,
     });
-    const stub = renderInto(el).querySelector(`#${CSS_PREFIX}-group_B`)!;
-    const toggle = stub.querySelector('button[aria-pressed]')!;
-    expect(toggle.getAttribute('aria-pressed')).toBe('true');
-    expect(toggle.getAttribute('aria-label')).toBe('Show B');
-    expect(toggle.textContent).toContain('Show');
+    const row = renderInto(el).querySelector(`#${CSS_PREFIX}-group_B`)!;
+    const sw = row.querySelector('button[role="switch"]')!;
+    expect(sw.getAttribute('aria-checked')).toBe('false');
+    expect(sw.getAttribute('aria-label')).toBe('Show B');
+  });
+
+  it('turns the switch on for a visible row', () => {
+    const row = renderInto(
+      buildInstance({ _customizeMode: true })
+    ).querySelector(`#${CSS_PREFIX}-group_A`)!;
+    expect(
+      row.querySelector('button[role="switch"]')!.getAttribute('aria-checked')
+    ).toBe('true');
   });
 
   it('keeps a track with no data reachable as a stub', () => {
@@ -308,7 +318,7 @@ describe('customize mode', () => {
     ).map((b) => b.getAttribute('aria-label'));
     expect(labels).toEqual([
       'Collapse A',
-      'Hide A',
+      'Show A',
       'Move A up',
       'Move A down',
     ]);
@@ -342,26 +352,43 @@ describe('customize mode', () => {
     expect(target.querySelector('[data-drop-row]')).toBeNull();
   });
 
-  it('disables the Show toggle on a track with nothing to draw', () => {
+  // Dropping the visible word means the accessible name is the only place a
+  // screen-reader user can learn *why* the switch is unavailable — and a
+  // disabled control cannot be reached by Tab to hear a description.
+  it('disables the switch on a track with nothing to draw, and says why', () => {
     const data = makeData();
     delete data['A-At2'];
     const target = renderInto(buildInstance({ data, _customizeMode: true }));
-    const toggle = target
+    const sw = target
       .querySelector(`#${CSS_PREFIX}-track_At2`)!
-      .querySelector('button[aria-pressed]')!;
-    expect(toggle.hasAttribute('disabled')).toBe(true);
-    expect(toggle.getAttribute('aria-label')).toBe('No data for At2');
+      .querySelector('button[role="switch"]')!;
+    expect(sw.hasAttribute('disabled')).toBe(true);
+    expect(sw.getAttribute('aria-checked')).toBe('false');
+    expect(sw.getAttribute('aria-label')).toContain('no data');
+    expect(sw.getAttribute('title')).toContain('no data');
   });
 
-  it('keeps the Show toggle live on a track the user hid', () => {
+  it('keeps the switch live on a track the user hid', () => {
     const target = renderInto(
       buildInstance({ config: makeConfig({}, true), _customizeMode: true })
     );
-    const toggle = target
+    const sw = target
       .querySelector(`#${CSS_PREFIX}-track_At2`)!
-      .querySelector('button[aria-pressed]')!;
-    expect(toggle.hasAttribute('disabled')).toBe(false);
-    expect(toggle.getAttribute('aria-label')).toBe('Show At2');
+      .querySelector('button[role="switch"]')!;
+    expect(sw.hasAttribute('disabled')).toBe(false);
+    expect(sw.getAttribute('aria-checked')).toBe('false');
+    expect(sw.getAttribute('aria-label')).toBe('Show At2');
+  });
+
+  // The caret belongs with the label, as it is in the default view.
+  it('puts the collapse caret before the label, not in the action cluster', () => {
+    const label = renderInto(
+      buildInstance({ _customizeMode: true })
+    ).querySelector(`#${CSS_PREFIX}-group_A .${CSS_PREFIX}-group-label`)!;
+    expect(label.firstElementChild!.getAttribute('data-group-toggle')).toBe('A');
+    expect(
+      label.querySelector(`.${CSS_PREFIX}-row-controls [data-group-toggle]`)
+    ).toBeNull();
   });
 });
 

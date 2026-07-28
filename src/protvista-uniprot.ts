@@ -100,8 +100,6 @@ import { applyLayoutToConfig } from './schema/denormalize';
 
 import loaderIcon from './icons/spinner.svg';
 import slidersIcon from './icons/sliders.svg';
-import eyeIcon from './icons/eye.svg';
-import eyeSlashIcon from './icons/eye-slash.svg';
 import chevronUpIcon from './icons/chevron-up.svg';
 import protvistaStyles from './styles/protvista-styles';
 import loaderStyles from './styles/loader-styles';
@@ -1958,10 +1956,11 @@ class ProtvistaUniprot extends LitElement {
           class="${CSS_PREFIX}-track-label"
           title="${track.description ?? ''}"
         >
-          ${this._renderRowControls(group, index, total)}${(track.filterUI ===
-            'nightingale-filter' &&
-            this.getFilterComponent(`${group.id}-${track.id}`)) ||
-          unsafeHTML(renderLabel(track.label, this.accession))}
+          <span class="${CSS_PREFIX}-label-text"
+            >${(track.filterUI === 'nightingale-filter' &&
+              this.getFilterComponent(`${group.id}-${track.id}`)) ||
+            unsafeHTML(renderLabel(track.label, this.accession))}</span
+          >${this._renderRowControls(group, index, total)}
         </div>
         <div
           class="${CSS_PREFIX}-track-content ${track.component ===
@@ -2071,9 +2070,17 @@ class ProtvistaUniprot extends LitElement {
               class="${CSS_PREFIX}-group-label"
               title="${group.description ?? ''}"
             >
-              ${this._renderRowControls(group, index, total, expanded)}${unsafeHTML(
-                renderLabel(group.label, this.accession)
-              )}${this._renderGroupBadge(group.id)}
+              ${this._collapseButton(
+                group,
+                this._labelText(group.label),
+                expanded
+              )}<span class="${CSS_PREFIX}-label-text"
+                >${unsafeHTML(renderLabel(group.label, this.accession))}</span
+              >${this._renderGroupBadge(group.id)}${this._renderRowControls(
+                group,
+                index,
+                total
+              )}
             </div>`
           : html`<div
               class="${CSS_PREFIX}-group-label"
@@ -2085,9 +2092,9 @@ class ProtvistaUniprot extends LitElement {
               @click="${this.handleGroupClick}"
               @keydown="${this.handleGroupKeydown}"
             >
-              ${unsafeHTML(
-                renderLabel(group.label, this.accession)
-              )}${this._renderGroupBadge(group.id)}
+              <span class="${CSS_PREFIX}-label-text"
+                >${unsafeHTML(renderLabel(group.label, this.accession))}</span
+              >${this._renderGroupBadge(group.id)}
             </div>`}
         <div
           data-id="${CSS_PREFIX}-group_${group.id}"
@@ -2173,11 +2180,15 @@ class ProtvistaUniprot extends LitElement {
         id="${CSS_PREFIX}-track_${track.id}"
       >
         <div class="${CSS_PREFIX}-track-label" title="${track.description ?? ''}">
-          ${this._renderTrackControls(group, track, index, total)}${(track.filterUI ===
-            'nightingale-filter' &&
-            this.getFilterComponent(key)) ||
-          unsafeHTML(renderLabel(track.label, this.accession))}${this._renderTrackBadge(
-            key
+          <span class="${CSS_PREFIX}-label-text"
+            >${(track.filterUI === 'nightingale-filter' &&
+              this.getFilterComponent(key)) ||
+            unsafeHTML(renderLabel(track.label, this.accession))}</span
+          >${this._renderTrackBadge(key)}${this._renderTrackControls(
+            group,
+            track,
+            index,
+            total
           )}
         </div>
         ${trackHasData
@@ -2214,9 +2225,8 @@ class ProtvistaUniprot extends LitElement {
   private _renderRowStub(row: NormalizedRow, index: number, total: number) {
     // Groups keep a collapse control even when hidden — that is what lists
     // the tracks inside. Standalone rows have no inside, so they get none.
-    const expanded = row.standalone
-      ? undefined
-      : this.openGroups.includes(row.id);
+    const collapsible = !row.standalone;
+    const expanded = this.openGroups.includes(row.id);
     return html`
       <div
         class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-row--stub ${CSS_PREFIX}-row--hidden ${this._movedClass(
@@ -2225,9 +2235,11 @@ class ProtvistaUniprot extends LitElement {
         id="${CSS_PREFIX}-group_${row.id}"
       >
         <div class="${CSS_PREFIX}-track-label" title="${row.description ?? ''}">
-          ${this._renderRowControls(row, index, total, expanded)}${unsafeHTML(
-            renderLabel(row.label, this.accession)
-          )}
+          ${collapsible
+            ? this._collapseButton(row, this._labelText(row.label), expanded)
+            : ''}<span class="${CSS_PREFIX}-label-text"
+            >${unsafeHTML(renderLabel(row.label, this.accession))}</span
+          >${this._renderRowControls(row, index, total)}
         </div>
         <div class="${CSS_PREFIX}-track-content"></div>
       </div>
@@ -2249,9 +2261,9 @@ class ProtvistaUniprot extends LitElement {
         id="${CSS_PREFIX}-track_${track.id}"
       >
         <div class="${CSS_PREFIX}-track-label" title="${track.description ?? ''}">
-          ${this._renderTrackControls(group, track, index, total)}${unsafeHTML(
-            renderLabel(track.label, this.accession)
-          )}
+          <span class="${CSS_PREFIX}-label-text"
+            >${unsafeHTML(renderLabel(track.label, this.accession))}</span
+          >${this._renderTrackControls(group, track, index, total)}
         </div>
         <div class="${CSS_PREFIX}-track-content"></div>
       </div>
@@ -2438,12 +2450,7 @@ class ProtvistaUniprot extends LitElement {
    * Controls for a whole row: collapse/expand (groups only, see
    * `_renderGroupBlock`), hide/show, move up/down.
    */
-  private _renderRowControls(
-    row: NormalizedRow,
-    index: number,
-    total: number,
-    expanded?: boolean
-  ) {
+  private _renderRowControls(row: NormalizedRow, index: number, total: number) {
     if (!this._customizeMode) return '';
     const name = this._labelText(row.label);
     const hidden = isRowHidden(row);
@@ -2452,9 +2459,6 @@ class ProtvistaUniprot extends LitElement {
     const empty = row.tracks.every((t) => this._trackIsEmpty(row.id, t.id));
     return html`
       <span class="${CSS_PREFIX}-row-controls">
-        ${expanded === undefined
-          ? ''
-          : this._collapseButton(row, name, expanded)}
         ${this._toggleButton(hidden, name, empty, () =>
           this.setRowVisibility(row.id, hidden)
         )}
@@ -2530,13 +2534,25 @@ class ProtvistaUniprot extends LitElement {
   }
 
   /**
-   * The show/hide toggle. `aria-pressed` carries the state for assistive
-   * tech; the visible word carries it for everyone else.
+   * The visibility switch.
    *
-   * `empty` disables it: a track with no data is absent from the canvas
-   * whatever the toggle says, so an enabled Show would be a button that
-   * visibly does nothing. The reason goes in the accessible name and the
-   * tooltip rather than being left for the user to work out.
+   * A switch rather than a Hide/Show button because this *is* a state, not an
+   * action: "Hide" on a visible row asked the reader to invert it mentally to
+   * work out the current state. `role="switch"` + `aria-checked` says it
+   * directly, and the thumb's position says it visually — a non-colour
+   * channel, so WCAG 1.4.1 holds without a word beside it. Dropping that word
+   * also returns ~45px of a fixed-width column to the label.
+   *
+   * The accessible name is the *purpose* ("Show Domains"), never the current
+   * state; `aria-checked` carries the state, which is the correct split for a
+   * switch and keeps the name stable as it flips.
+   *
+   * `empty` disables it, off: a track with no data is absent whatever the
+   * switch says, so it must not offer a flip that would do nothing, nor claim
+   * to be on when nothing is drawn. The reason joins the accessible name
+   * rather than sitting only in `title` — dropping the visible word means a
+   * screen-reader user would otherwise have no way to learn it, and a
+   * disabled control is not reachable by Tab to hear a description.
    */
   private _toggleButton(
     hidden: boolean,
@@ -2544,14 +2560,17 @@ class ProtvistaUniprot extends LitElement {
     empty: boolean,
     onClick: () => void
   ) {
-    const action = hidden ? 'Show' : 'Hide';
+    // Off follows what the reader sees, not the config flag: a dataless track
+    // is not `hidden`, but it is not drawn either.
+    const on = !hidden && !empty;
     return html`
       <button
         type="button"
-        class="${CSS_PREFIX}-row-control ${CSS_PREFIX}-row-toggle"
-        aria-pressed="${hidden}"
-        aria-label="${empty ? `No data for ${name}` : `${action} ${name}`}"
-        title="${empty ? 'No data available for this track' : ''}"
+        role="switch"
+        class="${CSS_PREFIX}-switch"
+        aria-checked="${on}"
+        aria-label="${empty ? `Show ${name} — no data` : `Show ${name}`}"
+        title="${empty ? 'This protein has no data for this track' : ''}"
         ?disabled="${empty}"
         @click="${(e: Event) => {
           e.stopPropagation();
@@ -2559,11 +2578,7 @@ class ProtvistaUniprot extends LitElement {
           this._announce(`${name} ${hidden ? 'shown' : 'hidden'}.`);
         }}"
       >
-        <span class="${CSS_PREFIX}-row-control__icon" aria-hidden="true"
-          >${svg`${unsafeHTML(hidden || empty ? eyeSlashIcon : eyeIcon)}`}</span
-        ><span class="${CSS_PREFIX}-row-control__text"
-          >${empty ? 'No data' : action}</span
-        >
+        <span class="${CSS_PREFIX}-switch__thumb" aria-hidden="true"></span>
       </button>
     `;
   }

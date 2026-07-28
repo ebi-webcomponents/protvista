@@ -125,6 +125,22 @@ function control(el: Viewer, rowId: string, action: string): HTMLButtonElement {
   return found;
 }
 
+/**
+ * A row's visibility switch. Looked up by role rather than by name: the
+ * switch's accessible name is its purpose and no longer flips with state.
+ */
+function rowSwitch(el: Viewer, rowId: string): HTMLButtonElement {
+  return el.querySelector<HTMLButtonElement>(
+    `#${CSS_PREFIX}-group_${rowId} .${CSS_PREFIX}-row-controls button[role="switch"]`
+  )!;
+}
+
+function trackSwitch(el: Viewer, trackId: string): HTMLButtonElement {
+  return el.querySelector<HTMLButtonElement>(
+    `#${CSS_PREFIX}-track_${trackId} button[role="switch"]`
+  )!;
+}
+
 /** The same, for a track row inside a group. */
 function trackControl(
   el: Viewer,
@@ -252,35 +268,50 @@ describe('entering and leaving customize mode', () => {
 });
 
 describe('show / hide', () => {
-  it('hides a row and leaves a labelled Show control in its place', async () => {
+  it('flips the switch off and ghosts the row', async () => {
     const el = await mountViewer();
     await enterCustomize(el);
 
-    const hide = control(el, 'PTM', 'Hide');
-    expect(hide.getAttribute('aria-label')).toBe('Hide Modifications');
-    hide.click();
+    const sw = rowSwitch(el, 'PTM');
+    expect(sw.getAttribute('aria-checked')).toBe('true');
+    expect(sw.getAttribute('aria-label')).toBe('Show Modifications');
+    sw.click();
     await el.updateComplete;
 
     const row = el.querySelector(`#${CSS_PREFIX}-group_PTM`)!;
     // Ghosted, not blanked: the features stay on screen, desaturated, so the
     // user can see what they would be restoring.
     expect(row.classList.contains(`${CSS_PREFIX}-row--ghost`)).toBe(true);
-    const show = control(el, 'PTM', 'Show');
-    expect(show.getAttribute('aria-pressed')).toBe('true');
-    expect(show.getAttribute('aria-label')).toBe('Show Modifications');
+    // The name is the purpose and does not flip; only the state does.
+    expect(rowSwitch(el, 'PTM').getAttribute('aria-checked')).toBe('false');
+    expect(rowSwitch(el, 'PTM').getAttribute('aria-label')).toBe(
+      'Show Modifications'
+    );
   });
 
-  // WCAG 1.4.1: the eye glyph alone would carry the state by shape/colour.
-  it('states the action in words, not only in the icon', async () => {
+  // WCAG 1.4.1: state rides on the thumb's position, not on colour.
+  it('moves the thumb, so state is not carried by colour alone', async () => {
     const el = await mountViewer();
     await enterCustomize(el);
-    expect(control(el, 'PTM', 'Hide').textContent).toContain('Hide');
+    const thumb = () =>
+      getComputedStyle(
+        rowSwitch(el, 'PTM').querySelector(`.${CSS_PREFIX}-switch__thumb`)!
+      ).transform;
+
+    const on = thumb();
+    rowSwitch(el, 'PTM').click();
+    await el.updateComplete;
+    // The thumb slides over ~120ms, so the computed transform is still
+    // mid-interpolation on the tick the render finishes.
+    await vi.waitFor(() => {
+      expect(thumb()).not.toBe(on);
+    });
   });
 
   it('announces the toggle in the live region', async () => {
     const el = await mountViewer();
     await enterCustomize(el);
-    control(el, 'PTM', 'Hide').click();
+    rowSwitch(el, 'PTM').click();
     await el.updateComplete;
     expect(liveRegionText(el)).toBe('Modifications hidden.');
   });
@@ -288,7 +319,7 @@ describe('show / hide', () => {
   it('removes the row from the canvas once the mode is closed', async () => {
     const el = await mountViewer();
     await enterCustomize(el);
-    control(el, 'PTM', 'Hide').click();
+    rowSwitch(el, 'PTM').click();
     await el.updateComplete;
 
     await enterCustomize(el); // toggles back off
@@ -298,7 +329,7 @@ describe('show / hide', () => {
   it('reports the hidden count beside the toggle', async () => {
     const el = await mountViewer();
     await enterCustomize(el);
-    control(el, 'PTM', 'Hide').click();
+    rowSwitch(el, 'PTM').click();
     await el.updateComplete;
     expect(
       el.querySelector(`.${CSS_PREFIX}-hidden-count`)!.textContent
@@ -360,15 +391,17 @@ describe('move up / down', () => {
 // Tracks with no data are absent from the canvas whatever the toggle says, so
 // offering a working Show would be a button that visibly does nothing.
 describe('tracks with no data', () => {
-  it('disables the Show toggle and says why', async () => {
+  it('disables the switch, off, and puts the reason in its name', async () => {
     const el = await mountViewer();
     await enterCustomize(el);
-    const toggle = trackControl(el, 'empty', 'No data');
-    expect(toggle.disabled).toBe(true);
-    expect(toggle.getAttribute('aria-label')).toBe('No data for Empty');
-    expect(toggle.getAttribute('title')).toContain('No data');
-    // Not "Hide" — the track is not shown, and it is not the user's doing.
-    expect(toggle.textContent!.trim()).toBe('No data');
+    const sw = trackSwitch(el, 'empty');
+    expect(sw.disabled).toBe(true);
+    // Off follows what the reader sees: nothing is drawn.
+    expect(sw.getAttribute('aria-checked')).toBe('false');
+    // A disabled control cannot be tabbed to, so the reason has to live in
+    // the name rather than in a description.
+    expect(sw.getAttribute('aria-label')).toContain('no data');
+    expect(sw.getAttribute('title')).toContain('no data');
   });
 
   it('leaves its move controls working', async () => {
@@ -445,10 +478,10 @@ describe('the hidden count', () => {
     expect(track.classList.contains(`${CSS_PREFIX}-row--ghost`)).toBe(true);
     // And it carries a working Show, so one track of a hidden group can be
     // restored on its own.
-    const show = trackControl(el, 'domain', 'Show');
-    expect(show.disabled).toBe(false);
+    const sw = trackSwitch(el, 'domain');
+    expect(sw.disabled).toBe(false);
 
-    show.click();
+    sw.click();
     await el.updateComplete;
     expect(laneIds(el)).toContain('DOMAINS');
   });

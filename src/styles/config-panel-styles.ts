@@ -62,6 +62,7 @@ export default css`
 
   protvista-uniprot .${p}-customize-toggle:focus-visible,
   protvista-uniprot .${p}-customize-action:focus-visible,
+  protvista-uniprot .${p}-switch:focus-visible,
   protvista-uniprot .${p}-row-control:focus-visible {
     outline: 2px solid var(--protvista-color-accent, #0053d6);
     outline-offset: 2px;
@@ -108,23 +109,48 @@ export default css`
 
   /* ── Per-row controls ─────────────────────────────────────── */
 
+  /* Controls sit *after* the label and are pushed to the far end of the cell,
+     against the divider. Two reasons over putting them first:
+
+     the label then never moves between the default and editing views — the
+     text you were reading stays exactly where it was when the mode opens,
+     and keeps its full width instead of giving ~160px to a control cluster;
+
+     and in DOM order the row now announces what it is before what can be
+     done to it, so a screen-reader user is not tabbing through Hide/Move
+     before hearing which row they are on.
+
+     The trade is that a control sits further from its label on a wide
+     column, and a long label ellipsizes against the cluster rather than
+     the cell edge. */
   protvista-uniprot .${p}-row-controls {
     display: inline-flex;
     align-items: center;
     gap: 0.15rem;
-    margin-right: 0.35rem;
+    margin-left: auto;
+    padding-left: 0.5rem;
     vertical-align: middle;
     /* Never let the controls be squeezed — the label gives way instead. */
     flex: 0 0 auto;
   }
 
   /* Controls and label share a fixed-width cell while customizing, so the
-     label takes whatever is left and ellipsizes. Its full text is still on
+     label gives way first. It needs to be a real element rather than a bare
+     text node: an anonymous flex item cannot take a zero min-width, so it
+     refused to shrink and pushed the control cluster out of the cell
+     entirely. Wrapped, it shrinks and truncates properly — with a real
+     ellipsis, where the cell used to clip mid-glyph. The full text stays on
      the cell's title attribute and in every control's aria-label. */
   protvista-uniprot .${p}--customizing .${p}-track-label,
   protvista-uniprot .${p}--customizing .${p}-group-label {
     display: flex;
     align-items: center;
+    overflow: hidden;
+  }
+
+  protvista-uniprot .${p}--customizing .${p}-label-text {
+    flex: 1 1 auto;
+    min-width: 0;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -156,27 +182,76 @@ export default css`
     cursor: default;
   }
 
-  /* The show/hide toggle is a *state* control; the move buttons beside it are
-     actions. They were three identical boxes, so the one that reports state
-     now looks different from the two that do things — a gap separates the
-     categories, and a hidden row's toggle carries the same accent fill the
-     Customize button uses for its own pressed state. One vocabulary for "this
-     is switched on", not a second one invented here.
-
-     Colour supplements; it never carries the state alone (WCAG 1.4.1) — the
-     word "Show" and the eye-slash icon still say it. */
-  protvista-uniprot .${p}-row-toggle {
-    margin-right: 0.3rem;
+  /* A switch fades less than a plain button would: at 0.4 the track washed
+     out and the control read as a stray dot rather than as a switch that
+     happens to be unavailable. */
+  protvista-uniprot .${p}-switch[disabled] {
+    opacity: 0.55;
+    cursor: default;
   }
 
-  protvista-uniprot .${p}-row-toggle[aria-pressed='true']:not([disabled]) {
-    border-color: var(--protvista-color-accent, #0053d6);
-    background: var(--protvista-color-bg-active, #e6f3ff);
-    color: var(--protvista-color-accent, #0053d6);
+  /* The visibility switch. It reports a state; the move buttons beside it
+     perform actions — so it does not share their bordered-box look, and a gap
+     separates the two categories.
+
+     Standard proportions: a thin track with a white thumb that nearly fills
+     it. The earlier version had a 10px thumb floating in a 16px track, which
+     is what made it read as a fat pill rather than a switch.
+
+     State rides on the thumb's position as well as the track colour, so it is
+     never carried by hue alone (WCAG 1.4.1). */
+  protvista-uniprot .${p}-switch {
+    position: relative;
+    flex: 0 0 auto;
+    width: 26px;
+    min-width: 26px;
+    height: 14px;
+    margin: 0 0.4rem 0 0;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: var(--protvista-color-border, #c5c8cc);
+    cursor: pointer;
+    transition: background-color 120ms ease;
   }
 
-  /* Disabled stays flat grey: "no data" is an absence, not a state the user
-     switched on, and it must not read as loud as a deliberate hide. */
+  protvista-uniprot .${p}-switch::after {
+    /* Restores the 24px pointer target (WCAG 2.5.8) without fattening the
+       artwork back up. */
+    content: '';
+    position: absolute;
+    inset: -6px -4px;
+  }
+
+  protvista-uniprot .${p}-switch__thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--protvista-color-surface, #ffffff);
+    transition: transform 120ms ease;
+  }
+
+  protvista-uniprot .${p}-switch[aria-checked='true'] {
+    background: var(--protvista-color-accent, #0053d6);
+  }
+
+  protvista-uniprot .${p}-switch[aria-checked='true'] .${p}-switch__thumb {
+    transform: translateX(12px);
+  }
+
+  protvista-uniprot .${p}-switch:hover:not([disabled]) {
+    filter: brightness(0.92);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    protvista-uniprot .${p}-switch,
+    protvista-uniprot .${p}-switch__thumb {
+      transition: none;
+    }
+  }
 
   protvista-uniprot .${p}-row-control svg {
     width: 12px;
@@ -186,6 +261,7 @@ export default css`
   protvista-uniprot .${p}-row-control__icon {
     display: inline-flex;
   }
+
 
   /* The move-down button is the move-up chevron, turned over. */
   protvista-uniprot .${p}-row-control--down svg {
@@ -198,17 +274,31 @@ export default css`
      differ by form now, and the affordance is learned once across both
      views. It also drops the button chrome: this is a disclosure, not a
      third action, and it should not carry an action's visual weight. */
+  /* Kept to roughly the footprint of the ::before caret it stands in for, so
+     a group label sits about where it does in the default view rather than
+     stepping ~24px sideways when the mode opens. Exact parity is not on
+     offer: that caret is itself 5px wide collapsed and 10px expanded. The
+     24px pointer target (WCAG 2.5.8) comes from the ::after expander below
+     rather than from inflating the artwork. */
   protvista-uniprot .${p}-row-collapse {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    /* WCAG 2.5.8 target size, held without a visible box. */
-    min-width: 24px;
-    min-height: 24px;
+    flex: 0 0 auto;
+    width: 10px;
+    height: 10px;
+    margin-right: 5px;
     padding: 0;
     border: 0;
     background: none;
     cursor: pointer;
+  }
+
+  protvista-uniprot .${p}-row-collapse::after {
+    content: '';
+    position: absolute;
+    inset: -7px;
   }
 
   protvista-uniprot .${p}-row-collapse:focus-visible {
