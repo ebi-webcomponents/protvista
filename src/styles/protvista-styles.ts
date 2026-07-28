@@ -72,12 +72,25 @@ export default css`
   protvista-uniprot .${p}-track-label,
   protvista-uniprot .${p}-nav-track-label,
   protvista-uniprot .${p}-credits {
+    /* border-box so padding sits *inside* the fixed column width. Without
+       it, indenting one row's label would widen that cell and slide its
+       canvas out of line with the ruler and every other row. */
+    box-sizing: border-box;
     min-width: var(--protvista-label-width);
     max-width: var(--protvista-label-width);
     padding: 0.5em;
     line-height: normal;
     border-right: 1px solid var(--protvista-track-border-color);
     background-color: var(--protvista-track-label-bg);
+  }
+
+  /* A track inside a group is indented to show it belongs to the header
+     above it. The indent is padding *within* the label cell — never a
+     margin on the row — so the track area stays aligned across every row.
+     The same rule covers customize mode, where the control cluster sits in
+     that padding and shifts with it. */
+  protvista-uniprot .${p}-track--nested .${p}-track-label {
+    padding-left: 1.25em;
   }
 
   /* A group header reads as a header through weight and a slightly recessed

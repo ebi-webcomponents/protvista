@@ -261,8 +261,10 @@ describe('show / hide', () => {
     hide.click();
     await el.updateComplete;
 
-    const stub = el.querySelector(`#${CSS_PREFIX}-group_PTM`)!;
-    expect(stub.classList.contains(`${CSS_PREFIX}-row--stub`)).toBe(true);
+    const row = el.querySelector(`#${CSS_PREFIX}-group_PTM`)!;
+    // Ghosted, not blanked: the features stay on screen, desaturated, so the
+    // user can see what they would be restoring.
+    expect(row.classList.contains(`${CSS_PREFIX}-row--ghost`)).toBe(true);
     const show = control(el, 'PTM', 'Show');
     expect(show.getAttribute('aria-pressed')).toBe('true');
     expect(show.getAttribute('aria-label')).toBe('Show Modifications');
@@ -440,7 +442,7 @@ describe('the hidden count', () => {
 
     const track = el.querySelector(`#${CSS_PREFIX}-track_domain`)!;
     expect(track).not.toBeNull();
-    expect(track.classList.contains(`${CSS_PREFIX}-row--stub`)).toBe(true);
+    expect(track.classList.contains(`${CSS_PREFIX}-row--ghost`)).toBe(true);
     // And it carries a working Show, so one track of a hidden group can be
     // restored on its own.
     const show = trackControl(el, 'domain', 'Show');

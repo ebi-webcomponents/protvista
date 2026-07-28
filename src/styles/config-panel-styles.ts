@@ -156,6 +156,28 @@ export default css`
     cursor: default;
   }
 
+  /* The show/hide toggle is a *state* control; the move buttons beside it are
+     actions. They were three identical boxes, so the one that reports state
+     now looks different from the two that do things — a gap separates the
+     categories, and a hidden row's toggle carries the same accent fill the
+     Customize button uses for its own pressed state. One vocabulary for "this
+     is switched on", not a second one invented here.
+
+     Colour supplements; it never carries the state alone (WCAG 1.4.1) — the
+     word "Show" and the eye-slash icon still say it. */
+  protvista-uniprot .${p}-row-toggle {
+    margin-right: 0.3rem;
+  }
+
+  protvista-uniprot .${p}-row-toggle[aria-pressed='true']:not([disabled]) {
+    border-color: var(--protvista-color-accent, #0053d6);
+    background: var(--protvista-color-bg-active, #e6f3ff);
+    color: var(--protvista-color-accent, #0053d6);
+  }
+
+  /* Disabled stays flat grey: "no data" is an absence, not a state the user
+     switched on, and it must not read as loud as a deliberate hide. */
+
   protvista-uniprot .${p}-row-control svg {
     width: 12px;
     height: 12px;
@@ -170,14 +192,45 @@ export default css`
     transform: rotate(180deg);
   }
 
-  /* Collapsed points right, expanded points down — the same reading as the
-     caret this replaces while customizing. */
-  protvista-uniprot .${p}-row-collapse svg {
-    transform: rotate(90deg);
+  /* The collapse control is the *same solid caret* as the default view, not
+     a chevron. A rotated chevron was indistinguishable from the move-down
+     button sitting next to it — identical glyph, identical box — so the two
+     differ by form now, and the affordance is learned once across both
+     views. It also drops the button chrome: this is a disclosure, not a
+     third action, and it should not carry an action's visual weight. */
+  protvista-uniprot .${p}-row-collapse {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* WCAG 2.5.8 target size, held without a visible box. */
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
   }
 
-  protvista-uniprot .${p}-row-collapse[aria-expanded='true'] svg {
-    transform: rotate(180deg);
+  protvista-uniprot .${p}-row-collapse:focus-visible {
+    outline: 2px solid var(--protvista-color-accent, #0053d6);
+    outline-offset: 2px;
+  }
+
+  protvista-uniprot .${p}-row-collapse::before {
+    content: '';
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 5px solid var(--protvista-caret-color, #5b6169);
+  }
+
+  protvista-uniprot .${p}-row-collapse[aria-expanded='true']::before {
+    border-top: 5px solid var(--protvista-caret-color, #5b6169);
+    border-bottom: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
   }
 
   /* The label cell is a plain container while customizing (it holds real
@@ -200,6 +253,23 @@ export default css`
   protvista-uniprot .${p}-row--hidden .${p}-group-label {
     font-style: italic;
     color: var(--protvista-color-text-muted, #5b6169);
+  }
+
+  /* A hidden row keeps drawing its features while customizing, desaturated
+     and faded, so the user can see what Show would bring back — and so a
+     hidden row never looks identical to one that simply has no data.
+
+     Greyscale as well as opacity, deliberately: fading alone would leave
+     faint feature colours in the lane, competing with the live rows next to
+     it, which is the very thing the neutral chrome was protecting. Removing
+     the hue takes the row out of the colour conversation entirely, so it
+     reads as inactive rather than as quiet data.
+
+     Pointer events are off because it is a preview, not live data — it must
+     not answer clicks or raise tooltips. */
+  protvista-uniprot .${p}-row--ghost .${p}-track-content {
+    filter: grayscale(1) opacity(0.35);
+    pointer-events: none;
   }
 
   protvista-uniprot .${p}-row--stub .${p}-track-content {

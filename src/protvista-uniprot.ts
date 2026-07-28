@@ -1949,9 +1949,9 @@ class ProtvistaUniprot extends LitElement {
     const attrs = renderingToAttrs(track.rendering);
     return html`
       <div
-        class="${CSS_PREFIX}-group ${CSS_PREFIX}-group--standalone ${this._movedClass(
-          group.id
-        )}"
+        class="${CSS_PREFIX}-group ${CSS_PREFIX}-group--standalone ${this._ghostClass(
+          isRowHidden(group)
+        )} ${this._movedClass(group.id)}"
         id="${CSS_PREFIX}-group_${group.id}"
       >
         <div
@@ -2013,32 +2013,13 @@ class ProtvistaUniprot extends LitElement {
         ? this.renderStandaloneTrack(row, index, total)
         : this._renderGroupBlock(row, tracks, index, total);
     }
-    // A hidden row shows as a stub rather than its full self: it is still
-    // there to restore, but it does not pretend to be part of the view.
-    if (isRowHidden(row)) return this._renderHiddenRow(row, index, total);
+    // A hidden row renders its real content, ghosted (see `-row--ghost`), so
+    // the user can see what pressing Show would bring back. It falls through
+    // to a stub only when there is genuinely nothing to draw.
     const body = row.standalone
       ? this.renderStandaloneTrack(row, index, total)
       : this._renderGroupBlock(row, tracks, index, total);
     return body || this._renderRowStub(row, index, total);
-  }
-
-  /**
-   * A hidden row in customize mode: a stub for the row, plus a stub per track
-   * when it is a group the user has opened.
-   *
-   * A hidden group would otherwise collapse to one line, leaving the tracks
-   * inside it unreachable — you could restore the whole group but never a
-   * single track of it. Opening it lists them, so the hidden count leads
-   * somewhere useful.
-   */
-  private _renderHiddenRow(row: NormalizedRow, index: number, total: number) {
-    const stub = this._renderRowStub(row, index, total);
-    if (row.standalone || !this.openGroups.includes(row.id)) return stub;
-    return html`${stub}${repeat(
-      row.tracks,
-      (t) => t.id,
-      (t, i) => this._renderTrackStub(row, t, i, row.tracks.length)
-    )}`;
   }
 
   /**
@@ -2075,7 +2056,9 @@ class ProtvistaUniprot extends LitElement {
     const expanded = this.openGroups.includes(group.id);
     return html`
       <div
-        class="${CSS_PREFIX}-group ${this._movedClass(group.id)}"
+        class="${CSS_PREFIX}-group ${this._ghostClass(
+          isRowHidden(group)
+        )} ${this._movedClass(group.id)}"
         id="${CSS_PREFIX}-group_${group.id}"
       >
         ${this._customizeMode
@@ -2172,10 +2155,11 @@ class ProtvistaUniprot extends LitElement {
     const trackHasData = hasRenderableData(this.data[key]);
     const trackHasError = this._trackErrors.has(key);
     // A track with neither data nor a (broken) error renders nothing — this
-    // is also the 4xx "missing" path. In customize mode it, and a track the
-    // user hid, still need a control to restore or move them, so both fall
-    // through to a stub instead of vanishing.
-    if ((!trackHasData && !trackHasError) || (this._customizeMode && track.hidden)) {
+    // is also the 4xx "missing" path. In customize mode it still needs a
+    // control to move it, so it falls through to a stub instead of vanishing.
+    // A *hidden* track does not: it keeps its canvas, ghosted, so the user
+    // can see what they would be restoring.
+    if (!trackHasData && !trackHasError) {
       return this._customizeMode
         ? this._renderTrackStub(group, track, index, total)
         : '';
@@ -2183,9 +2167,9 @@ class ProtvistaUniprot extends LitElement {
     const attrs = renderingToAttrs(track.rendering);
     return html`
       <div
-        class="${CSS_PREFIX}-group__track ${this._movedClass(
-          trackKey(group.id, track.id)
-        )}"
+        class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-track--nested ${this._ghostClass(
+          !!track.hidden || !!group.hidden
+        )} ${this._movedClass(trackKey(group.id, track.id))}"
         id="${CSS_PREFIX}-track_${track.id}"
       >
         <div class="${CSS_PREFIX}-track-label" title="${track.description ?? ''}">
@@ -2229,8 +2213,7 @@ class ProtvistaUniprot extends LitElement {
   /** A whole row reduced to its label and controls. */
   private _renderRowStub(row: NormalizedRow, index: number, total: number) {
     // Groups keep a collapse control even when hidden — that is what lists
-    // the tracks inside (see `_renderHiddenRow`). Standalone rows have no
-    // inside, so they get none.
+    // the tracks inside. Standalone rows have no inside, so they get none.
     const expanded = row.standalone
       ? undefined
       : this.openGroups.includes(row.id);
@@ -2260,7 +2243,7 @@ class ProtvistaUniprot extends LitElement {
   ) {
     return html`
       <div
-        class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-row--stub ${CSS_PREFIX}-row--hidden ${this._movedClass(
+        class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-track--nested ${CSS_PREFIX}-row--stub ${CSS_PREFIX}-row--hidden ${this._movedClass(
           trackKey(group.id, track.id)
         )}"
         id="${CSS_PREFIX}-track_${track.id}"
@@ -2537,14 +2520,12 @@ class ProtvistaUniprot extends LitElement {
     return html`
       <button
         type="button"
-        class="${CSS_PREFIX}-row-control ${CSS_PREFIX}-row-collapse"
+        class="${CSS_PREFIX}-row-collapse"
         data-group-toggle="${row.id}"
         aria-expanded="${expanded}"
         aria-label="${expanded ? 'Collapse' : 'Expand'} ${name}"
         @click="${this.handleGroupClick}"
-      >
-        <span aria-hidden="true">${svg`${unsafeHTML(chevronUpIcon)}`}</span>
-      </button>
+      ></button>
     `;
   }
 
@@ -2567,7 +2548,7 @@ class ProtvistaUniprot extends LitElement {
     return html`
       <button
         type="button"
-        class="${CSS_PREFIX}-row-control"
+        class="${CSS_PREFIX}-row-control ${CSS_PREFIX}-row-toggle"
         aria-pressed="${hidden}"
         aria-label="${empty ? `No data for ${name}` : `${action} ${name}`}"
         title="${empty ? 'No data available for this track' : ''}"
@@ -2669,6 +2650,16 @@ class ProtvistaUniprot extends LitElement {
     this._movedTimer = setTimeout(() => {
       this._movedKey = null;
     }, MOVED_HIGHLIGHT_MS);
+  }
+
+  /**
+   * The ghost class for a row that is hidden while customizing. Its content
+   * is still drawn — desaturated and faded — so the user sees what Show
+   * would bring back, and so a hidden row never looks like a dataless one.
+   * Outside customize mode a hidden row is not rendered at all.
+   */
+  private _ghostClass(hidden: boolean): string {
+    return this._customizeMode && hidden ? `${CSS_PREFIX}-row--ghost` : '';
   }
 
   /** The just-moved highlight class for a row/track, if it is the one. */

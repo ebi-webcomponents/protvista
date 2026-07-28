@@ -219,16 +219,49 @@ describe('customize mode', () => {
 
   // Without the panel, a row absent from the canvas would have no control to
   // bring it back — hiding would be a one-way door.
-  it('keeps a hidden row reachable as a stub', () => {
+  // A hidden row keeps drawing its features, ghosted, so the user can see
+  // what Show would bring back — and so it never looks like a dataless row.
+  it('keeps a hidden row reachable, and shows what it holds', () => {
     const el = buildInstance({
       config: makeConfig({ B: true }),
       _customizeMode: true,
     });
     const target = renderInto(el);
-    const stub = target.querySelector(`#${CSS_PREFIX}-group_B`);
-    expect(stub).not.toBeNull();
-    expect(stub!.classList.contains(`${CSS_PREFIX}-row--stub`)).toBe(true);
-    expect(stub!.querySelector(`.${CSS_PREFIX}-row-controls`)).not.toBeNull();
+    const row = target.querySelector(`#${CSS_PREFIX}-group_B`);
+    expect(row).not.toBeNull();
+    expect(row!.classList.contains(`${CSS_PREFIX}-row--ghost`)).toBe(true);
+    expect(row!.querySelector(`.${CSS_PREFIX}-row-controls`)).not.toBeNull();
+    // Its content is drawn, not blanked — a stub would mean nothing to show.
+    expect(row!.classList.contains(`${CSS_PREFIX}-row--stub`)).toBe(false);
+  });
+
+  it('ghosts an individually hidden track, not its visible siblings', () => {
+    const el = buildInstance({
+      config: makeConfig({}, true),
+      _customizeMode: true,
+    });
+    const target = renderInto(el);
+    const ghost = `${CSS_PREFIX}-row--ghost`;
+    expect(
+      target.querySelector(`#${CSS_PREFIX}-track_At2`)!.classList.contains(ghost)
+    ).toBe(true);
+    expect(
+      target.querySelector(`#${CSS_PREFIX}-track_At1`)!.classList.contains(ghost)
+    ).toBe(false);
+  });
+
+  it('ghosts nothing outside customize mode', () => {
+    const target = renderInto(buildInstance({ config: makeConfig({ B: true }) }));
+    expect(target.querySelector(`.${CSS_PREFIX}-row--ghost`)).toBeNull();
+  });
+
+  // Still a stub when there is genuinely nothing to draw.
+  it('keeps the stub for a row with no data at all', () => {
+    const data = makeData();
+    for (const k of ['B', 'B-Bt1', 'B-Bt2']) delete data[k];
+    const target = renderInto(buildInstance({ data, _customizeMode: true }));
+    const row = target.querySelector(`#${CSS_PREFIX}-group_B`)!;
+    expect(row.classList.contains(`${CSS_PREFIX}-row--stub`)).toBe(true);
   });
 
   it('offers Show (not Hide) on a hidden row', () => {
