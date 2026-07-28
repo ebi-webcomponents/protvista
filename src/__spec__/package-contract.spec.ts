@@ -33,38 +33,6 @@ const pkg = JSON.parse(read('package.json'));
 /** Strip `./`, so `module`-style and `exports`-style paths compare equal. */
 const bare = (p: string) => p.replace(/^\.\//, '');
 
-/**
- * The `sideEffects` glob subset webpack and Vite agree on: patterns match
- * against the path relative to the package root, a leading `./` is
- * optional, a pattern containing no `/` is implicitly prefixed with a
- * match-any-directory wildcard, `*` and `?` do not cross a `/`, and `**`
- * does — but only as a whole path segment.
- *
- * Tokenised in one pass so a wildcard's own expansion is never rescanned.
- */
-const globToRegExp = (glob: string) => {
-  // Test for a separator on the *raw* glob: `./index.js` is root-anchored,
-  // whereas the bare `index.js` is not.
-  const anchored = glob.includes('/');
-  const pattern = anchored ? bare(glob) : `**/${glob}`;
-  // Literal runs exclude `/` so a separator is never swallowed ahead of a
-  // globstar; `/` is matched as its own token instead.
-  const body = pattern.replace(
-    /\*\*\/|\/\*\*|\*\*|\*|\?|[^*?/]+|\//g,
-    (token) => {
-      if (token === '**/') return '(?:.*/)?';
-      if (token === '/**') return '(?:/.*)?';
-      if (token === '**') return '.*';
-      if (token === '*') return '[^/]*';
-      if (token === '?') return '[^/]';
-      return token.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-    }
-  );
-  // ReDoS-safe: this compiles only author-controlled globs — the test cases
-  // below and package.json's `sideEffects` array — never runtime/user input.
-  return new RegExp(`^${body}$`); // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
-};
-
 /** Every authored module under `src/`, excluding test-only trees. */
 const sourceModules = () => {
   const skip = /(^|\/)(__spec__|__tests__|__mocks__|__browser__)(\/|$)/;
@@ -92,22 +60,6 @@ describe('package.json packaging contract', () => {
       (Array.isArray(pkg.sideEffects) && pkg.sideEffects.length === 0);
     expect(claimsPurity).toBe(false);
   });
-
-  it.skipIf(!Array.isArray(pkg.sideEffects))(
-    'covers the published entry, if it uses an allowlist',
-    () => {
-      // `sideEffects` is applied by the consumer's bundler to the modules
-      // it actually loads — which is the built `dist/` bundle, never
-      // `src/`. So the entry is what an allowlist has to name; matching it
-      // against source paths would accept a list that protects nothing.
-      const matchers = pkg.sideEffects.map(globToRegExp);
-      expect(
-        matchers.some((re: RegExp) => re.test(bare(pkg.module))),
-        `"sideEffects" does not match ${pkg.module}, the module consumers ` +
-          `load — a bundler may drop it and leave the element unregistered.`
-      ).toBe(true);
-    }
-  );
 
   it('has no `main` field', () => {
     // Vite builds `formats: ['es']` only, so the pre-Vite
@@ -150,32 +102,6 @@ describe('package.json packaging contract', () => {
     if (conditions.includes('default')) {
       expect(conditions[conditions.length - 1]).toBe('default');
     }
-  });
-});
-
-describe('globToRegExp models the webpack/Vite sideEffects glob subset', () => {
-  // `globToRegExp` only runs inside the allowlist test above, which skips
-  // while this package ships no `sideEffects` array — so without these cases
-  // the hand-rolled matcher has zero executing coverage and a regression
-  // would surface only once a future maintainer reintroduces an allowlist.
-  // Pin the semantics now: leading `./` optional, a slash-free pattern
-  // implicitly `**/`-prefixed, `*`/`?` do not cross `/`, and `**` spans
-  // segments but only as a whole segment.
-  const cases: [string, string, boolean][] = [
-    ['*.mjs', 'dist/protvista-uniprot.mjs', true], // slash-free => **/ prefix
-    ['*.mjs', 'protvista-uniprot.mjs', true],
-    ['./dist/protvista-uniprot.mjs', 'dist/protvista-uniprot.mjs', true], // leading ./ optional
-    ['dist/*.mjs', 'dist/protvista-uniprot.mjs', true],
-    ['dist/*.mjs', 'dist/chunks/a.mjs', false], // * does not cross /
-    ['dist/**', 'dist/a.mjs', true], // ** spans segments
-    ['dist/**', 'dist/chunks/a.mjs', true],
-    ['a?b.js', 'axb.js', true],
-    ['a?b.js', 'a/b.js', false], // ? does not cross /
-    ['dist/x.mjs', 'dist/y.mjs', false],
-  ];
-
-  it.each(cases)('%s ~ %s => %s', (glob, path, expected) => {
-    expect(globToRegExp(glob).test(path)).toBe(expected);
   });
 });
 

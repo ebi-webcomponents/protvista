@@ -7,3 +7,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Wait a week before proposing a newly published version, so a freshly
+    # compromised or broken release is not adopted the day it lands.
+    cooldown:
+      default-days: 7
