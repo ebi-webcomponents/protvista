@@ -65,10 +65,12 @@ if [ ! -f dist/protvista-uniprot.mjs ]; then
 fi
 
 # ---- 4. consumer-facing package checks (publint + attw) ------------------
-# Mirrors `yarn test:pack`. attw --pack runs `npm pack`, which rebuilds via
-# the prepack hook — that is the real tarball a consumer would resolve.
+# Mirrors `yarn test:pack`. Both pack the real tarball a consumer resolves.
+# `--pack npm` is required: publint's default pack agent mishandles Yarn
+# Classic's `yarn pack` (it writes to the project root, not the temp dir
+# publint expects), so auto-detection fails on a yarn.lock repo.
 if [ "$BUILT" = 1 ]; then
-  run "publint --strict"        npx --no-install publint --strict
+  run "publint --strict"        npx --no-install publint --strict --pack npm
   run "arethetypeswrong (attw)" npx --no-install attw --pack . --ignore-rules cjs-resolves-to-esm
 else
   skip "publint --strict"; skip "arethetypeswrong (attw)"
