@@ -2015,12 +2015,30 @@ class ProtvistaUniprot extends LitElement {
     }
     // A hidden row shows as a stub rather than its full self: it is still
     // there to restore, but it does not pretend to be part of the view.
-    const body = isRowHidden(row)
-      ? ''
-      : row.standalone
-        ? this.renderStandaloneTrack(row, index, total)
-        : this._renderGroupBlock(row, tracks, index, total);
+    if (isRowHidden(row)) return this._renderHiddenRow(row, index, total);
+    const body = row.standalone
+      ? this.renderStandaloneTrack(row, index, total)
+      : this._renderGroupBlock(row, tracks, index, total);
     return body || this._renderRowStub(row, index, total);
+  }
+
+  /**
+   * A hidden row in customize mode: a stub for the row, plus a stub per track
+   * when it is a group the user has opened.
+   *
+   * A hidden group would otherwise collapse to one line, leaving the tracks
+   * inside it unreachable — you could restore the whole group but never a
+   * single track of it. Opening it lists them, so the hidden count leads
+   * somewhere useful.
+   */
+  private _renderHiddenRow(row: NormalizedRow, index: number, total: number) {
+    const stub = this._renderRowStub(row, index, total);
+    if (row.standalone || !this.openGroups.includes(row.id)) return stub;
+    return html`${stub}${repeat(
+      row.tracks,
+      (t) => t.id,
+      (t, i) => this._renderTrackStub(row, t, i, row.tracks.length)
+    )}`;
   }
 
   /**
@@ -2210,6 +2228,12 @@ class ProtvistaUniprot extends LitElement {
 
   /** A whole row reduced to its label and controls. */
   private _renderRowStub(row: NormalizedRow, index: number, total: number) {
+    // Groups keep a collapse control even when hidden — that is what lists
+    // the tracks inside (see `_renderHiddenRow`). Standalone rows have no
+    // inside, so they get none.
+    const expanded = row.standalone
+      ? undefined
+      : this.openGroups.includes(row.id);
     return html`
       <div
         class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-row--stub ${CSS_PREFIX}-row--hidden ${this._movedClass(
@@ -2218,7 +2242,7 @@ class ProtvistaUniprot extends LitElement {
         id="${CSS_PREFIX}-group_${row.id}"
       >
         <div class="${CSS_PREFIX}-track-label" title="${row.description ?? ''}">
-          ${this._renderRowControls(row, index, total)}${unsafeHTML(
+          ${this._renderRowControls(row, index, total, expanded)}${unsafeHTML(
             renderLabel(row.label, this.accession)
           )}
         </div>
@@ -2321,17 +2345,54 @@ class ProtvistaUniprot extends LitElement {
         class="${CSS_PREFIX}-hidden-count"
         title="${hint}"
         aria-label="${hint}"
-        @click="${this._openCustomizeMode}"
+        @click="${this._onHiddenCountClick}"
       >
         ${hidden} hidden
       </button>
     `;
   }
 
-  /** Enter customize mode (idempotent — the badge must never close it). */
-  private _openCustomizeMode = () => {
+  /**
+   * Pressing the "N hidden" badge: enter customize mode and open every group
+   * holding a hidden track.
+   *
+   * Entering the mode alone is not enough. A hidden group collapses to one
+   * stub and a collapsed visible group hides its tracks behind the caret, so
+   * the tracks the badge just counted could still be nowhere on screen. This
+   * opens exactly the groups those tracks are in, so the badge lands the user
+   * on the controls that undo the hide.
+   */
+  private _onHiddenCountClick = () => {
+    // Idempotent — the badge must never toggle the mode back off.
     if (!this._customizeMode) this._toggleCustomizeMode();
+
+    const toOpen = this._rowsHoldingHiddenTracks();
+    const added = toOpen.filter((id) => !this.openGroups.includes(id));
+    if (added.length > 0) this.openGroups = [...this.openGroups, ...added];
+
+    this._announce(
+      added.length > 0
+        ? `Opened ${added.length} group${added.length === 1 ? '' : 's'} containing hidden tracks.`
+        : 'Hidden tracks are listed below.'
+    );
   };
+
+  /**
+   * Ids of the groups holding at least one hidden track — the same tracks the
+   * badge counts, so empty ones are excluded here too.
+   */
+  private _rowsHoldingHiddenTracks(): string[] {
+    return (this.config?.rows ?? [])
+      .filter(
+        (row) =>
+          !row.standalone &&
+          row.tracks.some(
+            (t) =>
+              (row.hidden || t.hidden) && !this._trackIsEmpty(row.id, t.id)
+          )
+      )
+      .map((row) => row.id);
+  }
 
   /** Reset / Done, shown beside the toggle only while customizing. */
   private _renderCustomizeActions() {
@@ -2433,7 +2494,9 @@ class ProtvistaUniprot extends LitElement {
   ) {
     if (!this._customizeMode) return '';
     const name = this._labelText(track.label);
-    const hidden = !!track.hidden;
+    // A track inside a hidden group is not drawn either, whatever its own
+    // flag says, so its control has to offer Show rather than Hide.
+    const hidden = !!track.hidden || !!group.hidden;
     const empty = this._trackIsEmpty(group.id, track.id);
     return html`
       <span class="${CSS_PREFIX}-row-controls">

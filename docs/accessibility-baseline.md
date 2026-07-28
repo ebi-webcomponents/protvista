@@ -78,7 +78,9 @@ layout API, which rewrites the config, and per-config persistence. See
 - **Dead ends removed:** a track with no data has its Show control disabled
   and named "No data for X", rather than offering a press that visibly does
   nothing. The "N hidden" badge is a button, not a `<span title>`, so the
-  explanation of how to undo a hide is reachable without a mouse.
+  explanation of how to undo a hide is reachable without a mouse — and
+  pressing it opens the groups holding those tracks, then announces how many
+  it opened, so the badge leads somewhere instead of merely reporting.
 - **Announcements:** a polite live region announces each reorder ("… moved to
   position N of M"), hide, and show (4.1.3).
 - **Focus:** a visible focus ring on every control; Done returns focus to the

@@ -48,7 +48,14 @@ there is nothing to draw.
 Outside customize mode a **"N hidden"** button sits beside the Customize
 button. It counts *tracks*, so hiding a group of six reads "6 hidden" rather
 than "1", and it leaves out tracks that are empty for want of data. Its
-tooltip explains how to bring them back, and pressing it opens customize mode.
+tooltip explains how to bring them back.
+
+Pressing it opens customize mode **and opens every group holding a hidden
+track**, so the controls that undo the hide are on screen rather than folded
+away behind a caret. A hidden group lists its tracks when opened, which means
+you can restore a single track of it: doing so brings the group back carrying
+only that track, leaving its siblings hidden with their own Show controls.
+
 If everything is hidden the viewer says so and offers a reset rather than
 rendering an empty frame.
 

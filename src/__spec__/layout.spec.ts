@@ -250,6 +250,22 @@ describe('setTrackHidden', () => {
     expect(isRowHidden(out[0])).toBe(false);
   });
 
+  // "Show this one" must not be a back door to showing the whole group: the
+  // row's hide moves onto its other tracks rather than evaporating.
+  it('reveals only the asked-for track of a hidden group', () => {
+    const hiddenRow = setRowHidden(rows(), 'A', true);
+    const out = setTrackHidden(hiddenRow, 'A', 'a1', false);
+    expect(visibleTracks(out[0]).map((t) => t.id)).toEqual(['a1']);
+    expect(displayRows(out).map((d) => d.row.id)).toEqual(['A', 'B', 'S']);
+  });
+
+  it('still lets Show on the row bring the whole group back', () => {
+    let out = setRowHidden(rows(), 'A', true);
+    out = setTrackHidden(out, 'A', 'a1', false);
+    out = setRowHidden(out, 'A', false);
+    expect(visibleTracks(out[0]).map((t) => t.id)).toEqual(['a1', 'a2']);
+  });
+
   it('keeps a standalone row in step with its track', () => {
     const out = setTrackHidden(rows(), 'S', 'S', true);
     expect(out[2].hidden).toBe(true);

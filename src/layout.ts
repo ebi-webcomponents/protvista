@@ -192,6 +192,19 @@ export function setTrackHidden(
 ): NormalizedRow[] {
   return rows.map((row) => {
     if (row.id !== rowId) return row;
+
+    // Revealing one track of a wholly-hidden group: the group comes back, but
+    // carrying only the track that was asked for. The row's hide moves onto
+    // its other tracks rather than evaporating — "show this one" must not be
+    // a back door to showing all six.
+    if (!hidden && row.hidden && !row.standalone) {
+      return {
+        ...row,
+        hidden: false,
+        tracks: row.tracks.map((t) => (t.id === trackId ? show(t) : hide(t))),
+      };
+    }
+
     const tracks = row.tracks.map((t) =>
       t.id === trackId ? (hidden ? hide(t) : show(t)) : t
     );

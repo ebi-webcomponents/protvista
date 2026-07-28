@@ -424,6 +424,54 @@ describe('the hidden count', () => {
     await el.updateComplete;
     expect(toggle(el).getAttribute('aria-pressed')).toBe('true');
   });
+
+  // Entering the mode is not enough: a hidden group collapses to one stub, so
+  // the tracks the badge counted would still be nowhere on screen.
+  it('opens the hidden group so its tracks are reachable', async () => {
+    const el = await mountViewer();
+    el.openGroups = [];
+    el.setRowVisibility('DOMAINS', false);
+    await el.updateComplete;
+    // Collapsed and hidden: only the group's own stub is on screen.
+    expect(el.querySelector(`#${CSS_PREFIX}-track_domain`)).toBeNull();
+
+    badge(el)!.click();
+    await el.updateComplete;
+
+    const track = el.querySelector(`#${CSS_PREFIX}-track_domain`)!;
+    expect(track).not.toBeNull();
+    expect(track.classList.contains(`${CSS_PREFIX}-row--stub`)).toBe(true);
+    // And it carries a working Show, so one track of a hidden group can be
+    // restored on its own.
+    const show = trackControl(el, 'domain', 'Show');
+    expect(show.disabled).toBe(false);
+
+    show.click();
+    await el.updateComplete;
+    expect(laneIds(el)).toContain('DOMAINS');
+  });
+
+  it('opens a visible group that merely contains a hidden track', async () => {
+    const el = await mountViewer();
+    el.openGroups = [];
+    el.setTrackVisibility('DOMAINS', 'domain', false);
+    await el.updateComplete;
+
+    badge(el)!.click();
+    await el.updateComplete;
+    expect(el.openGroups).toContain('DOMAINS');
+  });
+
+  it('leaves already-open groups alone', async () => {
+    const el = await mountViewer();
+    el.setRowVisibility('DOMAINS', false);
+    await el.updateComplete;
+    const before = [...el.openGroups!];
+
+    badge(el)!.click();
+    await el.updateComplete;
+    expect(el.openGroups).toEqual(before);
+  });
 });
 
 describe('the just-moved highlight', () => {
