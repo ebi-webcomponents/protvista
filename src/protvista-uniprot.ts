@@ -1,6 +1,7 @@
 import { LitElement, html, svg } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import { repeat } from 'lit/directives/repeat.js';
 import { frame } from 'timing-functions';
 
 // Nightingale — type-only imports for the components this file
@@ -42,7 +43,7 @@ import filterConfig, { colorConfig } from './filter-config.js';
 // bundled as a raw string so `js-yaml` stays lazy-loaded — adopters
 // who pass a parsed `viewerConfig` object never pull in the parser.
 import defaultConfigYaml from './default-config.yaml?raw';
-import { loadConfig } from './schema/load.js';
+import { loadConfigWithSource, type LoadedConfig } from './schema/load.js';
 import { type Registry, createRegistry } from './schema/registry.js';
 import type {
   KnownComponentName,
@@ -51,14 +52,47 @@ import type {
   SemanticKindDefinition,
   ColorStop,
 } from './schema/types.js';
-import type { NormalizedConfig, NormalizedTrack } from './schema/normalize.js';
+import type {
+  NormalizedConfig,
+  NormalizedRow,
+  NormalizedTrack,
+} from './schema/normalize.js';
 import { renderingToAttrs } from './renderer/render-helpers.js';
+import {
+  type LayoutPatch,
+  type DisplayRow,
+  applyPatch,
+  diffLayout,
+  displayRows,
+  emptyPatch,
+  hiddenCount,
+  isRowHidden,
+  moveRow,
+  moveTrack,
+  sameArrangement,
+  setRowHidden,
+  setTrackHidden,
+  trackKey,
+  visibleTracks,
+} from './layout.js';
+import {
+  LAYOUT_PARAM,
+  configIdentity,
+  storageKey,
+  isDefaultLayout,
+  encodeLayout,
+  decodeLayout,
+} from './layout-persistence.js';
+import { applyLayoutToConfig } from './schema/denormalize.js';
 
 import loaderIcon from './icons/spinner.svg';
+import slidersIcon from './icons/sliders.svg';
+import chevronUpIcon from './icons/chevron-up.svg';
 import { inlineSvg } from './icons/inline.js';
 import protvistaStyles from './styles/protvista-styles.js';
 import loaderStyles from './styles/loader-styles.js';
 import errorStyles from './styles/error-styles.js';
+import configPanelStyles from './styles/config-panel-styles.js';
 import { CSS_PREFIX } from './styles/css-prefix.js';
 import { injectStyleOnce, installTokenDefaults } from './styles/inject.js';
 
@@ -148,8 +182,26 @@ const isAbortError = (e: unknown): boolean =>
 const hasRenderableData = (value: unknown): boolean => {
   if (value == null) return false;
   if (Array.isArray(value)) return value.length > 0;
+  // Variation / RNA-editing tracks carry a `{ sequence, variants }` bundle
+  // (see the adapters, and the `data.variants?.length` gate in
+  // `_loadDataInComponents`). That object always has keys, so a plain
+  // key-count reads an empty `variants: []` as "has data" — a phantom that
+  // draws nothing yet keeps its track/group from being treated as empty
+  // (leaving, e.g., RNA editing on a protein with none showing an empty lane
+  // once expanded). Judge a bundle by its variants, matching the display gate.
+  if (typeof value === 'object' && 'variants' in value) {
+    const { variants } = value as { variants?: unknown };
+    return Array.isArray(variants) && variants.length > 0;
+  }
   return Object.keys(value as object).length > 0;
 };
+
+/**
+ * How long a just-moved row stays highlighted. Long enough to find the row
+ * after a move that scrolled it out of view, short enough not to linger over
+ * the next one.
+ */
+const MOVED_HIGHLIGHT_MS = 2000;
 
 /** Monotonic per-page counter giving each element a unique id nonce. */
 let protvistaInstanceSeq = 0;
@@ -157,6 +209,48 @@ let protvistaInstanceSeq = 0;
 @customElement('protvista-uniprot')
 class ProtvistaUniprot extends LitElement {
   private openGroups: string[];
+  /**
+   * The authored config as loaded, kept verbatim so `getConfig()` can export
+   * the user's arrangement in the shape it was written rather than a
+   * fully-explicit dump (see `src/schema/denormalize.ts`).
+   */
+  private _authoredConfig?: ProtvistaViewerConfig;
+  /**
+   * The pristine normalized rows, before any layout edit. The baseline for
+   * "reset to default" and for the `LayoutPatch` diff the viewer persists —
+   * `config.rows` itself carries the user's edits and is not a safe reference
+   * for either.
+   */
+  private _baseRows?: NormalizedRow[];
+  /**
+   * Whether "Customize layout" mode is active — the mode that puts reorder
+   * and show/hide controls on the rows themselves. Internal reactive state
+   * (`state: true`, no attribute).
+   */
+  private _customizeMode: boolean;
+  /**
+   * Screen-reader announcement for the most recent layout action ("Domains
+   * moved to position 2 of 12"). Rendered into a polite live region, so an
+   * assistive-tech user hears the outcome of a move or toggle they cannot
+   * see (WCAG 4.1.3).
+   */
+  private _announcement = '';
+  /**
+   * The row or track (`rowId` or `${rowId}-${trackId}`) most recently moved,
+   * briefly highlighted so the user can see where it landed. A row can travel
+   * far enough in one press to be easy to lose, and the live-region
+   * announcement only helps people who hear it.
+   */
+  private _movedKey: string | null = null;
+  /** Timer clearing `_movedKey`; re-armed on each move. */
+  private _movedTimer?: ReturnType<typeof setTimeout>;
+  /**
+   * Opt out of layout persistence. When present as the `no-persist-layout`
+   * attribute, a customized layout is neither restored on mount nor saved
+   * (localStorage + the `?layout=` URL are both left untouched), so an
+   * embedder that manages layout itself is unaffected.
+   */
+  private noPersistLayout?: boolean;
   private nostructure: boolean;
   /**
    * Opt out of the built-in click tooltip. Consumers rendering a React overlay typically set this.
@@ -287,6 +381,15 @@ class ProtvistaUniprot extends LitElement {
   private _anyVisibleError = false;
 
   /**
+   * Plain-text labels, keyed by `accession\nsource`. `_labelText` is called
+   * per row and per track on every customize-mode render (and on the moved-key
+   * clear timer), and the derived text is stable for a given label + protein,
+   * so it is parsed once rather than on every frame. Cleared on every full
+   * (re)load (`_loadData`) so it can't accumulate across proteins.
+   */
+  private _labelTextCache: Map<string, string> = new Map();
+
+  /**
    * Per-instance nonce for DOM ids. The component renders in light DOM,
    * so badge `aria-describedby` ids must be unique across multiple
    * `<protvista-uniprot>` elements on one page (two with the same
@@ -325,10 +428,12 @@ class ProtvistaUniprot extends LitElement {
     super();
     registerBuiltinComponents(this.registry);
     this.openGroups = [];
+    this._customizeMode = false;
+    this.noPersistLayout = false;
     this.nostructure = false;
     this.hasData = false;
     this.loading = true;
-    this.data = {};
+    this.data = Object.create(null);
     this.rawData = {};
     this.displayCoordinates = {};
     this.addStyles();
@@ -363,6 +468,218 @@ class ProtvistaUniprot extends LitElement {
     this.registry.registerComponent(name, ctor);
   }
 
+  // ── Runtime layout API (ProtvistaRuntimeAPI) ────────────────
+  // Drive row order + visibility from consumer code. Each mutation rewrites
+  // `config.rows` — the config is what renders, so `getConfig()` exports
+  // exactly what the user arranged — and dispatches a bubbling
+  // `protvista-layout-change` event carrying the compact `LayoutPatch` diff,
+  // so an embedder can save/restore without handling a whole config.
+  //
+  // Movement is two-level: rows among rows, tracks within their own row. The
+  // pure transforms live in `./layout`; this layer only decides what changed
+  // and commits it.
+
+  /**
+   * Reorder the rows by id. Ids not in the config are ignored; rows the list
+   * omits keep their authored position, appended after — so a saved order
+   * survives config edits.
+   */
+  setRowOrder(order: string[]): void {
+    const rows = this.config?.rows;
+    if (!rows) return;
+    // Replay the id list as successive moves rather than a bulk reorder, so
+    // this shares `moveRow`'s tolerance for unknown/omitted ids.
+    let next = rows;
+    let at = 0;
+    for (const id of order) {
+      if (next.some((r) => r.id === id)) next = moveRow(next, id, at++);
+    }
+    this._commitRows(next);
+  }
+
+  /** Reorder the tracks within one row by id. */
+  setTrackOrder(rowId: string, order: string[]): void {
+    const row = this.config?.rows.find((r) => r.id === rowId);
+    if (!row) return;
+    let next = this.config!.rows;
+    let at = 0;
+    for (const id of order) {
+      if (row.tracks.some((t) => t.id === id)) {
+        next = moveTrack(next, rowId, id, at++);
+      }
+    }
+    this._commitRows(next);
+  }
+
+  /**
+   * Show or hide a whole lane (a group or a standalone track) by row id.
+   * Showing a group also reveals any per-track hides within it, so "show
+   * group" fully reveals a group whose tracks were hidden individually.
+   */
+  setRowVisibility(rowId: string, visible: boolean): void {
+    if (!this.config) return;
+    this._commitRows(setRowHidden(this.config.rows, rowId, !visible));
+  }
+
+  /** Show or hide an individual track within a group. */
+  setTrackVisibility(groupId: string, trackId: string, visible: boolean): void {
+    if (!this.config) return;
+    this._commitRows(
+      setTrackHidden(this.config.rows, groupId, trackId, !visible)
+    );
+  }
+
+  /**
+   * Restore the authored config: drop every reorder and show/hide so the view
+   * returns to its initial mount.
+   */
+  resetLayout(): void {
+    const base = this._baseline();
+    if (base) this._commitRows(base);
+  }
+
+  /**
+   * A copy of the current layout patch — the diff from the authored config,
+   * safe to keep or serialize; the `protvista-layout-change` event carries
+   * the same shape. `order` is `null` when no row reorder has been applied.
+   */
+  getLayout(): LayoutPatch {
+    const base = this._baseline();
+    if (!base || !this.config) return emptyPatch();
+    return diffLayout(base, this.config.rows);
+  }
+
+  /**
+   * The authored rows to diff against and reset to.
+   *
+   * `_applyConfig` sets this when it loads a config, but the `config`
+   * property is public and assignable — a consumer or test that sets it
+   * directly would otherwise have no baseline at all. Seeding on first use
+   * covers that: the first read always happens before any edit, since every
+   * edit goes through `_commitRows`, which reads it first.
+   */
+  private _baseline(): NormalizedRow[] | undefined {
+    if (!this._baseRows && this.config) this._baseRows = this.config.rows;
+    return this._baseRows;
+  }
+
+  /**
+   * The viewer's current configuration in authored form, including whatever
+   * the user rearranged — suitable for saving, sharing, or handing back to
+   * `setConfig()`. `undefined` before the config has loaded.
+   */
+  getConfig(): ProtvistaViewerConfig | undefined {
+    if (!this._authoredConfig || !this.config) return undefined;
+    return applyLayoutToConfig(this._authoredConfig, this.config.rows);
+  }
+
+  /**
+   * Single mutation point for the row arrangement: swap `config` immutably
+   * (Lit dirty-checks by identity, and the `updated()` gate turns that into a
+   * data re-push) and announce the new patch. Every layout change — API or UI
+   * control — routes through here, so the event fires exactly once per change
+   * and never for a no-op.
+   */
+  private _commitRows(rows: NormalizedRow[]): void {
+    // Capture the baseline before the first edit lands (see `_baseline`).
+    this._baseline();
+    if (!this.config || rows === this.config.rows) return;
+    if (sameArrangement(this.config.rows, rows)) return;
+    this.config = { ...this.config, rows };
+    this.dispatchEvent(
+      new CustomEvent('protvista-layout-change', {
+        detail: this.getLayout(),
+        bubbles: true,
+      })
+    );
+    this._persistLayout();
+  }
+
+  // ── Layout persistence (localStorage + ?layout= URL) ────────
+  // A customized layout survives reload (localStorage, keyed per-config) and
+  // is shareable by link (the `?layout=` URL). Restore precedence on mount
+  // is URL > localStorage > authored default. The `no-persist-layout`
+  // attribute opts out of both, read and write.
+  //
+  // What is stored is the compact `LayoutPatch` diff, not the config itself:
+  // the user's edits genuinely live in the config, but a whole config would
+  // be far too large for a URL. `_restoreLayout` replays the patch onto the
+  // authored rows before the first render.
+
+  /**
+   * Storage key for the current config, or `null` if unavailable. Derived
+   * from the *authored* rows, not the arranged ones, so a user's own reorder
+   * never moves their layout to a different key mid-session.
+   */
+  private _layoutStorageKey(): string | null {
+    if (!this._baseRows) return null;
+    return storageKey(configIdentity(this._baseRows));
+  }
+
+  /** Read the `?layout=` token from the current URL (browser only). */
+  private _readUrlLayout(): string | null {
+    if (typeof window === 'undefined' || !window.location) return null;
+    return new URLSearchParams(window.location.search).get(LAYOUT_PARAM);
+  }
+
+  /**
+   * Replay a saved / shared patch onto `config.rows`, honouring the
+   * URL > localStorage > default precedence. Assigns `config` directly (not
+   * via `_commitRows`) so restoring neither re-persists nor fires a change
+   * event. A no-op when persistence is opted out or nothing was saved.
+   */
+  private _restoreLayout(): void {
+    if (this.noPersistLayout || !this.config || !this._baseRows) return;
+    const patch = this._readStoredPatch();
+    if (!patch || isDefaultLayout(patch)) return;
+    this.config = { ...this.config, rows: applyPatch(this._baseRows, patch) };
+  }
+
+  /** The saved patch, URL first, or `null` if there is none to replay. */
+  private _readStoredPatch(): LayoutPatch | null {
+    const fromUrl = decodeLayout(this._readUrlLayout());
+    if (fromUrl) return fromUrl;
+    const key = this._layoutStorageKey();
+    if (!key) return null;
+    try {
+      return decodeLayout(window.localStorage.getItem(key));
+    } catch {
+      // localStorage can throw (privacy mode, disabled). Ignore — the
+      // authored default stands.
+      return null;
+    }
+  }
+
+  /**
+   * Persist the current patch to localStorage and mirror it into the
+   * `?layout=` URL so the view is copy-shareable. A default (unedited)
+   * layout clears both, so "reset to default" leaves no trace. A no-op when
+   * opted out.
+   */
+  private _persistLayout(): void {
+    if (this.noPersistLayout) return;
+    const key = this._layoutStorageKey();
+    if (!key) return;
+    const patch = this.getLayout();
+    const token = isDefaultLayout(patch) ? null : encodeLayout(patch);
+
+    try {
+      if (token === null) window.localStorage.removeItem(key);
+      else window.localStorage.setItem(key, token);
+    } catch {
+      // Ignore storage failures (privacy mode / quota); the URL still
+      // reflects the view for sharing.
+    }
+
+    if (typeof window === 'undefined' || !window.history || !window.location) {
+      return;
+    }
+    const url = new URL(window.location.href);
+    if (token === null) url.searchParams.delete(LAYOUT_PARAM);
+    else url.searchParams.set(LAYOUT_PARAM, token);
+    window.history.replaceState(window.history.state, '', url);
+  }
+
   static get properties() {
     return {
       suspend: { type: Boolean, reflect: true },
@@ -370,6 +687,14 @@ class ProtvistaUniprot extends LitElement {
       sequence: { type: String },
       data: { type: Object },
       openGroups: { type: Array },
+      _customizeMode: { state: true },
+      _announcement: { state: true },
+      _movedKey: { state: true },
+      noPersistLayout: {
+        type: Boolean,
+        reflect: true,
+        attribute: 'no-persist-layout',
+      },
       config: { type: Object },
       viewerConfig: { type: Object },
       // HTML attribute form is kebab-case: `config-src="./my-config.yaml"`.
@@ -392,6 +717,7 @@ class ProtvistaUniprot extends LitElement {
     injectStyleOnce('loader', loaderStyles.toString());
     injectStyleOnce('viewer', protvistaStyles.toString());
     injectStyleOnce('error', errorStyles.toString());
+    injectStyleOnce('config-panel', configPanelStyles.toString());
   }
 
   /**
@@ -478,6 +804,11 @@ class ProtvistaUniprot extends LitElement {
       this.requestUpdate();
       return;
     }
+
+    // A full (re)load means a new protein or config, so the plain-text label
+    // cache (keyed by accession+source) is stale — drop it, bounding growth to
+    // the current view. A targeted retry (`only`) leaves labels unchanged.
+    if (!only) this._labelTextCache.clear();
 
     // Abort and forget every in-flight batch this call supersedes: one
     // whose key-set intersects ours (a full load — no `only` — intersects
@@ -606,7 +937,15 @@ class ProtvistaUniprot extends LitElement {
     // re-renders without needing a manual `requestUpdate()` at the
     // bottom of this method (the other two lines above still aren't
     // tracked properties, so we keep the call).
-    const merged: Record<string, unknown> = { ...this.data, ...data };
+    // Null-prototype so a bare-id aggregate lookup (`this.data[group.id]`)
+    // can't resolve to an inherited `Object.prototype` member for a group
+    // literally named `constructor`/`toString`/… — the same guarantee the
+    // layout patch maps get. Access is only ever bracket/`Object.entries`.
+    const merged: Record<string, unknown> = Object.assign(
+      Object.create(null),
+      this.data,
+      data
+    );
     // Drop stale per-track entries for tracks this batch (re)loaded but
     // the loader intentionally produced no data for — a failed fetch, or
     // an adapter that early-returns on an empty payload (e.g. variation).
@@ -885,11 +1224,24 @@ class ProtvistaUniprot extends LitElement {
     // populated on this same tick. `data` / `config` / `sequence`
     // cover the load-pipeline re-flow. Unrelated reactive churn
     // (`displayCoordinates`, `viewerConfig`, …) short-circuits.
+    //
+    // A layout edit swaps `config` (it rewrites `config.rows`), so it is
+    // already covered: a reorder moves Nightingale DOM nodes via the keyed
+    // `repeat` and a show re-mounts a previously-hidden row, and both need
+    // their payload (re-)pushed on the same tick, exactly like an
+    // `openGroups` expand.
+    //
+    // `_customizeMode` is in the gate for the same reason as `openGroups`:
+    // the mode wraps each row in a different template (controls, a drop gap,
+    // stubs for rows that would otherwise not render), so Lit tears down and
+    // rebuilds the row subtrees — including the Nightingale elements, which
+    // come back empty unless their payload is pushed again on this tick.
     if (
       changedProperties.has('data') ||
       changedProperties.has('config') ||
       changedProperties.has('sequence') ||
-      changedProperties.has('openGroups')
+      changedProperties.has('openGroups') ||
+      changedProperties.has('_customizeMode')
     ) {
       this._loadDataInComponents();
     }
@@ -916,26 +1268,7 @@ class ProtvistaUniprot extends LitElement {
   async _init() {
     if (!this.config) {
       try {
-        const normalized = await this.resolveViewerConfig();
-        // Accession precedence: HTML attribute wins, so only backfill
-        // from the config when the author left the attribute blank.
-        if (!this.accession && normalized.accession) {
-          this.accession = normalized.accession;
-        }
-        this.config = normalized;
-        this.applyTheme(normalized.theme);
-        // Define the components this config references (built-in or
-        // consumer-registered) now that the resolved set is known. Runs
-        // once per fresh config; re-inits (accession change / retry)
-        // re-enter with `config` already set and skip this block —
-        // `loadComponent` would no-op anyway.
-        this.registerConfigComponents(normalized);
-        // A now-valid config clears a stale config-error panel from a
-        // previous attempt.
-        if (this._mountError?.phase === 'config') {
-          this._mountError = null;
-          this.requestUpdate();
-        }
+        this._applyConfig(await this.resolveViewerConfig());
       } catch (err) {
         // Validation / parse errors are surfaced on the console so
         // authors see the full `ConfigValidationError.issues[]` list
@@ -1022,6 +1355,68 @@ class ProtvistaUniprot extends LitElement {
   }
 
   /**
+   * Adopt a freshly-loaded config: install it, replay any saved layout onto
+   * it, apply the theme, and define the components it references.
+   *
+   * Split out of `_init()` because it must be re-runnable — `setConfig()`
+   * replaces the config on a live element, and `_init()`'s `if (!this.config)`
+   * guard would otherwise skip every one of these steps.
+   */
+  private _applyConfig(loaded: LoadedConfig): void {
+    const normalized = loaded.config;
+    // Accession precedence: HTML attribute wins, so only backfill
+    // from the config when the author left the attribute blank.
+    if (!this.accession && normalized.accession) {
+      this.accession = normalized.accession;
+    }
+    this._authoredConfig = loaded.authored;
+    // The pristine rows, kept before any layout edit: the baseline "reset to
+    // default" restores and the patch diff is measured against.
+    this._baseRows = normalized.rows;
+    this.config = normalized;
+    // Restore a previously-saved / shared layout now that the config (and
+    // thus its identity) is known. Runs before data loads, so the customized
+    // order/visibility is in place for the first render.
+    this._restoreLayout();
+    this.applyTheme(normalized.theme);
+    // Define the components this config references (built-in or
+    // consumer-registered) now that the resolved set is known.
+    // `loadComponent` no-ops for anything already defined, so re-entering
+    // with a new config only pays for what it adds.
+    this.registerConfigComponents(normalized);
+    // A now-valid config clears a stale config-error panel from a
+    // previous attempt.
+    if (this._mountError?.phase === 'config') {
+      this._mountError = null;
+      this.requestUpdate();
+    }
+  }
+
+  /**
+   * Replace the entire viewer configuration at runtime (`ProtvistaRuntimeAPI`).
+   * Re-registers components, re-applies the theme, and re-loads data. Accepts
+   * the same three input forms as the `viewerConfig` property (object, JSON
+   * string, YAML string) — including a config previously exported by
+   * `getConfig()`, which is how an arranged view round-trips.
+   *
+   * A config failure is reported through the same path as a mount-time one,
+   * so a bad `setConfig()` surfaces in the error panel rather than silently
+   * leaving the old view in place.
+   */
+  async setConfig(config: ProtvistaViewerConfig | string): Promise<void> {
+    this.viewerConfig = config;
+    // Drop the current config so `_init` re-resolves rather than
+    // short-circuiting, and so a failure can't leave a half-swapped state.
+    this.config = undefined;
+    this._baseRows = undefined;
+    this._authoredConfig = undefined;
+    this.data = Object.create(null);
+    this.rawData = {};
+    this.loading = true;
+    await this._init();
+  }
+
+  /**
    * Resolve the config input in the documented precedence order and
    * drive it through `loadConfig()`. Isolated from `_init()` so
    * tests can exercise the branching without having to mount a
@@ -1033,10 +1428,10 @@ class ProtvistaUniprot extends LitElement {
    * `{accession}` placeholders. `loadConfig` will ignore this when
    * the config already declares its own accession.
    */
-  private async resolveViewerConfig(): Promise<NormalizedConfig> {
+  private async resolveViewerConfig(): Promise<LoadedConfig> {
     const loadOpts = { accession: this.accession, registry: this.registry };
     if (this.viewerConfig !== undefined) {
-      return loadConfig(this.viewerConfig, loadOpts);
+      return loadConfigWithSource(this.viewerConfig, loadOpts);
     }
     if (this.configSrc) {
       // Intentionally let a bad URL / non-OK response propagate —
@@ -1049,9 +1444,9 @@ class ProtvistaUniprot extends LitElement {
         );
       }
       const text = await response.text();
-      return loadConfig(text, loadOpts);
+      return loadConfigWithSource(text, loadOpts);
     }
-    return loadConfig(defaultConfigYaml, loadOpts);
+    return loadConfigWithSource(defaultConfigYaml, loadOpts);
   }
 
   /**
@@ -1466,9 +1861,11 @@ class ProtvistaUniprot extends LitElement {
     this._tooltipController = installClickTooltip(this, {
       enabled: () => !this.notooltip,
     });
+
   }
 
   disconnectedCallback() {
+    clearTimeout(this._movedTimer);
     this._tooltipController?.dispose();
     this._tooltipController = undefined;
     // Cancel every still-running fetch batch so the detached element
@@ -1534,7 +1931,11 @@ class ProtvistaUniprot extends LitElement {
    * for parity with the grouped path (so the `.${CSS_PREFIX}-group` /
    * `-track-label` / `-track-content` rules apply here too).
    */
-  renderStandaloneTrack(group: NormalizedConfig['rows'][number]) {
+  renderStandaloneTrack(
+    group: NormalizedConfig['rows'][number],
+    index = 0,
+    total = 1
+  ) {
     const track = group.tracks[0];
     const trackData = track && this.data[`${group.id}-${track.id}`];
     if (!track || !hasRenderableData(trackData)) {
@@ -1543,16 +1944,20 @@ class ProtvistaUniprot extends LitElement {
     const attrs = renderingToAttrs(track.rendering);
     return html`
       <div
-        class="${CSS_PREFIX}-group ${CSS_PREFIX}-group--standalone"
+        class="${CSS_PREFIX}-group ${CSS_PREFIX}-group--standalone ${this._ghostClass(
+          isRowHidden(group)
+        )} ${this._movedClass(group.id)}"
         id="${CSS_PREFIX}-group_${group.id}"
       >
         <div
           class="${CSS_PREFIX}-track-label"
           title="${track.description ?? ''}"
         >
-          ${(track.filterUI === 'nightingale-filter' &&
-            this.getFilterComponent(`${group.id}-${track.id}`)) ||
-          unsafeHTML(renderLabel(track.label, this.accession))}
+          <span class="${CSS_PREFIX}-label-text"
+            >${(track.filterUI === 'nightingale-filter' &&
+              this.getFilterComponent(`${group.id}-${track.id}`)) ||
+            unsafeHTML(renderLabel(track.label, this.accession))}</span
+          >${this._renderRowControls(group, index, total)}
         </div>
         <div
           class="${CSS_PREFIX}-track-content ${track.component ===
@@ -1573,6 +1978,782 @@ class ProtvistaUniprot extends LitElement {
         </div>
       </div>
     `;
+  }
+
+  // ── Row rendering ───────────────────────────────────────────
+  // The canvas renders `config.rows` directly: a layout edit rewrote them, so
+  // there is no overlay to apply here. Data loading + aggregate computation
+  // stay on the full row set, so a hidden track's data is still fetched and
+  // revealing it is instant.
+
+  /**
+   * The rows to render, top to bottom.
+   *
+   * Normally that is the visible rows with their visible tracks. Customize
+   * mode instead renders *every* row and track, hidden ones included, because
+   * a row absent from the canvas would have no control to bring it back —
+   * they render as stubs (see `_renderRowStub`).
+   */
+  private _rowsToRender(): DisplayRow[] {
+    const rows = this.config?.rows ?? [];
+    return this._customizeMode
+      ? rows.map((row) => ({ row, tracks: row.tracks }))
+      : displayRows(rows).filter((d) => this._rowRendersContent(d.row, d.tracks));
+  }
+
+  /**
+   * Whether a row draws anything on the canvas: a standalone track with data,
+   * or a group with a renderable *visible* track (or a visible fetch error).
+   *
+   * A group is judged by its *visible* `tracks` — the same slice
+   * `_renderGroupBlock` renders from — NOT by the group aggregate
+   * (`this.data[groupId]`). The aggregate is computed once from *every* track
+   * at load and is never recomputed when a track is hidden, so counting it
+   * would keep a group whose only data lives in a now-hidden track on screen as
+   * an empty lane. Judging by visible tracks means hiding the last track that
+   * actually draws also hides the group.
+   *
+   * Dropping these rows from the *normal-mode* list — rather than leaving them
+   * in the keyed `repeat` rendering to `''` — is what keeps a dataless group
+   * from lingering. Customize mode renders every row (as a stub, with hidden
+   * tracks ghosted), so the row's `repeat` key appears on entering the mode and
+   * must disappear on leaving it; an entry that instead flips between a stub and
+   * `''` on a *stable* key can leave its stub node behind. Hidden rows already
+   * work this way — this gives empty rows the same clean add-then-remove
+   * lifecycle.
+   */
+  private _rowRendersContent(
+    row: NormalizedRow,
+    tracks: NormalizedTrack[]
+  ): boolean {
+    if (row.standalone) {
+      const track = row.tracks[0];
+      return !!track && hasRenderableData(this.data[trackKey(row.id, track.id)]);
+    }
+    if (this._visibleGroupErrors.has(row.id)) return true;
+    return tracks.some((t) => {
+      const key = trackKey(row.id, t.id);
+      return hasRenderableData(this.data[key]) || this._trackErrors.has(key);
+    });
+  }
+
+  /** Render one row onto the canvas, with its customize-mode controls. */
+  private _renderRow(display: DisplayRow, index: number, total: number) {
+    const { row, tracks } = display;
+    if (!this._customizeMode) {
+      return row.standalone
+        ? this.renderStandaloneTrack(row, index, total)
+        : this._renderGroupBlock(row, tracks, index, total);
+    }
+    // A hidden row renders its real content, ghosted (see `-row--ghost`), so
+    // the user can see what pressing Show would bring back. It falls through
+    // to a stub only when there is genuinely nothing to draw.
+    const body = row.standalone
+      ? this.renderStandaloneTrack(row, index, total)
+      : this._renderGroupBlock(row, tracks, index, total);
+    return body || this._renderRowStub(row, index, total);
+  }
+
+  /**
+   * A group row: a collapsible header + aggregate summary, then its tracks
+   * when expanded.
+   */
+  private _renderGroupBlock(
+    group: NormalizedRow,
+    tracks: NormalizedTrack[],
+    index: number,
+    total: number
+  ) {
+    const groupHasData = hasRenderableData(this.data[group.id]);
+    const groupHasError = this._visibleGroupErrors.has(group.id);
+    const anyTrackRenderable = tracks.some((t) => {
+      const key = trackKey(group.id, t.id);
+      return hasRenderableData(this.data[key]) || this._trackErrors.has(key);
+    });
+    if (!anyTrackRenderable && !groupHasData && !groupHasError) {
+      return '';
+    }
+
+    // Collapsed with an error but no aggregate: header + badge only
+    // (mirrors the previous group-error row).
+    if (
+      !this.openGroups.includes(group.id) &&
+      !groupHasData &&
+      groupHasError
+    ) {
+      return this.renderGroupErrorRow(group);
+    }
+
+    const groupAttrs = renderingToAttrs(group.rendering);
+    const expanded = this.openGroups.includes(group.id);
+    return html`
+      <div
+        class="${CSS_PREFIX}-group ${this._ghostClass(
+          isRowHidden(group)
+        )} ${this._movedClass(group.id)}"
+        id="${CSS_PREFIX}-group_${group.id}"
+      >
+        ${this._customizeMode
+          ? // While customizing, the label cell holds real buttons, so it
+            // cannot itself be one — nesting interactive controls is an axe
+            // violation and leaves the inner buttons unreachable to some
+            // assistive tech. Collapse/expand moves into the control cluster
+            // as its own button, which is a better affordance anyway.
+            html`<div
+              class="${CSS_PREFIX}-group-label"
+              title="${group.description ?? ''}"
+            >
+              ${this._collapseButton(
+                group,
+                this._labelText(group.label),
+                expanded
+              )}<span class="${CSS_PREFIX}-label-text"
+                >${unsafeHTML(renderLabel(group.label, this.accession))}</span
+              >${this._renderGroupBadge(group.id)}${this._renderRowControls(
+                group,
+                index,
+                total
+              )}
+            </div>`
+          : html`<div
+              class="${CSS_PREFIX}-group-label${expanded ? ' open' : ''}"
+              data-group-toggle="${group.id}"
+              role="button"
+              tabindex="0"
+              aria-expanded="${expanded}"
+              title="${group.description ?? ''}"
+              @click="${this.handleGroupClick}"
+              @keydown="${this.handleGroupKeydown}"
+            >
+              <span class="${CSS_PREFIX}-label-text"
+                >${unsafeHTML(renderLabel(group.label, this.accession))}</span
+              >${this._renderGroupBadge(group.id)}
+            </div>`}
+        <div
+          data-id="${CSS_PREFIX}-group_${group.id}"
+          class="${CSS_PREFIX}-aggregate-track-content ${CSS_PREFIX}-track-content ${group.component ===
+          'nightingale-colored-sequence'
+            ? `${CSS_PREFIX}-track-content__coloured-sequence`
+            : ''}"
+          .style="${expanded ? 'opacity:0' : 'opacity:1'}"
+        >
+          ${groupHasData
+            ? this.getTrack(
+                group.component,
+                'non-overlapping',
+                groupAttrs.color,
+                groupAttrs.shape,
+                group.id,
+                groupAttrs.scale,
+                groupAttrs.colorRange
+              )
+            : ''}
+        </div>
+      </div>
+      ${expanded
+        ? html`${repeat(
+            tracks,
+            (t) => t.id,
+            (t, i) => this._renderExpandedTrack(group, t, i, tracks.length)
+          )}`
+        : ''}
+    `;
+  }
+
+  /**
+   * Shown when the user has hidden everything. Without it the viewer would
+   * look broken — an empty frame with no hint that the tracks are one click
+   * from coming back.
+   */
+  private _renderAllHiddenNotice() {
+    return html`
+      <div class="${CSS_PREFIX}-all-hidden" role="status">
+        <p>All tracks are hidden.</p>
+        <button
+          type="button"
+          class="${CSS_PREFIX}-customize-action"
+          @click="${this._onResetLayout}"
+        >
+          Reset layout
+        </button>
+      </div>
+    `;
+  }
+
+  /**
+   * A single track row inside a group (`.group__track`, visible by default).
+   * Outside customize mode this is byte-identical to the pre-customize
+   * markup, so the default view is unchanged.
+   */
+  private _renderExpandedTrack(
+    group: NormalizedRow,
+    track: NormalizedTrack,
+    index: number,
+    total: number
+  ) {
+    const key = trackKey(group.id, track.id);
+    const trackHasData = hasRenderableData(this.data[key]);
+    const trackHasError = this._trackErrors.has(key);
+    // A track with neither data nor a (broken) error renders nothing — this
+    // is also the 4xx "missing" path. In customize mode it still needs a
+    // control to move it, so it falls through to a stub instead of vanishing.
+    // A *hidden* track does not: it keeps its canvas, ghosted, so the user
+    // can see what they would be restoring.
+    if (!trackHasData && !trackHasError) {
+      return this._customizeMode
+        ? this._renderTrackStub(group, track, index, total)
+        : '';
+    }
+    const attrs = renderingToAttrs(track.rendering);
+    return html`
+      <div
+        class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-track--nested ${this._ghostClass(
+          !!track.hidden || !!group.hidden
+        )} ${this._movedClass(trackKey(group.id, track.id))}"
+        id="${CSS_PREFIX}-track_${track.id}"
+      >
+        <div class="${CSS_PREFIX}-track-label" title="${track.description ?? ''}">
+          <span class="${CSS_PREFIX}-label-text"
+            >${(track.filterUI === 'nightingale-filter' &&
+              this.getFilterComponent(key)) ||
+            unsafeHTML(renderLabel(track.label, this.accession))}</span
+          >${this._renderTrackBadge(key)}${this._renderTrackControls(
+            group,
+            track,
+            index,
+            total
+          )}
+        </div>
+        ${trackHasData
+          ? html`<div
+              class="${CSS_PREFIX}-track-content ${group.component ===
+              'nightingale-colored-sequence'
+                ? `${CSS_PREFIX}-track-content__coloured-sequence`
+                : ''}"
+              data-id="${CSS_PREFIX}-track_${track.id}"
+            >
+              ${this.getTrack(
+                track.component,
+                'non-overlapping',
+                attrs.color,
+                attrs.shape,
+                key,
+                attrs.scale,
+                attrs.colorRange
+              )}
+            </div>`
+          : ''}
+      </div>
+    `;
+  }
+
+  // ── Customize-mode stubs ────────────────────────────────────
+  // Two kinds of row are invisible on the canvas: ones the user hid, and ones
+  // whose data never arrived. Both must stay reachable in customize mode —
+  // otherwise hiding a row would be a one-way door. A stub is the label cell
+  // and its controls with an empty content cell: enough to show what it is
+  // and to move or restore it, without pretending there is data to draw.
+
+  /** A whole row reduced to its label and controls. */
+  private _renderRowStub(row: NormalizedRow, index: number, total: number) {
+    // Groups keep a collapse control even when they have no data — expanding
+    // lists the tracks the group *could* hold, each as its own stub, so the
+    // arrow does something and the user can see (and manage) what is missing.
+    // Standalone rows have no inside, so they get no collapse control.
+    const collapsible = !row.standalone;
+    const expanded = this.openGroups.includes(row.id);
+    return html`
+      <div
+        class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-row--stub ${CSS_PREFIX}-row--hidden ${this._movedClass(
+          row.id
+        )}"
+        id="${CSS_PREFIX}-group_${row.id}"
+      >
+        <div class="${CSS_PREFIX}-track-label" title="${row.description ?? ''}">
+          ${collapsible
+            ? this._collapseButton(row, this._labelText(row.label), expanded)
+            : ''}<span class="${CSS_PREFIX}-label-text"
+            >${unsafeHTML(renderLabel(row.label, this.accession))}</span
+          >${this._renderRowControls(row, index, total)}
+        </div>
+        <div class="${CSS_PREFIX}-track-content"></div>
+      </div>
+      ${collapsible && expanded
+        ? html`${repeat(
+            row.tracks,
+            (t) => t.id,
+            (t, i) => this._renderTrackStub(row, t, i, row.tracks.length)
+          )}`
+        : ''}
+    `;
+  }
+
+  /** One track inside a group reduced to its label and controls. */
+  private _renderTrackStub(
+    group: NormalizedRow,
+    track: NormalizedTrack,
+    index: number,
+    total: number
+  ) {
+    return html`
+      <div
+        class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-track--nested ${CSS_PREFIX}-row--stub ${CSS_PREFIX}-row--hidden ${this._movedClass(
+          trackKey(group.id, track.id)
+        )}"
+        id="${CSS_PREFIX}-track_${track.id}"
+      >
+        <div class="${CSS_PREFIX}-track-label" title="${track.description ?? ''}">
+          <span class="${CSS_PREFIX}-label-text"
+            >${unsafeHTML(renderLabel(track.label, this.accession))}</span
+          >${this._renderTrackControls(group, track, index, total)}
+        </div>
+        <div class="${CSS_PREFIX}-track-content"></div>
+      </div>
+    `;
+  }
+
+  /** Plain-text label (Markdoc → text), for `aria-label`s and announcements. */
+  private _labelText(source: string): string {
+    const key = `${this.accession}\n${source}`;
+    const cached = this._labelTextCache.get(key);
+    if (cached !== undefined) return cached;
+    const html = renderLabel(source, this.accession);
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const text = (doc.body.textContent || '').trim() || source;
+    this._labelTextCache.set(key, text);
+    return text;
+  }
+
+  // ── "Customize layout" mode ─────────────────────────────────
+  // Editing happens on the rows themselves: a toggle in the label column
+  // turns every row's label cell into a control cluster (hide/show, move
+  // up/down, drag grip). Nothing overlays or displaces the visualization, so
+  // the user watches the actual tracks reflow as they arrange them.
+  //
+  // These controls only exist in customize mode. Always-on affordances would
+  // compete with Nightingale's own hover / click-highlight / ctrl-scroll
+  // interactions for the same pointer gestures; a mode keeps "operate the
+  // data" and "arrange the layout" apart, and gives assistive tech a single
+  // announceable state change instead of a scatter of permanent controls.
+
+  private _toggleCustomizeMode = () => {
+    this._customizeMode = !this._customizeMode;
+    this._movedKey = null;
+    this._announcement = this._customizeMode
+      ? 'Customize layout on. Use the controls on each row to reorder, show, or hide it.'
+      : 'Customize layout off.';
+  };
+
+  /**
+   * The Customize button and hidden-count badge. Rendered into the empty
+   * label-column cell beside the navigation rather than a toolbar above the
+   * viewer, so opening customize mode never shifts the visualization — and so
+   * the button sits in the same column as the per-row controls it turns on.
+   */
+  private _renderCustomizeToggle() {
+    // Counted per track, and excluding tracks that have nothing to draw —
+    // those are missing because no data arrived, not because anyone hid them.
+    const hidden = hiddenCount(this.config?.rows ?? [], (rowId, trackId) =>
+      this._trackIsEmpty(rowId, trackId)
+    );
+    return html`
+      <button
+        type="button"
+        class="${CSS_PREFIX}-customize-toggle"
+        aria-pressed="${this._customizeMode}"
+        @click="${this._toggleCustomizeMode}"
+      >
+        <span class="${CSS_PREFIX}-customize-toggle__icon" aria-hidden="true"
+          >${svg`${unsafeHTML(inlineSvg(slidersIcon))}`}</span
+        >
+        Customize
+      </button>
+      ${hidden > 0 ? this._renderHiddenCount(hidden) : ''}
+    `;
+  }
+
+  /**
+   * The "N hidden" badge. A button, not a label: it explains how to get the
+   * tracks back, and a plain `<span title>` would put that explanation out of
+   * reach of anyone not using a mouse. Pressing it opens customize mode,
+   * which is where the Show controls are.
+   */
+  private _renderHiddenCount(hidden: number) {
+    const noun = hidden === 1 ? 'track' : 'tracks';
+    const label = `${hidden} ${noun} hidden`;
+    const hint = `${label}. Open Customize and switch a row back on to restore it.`;
+    return html`
+      <button
+        type="button"
+        class="${CSS_PREFIX}-hidden-count"
+        title="${hint}"
+        aria-label="${hint}"
+        @click="${this._onHiddenCountClick}"
+      >
+        ${label}
+      </button>
+    `;
+  }
+
+  /**
+   * Pressing the "N hidden" badge: enter customize mode and open every group
+   * holding a hidden track.
+   *
+   * Entering the mode alone is not enough. A hidden group collapses to one
+   * stub and a collapsed visible group hides its tracks behind the caret, so
+   * the tracks the badge just counted could still be nowhere on screen. This
+   * opens exactly the groups those tracks are in, so the badge lands the user
+   * on the controls that undo the hide.
+   */
+  private _onHiddenCountClick = () => {
+    // Idempotent — the badge must never toggle the mode back off.
+    if (!this._customizeMode) this._toggleCustomizeMode();
+
+    const toOpen = this._rowsHoldingHiddenTracks();
+    const added = toOpen.filter((id) => !this.openGroups.includes(id));
+    if (added.length > 0) this.openGroups = [...this.openGroups, ...added];
+
+    this._announce(
+      added.length > 0
+        ? `Opened ${added.length} group${added.length === 1 ? '' : 's'} containing hidden tracks.`
+        : 'Hidden tracks are listed below.'
+    );
+  };
+
+  /**
+   * Ids of the groups holding at least one hidden track — the same tracks the
+   * badge counts, so empty ones are excluded here too.
+   */
+  private _rowsHoldingHiddenTracks(): string[] {
+    return (this.config?.rows ?? [])
+      .filter(
+        (row) =>
+          !row.standalone &&
+          row.tracks.some(
+            (t) =>
+              (row.hidden || t.hidden) && !this._trackIsEmpty(row.id, t.id)
+          )
+      )
+      .map((row) => row.id);
+  }
+
+  /** Reset / Done, shown beside the toggle only while customizing. */
+  private _renderCustomizeActions() {
+    const edited = !isDefaultLayout(this.getLayout());
+    return html`
+      <button
+        type="button"
+        class="${CSS_PREFIX}-customize-action"
+        ?disabled="${!edited}"
+        @click="${this._onResetLayout}"
+      >
+        Reset
+      </button>
+      <button
+        type="button"
+        class="${CSS_PREFIX}-customize-action"
+        @click="${this._onCloseCustomize}"
+      >
+        Done
+      </button>
+    `;
+  }
+
+  /** Leave customize mode and return focus to the toggle that opened it. */
+  private _onCloseCustomize = () => {
+    this._toggleCustomizeMode();
+    void this.updateComplete.then(() => {
+      this.querySelector<HTMLElement>(
+        `.${CSS_PREFIX}-customize-toggle`
+      )?.focus();
+    });
+  };
+
+  private _onResetLayout = () => {
+    this.resetLayout();
+    this._announce('Layout reset to the authored default.');
+  };
+
+  /**
+   * Announce an outcome to screen readers via the polite live region. Every
+   * move and toggle announces, because the visible result of a reorder is far
+   * off in the canvas and a hide removes the very row that had focus (WCAG
+   * 4.1.3 Status Messages).
+   */
+  private _announce(message: string): void {
+    this._announcement = message;
+  }
+
+  // ── Per-row controls ────────────────────────────────────────
+  // Every control is a real <button>, never a bare icon on a <div>. The
+  // show/hide control is a `role="switch"` (see `_toggleButton`): its state is
+  // carried by `aria-checked` and the thumb's position, not by colour alone
+  // (WCAG 1.4.1). The move buttons carry a text/`aria-label` name.
+  //
+  // Reordering is move-up/move-down only — there is no drag. Buttons are the
+  // path that works for keyboard, touch and pointer alike (and the one WCAG
+  // 2.5.7 requires anyway), and the moved row is highlighted afterwards so
+  // the result is easy to find.
+
+  /**
+   * Controls for a whole row: collapse/expand (groups only, see
+   * `_renderGroupBlock`), hide/show, move up/down.
+   */
+  private _renderRowControls(row: NormalizedRow, index: number, total: number) {
+    if (!this._customizeMode) return '';
+    const name = this._labelText(row.label);
+    // "Hidden" for the toggle means the row draws nothing in the real view —
+    // not just that its own `hidden` flag is set. A group whose only
+    // data-bearing track was hidden (the rest empty for this protein) shows
+    // nothing, so its toggle reads off even though `row.hidden` is false;
+    // clicking it then reveals the group (and un-hides that track). This
+    // mirrors `_rowRendersContent`, which drives normal-mode visibility.
+    const hidden =
+      isRowHidden(row) || !this._rowRendersContent(row, visibleTracks(row));
+    // Nothing to draw anywhere in the row *at all* (every track empty, none
+    // merely hidden): showing it would change nothing, so the toggle is
+    // disabled and says why instead of offering a no-op.
+    const empty = row.tracks.every((t) => this._trackIsEmpty(row.id, t.id));
+    return html`
+      <span class="${CSS_PREFIX}-row-controls">
+        ${this._toggleButton(hidden, name, empty, () =>
+          this.setRowVisibility(row.id, hidden)
+        )}
+        ${this._moveButton(-1, name, index, total, (b) =>
+          this._moveRowBy(row, index, -1, b)
+        )}
+        ${this._moveButton(1, name, index, total, (b) =>
+          this._moveRowBy(row, index, 1, b)
+        )}
+      </span>
+    `;
+  }
+
+  /** Controls for one track inside a group. Moves stay within the group. */
+  private _renderTrackControls(
+    group: NormalizedRow,
+    track: NormalizedTrack,
+    index: number,
+    total: number
+  ) {
+    if (!this._customizeMode) return '';
+    const name = this._labelText(track.label);
+    // A track inside a hidden group is not drawn either, whatever its own
+    // flag says, so its control has to offer Show rather than Hide.
+    const hidden = !!track.hidden || !!group.hidden;
+    const empty = this._trackIsEmpty(group.id, track.id);
+    return html`
+      <span class="${CSS_PREFIX}-row-controls">
+        ${this._toggleButton(hidden, name, empty, () =>
+          this.setTrackVisibility(group.id, track.id, hidden)
+        )}
+        ${this._moveButton(-1, name, index, total, (b) =>
+          this._moveTrackBy(group, track, index, -1, b)
+        )}
+        ${this._moveButton(1, name, index, total, (b) =>
+          this._moveTrackBy(group, track, index, 1, b)
+        )}
+      </span>
+    `;
+  }
+
+  /**
+   * Whether a track has nothing to draw — no data arrived and no error to
+   * report. Such a track is absent from the canvas no matter what the user
+   * does, so customize mode shows it but offers no working Show.
+   */
+  private _trackIsEmpty(rowId: string, trackId: string): boolean {
+    const key = trackKey(rowId, trackId);
+    return !hasRenderableData(this.data[key]) && !this._trackErrors.has(key);
+  }
+
+  /**
+   * The group collapse/expand control, as a real button. Outside customize
+   * mode this affordance lives on the group label itself; here it has to be
+   * separate, because the label cell holds the other controls and cannot be
+   * a button around buttons.
+   *
+   * Collapse stays distinct from hide: collapsing swaps a group's tracks for
+   * its aggregate summary, hiding removes the row. One control must never do
+   * both.
+   */
+  private _collapseButton(row: NormalizedRow, name: string, expanded: boolean) {
+    return html`
+      <button
+        type="button"
+        class="${CSS_PREFIX}-row-collapse"
+        data-group-toggle="${row.id}"
+        aria-expanded="${expanded}"
+        aria-label="${expanded ? 'Collapse' : 'Expand'} ${name}"
+        @click="${this.handleGroupClick}"
+      ></button>
+    `;
+  }
+
+  /**
+   * The visibility switch.
+   *
+   * A switch rather than a Hide/Show button because this *is* a state, not an
+   * action: "Hide" on a visible row asked the reader to invert it mentally to
+   * work out the current state. `role="switch"` + `aria-checked` says it
+   * directly, and the thumb's position says it visually — a non-colour
+   * channel, so WCAG 1.4.1 holds without a word beside it. Dropping that word
+   * also returns ~45px of a fixed-width column to the label.
+   *
+   * The accessible name is the *purpose* ("Show Domains"), never the current
+   * state; `aria-checked` carries the state, which is the correct split for a
+   * switch and keeps the name stable as it flips.
+   *
+   * `empty` disables it, off: a track with no data is absent whatever the
+   * switch says, so it must not offer a flip that would do nothing, nor claim
+   * to be on when nothing is drawn. The reason joins the accessible name
+   * rather than sitting only in `title` — dropping the visible word means a
+   * screen-reader user would otherwise have no way to learn it, and a
+   * disabled control is not reachable by Tab to hear a description.
+   */
+  private _toggleButton(
+    hidden: boolean,
+    name: string,
+    empty: boolean,
+    onClick: () => void
+  ) {
+    // Off follows what the reader sees, not the config flag: a dataless track
+    // is not `hidden`, but it is not drawn either.
+    const on = !hidden && !empty;
+    return html`
+      <button
+        type="button"
+        role="switch"
+        class="${CSS_PREFIX}-switch"
+        aria-checked="${on}"
+        aria-label="${empty ? `Show ${name} — no data` : `Show ${name}`}"
+        title="${empty ? 'This protein has no data for this track' : ''}"
+        ?disabled="${empty}"
+        @click="${(e: Event) => {
+          e.stopPropagation();
+          onClick();
+          this._announce(`${name} ${hidden ? 'shown' : 'hidden'}.`);
+        }}"
+      >
+        <span class="${CSS_PREFIX}-switch__thumb" aria-hidden="true"></span>
+      </button>
+    `;
+  }
+
+  /** A move-up (`dir: -1`) or move-down (`dir: 1`) button, disabled at the ends. */
+  private _moveButton(
+    dir: -1 | 1,
+    name: string,
+    index: number,
+    total: number,
+    onClick: (button: HTMLButtonElement) => void
+  ) {
+    const atEnd = dir === -1 ? index === 0 : index === total - 1;
+    return html`
+      <button
+        type="button"
+        class="${CSS_PREFIX}-row-control ${CSS_PREFIX}-row-control--move${dir ===
+        1
+          ? ` ${CSS_PREFIX}-row-control--down`
+          : ''}"
+        aria-label="Move ${name} ${dir === -1 ? 'up' : 'down'}"
+        ?disabled="${atEnd}"
+        @click="${(e: Event) => {
+          e.stopPropagation();
+          onClick(e.currentTarget as HTMLButtonElement);
+        }}"
+      >
+        <span aria-hidden="true">${svg`${unsafeHTML(inlineSvg(chevronUpIcon))}`}</span>
+      </button>
+    `;
+  }
+
+  /** Move a row by one position, highlight it, and announce where it landed. */
+  private _moveRowBy(
+    row: NormalizedRow,
+    index: number,
+    delta: -1 | 1,
+    button: HTMLButtonElement
+  ): void {
+    if (!this.config) return;
+    const total = this.config.rows.length;
+    const to = index + delta;
+    if (to < 0 || to >= total) return;
+    this._commitRows(moveRow(this.config.rows, row.id, to));
+    this._markMoved(row.id);
+    this._keepFocusAfterMove(button);
+    this._announceMove(this._labelText(row.label), to, total);
+  }
+
+  /** Move a track within its group by one position, highlight, and announce. */
+  private _moveTrackBy(
+    group: NormalizedRow,
+    track: NormalizedTrack,
+    index: number,
+    delta: -1 | 1,
+    button: HTMLButtonElement
+  ): void {
+    if (!this.config) return;
+    const total = group.tracks.length;
+    const to = index + delta;
+    if (to < 0 || to >= total) return;
+    this._commitRows(moveTrack(this.config.rows, group.id, track.id, to));
+    this._markMoved(trackKey(group.id, track.id));
+    this._keepFocusAfterMove(button);
+    this._announceMove(this._labelText(track.label), to, total);
+  }
+
+  private _announceMove(name: string, to: number, total: number): void {
+    this._announce(`${name} moved to position ${to + 1} of ${total}.`);
+  }
+
+  /**
+   * Mark a row/track as just-moved so it can be highlighted, and arm the
+   * timer that clears the mark.
+   *
+   * Reordering is button-only, and a row can travel a long way in one press —
+   * far enough to leave the viewport, and always far enough to lose track of
+   * visually. The announcement covers screen-reader users; this covers
+   * everyone else.
+   */
+  private _markMoved(key: string): void {
+    this._movedKey = key;
+    clearTimeout(this._movedTimer);
+    this._movedTimer = setTimeout(() => {
+      this._movedKey = null;
+    }, MOVED_HIGHLIGHT_MS);
+  }
+
+  /**
+   * The ghost class for a row that is hidden while customizing. Its content
+   * is still drawn — desaturated and faded — so the user sees what Show
+   * would bring back, and so a hidden row never looks like a dataless one.
+   * Outside customize mode a hidden row is not rendered at all.
+   */
+  private _ghostClass(hidden: boolean): string {
+    return this._customizeMode && hidden ? `${CSS_PREFIX}-row--ghost` : '';
+  }
+
+  /** The just-moved highlight class for a row/track, if it is the one. */
+  private _movedClass(key: string): string {
+    return this._movedKey === key ? `${CSS_PREFIX}-row--moved` : '';
+  }
+
+  /**
+   * Keep focus usable after a move. The move buttons live inside a keyed
+   * row, so the element itself survives the reorder and keeps focus — except
+   * when the row lands at an end and the button the user just pressed becomes
+   * disabled. Hand focus to its opposite number so the keyboard path doesn't
+   * dead-end.
+   */
+  private _keepFocusAfterMove(button: HTMLButtonElement): void {
+    void this.updateComplete.then(() => {
+      if (!button.disabled) return;
+      const sibling = button.parentElement?.querySelector<HTMLButtonElement>(
+        `.${CSS_PREFIX}-row-control--move:not([disabled])`
+      );
+      sibling?.focus({ preventScroll: true });
+    });
   }
 
   render() {
@@ -1608,12 +2789,32 @@ class ProtvistaUniprot extends LitElement {
         </div>`;
       }
     }
+    const rows = this._rowsToRender();
     return html`
+      <div
+        class="${CSS_PREFIX}-live-region"
+        role="status"
+        aria-live="polite"
+      >
+        ${this._announcement}
+      </div>
       <nightingale-manager
+        class="${this._customizeMode ? `${CSS_PREFIX}--customizing` : ''}"
         reflected-attributes="length display-start display-end highlight activefilters filters"
       >
         <div class="${CSS_PREFIX}-nav-container">
-          <div class="${CSS_PREFIX}-nav-track-label"></div>
+          <div class="${CSS_PREFIX}-nav-track-label">
+            <div class="${CSS_PREFIX}-toolbar-row">
+              ${this._renderCustomizeToggle()}
+            </div>
+            <div
+              class="${CSS_PREFIX}-toolbar-row ${this._customizeMode
+                ? ''
+                : `${CSS_PREFIX}-toolbar-row--reserved`}"
+            >
+              ${this._renderCustomizeActions()}
+            </div>
+          </div>
           <div class="${CSS_PREFIX}-track-content">
             <nightingale-navigation
               length="${this.sequence.length}"
@@ -1630,134 +2831,20 @@ class ProtvistaUniprot extends LitElement {
             ></nightingale-sequence>
           </div>
         </div>
-        ${this.config.rows.map((group) => {
-          const groupHasData = hasRenderableData(this.data[group.id]);
-          const groupHasError = this._visibleGroupErrors.has(group.id);
-          if (!groupHasData && !groupHasError) return '';
-          // Group has a visible fetch failure but no aggregate to draw (all
-          // or some tracks failed). While it's collapsed, render just the
-          // header + badge so the failure stays visible; handles standalone
-          // (never expandable) and collapsed grouped tracks alike. When
-          // it's expanded, fall through instead so the per-track rows —
-          // each with its own ⚠ badge and Retry — render; those are more
-          // informative than a single group-level badge.
-          if (
-            !groupHasData &&
-            groupHasError &&
-            !this.openGroups.includes(group.id)
-          ) {
-            return this.renderGroupErrorRow(group);
-          }
-          // A standalone track (authored as a top-level entry with no
-          // `tracks:`) is wrapped by the normalizer in a synthetic
-          // single-track group flagged `standalone`. Render it as one
-          // row with a plain (non-clickable) track label and no
-          // collapse affordance. A genuine one-track group keeps its
-          // collapse header — the difference is author-controlled.
-          if (group.standalone) {
-            return this.renderStandaloneTrack(group);
-          }
-          // Flatten the structured rendering block onto the plain-string
-          // attribute shape Nightingale consumes. Track rendering is
-          // already cascaded (defaults → group → kind preset →
-          // track), so we don't need the legacy `track.color ||
-          // group.color` fallback chain any more.
-          const groupAttrs = renderingToAttrs(group.rendering);
-          return html`
-            <div class="${CSS_PREFIX}-group" id="${CSS_PREFIX}-group_${group.id}">
-              <div
-                class="${CSS_PREFIX}-group-label"
-                data-group-toggle="${group.id}"
-                role="button"
-                tabindex="0"
-                aria-expanded="${this.openGroups.includes(group.id)}"
-                title="${group.description ?? ''}"
-                @click="${this.handleGroupClick}"
-                @keydown="${this.handleGroupKeydown}"
-              >
-                ${unsafeHTML(
-                  renderLabel(group.label, this.accession)
-                )}${this._renderGroupBadge(group.id)}
-              </div>
-              <div
-                data-id="${CSS_PREFIX}-group_${group.id}"
-                class="${CSS_PREFIX}-aggregate-track-content ${CSS_PREFIX}-track-content ${group.component ===
-                'nightingale-colored-sequence'
-                  ? `${CSS_PREFIX}-track-content__coloured-sequence`
-                  : ''}"
-                .style="${this.openGroups.includes(group.id)
-                  ? 'opacity:0'
-                  : 'opacity:1'}"
-              >
-                ${hasRenderableData(this.data[group.id])
-                  ? this.getTrack(
-                      group.component,
-                      'non-overlapping',
-                      groupAttrs.color,
-                      groupAttrs.shape,
-                      group.id,
-                      groupAttrs.scale,
-                      groupAttrs.colorRange
-                    )
-                  : ''}
-              </div>
-            </div>
-
-            <!-- Expanded Groups -->
-            ${group.tracks &&
-            group.tracks.map((track) => {
-              if (this.openGroups.includes(group.id)) {
-                const trackKey = `${group.id}-${track.id}`;
-                const trackData = this.data[trackKey];
-                const trackHasData = hasRenderableData(trackData);
-                const trackHasError = this._trackErrors.has(trackKey);
-                // A track with neither data nor a (broken) error renders
-                // nothing — this is also the 4xx "missing" path.
-                if (!trackHasData && !trackHasError) {
-                  return '';
-                }
-                const attrs = renderingToAttrs(track.rendering);
-                return html`
-                  <div
-                    class="${CSS_PREFIX}-group__track"
-                    id="${CSS_PREFIX}-track_${track.id}"
-                  >
-                    <div
-                      class="${CSS_PREFIX}-track-label"
-                      title="${track.description ?? ''}"
-                    >
-                      ${(track.filterUI === 'nightingale-filter' &&
-                        this.getFilterComponent(`${group.id}-${track.id}`)) ||
-                      unsafeHTML(
-                        renderLabel(track.label, this.accession)
-                      )}${this._renderTrackBadge(trackKey)}
-                    </div>
-                    ${trackHasData
-                      ? html`<div
-                          class="${CSS_PREFIX}-track-content ${group.component ===
-                          'nightingale-colored-sequence'
-                            ? `${CSS_PREFIX}-track-content__coloured-sequence`
-                            : ''}"
-                          data-id="${CSS_PREFIX}-track_${track.id}"
-                        >
-                          ${this.getTrack(
-                            track.component,
-                            'non-overlapping',
-                            attrs.color,
-                            attrs.shape,
-                            `${group.id}-${track.id}`,
-                            attrs.scale,
-                            attrs.colorRange
-                          )}
-                        </div>`
-                      : ''}
-                  </div>
-                `;
-              }
-            })}
-          `;
-        })}
-        <div class="${CSS_PREFIX}-nav-container">
+        ${rows.length === 0 && this.config.rows.length > 0
+          ? this._renderAllHiddenNotice()
+          : ''}
+        ${repeat(
+          // Keyed on the row id so a reorder *moves* the Nightingale DOM
+          // nodes instead of re-binding canvases positionally, keeping
+          // nightingale-manager alignment intact.
+          rows,
+          (display) => display.row.id,
+          (display, i) => this._renderRow(display, i, rows.length)
+        )}
+        <div
+          class="${CSS_PREFIX}-nav-container ${CSS_PREFIX}-nav-container--footer"
+        >
           <div class="${CSS_PREFIX}-credits"></div>
           <div class="${CSS_PREFIX}-track-content">
             <nightingale-sequence
@@ -2039,14 +3126,19 @@ class ProtvistaUniprot extends LitElement {
     if (!host) return;
 
     const toggle = host.getAttribute('data-group-toggle');
+    if (!toggle) return;
 
-    if (toggle && !host.classList.contains('open')) {
-      host.classList.add('open');
-      this.openGroups = [...this.openGroups, toggle];
-    } else {
-      host.classList.remove('open');
-      this.openGroups = [...this.openGroups].filter((d) => d !== toggle);
-    }
+    // Direction comes from `openGroups` — the reactive source of truth the
+    // template renders from — not the element's `open` class. Two paths open a
+    // group without touching that class (the "N hidden" badge, and the
+    // customize-mode collapse button, which is a different element than the
+    // normal-mode label that carried it), so a class-based check would misread
+    // their state and take two clicks to collapse. The `open` class is now
+    // applied declaratively from `openGroups` in the template.
+    const isOpen = this.openGroups.includes(toggle);
+    this.openGroups = isOpen
+      ? this.openGroups.filter((d) => d !== toggle)
+      : [...this.openGroups, toggle];
   }
 
   groupByGroup(filters, group) {

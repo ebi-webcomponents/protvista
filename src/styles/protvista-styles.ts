@@ -44,30 +44,75 @@ export default css`
     align-items: center;
   }
 
+  /* Rows are ruled, not spaced. The 0.1rem gap this replaces only read as a
+     separator because the labels were filled with colour; on a neutral
+     surface a hairline is what makes a row legible as a row, and it carries
+     the eye across from the label to the features on the same line. */
   protvista-uniprot .${p}-nav-container,
   protvista-uniprot .${p}-group__track {
     display: flex;
-    margin-bottom: 0.1rem;
+    border-bottom: 1px solid var(--protvista-track-border-color);
   }
 
   protvista-uniprot .${p}-group {
     display: none;
-    margin-bottom: 0.1rem;
+    border-bottom: 1px solid var(--protvista-track-border-color);
+  }
+
+  /* The closing ruler row ends the grid, so it takes no rule of its own — a
+     trailing hairline under the last row reads as an unfinished table. */
+  protvista-uniprot .${p}-nav-container--footer {
+    border-bottom: 0;
   }
 
   protvista-uniprot .${p}-group-label,
   protvista-uniprot .${p}-track-label,
   protvista-uniprot .${p}-nav-track-label,
   protvista-uniprot .${p}-credits {
+    /* border-box so padding sits *inside* the fixed column width. Without
+       it, indenting one row's label would widen that cell and slide its
+       canvas out of line with the ruler and every other row. */
+    box-sizing: border-box;
     min-width: var(--protvista-label-width);
     max-width: var(--protvista-label-width);
     padding: 0.5em;
     line-height: normal;
+    background-color: var(--protvista-track-label-bg);
   }
 
+  /* The one vertical rule in the viewer: it marks where the label column ends
+     and the sequence coordinate space begins, which is the boundary the eye
+     needs, and is why no other vertical divider is required.
+
+     It belongs to the data rows only. Carrying it through the navigation
+     spacer above and the credits cell below drew a line into space where
+     there is no row to divide, which read as a stray stroke rather than as
+     structure. */
+  protvista-uniprot .${p}-group-label,
+  protvista-uniprot .${p}-track-label {
+    border-right: 1px solid var(--protvista-track-border-color);
+  }
+
+  /* A track inside a group is indented to show it belongs to the header
+     above it. The indent is padding *within* the label cell — never a
+     margin on the row — so the track area stays aligned across every row.
+     The same rule covers customize mode, where the control cluster sits in
+     that padding and shifts with it. */
+  protvista-uniprot .${p}-track--nested .${p}-track-label {
+    padding-left: 1.25em;
+  }
+
+  /* A group header reads as a header through weight and a slightly recessed
+     surface, not through a saturated fill — chrome stays neutral so colour
+     can mean data. */
   protvista-uniprot .${p}-group-label {
     background-color: var(--protvista-group-label-bg);
+    font-weight: 600;
     cursor: pointer;
+  }
+
+  protvista-uniprot .${p}-group-label:hover {
+    background-color: var(--protvista-color-bg-hover);
   }
 
   protvista-uniprot .${p}-group-label::before {
@@ -96,12 +141,13 @@ export default css`
     margin-right: 5px;
   }
 
-  protvista-uniprot .${p}-track-label {
-    background-color: var(--protvista-track-label-bg);
+  /* A split group's non-collapsible bracket header: no caret, not clickable. */
+  protvista-uniprot .${p}-group-label--partial {
+    cursor: default;
   }
 
-  protvista-uniprot nightingale-track-canvas {
-    border-top: 1px solid var(--protvista-track-border-color);
+  protvista-uniprot .${p}-group-label--partial::before {
+    display: none;
   }
 
   protvista-uniprot nightingale-navigation .handle {
