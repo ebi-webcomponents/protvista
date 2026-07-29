@@ -13,7 +13,6 @@
     "start": "yarn docs:dev",
     "docs:dev": "astro dev --root docs",
     "docs:build": "astro build --root docs",
-    "docs:preview": "astro preview --root docs",
     "site:build": "yarn docs:build && yarn bench:build",
     "site:preview": "astro preview --root docs",
     "schema:sync": "node scripts/sync-schema.mjs",

@@ -17,7 +17,9 @@ function inlineLibIcons() {
     name: 'protvista-inline-lib-icons',
     enforce: 'pre',
     async load(id) {
-      const path = id.split('?')[0];
+      // Normalise separators so the match holds on Windows (backslash paths)
+      // as well as POSIX; otherwise icons silently aren't inlined on Windows.
+      const path = id.split('?')[0].replace(/\\/g, '/');
       if (path.endsWith('.svg') && path.includes('/src/icons/')) {
         const source = await readFile(path, 'utf-8');
         return `export default ${JSON.stringify(source)};`;
