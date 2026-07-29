@@ -242,13 +242,11 @@ with our core developers: co-design and customize ProtVista visualizations,
 make direct contributions to the ProtVista codebase, and load your own data
 into the ProtVista library under the guidance of the people building it.
 
-The event is one of the community milestones in the project's
-[three-year roadmap](https://github.com/ebi-webcomponents/protvista/blob/next/ROADMAP.md),
-and it is open to researchers, bioinformaticians, and developers alike —
-whether you're already familiar with ProtVista or encountering it for the
-first time through this walkthrough. If the playground, the CSV walkthrough,
-or the Customize controls above left you with an idea for a visualization,
-an integration, or a dataset worth wiring in, this is the place to bring it.
+It is open to researchers, bioinformaticians, and developers alike — whether
+you're already familiar with ProtVista or encountering it for the first time
+through this walkthrough. If the playground, the CSV walkthrough, or the
+Customize controls above left you with an idea for a visualization, an
+integration, or a dataset worth wiring in, this is the place to bring it.
 
 :::tip[Dates and registration]
 **7–9 October 2026**, online. Registration is free but essential:
