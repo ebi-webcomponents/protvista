@@ -238,7 +238,6 @@ ground as this walkthrough, in more depth.
 - [Load your own data](/protvista/your-data) — CSV, TSV, JSON, BED, and inline, the full field reference.
 - [Playground](/protvista/playground/) — edit any configuration live and share it by link.
 - [Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit) — use this template, add your data, publish.
-- [Track customization (PR #240)](https://github.com/ebi-webcomponents/protvista/pull/240) — implementation detail for the reorder/show-hide controls.
 - [Source & issues](https://github.com/ebi-webcomponents/protvista) — questions, bugs, and feature requests.
 - [Office hours](https://github.com/ebi-webcomponents/protvista/blob/next/CONTRIBUTING.md#office-hours) — monthly live help with setup and your own data, no registration required.
 
