@@ -1,0 +1,3 @@
+type,start,end,description,score
+DOMAIN,18,289,Custom re-annotation of the extracellular domain,0.9
+BINDING,614,614,Lab-observed candidate binding residue,0.72

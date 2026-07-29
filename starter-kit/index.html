@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>My ProtVista viewer</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        line-height: 1.5;
+        margin: 0 auto;
+        max-width: 72rem;
+        padding: 1.5rem;
+      }
+      .kit-notice {
+        border-left: 4px solid #b34700;
+        background: #fff4ec;
+        padding: 0.75rem 1rem;
+        margin: 1rem 0;
+      }
+      .kit-notice h2 {
+        margin: 0 0 0.25rem;
+        font-size: 1rem;
+      }
+      .kit-notice p {
+        margin: 0.25rem 0;
+        /* Error text can contain a long unbroken URL; without this it
+           overflows the notice on a narrow screen or at high zoom. */
+        overflow-wrap: anywhere;
+      }
+      .kit-samples {
+        color: #444;
+        font-size: 0.875rem;
+      }
+      protvista-uniprot {
+        display: block;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>My ProtVista viewer</h1>
+
+    <!-- Sample configs. Delete this paragraph once you're using your own. -->
+    <p class="kit-samples">
+      Samples:
+      <a href="./">CSV (default)</a> ·
+      <a href="?config=recipes/tsv.yaml">TSV in a group</a> ·
+      <a href="?config=recipes/extend-uniprot.yaml">UniProt + my track</a>
+    </p>
+
+    <!-- protvista:unpublished:start -->
+    <div class="kit-notice">
+      <h2>This template does not work yet</h2>
+      <p>
+        ProtVista <strong>5.0.0</strong> has not been published to npm, so the
+        pinned CDN address below returns "not found" and no viewer will appear.
+        Nothing here needs changing — the kit starts working the moment 5.0.0
+        ships. See the README for details.
+      </p>
+      <p>
+        To see the same configuration working right now, open the
+        <a href="https://ebi-webcomponents.github.io/protvista/playground/"
+          >ProtVista playground</a
+        >.
+      </p>
+    </div>
+    <!-- protvista:unpublished:end -->
+
+    <!--
+      Shown until the component has definitely loaded, then removed. It is
+      deliberately part of the page rather than something JavaScript adds: if
+      the script never runs at all, this notice is still on screen, so a
+      failure can never present as a blank page.
+    -->
+    <div
+      id="status"
+      class="kit-notice"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <h2>Loading the viewer…</h2>
+      <p>
+        Fetching the component from the CDN. It is a few megabytes the first
+        time, then your browser caches it.
+      </p>
+    </div>
+
+    <protvista-uniprot config-src="./config.yaml"></protvista-uniprot>
+
+    <script type="module">
+      // The viewer itself, loaded from a CDN and pinned to one exact release.
+      // recipes/extend-uniprot.yaml pins the same version — change both
+      // together if you ever move to a newer one.
+      const BUNDLE_URL =
+        'https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0/dist/protvista-uniprot.mjs';
+
+      const status = document.getElementById('status');
+      const viewer = document.querySelector('protvista-uniprot');
+
+      // textContent throughout — an error message can contain a URL or markup
+      // from elsewhere, and none of it should ever be parsed as HTML.
+      function fail(heading, ...paragraphs) {
+        status.textContent = '';
+        const h2 = document.createElement('h2');
+        h2.textContent = heading;
+        status.append(h2);
+        for (const text of paragraphs) {
+          const p = document.createElement('p');
+          p.textContent = text;
+          status.append(p);
+        }
+      }
+
+      // Checked before anything else: opening the file directly is the most
+      // common first mistake, and its symptom (nothing loads) is otherwise
+      // indistinguishable from the CDN being unreachable.
+      if (location.protocol === 'file:') {
+        fail(
+          'Open this page through a web server',
+          'Browsers block pages opened from a file:// address from reading ' +
+            'other local files, so the viewer can never load its config or ' +
+            'your data this way.',
+          'In this folder, run:  python3 -m http.server 8000',
+          'Then open http://localhost:8000/ instead of double-clicking index.html.'
+        );
+      } else {
+        // Optional ?config= override so the recipes are one click away.
+        // Restricted to a relative path inside this folder: a shared link must
+        // never be able to point the viewer at another site.
+        const wanted = new URLSearchParams(location.search).get('config');
+        if (wanted && /^[\w][\w./-]*$/.test(wanted) && !wanted.includes('..')) {
+          viewer.setAttribute('config-src', './' + wanted);
+        }
+
+        try {
+          // A dynamic import rejects with a real message when it fails; a
+          // <script src> tag would only emit an opaque error event.
+          await import(BUNDLE_URL);
+          // The bundle can download and still not register the element (a
+          // truncated or incompatible build), which the import alone would not
+          // catch.
+          await Promise.race([
+            customElements.whenDefined('protvista-uniprot'),
+            new Promise((_, reject) =>
+              setTimeout(
+                () =>
+                  reject(
+                    new Error(
+                      'the file loaded but never registered <protvista-uniprot>'
+                    )
+                  ),
+                15000
+              )
+            ),
+          ]);
+          // Emptied rather than removed, so the live region survives to
+          // announce anything that happens later.
+          status.textContent = '';
+          status.className = '';
+        } catch (error) {
+          fail(
+            'Could not load the viewer',
+            'The browser could not load the component from: ' + BUNDLE_URL,
+            'The usual cause is that this version has not been published yet — ' +
+              'see the README. Other causes: no internet connection, or a ' +
+              'network that blocks cdn.jsdelivr.net.',
+            'Browser message: ' + String(error)
+          );
+        }
+      }
+    </script>
+  </body>
+</html>

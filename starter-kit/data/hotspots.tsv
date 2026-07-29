@@ -1,0 +1,4 @@
+type	start	end	description	score
+DOMAIN	345	501	Kunitz-type protease inhibitor domain (custom)	0.93
+BINDING	551	600	Predicted copper-binding motif	0.81
+REGION	601	650	Juxtamembrane regulatory region	0.55

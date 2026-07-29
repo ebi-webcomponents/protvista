@@ -37,6 +37,7 @@ the "Representation". Documentation is licensed CC BY 4.0.
 
 - [Configuration playground](https://ebi-webcomponents.github.io/protvista/playground/): edit a config with live validation and preview; `?dev` adds edge-case examples, `?accession=` seeds the viewer.
 - [Runnable examples](https://github.com/ebi-webcomponents/protvista/tree/next/examples): CI-validated config + data pairs (basic, inline, CSV, TSV, JSON, BED, extends-default).
+- [Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit): a no-build template repository — an HTML page, a commented `config.yaml`, and a `data/` folder — for visualising your own CSV/TSV annotations without writing code. Loads the component from a version-pinned CDN.
 
 ## Optional
 

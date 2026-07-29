@@ -153,16 +153,19 @@ at the end.
 
 :::caution
 `extends: /src/default-config.yaml` resolves only when the page is served from
-this repo's root (e.g. `yarn start`); a deployed site or a fresh Starter Kit
-project must point `extends` at its own hosted copy instead. See
+this repo's root; a deployed site must point `extends` at a hosted copy instead —
+either your own, or the published package on a CDN:
+`https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0/src/default-config.yaml`
+(available once 5.0.0 ships, as above). See
 [Author a config](/protvista/configure#reuse-the-default-with-extends) for the
 merge rules and the full caveat.
 :::
 
 :::tip[Try it live]
 Open the [full default viewer](/protvista/playground/#preset=uniprot-default) to
-see the base you're extending. To see it combined with your track, run the docs
-site locally (`yarn docs:dev`), where `/src/default-config.yaml` resolves.
+see the base you're extending. To see it combined with your track, switch
+`extends:` to the CDN URL above — that form resolves from any page, once 5.0.0
+ships.
 :::
 
 <!-- TODO(screenshot): the "My lab" group layered on top of the full default

@@ -1,0 +1,6 @@
+.DS_Store
+node_modules/
+
+# Only needed if you are testing against a locally built copy of the viewer
+# rather than the CDN.
+vendor/

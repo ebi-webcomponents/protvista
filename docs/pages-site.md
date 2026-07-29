@@ -55,17 +55,27 @@ Which examples are surfaced is curated for a single hosted page (the rationale i
 - `csv` (a single standalone track — one row, no group) and `json` (a live UniProt API track next to the BYO file) are bring-your-own-file. The examples reference `data: ./hotspots.*`, which the loader resolves against the *page*, not the config's directory (see the path-resolution caveat in `examples/README.md`). So `presets.ts` repoints them at the site-absolute `/protvista/sample-data/hotspots.*`, served from `docs/public/sample-data/` (copies of `examples/csv|json/hotspots.*`). That is what makes the file-backed presets render on the playground page.
 - `extend-default` is omitted: it `extends: /src/default-config.yaml`, which the built `site/` bundle does not serve, so it can only load under the dev server. `tsv` (same shape as `csv`) and `bed` (niche) are omitted for brevity — add them to `PRESETS` if wanted.
 
-## Deliverables still to build
+## Q2 "Documentation and training" deliverables (done)
 
-These are the remaining Q2 "Documentation and training" pieces. The docs home and nav link to each one's home, so wiring them up is mostly authoring content and pointing the existing links at it. (The **user guide (#214)** and the **Starlight docs site** are already done — see the sections above.)
+Both remaining pieces have shipped; the **user guide (#214)** and the **Starlight docs site** are covered in the sections above.
 
-### Tutorial (#215)
+### Tutorial (#215) (done)
 
-End-to-end onboarding in `docs/`: add the component, point it at an accession, `extends` a config to add a custom track from a local CSV/TSV, then style it via tokens / `::part`. Reuse the `extends` example from `specs/config-approach.md` and the Starter Kit as the running example. Because the tutorial and the playground share the same config surface, the tutorial can deep-link into the playground with a shareable-link URL (a `#config=…` or `#preset=…` hash) so readers open the exact config being discussed. Author this **last** among the docs, after the config-surface renames settle. Licensed CC BY 4.0.
+`docs/src/content/docs/tutorial.md` — end-to-end onboarding: add the component, point it at an accession, add a custom track from a CSV, `extends` the default viewer, then style it. Its embedded config and CSV blocks are pinned to `examples/csv` and `examples/extend-default` by `src/__spec__/tutorial-doc.spec.ts`, so the samples cannot drift. Each step deep-links into the playground with a `#preset=…` hash. Licensed CC BY 4.0.
 
-### Starter Kit (#211)
+### Starter Kit (#211) (done)
 
-A separate template repository (`ebi-webcomponents/protvista-starter-kit`), not part of this repo: a no-build `index.html` loading the component from a pinned CDN, a commented `config.yaml`, and `data/` samples. It edits the **same config surface** the playground edits, so the two reinforce each other — the playground is where you experiment, the Starter Kit is where you start a real project. The hub already links out to it. An "Open in Playground" link (a shareable-link hash seeded from a starter config) is a natural addition once both exist.
+Authored at **`starter-kit/` in this repo** and published to the standalone template repository `ebi-webcomponents/protvista-starter-kit` by `.github/workflows/publish-starter-kit.yml` on release. Living here rather than being maintained separately is what makes `src/__spec__/starter-kit.spec.ts` possible: the kit's `config.yaml` and recipes get the same load → data-pipeline → smoke-render treatment `examples.spec.ts` gives `examples/`, so breaking the kit fails `yarn test:unit` in the PR that breaks it. There is no cross-repo sync to go stale.
+
+Resolved shape:
+
+- **Flat and small at the root** — `index.html`, `config.yaml`, `data/`, `recipes/` — so a non-coder sees "the page, the settings, my data". A published template gets clean single-commit history from "Use this template", which is why no history-preserving split (`git subtree split`/`splitsh-lite`) is warranted.
+- **One live config, two recipes.** The page has one `config-src`, so the standalone CSV track is `config.yaml` (tutorial Step 2) and `tsv.yaml` / `extend-uniprot.yaml` (Step 3) sit in `recipes/`, previewable via `?config=` without editing anything. Because `data:` resolves against the *page*, every recipe shares one `data/` folder.
+- **One version pin.** `index.html` pins the bundle and `recipes/extend-uniprot.yaml` pins `extends:` at the same jsDelivr version; `starter-kit.spec.ts` asserts both equal `package.json`'s version, so a release bump cannot ship a stale kit. That `extends:` URL depends on `src` staying in package.json `files` — pinned by `schema-publishing.spec.ts`.
+- **Fail-visible.** `index.html` ships a visible status notice removed only on confirmed success, so a CDN 404, a blocked network, or opening via `file://` can never present as a blank page.
+- **Placeholder until 5.0.0 publishes.** npm's latest is 4.9.3, which has no `config-src`, so the pinned CDN URL 404s today. The kit ships anyway, with the state flagged in the README and in the page itself between `protvista:unpublished` markers. The publish workflow queries the npm registry for the pinned version and `sed`-strips those blocks once it is live, so the release that makes the kit work cannot ship a banner saying it does not — no one has to remember. `starter-kit.spec.ts` keeps the markers balanced so that range delete stays reliable.
+
+Not yet done: the deploy key and the "Template repository" flag must be set up before the first publish (see the workflow header), and an "Open in Playground" link seeded from a starter config remains a natural addition.
 
 ### Publishing the docs on Pages (done)
 
