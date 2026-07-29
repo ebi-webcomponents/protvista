@@ -233,6 +233,33 @@ set of [CSS custom properties and `::part` hooks](/protvista/theming) is
 documented as well — the configuration option above is simply the no-code
 path to the same result.
 
+## Announcement: call for participation in the Q3 online hackathon
+
+Later this quarter, the ProtVista team is hosting an **online hackathon** —
+one of the community milestones in the project's
+[three-year roadmap](https://github.com/ebi-webcomponents/protvista/blob/next/ROADMAP.md).
+It's open to anyone: researchers, bioinformaticians, and developers, whether
+you've used ProtVista before or are looking at it for the first time through
+this walkthrough.
+
+The format is built around real-time mentorship rather than a solo build
+weekend. Maintainers will bring a curated portfolio of starter projects —
+visualization plugins, database integrations — for participants to pick up,
+extend, or use as a springboard for an idea of their own. Contributions that
+come out of the event are integrated systematically afterward, so what you
+build doesn't stop being useful when the event ends.
+
+If working through the playground, the CSV walkthrough, or the Customize
+controls above left you with an idea for a plugin, an integration, or a
+dataset worth wiring in, this is the place to bring it.
+
+:::tip[Get notified]
+A confirmed date and registration details haven't been set yet. They'll be
+announced through [monthly office hours](https://github.com/ebi-webcomponents/protvista/blob/next/CONTRIBUTING.md#office-hours)
+and [GitHub Discussions](https://github.com/ebi-webcomponents/protvista/discussions)
+— watch the repository or post in Discussions now to hear first.
+:::
+
 ## Where to go next
 
 New to ProtVista? Begin with the [Tutorial](/protvista/tutorial) — the same
@@ -242,6 +269,7 @@ ground as this walkthrough, in more depth.
 - [Load your own data](/protvista/your-data) — CSV, TSV, JSON, BED, and inline, the full field reference.
 - [Playground](/protvista/playground/) — edit any configuration live and share it by link.
 - [Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit) — use this template, add your data, publish.
+- [Q3 online hackathon](https://github.com/ebi-webcomponents/protvista/blob/next/ROADMAP.md) — call for participation; watch Discussions for the date.
 - [Source & issues](https://github.com/ebi-webcomponents/protvista) — questions, bugs, and feature requests.
 - [Office hours](https://github.com/ebi-webcomponents/protvista/blob/next/CONTRIBUTING.md#office-hours) — monthly live help with setup and your own data, no registration required.
 
