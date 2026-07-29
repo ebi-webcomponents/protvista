@@ -138,6 +138,7 @@ export default defineConfig({
           items: [
             { label: 'Load your own data', link: '/your-data' },
             { label: 'Theme the viewer', link: '/theming' },
+            { label: 'Customize the layout', link: '/customize-layout' },
             { label: 'Author tooltips', link: '/data-tooltip' },
             { label: 'Rich tooltips in React', link: '/react-integration' },
             { label: 'Troubleshoot errors', link: '/troubleshooting' },

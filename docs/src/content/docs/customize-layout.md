@@ -1,10 +1,10 @@
-# Track configuration (Customize layout)
+---
+title: Customize the layout
+description: Let end users reorder and show/hide tracks live, ship a track hidden by default, and drive the layout programmatically — with automatic per-config persistence and a shareable URL.
+---
 
 End users can reorder rows and show or hide tracks directly in the viewer,
-live, without editing the config or writing code. This implements the
-interaction and accessibility design in
-[`specs/track-configurability-design.md`](../specs/track-configurability-design.md)
-(issue [#199](https://github.com/ebi-webcomponents/protvista/issues/199)).
+live, without editing the config or writing code.
 
 **The config is the source of truth.** A user's edits are written into the
 viewer's configuration — reordering a row moves it in `rows:`, hiding a track

@@ -86,7 +86,7 @@ Reactive properties on the `<protvista-uniprot>` element (HTML attribute name in
 - `nostructure` [`nostructure`]: `boolean` (default `false`) — suppresses the PDBe 3D structure group.
 - `notooltip` [`notooltip`]: `boolean` (default `false`) — suppresses the built-in click tooltip. Typically set by embedders rendering their own overlay. See [React host integration](https://ebi-webcomponents.github.io/protvista/react-integration) for the consumer-side pattern.
 - `suspend` [`suspend`]: `boolean` (default `false`) — pauses rendering. Useful when the accession is about to change and you want to avoid a flash of intermediate state.
-- `noPersistLayout` [`no-persist-layout`]: `boolean` (default `false`) — opts out of layout persistence (a user's reorder/show-hide is neither restored on mount nor saved to localStorage or the `?layout=` URL). See [Track configuration](./docs/track-configuration.md).
+- `noPersistLayout` [`no-persist-layout`]: `boolean` (default `false`) — opts out of layout persistence (a user's reorder/show-hide is neither restored on mount nor saved to localStorage or the `?layout=` URL). See [Customize the layout](https://ebi-webcomponents.github.io/protvista/customize-layout).
 
 ### Layout (Customize layout)
 
@@ -100,7 +100,7 @@ End users can reorder rows (with move-up/down buttons), reorder tracks within a 
 - `getConfig(): ProtvistaViewerConfig | undefined`: the arranged view as an authored config — save it, share it, or hand it back to `setConfig()`.
 - `getLayout(): { order: string[] | null; tracks: Record<string, string[]>; hidden: { rows: Record<string, boolean>; tracks: Record<string, Record<string, boolean>> } }`: the compact diff from the authored config, which is what persistence stores.
 
-A layout persists per-config in localStorage and in a shareable `?layout=` URL parameter. See [Track configuration](./docs/track-configuration.md) for the controls, the `hidden` field, accessibility, and persistence.
+A layout persists per-config in localStorage and in a shareable `?layout=` URL parameter. See [Customize the layout](https://ebi-webcomponents.github.io/protvista/customize-layout) for the controls, the `hidden` field, accessibility, and persistence.
 
 ## Development
 
@@ -203,7 +203,7 @@ The viewer renders a single collapsible group "Domains" (label title-cased from 
 - **Adapter reference.** [Adapter reference](https://ebi-webcomponents.github.io/protvista/adapter-reference) lists the expected payload shape and fields for every built-in kind and adapter, generated from the adapter code and drift-tested. A machine-readable schema for the bring-your-own feature record is served at [`feature-record.schema.json`](./public/schema/v1/feature-record.schema.json).
 - **Authoring `dataTooltip`.** [Author tooltips](https://ebi-webcomponents.github.io/protvista/data-tooltip) covers the three authoring forms (bare string, `kind: fields`, `kind: markdown`) with examples.
 - **React host integration.** [Rich tooltips in React](https://ebi-webcomponents.github.io/protvista/react-integration) shows how a React host owns its own rich tooltips via the `change` event + `notooltip`, with a minimal worked example. The normative contract is [`specs/config-approach.md`](./specs/config-approach.md#react-host-integration).
-- **Track configuration.** [`docs/track-configuration.md`](./docs/track-configuration.md) covers the end-user "Customize layout" controls (reorder + show/hide), the authored `hidden: true` default for shipping a group/track hidden on first mount, the runtime layout API, and per-config persistence + the shareable `?layout=` URL.
+- **Customize the layout.** [Customize the layout](https://ebi-webcomponents.github.io/protvista/customize-layout) covers the end-user "Customize layout" controls (reorder + show/hide), the authored `hidden: true` default for shipping a group/track hidden on first mount, the runtime layout API, and per-config persistence + the shareable `?layout=` URL.
 
 ## Events
 
@@ -234,7 +234,7 @@ detail: {
 }
 ```
 
-See [Track configuration](./docs/track-configuration.md) for the full layout API and persistence model.
+See [Customize the layout](https://ebi-webcomponents.github.io/protvista/customize-layout) for the full layout API and persistence model.
 
 ## Publishing
 

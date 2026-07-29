@@ -68,7 +68,8 @@ The track-configuration UI ([issue #199](https://github.com/ebi-webcomponents/pr
 is now built: an end user can reorder rows, reorder tracks within a group, and
 show/hide either, directly on the rows themselves — backed by the runtime
 layout API, which rewrites the config, and per-config persistence. See
-[`docs/track-configuration.md`](./track-configuration.md).
+[Customize the layout](https://ebi-webcomponents.github.io/protvista/customize-layout)
+(`docs/src/content/docs/customize-layout.md`).
 
 - **axe:** no violations with the mode active on a mounted viewer.
 - **Real controls:** show/hide is a `role="switch"` `<button>` whose state
