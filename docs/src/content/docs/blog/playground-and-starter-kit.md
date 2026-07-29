@@ -235,29 +235,24 @@ path to the same result.
 
 ## Announcement: call for participation in the Q3 online hackathon
 
-Later this quarter, the ProtVista team is hosting an **online hackathon** —
-one of the community milestones in the project's
-[three-year roadmap](https://github.com/ebi-webcomponents/protvista/blob/next/ROADMAP.md).
-It's open to anyone: researchers, bioinformaticians, and developers, whether
-you've used ProtVista before or are looking at it for the first time through
-this walkthrough.
+Join the ProtVista Hackathon to seamlessly integrate your own custom lab
+datasets into the newly refactored ProtVista library that powers the
+UniProt feature viewer. This is a hands-on opportunity to work directly
+with our core developers: co-design and customize ProtVista visualizations,
+make direct contributions to the ProtVista codebase, and load your own data
+into the ProtVista library under the guidance of the people building it.
 
-The format is built around real-time mentorship rather than a solo build
-weekend. Maintainers will bring a curated portfolio of starter projects —
-visualization plugins, database integrations — for participants to pick up,
-extend, or use as a springboard for an idea of their own. Contributions that
-come out of the event are integrated systematically afterward, so what you
-build doesn't stop being useful when the event ends.
+The event is one of the community milestones in the project's
+[three-year roadmap](https://github.com/ebi-webcomponents/protvista/blob/next/ROADMAP.md),
+and it is open to researchers, bioinformaticians, and developers alike —
+whether you're already familiar with ProtVista or encountering it for the
+first time through this walkthrough. If the playground, the CSV walkthrough,
+or the Customize controls above left you with an idea for a visualization,
+an integration, or a dataset worth wiring in, this is the place to bring it.
 
-If working through the playground, the CSV walkthrough, or the Customize
-controls above left you with an idea for a plugin, an integration, or a
-dataset worth wiring in, this is the place to bring it.
-
-:::tip[Get notified]
-A confirmed date and registration details haven't been set yet. They'll be
-announced through [monthly office hours](https://github.com/ebi-webcomponents/protvista/blob/next/CONTRIBUTING.md#office-hours)
-and [GitHub Discussions](https://github.com/ebi-webcomponents/protvista/discussions)
-— watch the repository or post in Discussions now to hear first.
+:::tip[Dates and registration]
+**7–9 October 2026**, online. Registration is free but essential:
+[register at EMBL-EBI Training](https://www.ebi.ac.uk/training/events/protvista-hackathon/).
 :::
 
 ## Where to go next
@@ -269,7 +264,7 @@ ground as this walkthrough, in more depth.
 - [Load your own data](/protvista/your-data) — CSV, TSV, JSON, BED, and inline, the full field reference.
 - [Playground](/protvista/playground/) — edit any configuration live and share it by link.
 - [Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit) — use this template, add your data, publish.
-- [Q3 online hackathon](https://github.com/ebi-webcomponents/protvista/blob/next/ROADMAP.md) — call for participation; watch Discussions for the date.
+- [Q3 online hackathon](https://www.ebi.ac.uk/training/events/protvista-hackathon/) — 7–9 October 2026; registration is free but essential.
 - [Source & issues](https://github.com/ebi-webcomponents/protvista) — questions, bugs, and feature requests.
 - [Office hours](https://github.com/ebi-webcomponents/protvista/blob/next/CONTRIBUTING.md#office-hours) — monthly live help with setup and your own data, no registration required.
 
