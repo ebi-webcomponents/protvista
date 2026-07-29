@@ -233,7 +233,7 @@ set of [CSS custom properties and `::part` hooks](/protvista/theming) is
 documented as well — the configuration option above is simply the no-code
 path to the same result.
 
-## Announcement: call for participation in the Q3 online hackathon
+## Announcement: call for participation in the ProtVista online hackathon
 
 Join the ProtVista Hackathon to seamlessly integrate your own custom lab
 datasets into the newly refactored ProtVista library that powers the
@@ -264,7 +264,7 @@ ground as this walkthrough, in more depth.
 - [Load your own data](/protvista/your-data) — CSV, TSV, JSON, BED, and inline, the full field reference.
 - [Playground](/protvista/playground/) — edit any configuration live and share it by link.
 - [Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit) — use this template, add your data, publish.
-- [Q3 online hackathon](https://www.ebi.ac.uk/training/events/protvista-hackathon/) — 7–9 October 2026; registration is free but essential.
+- [ProtVista online hackathon](https://www.ebi.ac.uk/training/events/protvista-hackathon/) — 7–9 October 2026; registration is free but essential.
 - [Source & issues](https://github.com/ebi-webcomponents/protvista) — questions, bugs, and feature requests.
 - [Office hours](https://github.com/ebi-webcomponents/protvista/blob/next/CONTRIBUTING.md#office-hours) — monthly live help with setup and your own data, no registration required.
 
