@@ -12,9 +12,13 @@ CSV file and a text box.
 
 ProtVista is EMBL-EBI's protein feature viewer: the `<protvista-uniprot>`
 component embedded across UniProt, rendering domains, variants, PTMs,
-structure coverage, and AlphaFold confidence as tracks along a sequence. This
-release, funded by the Research Software Maintenance Fund, was built
-specifically for researchers who are *not* developers.
+structure coverage, and AlphaFold confidence as tracks along a sequence. The
+busiest of these — feature and variant tracks, which can carry thousands of
+annotations on a single protein — render on HTML canvas rather than SVG, so
+the view stays smooth and responsive even on a densely annotated protein and
+on modest hardware. This release, funded by the Research Software
+Maintenance Fund, was built specifically for researchers who are *not*
+developers.
 
 **In this walkthrough:**
 
