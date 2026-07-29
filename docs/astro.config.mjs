@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises';
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import mermaid from 'astro-mermaid';
@@ -7,23 +6,31 @@ import mermaid from 'astro-mermaid';
 // `import icon from './icons/x.svg'` and hands the result straight to lit's
 // `unsafeHTML` — the library's own Vite build inlines those as raw SVG
 // *strings* (vite-plugin-svgo). Astro instead resolves an `.svg` import to an
-// image-metadata object, which `unsafeHTML` rejects. This pre-load hook inlines
-// just the library's own `src/icons/*.svg` as default-exported strings so the
-// icons render. Scoped to that one directory so it never touches Astro's own
-// asset handling; if it ever fails to win over Astro's resolver the component's
-// `inlineSvg` guard still keeps a non-string from crashing the viewer.
+// image-metadata *object*, which `unsafeHTML` rejects (the component's
+// `inlineSvg` guard then degrades it to '' — a blank icon).
+//
+// Redirect just the library's own `src/icons/*.svg` imports, at resolve time,
+// to Vite's built-in `?raw` loader — a reliable default-export string that is
+// exempt from Astro's asset pipeline — so the raw SVG reaches `unsafeHTML` and
+// the icons render. Doing this in `resolveId` (not `load`) intercepts the
+// specifier before Astro's asset resolver ever sees a bare `.svg` to claim,
+// which the previous `load`-hook approach did not reliably win. Scoped to that
+// one directory so it never touches Astro's own asset handling.
 function inlineLibIcons() {
   return {
     name: 'protvista-inline-lib-icons',
     enforce: 'pre',
-    async load(id) {
+    async resolveId(source, importer, options) {
+      if (!source.endsWith('.svg')) return null;
+      const resolved = await this.resolve(source, importer, {
+        ...options,
+        skipSelf: true,
+      });
+      if (!resolved) return null;
       // Normalise separators so the match holds on Windows (backslash paths)
       // as well as POSIX; otherwise icons silently aren't inlined on Windows.
-      const path = id.split('?')[0].replace(/\\/g, '/');
-      if (path.endsWith('.svg') && path.includes('/src/icons/')) {
-        const source = await readFile(path, 'utf-8');
-        return `export default ${JSON.stringify(source)};`;
-      }
+      const path = resolved.id.split('?')[0].replace(/\\/g, '/');
+      if (path.includes('/src/icons/')) return `${resolved.id}?raw`;
       return null;
     },
   };
@@ -138,6 +145,7 @@ export default defineConfig({
           items: [
             { label: 'Load your own data', link: '/your-data' },
             { label: 'Theme the viewer', link: '/theming' },
+            { label: 'Customize the layout', link: '/customize-layout' },
             { label: 'Author tooltips', link: '/data-tooltip' },
             { label: 'Rich tooltips in React', link: '/react-integration' },
             { label: 'Troubleshoot errors', link: '/troubleshooting' },

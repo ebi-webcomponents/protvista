@@ -47,8 +47,11 @@ export { validateConfig } from './validate.js';
 export type { ValidationIssueCode } from './validate.js';
 
 // ── Loader ───────────────────────────────────────────────────
-export { loadConfig } from './load.js';
-export type { LoadConfigOptions } from './load.js';
+export { loadConfig, loadConfigWithSource } from './load.js';
+export type { LoadConfigOptions, LoadedConfig } from './load.js';
+
+// ── Writing a customized layout back to authored config ──────
+export { applyLayoutToConfig, configToYaml } from './denormalize.js';
 
 // ── Extends merger ─────────────────────────────────────
 export { mergeExtends } from './extends.js';

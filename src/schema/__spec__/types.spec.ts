@@ -288,7 +288,14 @@ describe('Escape-hatch API signatures', () => {
       registerTheme: noop,
       registerComponent: noop,
       setTrackData: noop,
-      setConfig: noop,
+      setRowOrder: noop,
+      setTrackOrder: noop,
+      setRowVisibility: noop,
+      setTrackVisibility: noop,
+      resetLayout: noop,
+      getLayout: () => ({ order: null, tracks: {}, hidden: { rows: {}, tracks: {} } }),
+      getConfig: () => undefined,
+      setConfig: () => Promise.resolve(),
       on: noop,
     };
     const kindDef: SemanticKindDefinition = {

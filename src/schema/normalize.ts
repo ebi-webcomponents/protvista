@@ -118,6 +118,15 @@ export interface NormalizedRow {
   rendering: RenderingOptions;
   tracks: NormalizedTrack[];
   /**
+   * When `true`, this row is not rendered. `undefined` means visible.
+   *
+   * The same field an author writes and a user toggles: customize mode
+   * rewrites it in place, so a hidden row's state is in the config and
+   * `getConfig()` exports it. On a standalone row it mirrors the wrapped
+   * track's `hidden`.
+   */
+  hidden?: boolean;
+  /**
    * Set only on the synthetic single-track row that wraps an authored
    * standalone track (a top-level `rows:` entry with no `tracks:`).
    * The renderer reads this to render one row with no group-collapse
@@ -148,6 +157,12 @@ export interface NormalizedTrack {
   dataTooltip?: AuthoredTooltipSpec;
   filter?: string;
   filterUI?: 'nightingale-filter';
+  /**
+   * When `true`, this track is not rendered. `undefined` means visible.
+   * The same field an author writes and a user toggles — see
+   * `NormalizedRow.hidden`.
+   */
+  hidden?: boolean;
   /** Resolved cascade: defaults → group → kind preset → track. */
   rendering: RenderingOptions;
 }
@@ -288,6 +303,7 @@ function normalizeGroup(
     component,
     rendering: groupRendering,
     tracks,
+    ...(c.hidden !== undefined ? { hidden: c.hidden } : {}),
   };
 }
 
@@ -335,6 +351,9 @@ function normalizeStandalone(
     component: track.component,
     rendering: { ...defaults.rendering },
     tracks: [track],
+    // A standalone row's visibility mirrors its single wrapped track,
+    // so hiding the lane and hiding the track are the same author intent.
+    ...(t.hidden !== undefined ? { hidden: t.hidden } : {}),
     standalone: true,
   };
 }
@@ -398,6 +417,7 @@ function normalizeTrack(
       : {}),
     ...(t.filter !== undefined ? { filter: t.filter } : {}),
     ...(t.filterUI !== undefined ? { filterUI: t.filterUI } : {}),
+    ...(t.hidden !== undefined ? { hidden: t.hidden } : {}),
     rendering,
   };
 }

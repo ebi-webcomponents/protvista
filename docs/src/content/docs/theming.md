@@ -94,6 +94,8 @@ cascades everywhere it is used.
 | `--protvista-color-surface` | color | `#ffffff` | Surface/background for popovers and panels. |
 | `--protvista-color-border` | color | `#c5c8cc` | Default border for popovers and panels. |
 | `--protvista-color-disabled` | color | `#808080` | Disabled controls. |
+| `--protvista-color-bg-hover` | color | `#f1f7ff` | Background of hovered interactive chrome (buttons, list rows). |
+| `--protvista-color-bg-active` | color | `#e6f3ff` | Background of an active/pressed control (toggle buttons). |
 | `--protvista-radius` | length | `4px` | Corner radius for popovers and controls. |
 | `--protvista-shadow-popover` | shadow | `0 4px 12px rgb(0 0 0 / 0.15)` | Drop shadow for floating popovers. |
 
@@ -103,10 +105,10 @@ cascades everywhere it is used.
 | --- | --- | --- | --- |
 | `--protvista-track-content-width` | length | `80vw` | Width of the track-content (visualisation) column. |
 | `--protvista-label-width` | length | `20vw` | Width of the label column (group/track/nav labels, credits). |
-| `--protvista-group-label-bg` | color | `#b2f5ff` | Background of collapsible group labels. |
-| `--protvista-track-label-bg` | color | `#d9faff` | Background of individual track labels. |
-| `--protvista-track-border-color` | color | `var(--protvista-track-label-bg)` | Top border between stacked track rows. |
-| `--protvista-caret-color` | color | `#333333` | Group-label expand/collapse caret. |
+| `--protvista-group-label-bg` | color | `#f1f3f5` | Background of collapsible group labels. |
+| `--protvista-track-label-bg` | color | `#ffffff` | Background of individual track labels. |
+| `--protvista-track-border-color` | color | `#e3e6ea` | Hairline ruling the viewer grid: between rows, and between the label column and the track area. |
+| `--protvista-caret-color` | color | `#5b6169` | Group-label expand/collapse caret. |
 | `--protvista-nav-handle-fill` | color | `darkgrey` | Fill of the navigation zoom handles. |
 | `--protvista-nav-handle-stroke` | color | `black` | Stroke of the navigation zoom handles. |
 | `--protvista-no-results-bg` | color | `#e4e8eb` | Background of the "no results" empty state. |

@@ -86,6 +86,21 @@ Reactive properties on the `<protvista-uniprot>` element (HTML attribute name in
 - `nostructure` [`nostructure`]: `boolean` (default `false`) — suppresses the PDBe 3D structure group.
 - `notooltip` [`notooltip`]: `boolean` (default `false`) — suppresses the built-in click tooltip. Typically set by embedders rendering their own overlay. See [React host integration](https://ebi-webcomponents.github.io/protvista/react-integration) for the consumer-side pattern.
 - `suspend` [`suspend`]: `boolean` (default `false`) — pauses rendering. Useful when the accession is about to change and you want to avoid a flash of intermediate state.
+- `noPersistLayout` [`no-persist-layout`]: `boolean` (default `false`) — opts out of layout persistence (a user's reorder/show-hide is neither restored on mount nor saved to localStorage or the `?layout=` URL). See [Customize the layout](https://ebi-webcomponents.github.io/protvista/customize-layout).
+
+### Layout (Customize layout)
+
+End users can reorder rows (with move-up/down buttons), reorder tracks within a group, and show/hide either, using controls that appear on the rows themselves in **Customize** mode; the same layout can be driven programmatically. A layout edit rewrites the viewer's config, so `getConfig()` exports exactly what the user arranged. Each method emits a `protvista-layout-change` event (see [Events](#events)).
+
+- `setRowOrder(order: string[])`: reorder the rows by id.
+- `setTrackOrder(rowId: string, order: string[])`: reorder the tracks within one row. Movement is two-level — a track cannot leave its group, because a nested config has no way to record where it went.
+- `setRowVisibility(rowId: string, visible: boolean)`: show/hide a whole lane (group or standalone track).
+- `setTrackVisibility(groupId: string, trackId: string, visible: boolean)`: show/hide one track within a group.
+- `resetLayout()`: restore the authored config (drop every reorder + show/hide).
+- `getConfig(): ProtvistaViewerConfig | undefined`: the arranged view as an authored config — save it, share it, or hand it back to `setConfig()`.
+- `getLayout(): { order: string[] | null; tracks: Record<string, string[]>; hidden: { rows: Record<string, boolean>; tracks: Record<string, Record<string, boolean>> } }`: the compact diff from the authored config, which is what persistence stores.
+
+A layout persists per-config in localStorage and in a shareable `?layout=` URL parameter. See [Customize the layout](https://ebi-webcomponents.github.io/protvista/customize-layout) for the controls, the `hidden` field, accessibility, and persistence.
 
 ## Development
 
@@ -131,14 +146,14 @@ Every push and pull request runs three steps via [`.github/workflows/test-and-de
 
 Coverage is gated by a fixed floor (a coverage ratchet, #162) configured under `test.coverage.thresholds` in [`vite.config.mjs`](./vite.config.mjs) and enforced by the CI coverage step. The floor is bumped up manually as coverage improves and is never lowered without justification.
 
-Captured 2026-07-21 via `yarn test:coverage` (v8 instrumentation, 533 tests across 32 spec files):
+Captured 2026-07-24 via `yarn test:coverage` (v8 instrumentation, 727 tests across 53 spec files):
 
 | Metric     | Coverage % | Floor |
 | ---------- | ---------- | ----- |
-| Statements | 75.81      | 74    |
-| Branches   | 71.26      | 70    |
-| Functions  | 73.39      | 72    |
-| Lines      | 76.82      | 75    |
+| Statements | 82.45      | 80    |
+| Branches   | 75.60      | 74    |
+| Functions  | 80.24      | 78    |
+| Lines      | 83.91      | 81    |
 
 ## Performance benchmarks
 
@@ -188,6 +203,7 @@ The viewer renders a single collapsible group "Domains" (label title-cased from 
 - **Adapter reference.** [Adapter reference](https://ebi-webcomponents.github.io/protvista/adapter-reference) lists the expected payload shape and fields for every built-in kind and adapter, generated from the adapter code and drift-tested. A machine-readable schema for the bring-your-own feature record is served at [`feature-record.schema.json`](./public/schema/v1/feature-record.schema.json).
 - **Authoring `dataTooltip`.** [Author tooltips](https://ebi-webcomponents.github.io/protvista/data-tooltip) covers the three authoring forms (bare string, `kind: fields`, `kind: markdown`) with examples.
 - **React host integration.** [Rich tooltips in React](https://ebi-webcomponents.github.io/protvista/react-integration) shows how a React host owns its own rich tooltips via the `change` event + `notooltip`, with a minimal worked example. The normative contract is [`specs/config-approach.md`](./specs/config-approach.md#react-host-integration).
+- **Customize the layout.** [Customize the layout](https://ebi-webcomponents.github.io/protvista/customize-layout) covers the end-user "Customize layout" controls (reorder + show/hide), the authored `hidden: true` default for shipping a group/track hidden on first mount, the runtime layout API, and per-config persistence + the shareable `?layout=` URL.
 
 ## Events
 
@@ -202,6 +218,23 @@ detail: {
   hasData: true;
 }
 ```
+
+A `protvista-layout-change` event is emitted whenever the user (or the
+runtime API) reorders or shows/hides a track. Its `detail` is the current
+layout overlay, the same shape `getLayout()` returns:
+
+```js
+detail: {
+  // row ids in the user's order, or null for the authored order
+  order: ['VARIATION', 'DOMAINS_AND_SITES', 'MOLECULE_PROCESSING'],
+  // per-row track order, keyed by row id (rows left as authored are omitted)
+  tracks: { DOMAINS_AND_SITES: ['domain', 'region'] },
+  // show/hide overrides — whole rows, and tracks within a row
+  hidden: { rows: { MOLECULE_PROCESSING: true }, tracks: {} }
+}
+```
+
+See [Customize the layout](https://ebi-webcomponents.github.io/protvista/customize-layout) for the full layout API and persistence model.
 
 ## Publishing
 
