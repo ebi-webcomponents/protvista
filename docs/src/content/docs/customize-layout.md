@@ -187,3 +187,11 @@ is the right choice for an embedder that manages layout itself:
 ```html
 <protvista-uniprot accession="P05067" no-persist-layout></protvista-uniprot>
 ```
+
+## Next steps
+
+- [Author a config](/protvista/configure) — where `hidden:` and the rest of the config structure live.
+- [Escape hatches](/protvista/escape-hatches) — the other runtime registration methods (`registerAdapter`, `setTrackData`) the layout API sits beside.
+- [Configuration vs data](/protvista/configuration-vs-data) — why an arranged view exports as a config rather than a parallel overlay.
+
+_Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._
