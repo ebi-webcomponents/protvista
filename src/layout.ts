@@ -28,9 +28,20 @@ export function trackKey(rowId: string, trackId: string): string {
   return `${rowId}-${trackId}`;
 }
 
-/** The empty patch: authored order, no visibility overrides. */
+/**
+ * The empty patch: authored order, no visibility overrides.
+ *
+ * The id-keyed maps are `Object.create(null)` so a config whose row/track id
+ * happens to be an `Object.prototype` member name (`constructor`, `toString`,
+ * `__proto__`, …) can't have a lookup resolve to an inherited value — which
+ * would otherwise make `applyPatch` throw or apply a garbage `hidden`.
+ */
 export function emptyPatch(): LayoutPatch {
-  return { order: null, tracks: {}, hidden: {} };
+  return {
+    order: null,
+    tracks: Object.create(null),
+    hidden: { rows: Object.create(null), tracks: Object.create(null) },
+  };
 }
 
 /** Whether a patch would leave the authored config untouched. */
@@ -38,7 +49,8 @@ export function isDefaultPatch(patch: LayoutPatch): boolean {
   return (
     patch.order === null &&
     Object.keys(patch.tracks).length === 0 &&
-    Object.keys(patch.hidden).length === 0
+    Object.keys(patch.hidden.rows).length === 0 &&
+    Object.keys(patch.hidden.tracks).length === 0
   );
 }
 
@@ -309,7 +321,7 @@ export function diffLayout(
     if (!sameIds(from.tracks, row.tracks)) {
       patch.tracks[row.id] = row.tracks.map((t) => t.id);
     }
-    if (!!row.hidden !== !!from.hidden) patch.hidden[row.id] = !!row.hidden;
+    if (!!row.hidden !== !!from.hidden) patch.hidden.rows[row.id] = !!row.hidden;
 
     // A standalone row's track hide is the row hide; recording both would
     // double-count and let the two drift apart in storage.
@@ -318,7 +330,9 @@ export function diffLayout(
     for (const track of row.tracks) {
       const fromTrack = trackById.get(track.id);
       if (fromTrack && !!track.hidden !== !!fromTrack.hidden) {
-        patch.hidden[trackKey(row.id, track.id)] = !!track.hidden;
+        let hides = patch.hidden.tracks[row.id];
+        if (!hides) hides = patch.hidden.tracks[row.id] = Object.create(null);
+        hides[track.id] = !!track.hidden;
       }
     }
   }
@@ -335,11 +349,12 @@ export function applyPatch(
   patch: LayoutPatch
 ): NormalizedRow[] {
   return orderByIds(base, patch.order).map((row) => {
+    const trackHides = patch.hidden.tracks[row.id];
     const tracks = orderByIds(row.tracks, patch.tracks[row.id]).map((track) => {
-      const override = patch.hidden[trackKey(row.id, track.id)];
+      const override = trackHides ? trackHides[track.id] : undefined;
       return override === undefined ? track : { ...track, hidden: override };
     });
-    const rowOverride = patch.hidden[row.id];
+    const rowOverride = patch.hidden.rows[row.id];
     const next: NormalizedRow = { ...row, tracks };
     if (rowOverride !== undefined) {
       next.hidden = rowOverride;

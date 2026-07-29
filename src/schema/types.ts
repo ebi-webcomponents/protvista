@@ -705,12 +705,20 @@ export interface LayoutPatch {
    */
   tracks: Record<string, string[]>;
   /**
-   * Show/hide choices that differ from the config's authored `hidden`, keyed
-   * by row id (a whole lane) or the `${groupId}-${trackId}` composite (a
-   * track within a group). `true` = hidden, `false` = shown. A standalone row
-   * is recorded under its row id only, never both.
+   * Show/hide choices that differ from the config's authored `hidden`. `true`
+   * = hidden, `false` = shown. Split into two maps so row ids and track ids
+   * never share a key space — a flat `${groupId}-${trackId}` composite would
+   * collide with a row id when ids contain hyphens (`region-of-interest`),
+   * silently corrupting a persisted layout.
+   *
+   * - `rows`   — keyed by row id (a whole lane). A standalone row is recorded
+   *   here only, never under `tracks`.
+   * - `tracks` — keyed by row id, then track id (a track within a group).
    */
-  hidden: Record<string, boolean>;
+  hidden: {
+    rows: Record<string, boolean>;
+    tracks: Record<string, Record<string, boolean>>;
+  };
 }
 
 /**
@@ -840,9 +848,11 @@ export interface ProtvistaRuntimeAPI {
   /**
    * Replace the entire viewer configuration at runtime. Triggers a
    * full re-render (components re-registered, theme re-applied, data
-   * re-loaded).
+   * re-loaded). Resolves once the new config has loaded and applied, so
+   * a caller can `await` it before reading back state or catching a load
+   * error — the implementation is `async`.
    */
-  setConfig(config: ProtvistaViewerConfig | string): void;
+  setConfig(config: ProtvistaViewerConfig | string): Promise<void>;
 
   /** Subscribe to viewer events (selection, zoom, data-loaded). */
   on(event: string, callback: (detail: unknown) => void): void;

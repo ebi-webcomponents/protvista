@@ -99,7 +99,7 @@ End users can reorder rows (with move-up/down buttons), reorder tracks within a 
 - `setTrackVisibility(groupId: string, trackId: string, visible: boolean)`: show/hide one track within a group.
 - `resetLayout()`: restore the authored config (drop every reorder + show/hide).
 - `getConfig(): ProtvistaViewerConfig | undefined`: the arranged view as an authored config — save it, share it, or hand it back to `setConfig()`.
-- `getLayout(): { order: string[] | null; tracks: Record<string, string[]>; hidden: Record<string, boolean> }`: the compact diff from the authored config, which is what persistence stores.
+- `getLayout(): { order: string[] | null; tracks: Record<string, string[]>; hidden: { rows: Record<string, boolean>; tracks: Record<string, Record<string, boolean>> } }`: the compact diff from the authored config, which is what persistence stores.
 
 A layout persists per-config in localStorage and in a shareable `?layout=` URL parameter. See [Track configuration](./docs/track-configuration.md) for the controls, the `hidden` field, accessibility, and persistence.
 
@@ -219,9 +219,12 @@ layout overlay, the same shape `getLayout()` returns:
 
 ```js
 detail: {
-  // flat ${groupId}-${trackId} track order, or null for the authored order
-  order: ['VARIATION-variants', 'DOMAINS_AND_SITES-domain'],
-  hidden: { MOLECULE_PROCESSING: true } // row id or `groupId-trackId`
+  // row ids in the user's order, or null for the authored order
+  order: ['VARIATION', 'DOMAINS_AND_SITES', 'MOLECULE_PROCESSING'],
+  // per-row track order, keyed by row id (rows left as authored are omitted)
+  tracks: { DOMAINS_AND_SITES: ['domain', 'region'] },
+  // show/hide overrides — whole rows, and tracks within a row
+  hidden: { rows: { MOLECULE_PROCESSING: true }, tracks: {} }
 }
 ```
 

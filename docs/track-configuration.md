@@ -22,8 +22,8 @@ where they are, so you watch them reflow as you arrange them.
 
 Each row and each track offers:
 
-- a **show/hide toggle** (an eye / slashed-eye icon paired with a "Hide" /
-  "Show" action label);
+- a **show/hide switch** (`role="switch"`; its thumb position and
+  `aria-checked` carry the state, so no colour or word is needed);
 - **move-up / move-down** buttons to reorder it.
 
 A group header carries the same controls, plus a collapse/expand button, and
@@ -70,13 +70,14 @@ Customize mode is built to WCAG 2.1 AA:
 - **Keyboard**: reordering is by button, so it never depends on a dragging
   gesture (2.5.7). Focus stays on the moved row, moving to the opposite
   button when the one you pressed becomes disabled at an end.
-- **Screen readers**: real `<button>` controls with accessible names ("Hide
-  Domains", "Move Domains up"); the toggle carries `aria-pressed`; a polite
-  live region announces each move ("Domains moved to position 2 of 12"), hide,
-  and show (4.1.3).
+- **Screen readers**: real `<button>` controls with accessible names ("Show
+  Domains", "Move Domains up"); the show/hide control is a `role="switch"`
+  reporting `aria-checked`; a polite live region announces each move ("Domains
+  moved to position 2 of 12"), hide, and show (4.1.3).
 - **Focus**: a visible focus ring on every control (2.4.7).
-- **No colour-only state**: show/hide state is carried by the icon shape *and*
-  the action word, never colour alone (1.4.1).
+- **No colour-only state**: show/hide state is carried by the switch thumb's
+  position and `aria-checked`, never colour alone (1.4.1); the off track also
+  meets 3:1 non-text contrast (1.4.11) and has a forced-colors fallback.
 - **Target size**: every control is at least 24×24 px (2.5.8).
 - **Motion**: the just-moved highlight keeps its outline but drops its fade
   under `prefers-reduced-motion`.
@@ -144,7 +145,8 @@ await viewer.setConfig(config);
 // Read the compact diff from the authored config (safe to keep / serialize).
 const patch = viewer.getLayout();
 // → { order: string[] | null, tracks: Record<string, string[]>,
-//     hidden: Record<string, boolean> }
+//     hidden: { rows: Record<string, boolean>,
+//               tracks: Record<string, Record<string, boolean>> } }
 
 viewer.addEventListener('protvista-layout-change', (e) => {
   // e.detail is the same LayoutPatch shape as getLayout()
@@ -156,9 +158,9 @@ viewer.addEventListener('protvista-layout-change', (e) => {
 returns the whole arranged configuration, in the shape it was authored — that
 is the artifact to save or share. `getLayout()` returns only the **diff** from
 the authored config: which rows moved (`order`), which tracks moved within
-their row (`tracks`), and what was shown or hidden (`hidden`, keyed by row id
-or the `groupId-trackId` composite). The diff exists because it is small
-enough to put in a URL.
+their row (`tracks`), and what was shown or hidden (`hidden`, split into
+`hidden.rows` keyed by row id and `hidden.tracks` keyed by row id then track
+id). The diff exists because it is small enough to put in a URL.
 
 ## Persistence and sharing
 

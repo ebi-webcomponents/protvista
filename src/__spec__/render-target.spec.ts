@@ -333,8 +333,16 @@ const testData: Record<string, unknown> = {
   'GROUP_CANVAS-canvas_track_B': [{ type: 'REGION', start: 60, end: 80 }],
   GROUP_LINEGRAPH: [{ values: [1, 2, 3] }],
   'GROUP_LINEGRAPH-linegraph_track': [{ values: [1, 2, 3] }],
-  GROUP_VARIATION: { sequence: SEQUENCE, variants: [] },
-  'GROUP_VARIATION-variation': { sequence: SEQUENCE, variants: [] },
+  // Non-empty `variants`: an empty bundle now reads as "no data"
+  // (hasRenderableData judges a `{ sequence, variants }` bundle by its
+  // variants), so the group would otherwise not render. Variants are pushed as
+  // a JS property, not serialized into the snapshot, so their content is inert
+  // here — only their presence matters.
+  GROUP_VARIATION: { sequence: SEQUENCE, variants: [{ start: 1, end: 1 }] },
+  'GROUP_VARIATION-variation': {
+    sequence: SEQUENCE,
+    variants: [{ start: 1, end: 1 }],
+  },
   GROUP_COLORED_SEQ: [{ values: [0.5, 0.9] }],
   'GROUP_COLORED_SEQ-colored_seq_track': [{ values: [0.5, 0.9] }],
   GROUP_HEATMAP: [{ values: [] }],
@@ -586,18 +594,31 @@ describe('handleGroupClick — group collapse / expand toggle', () => {
 
   it('expands then collapses when a nested descendant of the label is clicked', () => {
     const el = buildInstance();
-    const { host, inner } = toggleHost('GROUP_CANVAS');
+    const { inner } = toggleHost('GROUP_CANVAS');
 
     // First click — target is the nested span; the handler climbs to the
-    // toggle host and expands the group.
+    // toggle host and expands the group. Expansion lives in `openGroups` (the
+    // reactive source of truth the template renders the `open` class from),
+    // not in an imperative class on the clicked element.
     el.handleGroupClick({ target: inner } as unknown as MouseEvent);
     expect(el.openGroups).toContain('GROUP_CANVAS');
-    expect(host.classList.contains('open')).toBe(true);
 
     // Second click on the same host collapses it again.
     el.handleGroupClick({ target: inner } as unknown as MouseEvent);
     expect(el.openGroups).not.toContain('GROUP_CANVAS');
-    expect(host.classList.contains('open')).toBe(false);
+  });
+
+  it('collapses in one click a group opened via openGroups (badge / customize path)', () => {
+    const el = buildInstance();
+    // The "N hidden" badge and the customize-mode collapse button push
+    // straight into `openGroups` without the imperative `open` class the old
+    // handler read its direction from. Collapsing must still take one click,
+    // and must not leave a duplicate id behind.
+    el.openGroups = ['GROUP_CANVAS'];
+    const { inner } = toggleHost('GROUP_CANVAS');
+
+    el.handleGroupClick({ target: inner } as unknown as MouseEvent);
+    expect(el.openGroups).not.toContain('GROUP_CANVAS');
   });
 
   it('ignores clicks that are not inside a group-toggle host', () => {
@@ -620,7 +641,192 @@ describe('handleGroupClick — group collapse / expand toggle', () => {
     host.append(link);
     el.handleGroupClick({ target: link } as unknown as MouseEvent);
     expect(el.openGroups).not.toContain('GROUP_CANVAS');
-    expect(host.classList.contains('open')).toBe(false);
+  });
+});
+
+// A group with no data for the current protein (e.g. RNA editing on a protein
+// with none) draws nothing. It must not sit in the normal-mode `repeat` as a
+// phantom empty entry that flips to a stub in customize mode and back —
+// leaving the stub behind. Empty rows are dropped from the normal-mode list
+// (customize mode still lists them as stubs), giving them the same clean
+// add-then-remove lifecycle as hidden rows.
+describe('_rowsToRender — dataless rows are dropped from the normal-mode list', () => {
+  const config = {
+    rows: [
+      { id: 'WITH_DATA', tracks: [{ id: 't1' }] },
+      { id: 'EMPTY', tracks: [{ id: 't2' }] },
+    ],
+  };
+
+  it('drops a dataless group in normal mode but keeps it (as a stub) while customizing', () => {
+    const el = buildInstance({
+      config,
+      // Only WITH_DATA has a payload; EMPTY has no data or error.
+      data: { 'WITH_DATA-t1': [{ start: 1, end: 5 }] },
+    });
+
+    expect(el._rowsToRender().map((d: any) => d.row.id)).toEqual(['WITH_DATA']);
+
+    el._customizeMode = true;
+    expect(el._rowsToRender().map((d: any) => d.row.id)).toEqual([
+      'WITH_DATA',
+      'EMPTY',
+    ]);
+  });
+
+  it('keeps a dataless group that has a visible fetch error', () => {
+    const el = buildInstance({
+      config,
+      data: { 'WITH_DATA-t1': [{ start: 1, end: 5 }] },
+    });
+    // A fetch error is a reason to show the group (its ⚠ badge), so it stays.
+    el._trackErrors = new Map([
+      ['EMPTY-t2', { groupId: 'EMPTY', trackId: 't2', url: 'x', kind: 'http' }],
+    ]);
+    el._recomputeErrorVisibility();
+
+    expect(el._rowsToRender().map((d: any) => d.row.id)).toEqual([
+      'WITH_DATA',
+      'EMPTY',
+    ]);
+  });
+
+  it('drops a group whose only data sits in a hidden track', () => {
+    // A group is judged by its *visible* tracks, not the group aggregate: the
+    // aggregate (this.data['G']) is computed from every track at load — so it
+    // still carries the hidden track's data, as in the app — yet the group
+    // draws nothing once the only data-bearing track is hidden, and must drop.
+    const el = buildInstance({
+      config: {
+        rows: [
+          {
+            id: 'G',
+            tracks: [{ id: 'vis' }, { id: 'hid', hidden: true }],
+          },
+        ],
+      },
+      data: {
+        G: [{ start: 1, end: 5 }], // aggregate retains the hidden track's data
+        'G-hid': [{ start: 1, end: 5 }], // data only on the hidden track
+      },
+    });
+
+    expect(el._rowsToRender().map((d: any) => d.row.id)).toEqual([]);
+  });
+});
+
+// In customize mode a dataless group renders as a stub, and its collapse arrow
+// must actually list the tracks it could hold (each a stub) — otherwise the
+// arrow toggles but nothing happens.
+describe('customize mode — a dataless group expands to its track stubs', () => {
+  const config = {
+    rows: [
+      {
+        id: 'G',
+        label: 'G',
+        tracks: [
+          { id: 't1', label: 'T1' },
+          { id: 't2', label: 'T2' },
+        ],
+      },
+    ],
+  };
+
+  it('lists the group tracks as stubs when expanded', () => {
+    const el = buildInstance({
+      config,
+      data: {}, // no data anywhere → the group renders as a stub
+      _customizeMode: true,
+      openGroups: ['G'],
+    });
+    const target = document.createElement('div');
+    render(el.render(), target);
+
+    expect(target.querySelector(`#${CSS_PREFIX}-group_G`)).not.toBeNull();
+    expect(target.querySelector(`#${CSS_PREFIX}-track_t1`)).not.toBeNull();
+    expect(target.querySelector(`#${CSS_PREFIX}-track_t2`)).not.toBeNull();
+  });
+
+  it('hides the track stubs when collapsed', () => {
+    const el = buildInstance({
+      config,
+      data: {},
+      _customizeMode: true,
+      openGroups: [], // collapsed
+    });
+    const target = document.createElement('div');
+    render(el.render(), target);
+
+    expect(target.querySelector(`#${CSS_PREFIX}-group_G`)).not.toBeNull();
+    expect(target.querySelector(`#${CSS_PREFIX}-track_t1`)).toBeNull();
+  });
+});
+
+// The group's show/hide switch reflects whether the group actually draws
+// anything — not just its own `hidden` flag. Hiding the only data-bearing
+// track (the rest empty for this protein) leaves the group drawing nothing, so
+// its toggle reads off, yet stays enabled so it can reveal the group again.
+describe('customize mode — group toggle follows the group’s drawn content', () => {
+  const groupSwitch = (target: HTMLElement) =>
+    target.querySelector(
+      `#${CSS_PREFIX}-group_G .${CSS_PREFIX}-row-controls button[role="switch"]`
+    )!;
+
+  // A group 'G' with one data-bearing track ('data') and one empty track;
+  // `dataHidden` hides the data-bearing one. `component`/`rendering` are part
+  // of the normalized shape the render path reads.
+  const canvas = 'nightingale-track-canvas' as const;
+  const config = (dataHidden: boolean) => ({
+    rows: [
+      {
+        id: 'G',
+        label: 'G',
+        component: canvas,
+        rendering: {},
+        tracks: [
+          {
+            id: 'data',
+            label: 'Data',
+            component: canvas,
+            rendering: {},
+            ...(dataHidden ? { hidden: true } : {}),
+          },
+          { id: 'empty', label: 'Empty', component: canvas, rendering: {} },
+        ],
+      },
+    ],
+  });
+  // 'data' (and the group aggregate) carry data; 'empty' has none.
+  const data = { G: [{ start: 1, end: 5 }], 'G-data': [{ start: 1, end: 5 }] };
+
+  it('shows the group toggle off once its only data-bearing track is hidden', () => {
+    const el = buildInstance({
+      config: config(true),
+      data,
+      _customizeMode: true,
+      openGroups: ['G'],
+    });
+    const target = document.createElement('div');
+    render(el.render(), target);
+
+    const sw = groupSwitch(target);
+    expect(sw.getAttribute('aria-checked')).toBe('false');
+    // Enabled: there IS data to bring back (the hidden track), so clicking it
+    // reveals the group rather than being a disabled no-op.
+    expect(sw.hasAttribute('disabled')).toBe(false);
+  });
+
+  it('keeps the group toggle on while a visible track still has data', () => {
+    const el = buildInstance({
+      config: config(false),
+      data,
+      _customizeMode: true,
+      openGroups: ['G'],
+    });
+    const target = document.createElement('div');
+    render(el.render(), target);
+
+    expect(groupSwitch(target).getAttribute('aria-checked')).toBe('true');
   });
 });
 

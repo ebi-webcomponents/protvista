@@ -71,12 +71,14 @@ layout API, which rewrites the config, and per-config persistence. See
 [`docs/track-configuration.md`](./track-configuration.md).
 
 - **axe:** no violations with the mode active on a mounted viewer.
-- **Real controls:** show/hide is a `<button>` with `aria-pressed` plus an
-  action word ("Hide X" / "Show X") and an eye / slashed-eye icon, never
-  colour or icon alone. Reordering is move-up/down buttons only — there is no
-  drag gesture to fail WCAG 2.5.7. Controls are at least 24×24 px (2.5.8).
-- **Dead ends removed:** a track with no data has its Show control disabled
-  and named "No data for X", rather than offering a press that visibly does
+- **Real controls:** show/hide is a `role="switch"` `<button>` whose state
+  rides on `aria-checked` and the thumb's position, never colour alone; its
+  accessible name is a stable purpose ("Show X"). Its off track meets 3:1
+  non-text contrast (1.4.11) and has a `forced-colors` fallback. Reordering is
+  move-up/down buttons only — there is no drag gesture to fail WCAG 2.5.7.
+  Controls are at least 24×24 px (2.5.8).
+- **Dead ends removed:** a track with no data has its Show switch disabled
+  and named "Show X — no data", rather than offering a press that visibly does
   nothing. The "N hidden" badge is a button, not a `<span title>`, so the
   explanation of how to undo a hide is reachable without a mouse — and
   pressing it opens the groups holding those tracks, then announces how many
@@ -91,8 +93,9 @@ layout API, which rewrites the config, and per-config persistence. See
   beside the navigation, so entering the mode does not move the visualization
   — a browser test pins that the manager's position is unchanged.
 - **Hidden in place:** a hidden row or track stays where it was as a dimmed
-  stub with a muted italic label, an eye-slash icon, and a "Show" action word,
-  so its state never rides on colour or opacity alone. Outside the mode a
+  stub with a muted italic label and its switch turned off (`aria-checked`
+  false, thumb left), so its state never rides on colour or opacity alone.
+  Outside the mode a
   "N hidden" count reports what is missing, and an all-hidden viewer says so
   rather than rendering an empty frame.
 

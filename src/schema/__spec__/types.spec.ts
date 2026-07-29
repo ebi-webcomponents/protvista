@@ -293,9 +293,9 @@ describe('Escape-hatch API signatures', () => {
       setRowVisibility: noop,
       setTrackVisibility: noop,
       resetLayout: noop,
-      getLayout: () => ({ order: null, tracks: {}, hidden: {} }),
+      getLayout: () => ({ order: null, tracks: {}, hidden: { rows: {}, tracks: {} } }),
       getConfig: () => undefined,
-      setConfig: noop,
+      setConfig: () => Promise.resolve(),
       on: noop,
     };
     const kindDef: SemanticKindDefinition = {

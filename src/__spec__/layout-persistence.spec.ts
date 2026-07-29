@@ -33,6 +33,16 @@ describe('configIdentity', () => {
     expect(configIdentity(base)).not.toBe(configIdentity(added));
   });
 
+  it('does not confuse a hyphenated row id with a row+track pair', () => {
+    // Row `x` with tracks `y`,`z` vs. row `x` with track `y` plus a separate
+    // row `x-z`: a delimiter-joined identity blurs these into the same token
+    // set and shares a saved layout across them. The JSON-encoded identity
+    // keeps them distinct.
+    const a = [row('x', ['y', 'z'])];
+    const b = [row('x', ['y']), row('x-z', [])];
+    expect(configIdentity(a)).not.toBe(configIdentity(b));
+  });
+
   it('produces a compact string key', () => {
     const id = configIdentity([row('A', ['t1'])]);
     expect(id).toMatch(/^[a-z0-9]+$/);
@@ -47,9 +57,18 @@ describe('isDefaultLayout', () => {
     expect(isDefaultLayout({ ...emptyPatch(), tracks: { A: ['t1'] } })).toBe(
       false
     );
-    expect(isDefaultLayout({ ...emptyPatch(), hidden: { A: true } })).toBe(
-      false
-    );
+    expect(
+      isDefaultLayout({
+        ...emptyPatch(),
+        hidden: { rows: { A: true }, tracks: {} },
+      })
+    ).toBe(false);
+    expect(
+      isDefaultLayout({
+        ...emptyPatch(),
+        hidden: { rows: {}, tracks: { A: { t1: true } } },
+      })
+    ).toBe(false);
   });
 });
 
@@ -58,7 +77,7 @@ describe('encodeLayout / decodeLayout', () => {
     const patch = {
       order: ['C', 'A', 'B'],
       tracks: { A: ['t2', 't1'] },
-      hidden: { A: true, 'A-t2': false },
+      hidden: { rows: { A: true }, tracks: { A: { t2: false } } },
     };
     expect(decodeLayout(encodeLayout(patch))).toEqual(patch);
   });
@@ -87,13 +106,30 @@ describe('encodeLayout / decodeLayout', () => {
       JSON.stringify({
         order: [1, 2],
         tracks: { A: ['t1'], B: 'nope' },
-        hidden: { A: true, B: 'yes', C: 1 },
+        hidden: {
+          rows: { A: true, B: 'yes' },
+          tracks: { A: { t2: false, t3: 1 }, C: 'nope' },
+        },
       })
     );
     expect(decodeLayout(token)).toEqual({
       order: null,
       tracks: { A: ['t1'] },
-      hidden: { A: true },
+      hidden: { rows: { A: true }, tracks: { A: { t2: false } } },
+    });
+  });
+
+  it('ignores a legacy flat hidden map rather than misreading it', () => {
+    // Pre-nesting tokens keyed row and track hides in one flat map. A stale
+    // shared link like that must decode to "no visibility overrides", not
+    // throw or smuggle the old keys into the new shape.
+    const token = btoa(
+      JSON.stringify({ order: null, tracks: {}, hidden: { A: true } })
+    );
+    expect(decodeLayout(token)).toEqual({
+      order: null,
+      tracks: {},
+      hidden: { rows: {}, tracks: {} },
     });
   });
 });

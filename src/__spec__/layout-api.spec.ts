@@ -157,10 +157,10 @@ describe('setTrackOrder', () => {
 describe('setRowVisibility', () => {
   it('hides a lane, removing it from the DOM, and emits', () => {
     el.setRowVisibility('B', false);
-    expect(el.getLayout().hidden).toEqual({ B: true });
+    expect(el.getLayout().hidden).toEqual({ rows: { B: true }, tracks: {} });
     expect(laneIds()).toEqual(['A', 'C']);
     expect(events).toHaveLength(1);
-    expect(events[0].hidden).toEqual({ B: true });
+    expect(events[0].hidden).toEqual({ rows: { B: true }, tracks: {} });
   });
 
   it('does not emit a second time for the same hidden state', () => {
@@ -173,7 +173,7 @@ describe('setRowVisibility', () => {
     el.setRowVisibility('B', false);
     el.setRowVisibility('B', true);
     expect(laneIds()).toEqual(['A', 'B', 'C']);
-    expect(el.getLayout().hidden).toEqual({});
+    expect(el.getLayout().hidden).toEqual({ rows: {}, tracks: {} });
     expect(events).toHaveLength(2);
   });
 
@@ -184,14 +184,17 @@ describe('setRowVisibility', () => {
 
     el.setRowVisibility('A', true);
     expect(laneIds()).toContain('A');
-    expect(el.getLayout().hidden).toEqual({});
+    expect(el.getLayout().hidden).toEqual({ rows: {}, tracks: {} });
   });
 });
 
 describe('setTrackVisibility', () => {
   it('hides one track within a group', () => {
     el.setTrackVisibility('A', 'At2', false);
-    expect(el.getLayout().hidden).toEqual({ 'A-At2': true });
+    expect(el.getLayout().hidden).toEqual({
+      rows: {},
+      tracks: { A: { At2: true } },
+    });
     expect(trackIds()).toContain('At1');
     expect(trackIds()).not.toContain('At2');
     expect(events).toHaveLength(1);
@@ -211,10 +214,18 @@ describe('resetLayout', () => {
     events.length = 0;
 
     el.resetLayout();
-    expect(el.getLayout()).toEqual({ order: null, tracks: {}, hidden: {} });
+    expect(el.getLayout()).toEqual({
+      order: null,
+      tracks: {},
+      hidden: { rows: {}, tracks: {} },
+    });
     expect(laneIds()).toEqual(['A', 'B', 'C']);
     expect(events).toHaveLength(1);
-    expect(events[0]).toEqual({ order: null, tracks: {}, hidden: {} });
+    expect(events[0]).toEqual({
+      order: null,
+      tracks: {},
+      hidden: { rows: {}, tracks: {} },
+    });
   });
 
   it('is a no-op (no event) when already at the authored default', () => {
@@ -227,9 +238,9 @@ describe('getLayout', () => {
   it('returns a copy that cannot mutate internal state', () => {
     el.setRowVisibility('B', false);
     const snapshot = el.getLayout();
-    snapshot.hidden.B = false;
+    snapshot.hidden.rows.B = false;
     snapshot.order = ['zzz'];
-    expect(el.getLayout().hidden).toEqual({ B: true });
+    expect(el.getLayout().hidden).toEqual({ rows: { B: true }, tracks: {} });
     expect(el.getLayout().order).toBeNull();
   });
 });

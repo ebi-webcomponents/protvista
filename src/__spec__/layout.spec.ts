@@ -176,6 +176,13 @@ describe('moveTrack', () => {
     expect(trackIdsOf(out[0])).toEqual(['a2', 'a1']);
   });
 
+  it('clamps an out-of-range destination to the last position', () => {
+    expect(trackIdsOf(moveTrack(rows(), 'A', 'a1', 99)[0])).toEqual([
+      'a2',
+      'a1',
+    ]);
+  });
+
   it('leaves other rows referentially untouched', () => {
     const input = rows();
     const out = moveTrack(input, 'A', 'a2', 0);
@@ -312,26 +319,27 @@ describe('diffLayout', () => {
     expect(patch.tracks).toEqual({ A: ['a2', 'a1'] });
   });
 
-  it('records a row hide under the row id', () => {
+  it('records a row hide under hidden.rows', () => {
     expect(diffLayout(rows(), setRowHidden(rows(), 'A', true)).hidden).toEqual({
-      A: true,
+      rows: { A: true },
+      tracks: {},
     });
   });
 
-  it('records a track hide under the composite key', () => {
+  it('records a track hide under hidden.tracks, nested by row then track', () => {
     const patch = diffLayout(rows(), setTrackHidden(rows(), 'A', 'a1', true));
-    expect(patch.hidden).toEqual({ 'A-a1': true });
+    expect(patch.hidden).toEqual({ rows: {}, tracks: { A: { a1: true } } });
   });
 
-  it('records a standalone row once, never under both keys', () => {
+  it('records a standalone row once, under hidden.rows only', () => {
     const patch = diffLayout(rows(), setRowHidden(rows(), 'S', true));
-    expect(patch.hidden).toEqual({ S: true });
+    expect(patch.hidden).toEqual({ rows: { S: true }, tracks: {} });
   });
 
   it('records revealing an author-hidden row as an explicit show', () => {
     const authored = [group('A', ['a1'], { hidden: true })];
     const patch = diffLayout(authored, setRowHidden(authored, 'A', false));
-    expect(patch.hidden).toEqual({ A: false });
+    expect(patch.hidden).toEqual({ rows: { A: false }, tracks: {} });
   });
 });
 
@@ -347,21 +355,31 @@ describe('applyPatch', () => {
   });
 
   it('replays row and track hides', () => {
-    const patch = { ...emptyPatch(), hidden: { B: true, 'A-a1': true } };
+    const patch = {
+      ...emptyPatch(),
+      hidden: { rows: { B: true }, tracks: { A: { a1: true } } },
+    };
     const out = applyPatch(rows(), patch);
     expect(out[1].hidden).toBe(true);
     expect(out[0].tracks[0].hidden).toBe(true);
   });
 
   it('keeps a standalone row and its track in step', () => {
-    const out = applyPatch(rows(), { ...emptyPatch(), hidden: { S: true } });
+    const out = applyPatch(rows(), {
+      ...emptyPatch(),
+      hidden: { rows: { S: true }, tracks: {} },
+    });
     expect(out[2].hidden).toBe(true);
     expect(out[2].tracks[0].hidden).toBe(true);
   });
 
   it('does not mutate the baseline', () => {
     const base = rows();
-    applyPatch(base, { ...emptyPatch(), order: ['S'], hidden: { A: true } });
+    applyPatch(base, {
+      ...emptyPatch(),
+      order: ['S'],
+      hidden: { rows: { A: true }, tracks: {} },
+    });
     expect(ids(base)).toEqual(['A', 'B', 'S']);
     expect(base[0].hidden).toBeUndefined();
   });
@@ -394,5 +412,65 @@ describe('diffLayout / applyPatch round-trip', () => {
 
     const replayed = applyPatch(base, diffLayout(base, arranged));
     expect(sameArrangement(replayed, arranged)).toBe(true);
+  });
+
+  // The riskiest branch: an author-hidden group whose one track the user
+  // reveals. `setTrackHidden` un-hides the row but re-hides its siblings, and
+  // the patch has to replay that faithfully (row shown, one track shown, the
+  // rest hidden) rather than revealing the whole group.
+  it('reproduces revealing one track of an author-hidden group', () => {
+    const base = [group('A', ['a1', 'a2'], { hidden: true })];
+    const arranged = setTrackHidden(base, 'A', 'a1', false);
+
+    const replayed = applyPatch(base, diffLayout(base, arranged));
+    expect(sameArrangement(replayed, arranged)).toBe(true);
+    // And concretely: the group is back, a1 visible, a2 still hidden.
+    expect(replayed[0].hidden).toBeFalsy();
+    expect(replayed[0].tracks[0].hidden).toBeFalsy();
+    expect(replayed[0].tracks[1].hidden).toBe(true);
+  });
+});
+
+// Ids are free-form strings, so the patch must never trust the prototype
+// chain (a row/track id of `constructor`/`__proto__`/`toString` would make a
+// plain-object lookup resolve to an inherited value) or blur id boundaries (a
+// row id `x-y` must not share a hidden key with track `y` of row `x`).
+describe('id-as-key robustness', () => {
+  it('does not crash or misapply when an id shadows an Object.prototype member', () => {
+    const base = [
+      group('constructor', ['toString', 'a2']),
+      standalone('__proto__'),
+    ];
+    const arranged = setTrackHidden(
+      setRowHidden(base, '__proto__', true),
+      'constructor',
+      'toString',
+      true
+    );
+    const patch = diffLayout(base, arranged);
+    // The round-trip survives prototype-name ids…
+    expect(sameArrangement(applyPatch(base, patch), arranged)).toBe(true);
+    // …and a reorder patch does not throw out of `orderByIds`.
+    const reordered = applyPatch(base, {
+      ...emptyPatch(),
+      order: ['__proto__', 'constructor'],
+    });
+    expect(ids(reordered)).toEqual(['__proto__', 'constructor']);
+  });
+
+  it('keeps a hyphenated row id distinct from a track hide key', () => {
+    // Row `A-a1` (a whole lane) and track `a1` of row `A` would collide under
+    // a flat `${rowId}-${trackId}` key; the split rows/tracks maps keep them
+    // apart.
+    const base = [group('A', ['a1', 'a2']), group('A-a1', ['x'])];
+    const arranged = setRowHidden(
+      setTrackHidden(base, 'A', 'a1', true),
+      'A-a1',
+      true
+    );
+    const patch = diffLayout(base, arranged);
+    expect(patch.hidden.rows['A-a1']).toBe(true);
+    expect(patch.hidden.tracks['A']['a1']).toBe(true);
+    expect(sameArrangement(applyPatch(base, patch), arranged)).toBe(true);
   });
 });

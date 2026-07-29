@@ -87,6 +87,7 @@ import {
   setRowHidden,
   setTrackHidden,
   trackKey,
+  visibleTracks,
 } from './layout';
 import {
   LAYOUT_PARAM,
@@ -221,6 +222,17 @@ const isAbortError = (e: unknown): boolean =>
 const hasRenderableData = (value: unknown): boolean => {
   if (value == null) return false;
   if (Array.isArray(value)) return value.length > 0;
+  // Variation / RNA-editing tracks carry a `{ sequence, variants }` bundle
+  // (see the adapters, and the `data.variants?.length` gate in
+  // `_loadDataInComponents`). That object always has keys, so a plain
+  // key-count reads an empty `variants: []` as "has data" — a phantom that
+  // draws nothing yet keeps its track/group from being treated as empty
+  // (leaving, e.g., RNA editing on a protein with none showing an empty lane
+  // once expanded). Judge a bundle by its variants, matching the display gate.
+  if (typeof value === 'object' && 'variants' in value) {
+    const { variants } = value as { variants?: unknown };
+    return Array.isArray(variants) && variants.length > 0;
+  }
   return Object.keys(value as object).length > 0;
 };
 
@@ -409,6 +421,15 @@ class ProtvistaUniprot extends LitElement {
   private _anyVisibleError = false;
 
   /**
+   * Plain-text labels, keyed by `accession\nsource`. `_labelText` is called
+   * per row and per track on every customize-mode render (and on the moved-key
+   * clear timer), and the derived text is stable for a given label + protein,
+   * so it is parsed once rather than on every frame. Cleared on every full
+   * (re)load (`_loadData`) so it can't accumulate across proteins.
+   */
+  private _labelTextCache: Map<string, string> = new Map();
+
+  /**
    * Per-instance nonce for DOM ids. The component renders in light DOM,
    * so badge `aria-describedby` ids must be unique across multiple
    * `<protvista-uniprot>` elements on one page (two with the same
@@ -452,7 +473,7 @@ class ProtvistaUniprot extends LitElement {
     this.nostructure = false;
     this.hasData = false;
     this.loading = true;
-    this.data = {};
+    this.data = Object.create(null);
     this.rawData = {};
     this.displayCoordinates = {};
     this.addStyles();
@@ -824,6 +845,11 @@ class ProtvistaUniprot extends LitElement {
       return;
     }
 
+    // A full (re)load means a new protein or config, so the plain-text label
+    // cache (keyed by accession+source) is stale — drop it, bounding growth to
+    // the current view. A targeted retry (`only`) leaves labels unchanged.
+    if (!only) this._labelTextCache.clear();
+
     // Abort and forget every in-flight batch this call supersedes: one
     // whose key-set intersects ours (a full load — no `only` — intersects
     // everything). Disjoint targeted retries share no keys, so they keep
@@ -948,7 +974,15 @@ class ProtvistaUniprot extends LitElement {
     // re-renders without needing a manual `requestUpdate()` at the
     // bottom of this method (the other two lines above still aren't
     // tracked properties, so we keep the call).
-    const merged: Record<string, unknown> = { ...this.data, ...data };
+    // Null-prototype so a bare-id aggregate lookup (`this.data[group.id]`)
+    // can't resolve to an inherited `Object.prototype` member for a group
+    // literally named `constructor`/`toString`/… — the same guarantee the
+    // layout patch maps get. Access is only ever bracket/`Object.entries`.
+    const merged: Record<string, unknown> = Object.assign(
+      Object.create(null),
+      this.data,
+      data
+    );
     // Drop stale per-track entries for tracks this batch (re)loaded but
     // the loader intentionally produced no data for — a failed fetch, or
     // an adapter that early-returns on an empty payload (e.g. variation).
@@ -1413,7 +1447,7 @@ class ProtvistaUniprot extends LitElement {
     this.config = undefined;
     this._baseRows = undefined;
     this._authoredConfig = undefined;
-    this.data = {};
+    this.data = Object.create(null);
     this.rawData = {};
     this.loading = true;
     await this._init();
@@ -2001,7 +2035,43 @@ class ProtvistaUniprot extends LitElement {
     const rows = this.config?.rows ?? [];
     return this._customizeMode
       ? rows.map((row) => ({ row, tracks: row.tracks }))
-      : displayRows(rows);
+      : displayRows(rows).filter((d) => this._rowRendersContent(d.row, d.tracks));
+  }
+
+  /**
+   * Whether a row draws anything on the canvas: a standalone track with data,
+   * or a group with a renderable *visible* track (or a visible fetch error).
+   *
+   * A group is judged by its *visible* `tracks` — the same slice
+   * `_renderGroupBlock` renders from — NOT by the group aggregate
+   * (`this.data[groupId]`). The aggregate is computed once from *every* track
+   * at load and is never recomputed when a track is hidden, so counting it
+   * would keep a group whose only data lives in a now-hidden track on screen as
+   * an empty lane. Judging by visible tracks means hiding the last track that
+   * actually draws also hides the group.
+   *
+   * Dropping these rows from the *normal-mode* list — rather than leaving them
+   * in the keyed `repeat` rendering to `''` — is what keeps a dataless group
+   * from lingering. Customize mode renders every row (as a stub, with hidden
+   * tracks ghosted), so the row's `repeat` key appears on entering the mode and
+   * must disappear on leaving it; an entry that instead flips between a stub and
+   * `''` on a *stable* key can leave its stub node behind. Hidden rows already
+   * work this way — this gives empty rows the same clean add-then-remove
+   * lifecycle.
+   */
+  private _rowRendersContent(
+    row: NormalizedRow,
+    tracks: NormalizedTrack[]
+  ): boolean {
+    if (row.standalone) {
+      const track = row.tracks[0];
+      return !!track && hasRenderableData(this.data[trackKey(row.id, track.id)]);
+    }
+    if (this._visibleGroupErrors.has(row.id)) return true;
+    return tracks.some((t) => {
+      const key = trackKey(row.id, t.id);
+      return hasRenderableData(this.data[key]) || this._trackErrors.has(key);
+    });
   }
 
   /** Render one row onto the canvas, with its customize-mode controls. */
@@ -2083,7 +2153,7 @@ class ProtvistaUniprot extends LitElement {
               )}
             </div>`
           : html`<div
-              class="${CSS_PREFIX}-group-label"
+              class="${CSS_PREFIX}-group-label${expanded ? ' open' : ''}"
               data-group-toggle="${group.id}"
               role="button"
               tabindex="0"
@@ -2223,8 +2293,10 @@ class ProtvistaUniprot extends LitElement {
 
   /** A whole row reduced to its label and controls. */
   private _renderRowStub(row: NormalizedRow, index: number, total: number) {
-    // Groups keep a collapse control even when hidden — that is what lists
-    // the tracks inside. Standalone rows have no inside, so they get none.
+    // Groups keep a collapse control even when they have no data — expanding
+    // lists the tracks the group *could* hold, each as its own stub, so the
+    // arrow does something and the user can see (and manage) what is missing.
+    // Standalone rows have no inside, so they get no collapse control.
     const collapsible = !row.standalone;
     const expanded = this.openGroups.includes(row.id);
     return html`
@@ -2243,6 +2315,13 @@ class ProtvistaUniprot extends LitElement {
         </div>
         <div class="${CSS_PREFIX}-track-content"></div>
       </div>
+      ${collapsible && expanded
+        ? html`${repeat(
+            row.tracks,
+            (t) => t.id,
+            (t, i) => this._renderTrackStub(row, t, i, row.tracks.length)
+          )}`
+        : ''}
     `;
   }
 
@@ -2272,9 +2351,14 @@ class ProtvistaUniprot extends LitElement {
 
   /** Plain-text label (Markdoc → text), for `aria-label`s and announcements. */
   private _labelText(source: string): string {
+    const key = `${this.accession}\n${source}`;
+    const cached = this._labelTextCache.get(key);
+    if (cached !== undefined) return cached;
     const html = renderLabel(source, this.accession);
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    return (doc.body.textContent || '').trim() || source;
+    const text = (doc.body.textContent || '').trim() || source;
+    this._labelTextCache.set(key, text);
+    return text;
   }
 
   // ── "Customize layout" mode ─────────────────────────────────
@@ -2438,9 +2522,10 @@ class ProtvistaUniprot extends LitElement {
   }
 
   // ── Per-row controls ────────────────────────────────────────
-  // Every control is a real <button> with a text label, never a bare icon on
-  // a <div>: the eye glyph is paired with the word "Hide"/"Show" so state is
-  // never carried by shape or colour alone (WCAG 1.4.1).
+  // Every control is a real <button>, never a bare icon on a <div>. The
+  // show/hide control is a `role="switch"` (see `_toggleButton`): its state is
+  // carried by `aria-checked` and the thumb's position, not by colour alone
+  // (WCAG 1.4.1). The move buttons carry a text/`aria-label` name.
   //
   // Reordering is move-up/move-down only — there is no drag. Buttons are the
   // path that works for keyboard, touch and pointer alike (and the one WCAG
@@ -2454,9 +2539,17 @@ class ProtvistaUniprot extends LitElement {
   private _renderRowControls(row: NormalizedRow, index: number, total: number) {
     if (!this._customizeMode) return '';
     const name = this._labelText(row.label);
-    const hidden = isRowHidden(row);
-    // Nothing to draw anywhere in the row: showing it would change nothing,
-    // so the toggle says why instead of offering a no-op.
+    // "Hidden" for the toggle means the row draws nothing in the real view —
+    // not just that its own `hidden` flag is set. A group whose only
+    // data-bearing track was hidden (the rest empty for this protein) shows
+    // nothing, so its toggle reads off even though `row.hidden` is false;
+    // clicking it then reveals the group (and un-hides that track). This
+    // mirrors `_rowRendersContent`, which drives normal-mode visibility.
+    const hidden =
+      isRowHidden(row) || !this._rowRendersContent(row, visibleTracks(row));
+    // Nothing to draw anywhere in the row *at all* (every track empty, none
+    // merely hidden): showing it would change nothing, so the toggle is
+    // disabled and says why instead of offering a no-op.
     const empty = row.tracks.every((t) => this._trackIsEmpty(row.id, t.id));
     return html`
       <span class="${CSS_PREFIX}-row-controls">
@@ -3070,14 +3163,19 @@ class ProtvistaUniprot extends LitElement {
     if (!host) return;
 
     const toggle = host.getAttribute('data-group-toggle');
+    if (!toggle) return;
 
-    if (toggle && !host.classList.contains('open')) {
-      host.classList.add('open');
-      this.openGroups = [...this.openGroups, toggle];
-    } else {
-      host.classList.remove('open');
-      this.openGroups = [...this.openGroups].filter((d) => d !== toggle);
-    }
+    // Direction comes from `openGroups` — the reactive source of truth the
+    // template renders from — not the element's `open` class. Two paths open a
+    // group without touching that class (the "N hidden" badge, and the
+    // customize-mode collapse button, which is a different element than the
+    // normal-mode label that carried it), so a class-based check would misread
+    // their state and take two clicks to collapse. The `open` class is now
+    // applied declaratively from `openGroups` in the template.
+    const isOpen = this.openGroups.includes(toggle);
+    this.openGroups = isOpen
+      ? this.openGroups.filter((d) => d !== toggle)
+      : [...this.openGroups, toggle];
   }
 
   groupByGroup(filters, group) {

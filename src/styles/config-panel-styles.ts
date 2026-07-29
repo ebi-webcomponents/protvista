@@ -64,7 +64,10 @@ export default css`
        target, and these are small icon-bearing controls. */
     min-height: 24px;
     padding: 0.2rem 0.5rem;
-    border: 1px solid var(--protvista-color-border, #c5c8cc);
+    /* #8c8c8c, not the lighter --protvista-color-border (#c5c8cc, 1.68:1): an
+       interactive control's boundary needs 3:1 against the page (WCAG 1.4.11).
+       #8c8c8c clears it at ~3.4:1. */
+    border: 1px solid #8c8c8c;
     border-radius: var(--protvista-radius, 4px);
     background: var(--protvista-color-surface, #ffffff);
     color: var(--protvista-color-text, #222222);
@@ -116,7 +119,7 @@ export default css`
     background: none;
     font-family: var(--protvista-font-family, inherit);
     font-size: var(--protvista-font-size, 0.8rem);
-    color: var(--protvista-color-text-muted, #5b6169);
+    color: var(--protvista-color-text-muted, #4a5056);
     text-decoration: underline dotted;
     cursor: pointer;
   }
@@ -186,7 +189,9 @@ export default css`
     min-width: 24px;
     min-height: 24px;
     padding: 0.1rem 0.25rem;
-    border: 1px solid var(--protvista-color-border, #c5c8cc);
+    /* 3:1 boundary against the page (WCAG 1.4.11); see the customize-toggle
+       note above — #c5c8cc was only 1.68:1. */
+    border: 1px solid #8c8c8c;
     border-radius: var(--protvista-radius, 4px);
     background: var(--protvista-color-surface, #ffffff);
     color: var(--protvista-color-text, #222222);
@@ -210,7 +215,7 @@ export default css`
      happens to be unavailable. */
   protvista-uniprot .${p}-switch[disabled] {
     opacity: 0.55;
-    cursor: default;
+    cursor: not-allowed;
   }
 
   /* The visibility switch. It reports a state; the move buttons beside it
@@ -222,7 +227,13 @@ export default css`
      is what made it read as a fat pill rather than a switch.
 
      State rides on the thumb's position as well as the track colour, so it is
-     never carried by hue alone (WCAG 1.4.1). */
+     never carried by hue alone (WCAG 1.4.1).
+
+     The OFF track is a deliberate #767676 rather than the lighter
+     --protvista-color-border (#c5c8cc): the switch is border-less, so its fill
+     *is* its boundary, and #767676 clears 3:1 against both the white thumb and
+     the white page (WCAG 1.4.11 non-text contrast) for the hidden state — the
+     one it most needs to convey. #c5c8cc was only 1.68:1. */
   protvista-uniprot .${p}-switch {
     position: relative;
     flex: 0 0 auto;
@@ -233,7 +244,7 @@ export default css`
     padding: 0;
     border: 0;
     border-radius: 999px;
-    background: var(--protvista-color-border, #c5c8cc);
+    background: #767676;
     cursor: pointer;
     transition: background-color 120ms ease;
   }
@@ -273,6 +284,28 @@ export default css`
     protvista-uniprot .${p}-switch,
     protvista-uniprot .${p}-switch__thumb {
       transition: none;
+    }
+  }
+
+  /* Windows High Contrast / forced-colors: the system replaces author
+     background-colors, which would erase both the switch's track-fill state
+     and its border-less boundary — leaving no way to tell shown from hidden.
+     Restore the boundary with an outline (WCAG 1.4.11) and give the thumb a
+     system colour so its position still reads the state. aria-checked already
+     carries the state to assistive tech; this is only the visual channel. */
+  @media (forced-colors: active) {
+    protvista-uniprot .${p}-switch {
+      outline: 1px solid CanvasText;
+      outline-offset: -1px;
+    }
+    protvista-uniprot .${p}-switch__thumb {
+      background: CanvasText;
+    }
+    protvista-uniprot .${p}-switch[aria-checked='true'] {
+      background: Highlight;
+    }
+    protvista-uniprot .${p}-switch[aria-checked='true'] .${p}-switch__thumb {
+      background: HighlightText;
     }
   }
 
@@ -365,7 +398,7 @@ export default css`
   protvista-uniprot .${p}-row--hidden .${p}-track-label,
   protvista-uniprot .${p}-row--hidden .${p}-group-label {
     font-style: italic;
-    color: var(--protvista-color-text-muted, #5b6169);
+    color: var(--protvista-color-text-muted, #4a5056);
   }
 
   /* A hidden row keeps drawing its features while customizing, desaturated
@@ -424,7 +457,7 @@ export default css`
     align-items: center;
     gap: 0.75rem;
     padding: 1rem;
-    color: var(--protvista-color-text-muted, #5b6169);
+    color: var(--protvista-color-text-muted, #4a5056);
     font-family: var(--protvista-font-family, inherit);
     font-size: var(--protvista-font-size, 0.8rem);
   }

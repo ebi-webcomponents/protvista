@@ -100,9 +100,11 @@ export function applyLayoutToConfig(
 
   // Anything the rows never mentioned keeps its authored position at the end
   // rather than being silently dropped — losing a track the user cannot see
-  // would be far worse than an unexpected ordering.
+  // would be far worse than an unexpected ordering. Shallow-copied (like the
+  // `withHidden` entries above) so a caller mutating the returned config can't
+  // reach back into the retained authored baseline.
   for (const entry of authored.rows) {
-    if (byId.has(entry.id)) arranged.push(entry);
+    if (byId.has(entry.id)) arranged.push({ ...entry } as TopLevelEntry);
   }
 
   return { ...authored, rows: arranged };
