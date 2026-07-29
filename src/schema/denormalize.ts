@@ -19,14 +19,14 @@
  * `hidden` — leaving every other authored field, including `extends` and the
  * author's own comments-free structure, exactly as written.
  */
-import type { NormalizedRow } from './normalize';
+import type { NormalizedRow } from './normalize.js';
 import type {
   GroupConfig,
   ProtvistaViewerConfig,
   TopLevelEntry,
   TrackConfig,
-} from './types';
-import { isGroupConfig } from './discriminate';
+} from './types.js';
+import { isGroupConfig } from './discriminate.js';
 
 /** Reorder `items` to match `order`, appending anything `order` omits. */
 function orderById<T extends { id: string }>(

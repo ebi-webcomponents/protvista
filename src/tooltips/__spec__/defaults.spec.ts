@@ -11,9 +11,9 @@
  * what they get out of the box and what they'll need to override.
  */
 import { describe, it, expect } from 'vitest';
-import { resolveTooltip } from '../resolve';
-import { tooltipDefaults } from '../defaults';
-import type { TooltipContext } from '../types';
+import { resolveTooltip } from '../resolve.js';
+import { tooltipDefaults } from '../defaults.js';
+import type { TooltipContext } from '../types.js';
 
 const ctx: TooltipContext = {
   accession: 'P05067',

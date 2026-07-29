@@ -1,5 +1,5 @@
 import { css, unsafeCSS } from 'lit';
-import { CSS_PREFIX } from './css-prefix';
+import { CSS_PREFIX } from './css-prefix.js';
 
 /**
  * Light-DOM styles for "Customize layout": the toggle that enters the mode,

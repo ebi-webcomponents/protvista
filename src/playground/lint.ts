@@ -17,9 +17,9 @@
  * The extra `code`/`path` fields (ignored by CodeMirror) drive the
  * side error list and let tests assert on the stable machine code.
  */
-import { parseConfigText } from '../schema/parse';
-import { validateConfig } from '../schema/validate';
-import { createRegistry } from '../schema/registry';
+import { parseConfigText } from '../schema/parse.js';
+import { validateConfig } from '../schema/validate.js';
+import { createRegistry } from '../schema/registry.js';
 
 export interface PlaygroundDiagnostic {
   /** Start offset in the document (character index). */

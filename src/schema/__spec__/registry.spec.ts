@@ -11,13 +11,13 @@ import {
   createRegistry,
   RegistryCollisionError,
   type Registry,
-} from '../registry';
-import { BUILTIN_ADAPTERS } from '../adapters';
+} from '../registry.js';
+import { BUILTIN_ADAPTERS } from '../adapters/index.js';
 import type {
   SemanticKindDefinition,
   AdapterFunction,
   ColorStop,
-} from '../types';
+} from '../types.js';
 
 // ─────────────────────────────────────────────────────────────
 // Built-in seeding

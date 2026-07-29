@@ -18,8 +18,8 @@
  * the pristine baseline the viewer keeps for "reset to default" stays intact
  * and Lit's identity dirty-check fires on the result.
  */
-import type { NormalizedRow, NormalizedTrack } from './schema/normalize';
-import type { LayoutPatch } from './schema/types';
+import type { NormalizedRow, NormalizedTrack } from './schema/normalize.js';
+import type { LayoutPatch } from './schema/types.js';
 
 export type { LayoutPatch };
 

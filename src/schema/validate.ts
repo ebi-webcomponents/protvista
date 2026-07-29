@@ -45,17 +45,17 @@ import type {
   TrackConfig,
   DataSourceDescriptor,
   ColorScaleConfig,
-} from './types';
-import { isGroupConfig } from './discriminate';
-import type { Registry } from './registry';
-import { RENDERABLE_COMPONENT_NAMES } from './components';
-import { isPlainObject, isSet } from './shape';
-import { dataFileFormatForPath } from './file-formats';
+} from './types.js';
+import { isGroupConfig } from './discriminate.js';
+import type { Registry } from './registry.js';
+import { RENDERABLE_COMPONENT_NAMES } from './components.js';
+import { isPlainObject, isSet } from './shape.js';
+import { dataFileFormatForPath } from './file-formats.js';
 import type {
   ValidationIssue,
   ValidationResult,
   ValidationIssueCode,
-} from './errors';
+} from './errors.js';
 
 // ─────────────────────────────────────────────────────────────
 // Ajv instance (memoised)
@@ -494,6 +494,29 @@ function checkTrack(
     }
   }
 
+  // Unknown implicit adapter. A known kind also resolves to an adapter
+  // name (e.g. `features` → `uniprot-features-json`) that the loader looks
+  // up in the registry at fetch time. Built-in kinds always resolve to a
+  // registered adapter; a consumer kind whose adapter was never
+  // registered would otherwise fail late — the loader throws and degrades
+  // the track to empty. Catch it here, mirroring the explicit `adapter:`
+  // check below. Skipped when a data descriptor sets an explicit
+  // `adapter:` (that overrides the kind's adapter and is validated per
+  // descriptor), so the kind's adapter is never actually used.
+  if (track.kind !== undefined && registry.hasSemanticKind(track.kind)) {
+    const kindAdapter = registry.getSemanticKind(track.kind)?.adapter;
+    const hasExplicitAdapter = collectDescriptors(track).some(
+      (d) => !isShorthand(d) && d.adapter !== undefined
+    );
+    if (kindAdapter && !hasExplicitAdapter && !registry.hasAdapter(kindAdapter)) {
+      issues.push({
+        path: trackPath,
+        message: `Semantic kind '${track.kind}' in track ${trackPath} resolves to adapter '${kindAdapter}', which is not registered. Register it with registerAdapter().`,
+        code: 'unknown-adapter',
+      });
+    }
+  }
+
   // Track has no rendering path: no `kind`, no track-level
   // `component`, and no parent-group `component` to inherit. A
   // standalone track (no parent group) has no group component to fall
@@ -673,5 +696,5 @@ function listQuoted(values: Iterable<string>): string {
 }
 
 // Re-export ValidationIssueCode for callers that want to switch on
-// `issue.code` without importing from './errors' directly.
+// `issue.code` without importing from './errors.js' directly.
 export type { ValidationIssueCode };

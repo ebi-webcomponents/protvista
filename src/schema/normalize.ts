@@ -69,10 +69,10 @@ import type {
   AdapterName,
   AuthoredTooltipSpec,
   ThemeConfig,
-} from './types';
-import { isGroupConfig } from './discriminate';
-import type { Registry } from './registry';
-import { dataFileFormatForPath } from './file-formats';
+} from './types.js';
+import { isGroupConfig } from './discriminate.js';
+import type { Registry } from './registry.js';
+import { dataFileFormatForPath } from './file-formats.js';
 
 // ─────────────────────────────────────────────────────────────
 // Output types — the canonical shape the loader consumes

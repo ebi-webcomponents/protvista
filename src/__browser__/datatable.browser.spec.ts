@@ -10,10 +10,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
-import '../protvista-uniprot-datatable';
-import type { ProtvistaUniprotDatatable } from '../protvista-uniprot-datatable';
-import { mount } from './mount';
-import { expectNoA11yViolations } from './axe';
+import '../protvista-uniprot-datatable.js';
+import type { ProtvistaUniprotDatatable } from '../protvista-uniprot-datatable.js';
+import { mount } from './mount.js';
+import { expectNoA11yViolations } from './axe.js';
 
 type Row = { id: string; source: string; method: string };
 

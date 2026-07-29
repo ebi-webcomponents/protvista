@@ -45,17 +45,17 @@
  * microtask queue and the cost is negligible.
  */
 
-import type { ProtvistaViewerConfig } from './types';
-import { type Registry, createRegistry } from './registry';
-import { validateConfig } from './validate';
-import { normalizeConfig, type NormalizedConfig } from './normalize';
-import { ConfigValidationError } from './errors';
-import { parseConfigText, type ParseFormat } from './parse';
+import type { ProtvistaViewerConfig } from './types.js';
+import { type Registry, createRegistry } from './registry.js';
+import { validateConfig } from './validate.js';
+import { normalizeConfig, type NormalizedConfig } from './normalize.js';
+import { ConfigValidationError } from './errors.js';
+import { parseConfigText, type ParseFormat } from './parse.js';
 import {
   mergeExtends,
   type ExtendsResolver,
   type ExtendsFetcher,
-} from './extends';
+} from './extends.js';
 
 // ─────────────────────────────────────────────────────────────
 // Public API

@@ -31,8 +31,8 @@ import Markdoc, {
   type Schema,
   type Node,
 } from '@markdoc/markdoc';
-import type { TooltipContext, TooltipSpec, FieldSpec } from './types';
-import { escapeHtml, sanitizeUrl } from '../utils/security';
+import type { TooltipContext, TooltipSpec, FieldSpec } from './types.js';
+import { escapeHtml, sanitizeUrl } from '../utils/security.js';
 
 // -----------------------------------------------------------------------------
 // Dot-path resolver

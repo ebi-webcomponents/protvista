@@ -9,9 +9,14 @@ node_modules/
 .yalc/
 yalc.lock
 coverage/
-demo/
+site/
+docs/.astro/
+docs/dist/
 bench/results/
 .lighthouseci/
+
+# npm/yarn pack output (produced by `npm pack`, `yarn pack`, publint, attw)
+*.tgz
 
 # Vitest browser-mode artifacts (failure screenshots / attachments)
 .vitest-attachments/

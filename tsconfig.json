@@ -5,22 +5,18 @@
     /* Basic Options */
     // "incremental": true,                         /* Enable incremental compilation */
     "target": "ES2021" /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017', 'ES2018', 'ES2019', 'ES2020', 'ES2021', or 'ESNEXT'. */,
-    "module": "ESNext" /* ESM output so dynamic `import()` and JSON import attributes type-check. The actual bundle output is produced by Vite — tsc is run in `emitDeclarationOnly` mode, so this affects type-checking only. */,
+    "module": "ESNext" /* ESM so dynamic `import()` and JSON import attributes type-check. The bundle is produced by Vite and the declarations by `vite-plugin-dts`; tsc is `noEmit`, so this affects type-checking only. */,
     // "lib": [],                                   /* Specify library files to be included in the compilation. */
     "allowJs": true /* Allow javascript files to be compiled. */,
     // "checkJs": true,                             /* Report errors in .js files. */
     // "jsx": "preserve",                           /* Specify JSX code generation: 'preserve', 'react-native', 'react', 'react-jsx' or 'react-jsxdev'. */
-    "declaration": true /* Generates corresponding '.d.ts' file. */,
     // "declarationMap": true,                      /* Generates a sourcemap for each corresponding '.d.ts' file. */
-    "sourceMap": true /* Generates corresponding '.map' file. */,
     // "outFile": "./",                             /* Concatenate and emit output to single file. */
-    "outDir": "dist/types" /* Redirect output structure to the directory. */,
-    "emitDeclarationOnly": true,
-    "rootDir": "./src" /* Specify the root directory of input files. Use to control the output directory structure with --outDir. */,
+    "noEmit": true /* `yarn test:types` is a check, not a build step. Declarations are emitted solely by `vite-plugin-dts` during `yarn build`; the plugin overrides `noEmit`/`declaration`/`emitDeclarationOnly` with its own values internally, so this does not disable it. tsc used to emit them too — and because the plugin's output directory was misconfigured (`outDir` is not an option it reads), the two wrote to different trees and `dist/` shipped two full copies. */,
+    "rootDir": "./src" /* Specify the root directory of input files. */,
     // "composite": true,                           /* Enable project compilation */
     // "tsBuildInfoFile": "./",                     /* Specify file to store incremental compilation information */
     // "removeComments": true,                      /* Do not emit comments to output. */
-    // "noEmit": true,                              /* Do not emit outputs. */
     // "importHelpers": true,                       /* Import emit helpers from 'tslib'. */
     // "downlevelIteration": true,                  /* Provide full support for iterables in 'for-of', spread, and destructuring when targeting 'ES5' or 'ES3'. */
     // "isolatedModules": true,                     /* Transpile each file as a separate module (similar to 'ts.transpileModule'). */
@@ -45,7 +41,7 @@
     // "noPropertyAccessFromIndexSignature": true,  /* Require undeclared properties from index signatures to use element accesses. */
 
     /* Module Resolution Options */
-    "moduleResolution": "bundler" /* Specify module resolution strategy: 'bundler' is the modern option for libraries consumed by bundlers. */,
+    "moduleResolution": "bundler" /* Kept deliberately, but relative imports in `src` still carry explicit `.js` extensions — see CONTRIBUTING. `bundler` permits extensionless specifiers; the emitted `.d.ts` reproduces whatever the source wrote, and extensionless ones fail to resolve for consumers on `node16`/`nodenext` (attw: "internal resolution error"). Writing extensions fixes the emitted declarations. Switching this to `NodeNext` to *enforce* them is not viable: several `@nightingale-elements` packages ship `"type": "module"` with extensionless relative imports in their own `.d.ts`, so their type exports vanish under Node ESM resolution. `src/__spec__/package-contract.spec.ts` enforces the convention instead. */,
     // "baseUrl": "./",                             /* Base directory to resolve non-absolute module names. */
     // "paths": {},                                 /* A series of entries which re-map imports to lookup locations relative to the 'baseUrl'. */
     // "rootDirs": [],                              /* List of root folders whose combined content represents the structure of the project at runtime. */

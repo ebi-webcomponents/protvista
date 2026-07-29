@@ -14,6 +14,24 @@ This is meant to become the single source of truth that the
 playground, Starter Kit, tutorial, and docs eventually all point at,
 rather than each maintaining their own divergent samples.
 
+Two consumers are pinned to these samples by tests, so changing one
+here surfaces immediately rather than silently:
+
+- **The tutorial** embeds `csv/` and `extend-default/` verbatim in
+  fenced code blocks; `src/__spec__/tutorial-doc.spec.ts` asserts they
+  still match.
+- **The Starter Kit** (`starter-kit/`, published to the standalone
+  template repository) ships the same shapes as its `config.yaml` and
+  `recipes/`, adapted to a flat `data/` folder.
+  `src/__spec__/starter-kit.spec.ts` runs those through the same
+  load → data → render pipeline this directory gets, and asserts its
+  three sample data files are byte-identical to `csv/hotspots.csv`,
+  `tsv/hotspots.tsv` and `extend-default/hotspots.csv` — so editing a
+  sample here fails that suite rather than leaving the kit stale. The
+  configs themselves are authored separately (the kit's paths and
+  comments differ), so a change to a `config.yaml` here does not
+  propagate automatically.
+
 ## What's here
 
 | Directory | Demonstrates |
@@ -29,6 +47,10 @@ rather than each maintaining their own divergent samples.
 Column/shape conventions for the four generic-format adapters (CSV,
 TSV, JSON, BED) are documented in
 [`specs/generic-format-adapters.md`](../specs/generic-format-adapters.md).
+The expected payload shape for every built-in kind and adapter — plus
+the config-vs-payload boundary — is in
+[the adapter reference](https://ebi-webcomponents.github.io/protvista/adapter-reference) and
+[configuration vs data](https://ebi-webcomponents.github.io/protvista/configuration-vs-data).
 The full config schema is documented in
 [`specs/config-approach.md`](../specs/config-approach.md), which is
 the normative source these examples are drawn from.
@@ -59,8 +81,8 @@ Point the `config-src` attribute at any example's config file:
 <protvista-uniprot config-src="./examples/basic/config.yaml"></protvista-uniprot>
 ```
 
-or during local development (`yarn start`), edit `index.html` to add
-the tag above and browse to it.
+or paste the config into the [playground](https://ebi-webcomponents.github.io/protvista/playground/)
+to see it render live (run `yarn docs:dev` and open `/protvista/playground` locally).
 
 **Path-resolution caveat.** `<protvista-uniprot>` fetches `config-src`
 itself relative to the hosting page, but everything *inside* the

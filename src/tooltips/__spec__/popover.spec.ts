@@ -24,8 +24,8 @@
  * - `enabled: () => false` gates display (used for `notooltip=""`).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { installClickTooltip, type TooltipController } from '../popover';
-import { CSS_PREFIX } from '../../styles/css-prefix';
+import { installClickTooltip, type TooltipController } from '../popover.js';
+import { CSS_PREFIX } from '../../styles/css-prefix.js';
 
 /**
  * Helper to fire the Nightingale-shaped `change` CustomEvent. Matches

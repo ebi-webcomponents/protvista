@@ -29,7 +29,7 @@ import type {
   AdapterName,
   ProtvistaRuntimeAPI,
   SemanticKindDefinition,
-} from '../types';
+} from '../types.js';
 
 /**
  * Compile-time type-identity check. The function returns its argument

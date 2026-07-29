@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createDiagnosticsView } from '../diagnostics-view';
+import { createDiagnosticsView } from '../diagnostics-view.js';
 
 describe('createDiagnosticsView', () => {
   let summary: HTMLElement;

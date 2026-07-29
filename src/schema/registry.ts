@@ -33,11 +33,14 @@
  *     that is not a built-in twice still throws, so a consumer
  *     colliding with their own adapter is caught as before. To add a
  *     built-in adapter, see `BUILTIN_ADAPTERS` in `./adapters`.
- *   - The 12 built-in semantic kinds reference adapter names that no
- *     built-in supplies. That is fine: `resolveSemanticKind()` returns
- *     the adapter *name* (a string), and the loader looks up the
- *     function at fetch time — the UniProt-API adapters reach it
- *     through the element's own adapter map rather than this registry.
+ *   - The built-in semantic kinds reference adapter names that are
+ *     themselves registered built-ins — both the generic file-format
+ *     adapters and the UniProt/EBI domain adapters live in
+ *     `BUILTIN_ADAPTERS`. `resolveSemanticKind()` returns the adapter
+ *     *name* (a string); the loader resolves that name to a function
+ *     through this same registry (`getAdapter`) at fetch time, so config
+ *     validation and data loading share one source of truth and can no
+ *     longer disagree.
  *   - `createRegistry()` is a factory (not a module-level singleton)
  *     so tests and downstream embedders can instantiate isolated
  *     registries. The `<protvista-uniprot>` element will hold one
@@ -48,7 +51,7 @@
  * BUILTIN_TRANSFORM_OPERATORS) is left as future work.
  */
 
-import { BUILTIN_ADAPTERS } from './adapters';
+import { BUILTIN_ADAPTERS } from './adapters/index.js';
 import type {
   SemanticKindDefinition,
   AdapterFunction,
@@ -56,7 +59,7 @@ import type {
   KnownSemanticKind,
   KnownComponentName,
   KnownAdapterName,
-} from './types';
+} from './types.js';
 
 // ─────────────────────────────────────────────────────────────
 // Public Registry interface

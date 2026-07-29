@@ -13,4 +13,4 @@
  * self-contained shadow-DOM component), so it simply never triggers
  * these mocked imports.
  */
-import '../__spec__/nightingale-mocks';
+import '../__spec__/nightingale-mocks.js';

@@ -21,12 +21,12 @@ import { render } from 'lit';
 
 // Registers <protvista-uniprot>; nightingale packages are stubbed
 // globally via `src/__spec__/nightingale-mocks.ts` (setupFiles).
-import '../protvista-uniprot';
-import { loadProtvistaData, type AdapterMap } from '../load-data';
-import { CSS_PREFIX } from '../styles/css-prefix';
-import { formatValidationIssues } from '../errors/format';
-import type { ValidationIssue } from '../schema/errors';
-import type { NormalizedConfig, NormalizedTrack } from '../schema/normalize';
+import '../protvista-uniprot.js';
+import { loadProtvistaData, type AdapterMap } from '../load-data.js';
+import { CSS_PREFIX } from '../styles/css-prefix.js';
+import { formatValidationIssues } from '../errors/format.js';
+import type { ValidationIssue } from '../schema/errors.js';
+import type { NormalizedConfig, NormalizedTrack } from '../schema/normalize.js';
 
 const PANEL = `.${CSS_PREFIX}-error-panel`;
 const BADGE = `.${CSS_PREFIX}-error-badge`;
@@ -1403,7 +1403,12 @@ describe('adapter throw resilience', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     // Must NOT reject even though the `boom` adapter throws.
-    const res = await loadProtvistaData('P05067', config, fetchOne, adapters);
+    const res = await loadProtvistaData(
+      'P05067',
+      config,
+      fetchOne,
+      (name) => adapters[name]
+    );
 
     expect(res.data['GOOD-ok']).toBeDefined(); // healthy track loaded
     expect(res.data['BOOM-bang']).toBeUndefined(); // throwing track degraded to empty

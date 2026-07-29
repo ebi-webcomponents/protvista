@@ -18,7 +18,7 @@
  * wrappers used by the page.
  */
 
-/** Fallback accession when a link carries none (matches the demo default). */
+/** Fallback accession when a link carries none (the repo's reference accession). */
 export const DEFAULT_ACCESSION = 'P05067';
 
 export interface PlaygroundState {
@@ -82,6 +82,17 @@ export function decodeState(hash: string): PlaygroundState | null {
   if (preset != null) return { accession, preset };
   // Only an accession (or nothing) — not enough to restore a session.
   return params.has('accession') ? { accession } : null;
+}
+
+/**
+ * Read an `accession` from a query string (e.g. `?accession=P12345`).
+ * Returns the trimmed value, or `null` when absent/empty. This lets a bare
+ * `/protvista/playground?accession=…` deep-link seed the viewer — a simple
+ * query-string convention — alongside the richer hash-based links.
+ */
+export function accessionFromSearch(search: string): string | null {
+  const value = new URLSearchParams(search).get('accession');
+  return value && value.trim() ? value.trim() : null;
 }
 
 /** Read and decode the current `location.hash`. */

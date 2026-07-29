@@ -69,7 +69,7 @@ The element wraps these stages in `loadConfig()` (`src/schema/load.ts`) and `_in
 
 ### 1. Parse
 
-`parseConfigText()` accepts a YAML or JSON string and returns a plain JS object. YAML uses `js-yaml` with `SAFE_SCHEMA` (no `!!js/function`, no surprise tag handlers). The parser is pure — no I/O, no validation.
+`parseConfigText()` accepts a YAML or JSON string and returns a plain JS object. YAML uses `js-yaml` with `CORE_SCHEMA` (no `!!js/function`, no surprise tag handlers). The parser is pure — no I/O, no validation.
 
 ### 2. Extends
 
@@ -157,17 +157,15 @@ The popover itself (`popover.ts`) is built on `@floating-ui/dom`: click-triggere
 
 When a track has no `dataTooltip` and no per-kind default, `resolve.ts` synthesizes a compact Markdoc tooltip from common adapted payload fields (`type`, `description`, position, variant details, significance, score, xrefs, evidences, and remaining scalar fields). Configs that don't author a tooltip therefore still get a useful safety-net tooltip out of the box.
 
-### `src/adapters/`
+### `src/schema/adapters/`
 
-Per-API data shapers. Each adapter takes a raw response (or several, for multi-URL tracks) and returns the shape a Nightingale component expects. Adapters are named `<source>-<format>`: `uniprot-features-json`, `alphafold-prediction-json`, `interpro-entries-json`, etc. The convention makes coupling explicit at a glance.
+Per-format and per-API data shapers. Each adapter takes a raw response (or several, for multi-URL tracks) and returns the shape a Nightingale component expects. Adapters are named `<source>-<format>`: the UniProt/EBI domain adapters (`uniprot-features-json`, `alphafold-prediction-json`, `interpro-entries-json`, …) and the generic bring-your-own-data adapters (`features-csv`, `features-tsv`, `features-json`, `bed`) all live here. Every adapter has the signature `(...rawResponses: unknown[]) => unknown | Promise<unknown>` (`AdapterFunction`): one argument per entry in the track's `source:` list, in order.
 
-These reach the loader as a plain `AdapterMap`: `src/protvista-uniprot.ts` collects them into an `adapters` object and passes it into `loadProtvistaData()`, which looks the function up by name at fetch time. They do not go through the runtime registry.
+The registry is the single source of truth for resolving an adapter name to a function, for **both** config validation and data loading. `createRegistry()` seeds it by calling `registerBuiltinAdapters(registry)` (`src/schema/registry.ts`), which walks the `BUILTIN_ADAPTERS` table in `src/schema/adapters/index.ts` — the one aggregation point for every adapter the library ships with. At fetch time `load-data.ts` resolves each track's adapter with `registry.getAdapter(name)`; it holds no adapter map and knows no adapter names, and any adapter-specific behaviour (e.g. the InterPro representative-domain flattening, the variation empty-payload guard) lives inside the adapter, not the loader.
 
-The registry's adapter bucket is a separate, consumer-facing surface. `createRegistry()` seeds it by calling `registerBuiltinAdapters(registry)` (`src/schema/registry.ts`), which walks the `BUILTIN_ADAPTERS` table in `src/schema/adapters/`. That table is the aggregation point for adapters that ship with the library and are usable without EBI-specific API plumbing — the generic-format adapters (`features-json`, `features-csv`, `features-tsv`, `bed`) land there, one ticket at a time. It is empty today.
+Seeding runs through the same public `registerAdapter()` a consumer calls, so both share one namespace with defined precedence: **built-ins register first, and a consumer's later `registerAdapter()` of the same name overrides.** That override is permitted once — registering a name that is not a built-in twice still throws `RegistryCollisionError`. Because validation and loading now consult the same registry, a consumer-registered adapter both validates and runs. Themes and semantic kinds have no override path; registering over those built-ins always throws.
 
-Seeding runs through the same public `registerAdapter()` a consumer calls, so both share one namespace with defined precedence: **built-ins register first, and a consumer's later `registerAdapter()` of the same name overrides.** That override is permitted once — registering a name that is not a built-in twice still throws `RegistryCollisionError`, so a consumer colliding with their own adapter is still caught. Themes and semantic kinds have no override path; registering over those built-ins always throws.
-
-To add a built-in adapter: write the module in `src/schema/adapters/`, add a case to `KnownAdapterName` in `src/schema/types.ts`, and add one line to `BUILTIN_ADAPTERS`. The schema's `adapter` field is open-string (with `(string & {})` as the IntelliSense-preserving suffix), so consumer-registered adapters type-check too.
+To add a built-in adapter: write the module in `src/schema/adapters/` (a named `export const … : AdapterFunction`), add a case to `KnownAdapterName` in `src/schema/types.ts`, and add one line to `BUILTIN_ADAPTERS`. The schema's `adapter` field is open-string (with `(string & {})` as the IntelliSense-preserving suffix), so consumer-registered adapters type-check too.
 
 ### `src/utils/security.ts`
 
@@ -205,23 +203,16 @@ Embedders register their own at runtime via the element's `registerSemanticKind(
 
 ### A new adapter
 
-Signature in every case: `(...rawResponses: unknown[]) => unknown | Promise<unknown>`.
+Signature in every case: `(...rawResponses: unknown[]) => unknown | Promise<unknown>` — one argument per entry in the track's `source:` list, in order.
 
-For a **UniProt-API adapter** (the `<source>-<format>` family):
+For a **built-in adapter** (generic-format or UniProt/EBI domain — they share one path now):
 
-1. Write the function in `src/adapters/`.
+1. Write the module in `src/schema/adapters/` (a named `export const … : AdapterFunction`).
 2. Add to `KnownAdapterName` in `src/schema/types.ts`.
-3. Add it to the `adapters` map in `src/protvista-uniprot.ts` so the loader can resolve it.
-4. Add a unit test under `src/adapters/__tests__/`.
+3. Add one line to `BUILTIN_ADAPTERS` in `src/schema/adapters/index.ts`. `registerBuiltinAdapters()` needs no change, and `src/schema/__spec__/registry.spec.ts` asserts against the table, so it picks the new entry up automatically. The loader resolves it through the registry — nothing to wire in `src/protvista-uniprot.ts`.
+4. Add a unit test under `src/schema/adapters/__tests__/` (or `src/schema/__spec__/`).
 
-For a **built-in generic adapter** (no EBI API coupling — registry-seeded):
-
-1. Write the module in `src/schema/adapters/`.
-2. Add to `KnownAdapterName` in `src/schema/types.ts`.
-3. Add one line to `BUILTIN_ADAPTERS` in `src/schema/adapters/index.ts`. `registerBuiltinAdapters()` needs no change, and `src/schema/__spec__/registry.spec.ts` asserts against the table, so it picks the new entry up automatically.
-4. Add a unit test under `src/schema/__spec__/`.
-
-For a **consumer adapter**, no library change is needed: call `registerAdapter(name, fn)` on the element's runtime API. It overrides a built-in of the same name.
+For a **consumer adapter**, no library change is needed: call `registerAdapter(name, fn)` on the element's runtime API before the config loads. It both validates and runs, and overrides a built-in of the same name.
 
 ### A new component (built-in renderable)
 

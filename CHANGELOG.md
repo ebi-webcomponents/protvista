@@ -2,6 +2,83 @@
 
 ## Unreleased
 
+### Fixed — packaging: `import 'protvista-uniprot'` survives bundling
+
+The package declared `"sideEffects": false`, promising bundlers that no
+module here does anything on load. That was untrue: `<protvista-uniprot>` is
+registered by a `@customElement` decorator, so evaluating the entry module
+*is* the registration. The promise let production bundlers delete the
+documented binding-less `import 'protvista-uniprot';`, after which the tag
+silently stayed undefined and the element rendered as an empty box. Dev
+servers evaluate eagerly, so it only ever surfaced in a shipped build. The
+field is now removed, restoring the default assumption that a module may
+act on load.
+
+Consequence worth knowing: importing only the named exports
+(`filterConfig`, `colorConfig`, `ProtvistaUniprotStructure`) can no longer
+shake the component out, so those consumers now pay the full bundle. A
+side-effect-free `./config` subpath export would restore that, but is not
+yet implemented.
+
+Also in this release:
+
+- Removed the `main` field. It pointed at `dist/protvista-uniprot.js`, which
+  no build has emitted since the move to Vite (ES output only) — any
+  resolver falling through to it got a missing file. `module` and `exports`
+  cover every live resolver.
+- Added `types` and `default` conditions to `exports`. With only an `import`
+  condition, TypeScript on `moduleResolution: "bundler"` or `"node16"`
+  resolved *through* `exports` and never found `dist/types/index.d.ts`, so
+  consumers got no declarations.
+- Added `"type": "module"`. Everything shipped is ESM, but without the field
+  two things read as CommonJS: the lazy `import()` chunks Vite emits as
+  `dist/*.js`, which Node had to sniff and reparse (`MODULE_TYPELESS_PACKAGE_JSON`),
+  and `dist/types/*.d.ts`, which TypeScript treated as a CJS declaration
+  describing an ESM file — reported by `attw` as "masquerading as CJS" on
+  both `node16` resolution modes.
+- This package's own declarations now resolve under `node16`/`nodenext`.
+  `moduleResolution: "bundler"` permits extensionless relative imports, the
+  emitted `.d.ts` reproduced them faithfully, and they then failed to resolve
+  for consumers using Node's ESM rules — degrading their types to errors.
+  Relative specifiers in `src` now carry explicit `.js` extensions, so what
+  is emitted is resolvable. No API change; imports of this package are
+  unaffected. Types re-exported from `@nightingale-elements` packages may
+  still degrade under Node ESM resolution — those ship the same defect
+  upstream; see the `moduleResolution` note in `tsconfig.json`.
+- The published `dist/` no longer carries two copies of the declarations.
+  `tsc` and `vite-plugin-dts` were both emitting them, into different trees
+  because the plugin's output directory was misconfigured, so `dist/` shipped
+  both — and `yarn test` after `yarn build` changed what a subsequent
+  `npm publish` would ship. `tsc` is now `noEmit` (`yarn test:types` is a
+  check, not a build step) and the plugin owns `dist/types`. Declarations for
+  test files are no longer shipped.
+- `files` is now `["dist"]`. The tarball previously carried 139 source files
+  — the entire test suite included — that no consumer could import, because
+  `exports` gates every subpath. The sourcemap already embeds the sources for
+  debugging. Unpacked size drops from ~1.15 MB to the build output alone.
+- Added `prepack` so `npm pack`/`npm publish` build first. `dist/` is
+  gitignored, so publishing without a prior `yarn build` shipped a package
+  whose every declared entry point was missing.
+- Dropped `core-js` and `lodash-es` from `dependencies` (and `@types/lodash-es`
+  from dev) — nothing in the codebase has referenced them since the move off
+  the Babel build.
+- Runtime dependencies now use caret ranges instead of exact pins. Exact pins
+  stop a consumer's resolver deduplicating, which for `lit` means a second
+  copy of `ReactiveElement` in the same page.
+- Added `repository`, `bugs`, `homepage` and `keywords`, and set
+  `publishConfig.tag` to `next` so a v5 publish cannot take the `latest` tag
+  from the 4.x production line.
+- `src/playground/**` is excluded from the emitted declarations. It is a
+  docs-site page rather than public API, and its types referenced `codemirror`
+  and `@codemirror/lint` — devDependencies a consumer cannot resolve.
+- `scripts/clearCDNcaches.sh` purged `dist/protvista-uniprot.js`, a pre-Vite
+  name no build emits, making the jsDelivr purge a no-op; it now purges the
+  `.mjs` entry and its map. Note the lazy `dist/*.js` chunks carry no content
+  hash and are still not purged.
+- `yarn test:pack` runs `publint` and `attw` against the packed tarball, and
+  CI runs it after the build. Nothing previously checked the exports map or
+  the emitted declarations the way a consumer resolves them.
+
 ### Breaking — `label` is now a Markdoc string; `helpPage` and `labelUrl` removed
 
 Group and track `label` is now a Markdoc **inline** source string rendered
@@ -183,3 +260,34 @@ Two fixes make the per-track error surfacing actually reach the screen:
   error-correlation pass, suppressing *all* badges and events. (Hardening
   those parsers at the source is tracked in
   `specs/alphafold-alphamissense-adapter-hardening.md`.)
+
+### Fixed — `js-yaml` pinned to 4.x; install-time patch removed
+
+A routine dependency refresh had bumped `js-yaml` to 5.2.1, a major that
+replaced the package's named/default export shape and removed `Type`,
+`DEFAULT_SCHEMA`, and several loader/dumper options. `astro`,
+`@astrojs/starlight`, and `@astrojs/internal-helpers` all declare
+`js-yaml ^4.1.1`, so the docs build broke on the missing `default`
+export, and a `postinstall` step had been added to write one into the
+installed package inside `node_modules`.
+
+`js-yaml` is now pinned to **4.3.0**, which satisfies that same
+`^4.1.1` range — the tree dedupes to a single copy and the patch is
+gone, along with the `postinstall` hook and `scripts/patch-js-yaml.mjs`.
+This also removes two hazards: writing into `node_modules` corrupts the
+shared global store under package managers that hardlink from it (pnpm),
+and because `scripts/` is not in `files`, publishing with a `postinstall`
+would have failed every consumer's install on a missing file.
+
+One behavioural change follows. A YAML document with no content — blank,
+whitespace, or comments only — is handled differently by the two majors
+(4.x returns `undefined`/`null`, 5.x throws). `parseConfigText` now pins
+this itself and rejects with a `SyntaxError`, so the contract no longer
+depends on which `js-yaml` is installed. A bare `---` still parses to
+`null` and is rejected by validation, as before.
+
+Also corrected: the parser was documented as pinning `SAFE_SCHEMA`, a
+name that exists in no shipped `js-yaml`. It has always used
+`CORE_SCHEMA` — the narrowest schema available, with no `!!js/*` tags —
+which is what the docs and constraint C4 now say, and what a new test
+asserts.

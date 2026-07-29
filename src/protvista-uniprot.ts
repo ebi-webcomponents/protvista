@@ -15,63 +15,49 @@ import type NightingaleFilter from '@nightingale-elements/nightingale-filter';
 import type { Filter } from '@nightingale-elements/nightingale-filter';
 import { amColorScale } from '@nightingale-elements/nightingale-structure';
 
-// adapters
-import featureAdapter from './adapters/feature-adapter';
-import proteomicsAdapter from './adapters/proteomics-adapter';
-import structureAdapter from './adapters/structure-adapter';
-import variationAdapter, {
-  TransformedVariant,
-} from './adapters/variation-adapter';
-import interproAdapter from './adapters/interpro-adapter';
-import variationGraphAdapter from './adapters/variation-graph-adapter';
-import rnaEditingGraphAdapter from './adapters/rna-editing-graph-adapter';
-import rnaEditingAdapter from './adapters/rna-editing-adapter';
-import proteomicsPTMApdapter from './adapters/ptm-exchange-adapter';
-import alphaFoldConfidenceAdapter from './adapters/alphafold-confidence-adapter';
-import alphaMissensePathogenicityAdapter from './adapters/alphamissense-pathogenicity-adapter';
-import alphaMissenseHeatmapAdapter from './adapters/alphamissense-heatmap-adapter';
-import { featuresCsv } from './schema/adapters/features-csv';
-import { featuresTsv } from './schema/adapters/features-tsv';
-import { featuresJson } from './schema/adapters/features-json';
-import { bed } from './schema/adapters/bed';
+// Adapter functions are no longer imported or held here: they live in the
+// schema registry (seeded from `BUILTIN_ADAPTERS`) and the loader resolves
+// them by name via `this.registry.getAdapter`. Only this type is still
+// needed for a local narrowing below.
+import type { TransformedVariant } from './schema/adapters/variation-adapter.js';
 
-import { loadComponent } from './utils';
+import { loadComponent } from './utils/index.js';
 import {
   STRUCTURAL_COMPONENTS,
   registerBuiltinComponents,
-} from './built-in-components';
+} from './built-in-components.js';
 import {
   loadProtvistaData,
   UNFILTERED_SUFFIX,
   type CustomTrackData,
-} from './load-data';
+} from './load-data.js';
 import {
   installClickTooltip,
   type TooltipController,
-} from './tooltips/popover';
-import { renderLabel } from './tooltips/resolve';
+} from './tooltips/popover.js';
+import { renderLabel } from './tooltips/resolve.js';
 
-import filterConfig, { colorConfig } from './filter-config';
+import filterConfig, { colorConfig } from './filter-config.js';
 
 // Schema-driven config pipeline. The default YAML is
 // bundled as a raw string so `js-yaml` stays lazy-loaded — adopters
 // who pass a parsed `viewerConfig` object never pull in the parser.
 import defaultConfigYaml from './default-config.yaml?raw';
-import { loadConfigWithSource, type LoadedConfig } from './schema/load';
-import { type Registry, createRegistry } from './schema/registry';
+import { loadConfigWithSource, type LoadedConfig } from './schema/load.js';
+import { type Registry, createRegistry } from './schema/registry.js';
 import type {
   KnownComponentName,
   ProtvistaViewerConfig,
   AdapterFunction,
   SemanticKindDefinition,
   ColorStop,
-} from './schema/types';
+} from './schema/types.js';
 import type {
   NormalizedConfig,
   NormalizedRow,
   NormalizedTrack,
-} from './schema/normalize';
-import { renderingToAttrs } from './renderer/render-helpers';
+} from './schema/normalize.js';
+import { renderingToAttrs } from './renderer/render-helpers.js';
 import {
   type LayoutPatch,
   type DisplayRow,
@@ -88,7 +74,7 @@ import {
   setTrackHidden,
   trackKey,
   visibleTracks,
-} from './layout';
+} from './layout.js';
 import {
   LAYOUT_PARAM,
   configIdentity,
@@ -96,27 +82,28 @@ import {
   isDefaultLayout,
   encodeLayout,
   decodeLayout,
-} from './layout-persistence';
-import { applyLayoutToConfig } from './schema/denormalize';
+} from './layout-persistence.js';
+import { applyLayoutToConfig } from './schema/denormalize.js';
 
 import loaderIcon from './icons/spinner.svg';
 import slidersIcon from './icons/sliders.svg';
 import chevronUpIcon from './icons/chevron-up.svg';
-import protvistaStyles from './styles/protvista-styles';
-import loaderStyles from './styles/loader-styles';
-import errorStyles from './styles/error-styles';
-import configPanelStyles from './styles/config-panel-styles';
-import { CSS_PREFIX } from './styles/css-prefix';
-import { injectStyleOnce, installTokenDefaults } from './styles/inject';
+import { inlineSvg } from './icons/inline.js';
+import protvistaStyles from './styles/protvista-styles.js';
+import loaderStyles from './styles/loader-styles.js';
+import errorStyles from './styles/error-styles.js';
+import configPanelStyles from './styles/config-panel-styles.js';
+import { CSS_PREFIX } from './styles/css-prefix.js';
+import { injectStyleOnce, installTokenDefaults } from './styles/inject.js';
 
 // User-facing error surfaces. `ConfigValidationError` is a value import
 // (used for the `instanceof` narrowing in `_init`'s catch); the display
 // formatter is *not* imported here — it is pulled in lazily via
-// `await import('./errors/format')` only when a config error actually
+// `await import('./errors/format.js')` only when a config error actually
 // occurs, so the happy path never downloads it.
-import { ConfigValidationError, type ValidationIssue } from './schema/errors';
-import type { ErrorPhase, ErrorContext } from './errors/report';
-import type { FormattedError } from './errors/format';
+import { ConfigValidationError, type ValidationIssue } from './schema/errors.js';
+import type { ErrorPhase, ErrorContext } from './errors/report.js';
+import type { FormattedError } from './errors/format.js';
 
 // Performance marks emitted at three lifecycle transitions:
 //   protvista:script-start    component connectedCallback runs
@@ -144,33 +131,6 @@ const measureOnce = (name: string, start: string, end: string) => {
       // rather than throwing; comparing the marks directly still works.
     }
   }
-};
-
-// Exported so tests and the schema-driven loader can construct the
-// exact same adapter map without risking drift. Keys are the canonical
-// schema-level `<source>-<format>` adapter names — the same vocabulary
-// config authors write in `adapter:` fields.
-export const adapters = {
-  'uniprot-features-json': featureAdapter,
-  'interpro-entries-json': interproAdapter,
-  'uniprot-proteomics-json': proteomicsAdapter,
-  'uniprot-proteins-pdb-json': structureAdapter,
-  'uniprot-variation-json': variationAdapter,
-  'uniprot-variation-counts-json': variationGraphAdapter,
-  'uniprot-rna-editing-json': rnaEditingAdapter,
-  'uniprot-rna-editing-counts-json': rnaEditingGraphAdapter,
-  'uniprot-proteomics-ptm-json': proteomicsPTMApdapter,
-  'alphafold-prediction-json': alphaFoldConfidenceAdapter,
-  'alphamissense-average-csv': alphaMissensePathogenicityAdapter,
-  'alphamissense-full-csv': alphaMissenseHeatmapAdapter,
-  // Generic-format bring-your-own-data adapters. These are also seeded
-  // into the schema Registry via BUILTIN_ADAPTERS (which gates config
-  // validation); they must additionally live here because this is the
-  // map the loader actually invokes to transform a track's fetched body.
-  'features-csv': featuresCsv,
-  'features-tsv': featuresTsv,
-  'features-json': featuresJson,
-  bed,
 };
 
 type NightingaleEvent = Event & {
@@ -376,7 +336,7 @@ class ProtvistaUniprot extends LitElement {
    * instead of the viewer (or the silent blank it used to show for a
    * config / sequence failure). For a config failure the rich
    * `FormattedError` fields (grouped issues) are filled in after the
-   * lazy `./errors/format` chunk resolves; until then the one-line
+   * lazy `./errors/format.js` chunk resolves; until then the one-line
    * `summary` is enough to render. Not a reactive property (it's an
    * object) — every mutation is paired with `requestUpdate()`.
    */
@@ -938,7 +898,10 @@ class ProtvistaUniprot extends LitElement {
           return null;
         }
       },
-      adapters,
+      // Resolve adapter functions by name through the registry — the same
+      // source of truth config validation consults, so a consumer's
+      // `registerAdapter()` adapter both validates and runs.
+      (name) => this.registry.getAdapter(name),
       this.customTrackData,
       only ? { only, previousData: this.data } : undefined
     );
@@ -1331,7 +1294,7 @@ class ProtvistaUniprot extends LitElement {
         // against an accession swap re-running `_init()` and replacing
         // `_mountError` while we awaited the chunk.
         if (issues.length) {
-          const { formatValidationIssues } = await import('./errors/format');
+          const { formatValidationIssues } = await import('./errors/format.js');
           if (this._mountError?.phase === 'config') {
             this._mountError = {
               phase: 'config',
@@ -2401,7 +2364,7 @@ class ProtvistaUniprot extends LitElement {
         @click="${this._toggleCustomizeMode}"
       >
         <span class="${CSS_PREFIX}-customize-toggle__icon" aria-hidden="true"
-          >${svg`${unsafeHTML(slidersIcon)}`}</span
+          >${svg`${unsafeHTML(inlineSvg(slidersIcon))}`}</span
         >
         Customize
       </button>
@@ -2700,7 +2663,7 @@ class ProtvistaUniprot extends LitElement {
           onClick(e.currentTarget as HTMLButtonElement);
         }}"
       >
-        <span aria-hidden="true">${svg`${unsafeHTML(chevronUpIcon)}`}</span>
+        <span aria-hidden="true">${svg`${unsafeHTML(inlineSvg(chevronUpIcon))}`}</span>
       </button>
     `;
   }
@@ -2810,7 +2773,7 @@ class ProtvistaUniprot extends LitElement {
     }
     if (this.loading) {
       return html`<div class="protvista-loader">
-        ${svg`${unsafeHTML(loaderIcon)}`}
+        ${svg`${unsafeHTML(inlineSvg(loaderIcon))}`}
       </div>`;
     }
     // Derive error visibility once for this render — every group/track

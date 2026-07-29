@@ -12,11 +12,11 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { loadConfig } from '../schema/load';
-import { createRegistry } from '../schema/registry';
-import { loadProtvistaData, type AdapterMap } from '../load-data';
-import { featuresCsv } from '../schema/adapters/features-csv';
-import { featuresJson } from '../schema/adapters/features-json';
+import { loadConfig } from '../schema/load.js';
+import { createRegistry } from '../schema/registry.js';
+import { loadProtvistaData, type AdapterMap } from '../load-data.js';
+import { featuresCsv } from '../schema/adapters/features-csv.js';
+import { featuresJson } from '../schema/adapters/features-json.js';
 
 const CSV = 'type,start,end,description\nDOMAIN,10,25,Kinase domain';
 
@@ -24,6 +24,7 @@ const adapters: AdapterMap = {
   'features-csv': featuresCsv,
   'features-json': featuresJson,
 };
+const resolveAdapter = (name: string) => adapters[name];
 
 describe('loadProtvistaData — from: file (features-csv)', () => {
   it('fetches the file as text and lands the adapter output on the track slot', async () => {
@@ -38,7 +39,7 @@ describe('loadProtvistaData — from: file (features-csv)', () => {
 
     const fetchOne = vi.fn(async () => CSV);
 
-    const result = await loadProtvistaData('P05067', config, fetchOne, adapters);
+    const result = await loadProtvistaData('P05067', config, fetchOne, resolveAdapter);
 
     // Fetched once, as text, at the declared path.
     expect(fetchOne).toHaveBeenCalledTimes(1);
@@ -70,7 +71,7 @@ describe('loadProtvistaData — from: file (features-csv)', () => {
       ],
     });
     const fetchOne = vi.fn(async () => 'type,start,end,description');
-    const result = await loadProtvistaData('P05067', config, fetchOne, adapters);
+    const result = await loadProtvistaData('P05067', config, fetchOne, resolveAdapter);
     expect(result.hasData).toBe(false);
   });
 
@@ -86,9 +87,12 @@ describe('loadProtvistaData — from: file (features-csv)', () => {
     });
 
     const fetchOne = vi.fn(async () => []);
-    await loadProtvistaData('P05067', config, fetchOne, {
-      'uniprot-features-json': () => [],
-    });
+    await loadProtvistaData(
+      'P05067',
+      config,
+      fetchOne,
+      (name) => ({ 'uniprot-features-json': () => [] })[name]
+    );
 
     expect(fetchOne).toHaveBeenCalledWith('https://example.org/feats', 'json');
   });
@@ -115,7 +119,12 @@ describe('loadProtvistaData — from: file (features-csv)', () => {
     );
 
     const fetchOne = vi.fn(async () => []);
-    await loadProtvistaData('P05067', config, fetchOne, { 'my-json': () => [] });
+    await loadProtvistaData(
+      'P05067',
+      config,
+      fetchOne,
+      (name) => ({ 'my-json': () => [] })[name]
+    );
 
     // URL ends in .csv, but the explicit adapter is not a text-body adapter,
     // so the body must still be fetched as JSON (regression-safety for
@@ -142,10 +151,12 @@ describe('loadProtvistaData — from: file (features-csv)', () => {
       );
 
       const fetchOne = vi.fn(async () => CSV);
-      await loadProtvistaData('P05067', config, fetchOne, {
-        'features-csv': featuresCsv,
-        'my-json': () => [],
-      });
+      await loadProtvistaData(
+        'P05067',
+        config,
+        fetchOne,
+        (name) => ({ 'features-csv': featuresCsv, 'my-json': () => [] })[name]
+      );
 
       // Deduped to a single fetch; text wins regardless of declaration order
       // (a delimited body would fail a JSON parse, so text is the safe choice).
@@ -171,7 +182,7 @@ describe('loadProtvistaData — from: file (features-json)', () => {
       { type: 'DOMAIN', begin: 10, end: 25, description: 'Kinase domain', score: 0.9 },
     ]);
 
-    const result = await loadProtvistaData('P05067', config, fetchOne, adapters);
+    const result = await loadProtvistaData('P05067', config, fetchOne, resolveAdapter);
 
     // Fetched once, as json (not text), at the declared path.
     expect(fetchOne).toHaveBeenCalledTimes(1);
@@ -203,7 +214,7 @@ describe('loadProtvistaData — from: file (features-json)', () => {
       ],
     });
     const fetchOne = vi.fn(async () => []);
-    const result = await loadProtvistaData('P05067', config, fetchOne, adapters);
+    const result = await loadProtvistaData('P05067', config, fetchOne, resolveAdapter);
     expect(result.hasData).toBe(false);
   });
 });

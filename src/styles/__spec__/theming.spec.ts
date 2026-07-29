@@ -8,12 +8,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { TOKENS, tokenDefaults } from '../tokens';
-import { installTokenDefaults } from '../inject';
+import { TOKENS, tokenDefaults } from '../tokens.js';
+import { installTokenDefaults } from '../inject.js';
 import {
   ProtvistaUniprotDatatable,
   type ColumnConfig,
-} from '../../protvista-uniprot-datatable';
+} from '../../protvista-uniprot-datatable.js';
 
 /**
  * Resolve a registry default to the literal it ultimately renders as: a
@@ -112,9 +112,12 @@ describe('datatable defaults stay in sync with the registry', () => {
   });
 });
 
-describe('docs/theming.md stays in sync with the registry', () => {
+describe('theming docs stay in sync with the registry', () => {
   // Vitest runs from the repo root, so resolve the docs path from cwd.
-  const docs = readFileSync(join(process.cwd(), 'docs/theming.md'), 'utf8');
+  const docs = readFileSync(
+    join(process.cwd(), 'docs/src/content/docs/theming.md'),
+    'utf8'
+  );
 
   it('documents every token name and its default value', () => {
     for (const t of TOKENS) {

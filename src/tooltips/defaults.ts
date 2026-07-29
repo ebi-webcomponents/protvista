@@ -25,7 +25,7 @@
  * tooltips and have no entry here — the resolver returns `''` for
  * unregistered kinds.
  */
-import type { TooltipDefaultsRegistry } from './types';
+import type { TooltipDefaultsRegistry } from './types.js';
 
 export const tooltipDefaults: TooltipDefaultsRegistry = {
   features: {

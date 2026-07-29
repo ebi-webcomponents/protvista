@@ -1,5 +1,5 @@
 import { css, unsafeCSS } from 'lit';
-import { CSS_PREFIX } from './css-prefix';
+import { CSS_PREFIX } from './css-prefix.js';
 
 /**
  * Our internal class names carry a collision-proof hash prefix

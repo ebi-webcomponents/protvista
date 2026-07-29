@@ -1,0 +1,46 @@
+# ProtVista
+
+> ProtVista is a web component (`<protvista-uniprot>`) that displays protein
+> sequence features as interactive tracks. Point it at a UniProt accession, or
+> drive it with a declarative YAML/JSON config and load your own CSV/TSV/JSON/BED
+> data. No framework required.
+
+Authors describe *what to show* in a config of high-level concepts (rows, tracks,
+and a `kind` per track); ProtVista maps each `kind` to the right renderer and data
+adapter. Configuration is the "Intent"; the data a provider or file supplies is
+the "Representation". Documentation is licensed CC BY 4.0.
+
+## User guide
+
+- [Tutorial](https://ebi-webcomponents.github.io/protvista/tutorial): the guided end-to-end path — add the component, point it at an accession, add your own track from a CSV, `extends` the default viewer, and theme it.
+- [Overview and audience router](https://ebi-webcomponents.github.io/protvista/overview): where to start as a researcher, data owner, or developer.
+- [Embed the viewer](https://ebi-webcomponents.github.io/protvista/embed): load the component (module script or npm) and the key attributes (`accession`, `config-src`, `viewerConfig`, `notooltip`, …).
+- [Author a config](https://ebi-webcomponents.github.io/protvista/configure): `accession`, `sources`, `rows`/`tracks`, `kind`, `data`, `filter`; the minimal config and `extends`.
+- [Load your own data](https://ebi-webcomponents.github.io/protvista/your-data): the feature record (`type`, `start`, `end`, `description?`, `score?`); CSV/TSV/JSON/BED by file extension; inline data; the page-relative path caveat.
+- [Troubleshoot errors](https://ebi-webcomponents.github.io/protvista/troubleshooting): the `protvista-error` event, its phases (`config`, `sequence`, `track-fetch`, `set-track-data`) and context; common causes.
+- [Escape hatches](https://ebi-webcomponents.github.io/protvista/escape-hatches): `registerAdapter` / `registerSemanticKind` / `registerTheme` / `registerComponent` on the element, called before mount.
+
+## Reference
+
+- [Built-in track kinds](https://ebi-webcomponents.github.io/protvista/track-kinds): the 12 kinds (`features`, `features-interpro`, `variants`, `variant-counts`, `rna-editing`, `rna-editing-counts`, `peptides`, `peptides-ptm`, `structure-coverage`, `confidence-score`, `pathogenicity-score`, `pathogenicity-heatmap`) and what each draws.
+- [Adapter reference](https://ebi-webcomponents.github.io/protvista/adapter-reference): expected payload shape for every built-in kind and adapter (generated from source, drift-tested).
+- [Theme the viewer](https://ebi-webcomponents.github.io/protvista/theming): CSS custom properties (`--protvista-*`) and `::part`.
+- [Author tooltips](https://ebi-webcomponents.github.io/protvista/data-tooltip): the three `dataTooltip` forms.
+- [Config JSON Schema](https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json): machine-readable schema for viewer configs.
+- [Feature record JSON Schema](https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json): machine-readable schema for bring-your-own feature records.
+
+## Explanation
+
+- [Configuration vs data](https://ebi-webcomponents.github.io/protvista/configuration-vs-data): the Intent/Representation split — what your config controls versus what a data provider must supply.
+
+## Tools and examples
+
+- [Configuration playground](https://ebi-webcomponents.github.io/protvista/playground/): edit a config with live validation and preview; `?dev` adds edge-case examples, `?accession=` seeds the viewer.
+- [Runnable examples](https://github.com/ebi-webcomponents/protvista/tree/next/examples): CI-validated config + data pairs (basic, inline, CSV, TSV, JSON, BED, extends-default).
+- [Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit): a no-build template repository — an HTML page, a commented `config.yaml`, and a `data/` folder — for visualising your own CSV/TSV annotations without writing code. Loads the component from a version-pinned CDN.
+
+## Optional
+
+- [Rich tooltips in React](https://ebi-webcomponents.github.io/protvista/react-integration): owning your own tooltip overlay via the `change` event + `notooltip`.
+- [Normative config spec](https://github.com/ebi-webcomponents/protvista/blob/next/specs/config-approach.md): the full, field-by-field configuration reference.
+- [Source repository](https://github.com/ebi-webcomponents/protvista): component source, schema, and issue tracker.

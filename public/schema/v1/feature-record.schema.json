@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json",
+  "title": "ProtVista feature record",
+  "description": "The canonical payload the generic bring-your-own-data adapters (features-csv, features-tsv, features-json, bed) emit and the feature tracks consume. Generic format only — domain-adapter (EBI API) payloads are not schematised. See docs/adapter-reference.md.",
+  "type": "object",
+  "required": [
+    "type",
+    "start",
+    "end"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "type": {
+      "type": "string",
+      "description": "Feature category label (e.g. DOMAIN, BINDING). Drives `filter:` and colour grouping."
+    },
+    "start": {
+      "type": "number",
+      "description": "1-based start position (inclusive).",
+      "$comment": "features-json also accepts `begin` as an alias for `start`; `start` wins when both are present."
+    },
+    "end": {
+      "type": "number",
+      "description": "1-based end position (inclusive)."
+    },
+    "description": {
+      "type": "string",
+      "description": "Free text shown in the default tooltip. Omitted when empty."
+    },
+    "score": {
+      "type": "number",
+      "description": "Optional numeric score. Omitted when empty."
+    }
+  }
+}

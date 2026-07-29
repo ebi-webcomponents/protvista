@@ -37,9 +37,9 @@
  * resolver inputs the test exercises.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { loadProtvistaData, type AdapterMap } from '../../load-data';
-import type { TooltipSpec } from '../types';
-import { ACCESSION, makeConfig } from '../../__spec__/fixtures';
+import { loadProtvistaData, type AdapterMap } from '../../load-data.js';
+import type { TooltipSpec } from '../types.js';
+import { ACCESSION, makeConfig } from '../../__spec__/fixtures.js';
 
 const fetchOne = vi.fn(async (url: string) => ({ url })); // payload is irrelevant — adapters below ignore it
 
@@ -70,7 +70,7 @@ describe('tooltip pipeline — loader-driven end-to-end', () => {
       ],
     });
 
-    const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, adapters);
+    const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, (name) => adapters[name]);
     const items = data['GROUP-domain'] as Array<{ tooltipContent: string }>;
     expect(items).toHaveLength(2);
     expect(items[0].tooltipContent).toBe('<h5>Desc</h5><p>first</p>');
@@ -103,7 +103,7 @@ describe('tooltip pipeline — loader-driven end-to-end', () => {
       ],
     });
 
-    const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, adapters);
+    const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, (name) => adapters[name]);
     const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
     expect(item.tooltipContent).toBe('<h5>Override</h5><p>x</p>');
   });
@@ -137,7 +137,7 @@ describe('tooltip pipeline — loader-driven end-to-end', () => {
       ],
     });
 
-    const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, adapters);
+    const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, (name) => adapters[name]);
     const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
     expect(item.tooltipContent).toBe('<strong>adapter tooltip</strong>');
   });
@@ -166,7 +166,7 @@ describe('tooltip pipeline — loader-driven end-to-end', () => {
       ],
     });
 
-    const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, adapters);
+    const { data } = await loadProtvistaData(ACCESSION, config, fetchOne, (name) => adapters[name]);
     const [item] = data['GROUP-t'] as Array<{ tooltipContent: string }>;
     expect(item.tooltipContent).toBe(
       '<h5>Type</h5><p>DOMAIN</p>' +
@@ -213,7 +213,7 @@ describe('tooltip pipeline — loader-driven end-to-end', () => {
       ACCESSION,
       config,
       fetchNonEmpty,
-      adapters
+      (name) => adapters[name]
     );
     const bundle = data['GROUP-variation'] as {
       variants: Array<{ tooltipContent: string; wildType: string }>;
@@ -255,7 +255,7 @@ describe('tooltip pipeline — loader-driven end-to-end', () => {
       ACCESSION,
       config,
       fetchOne,
-      adapters
+      (name) => adapters[name]
     );
     const [item] = data['GROUP-my-track'] as Array<{
       tooltipContent: string;

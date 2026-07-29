@@ -10,8 +10,8 @@
  * `src/layout.ts`), but a whole config is far too large for a URL, so the
  * viewer stores the diff and replays it onto the authored baseline on mount.
  */
-import type { NormalizedRow } from './schema/normalize';
-import { emptyPatch, isDefaultPatch, type LayoutPatch } from './layout';
+import type { NormalizedRow } from './schema/normalize.js';
+import { emptyPatch, isDefaultPatch, type LayoutPatch } from './layout.js';
 
 /** The query-string parameter carrying a shareable layout. */
 export const LAYOUT_PARAM = 'layout';

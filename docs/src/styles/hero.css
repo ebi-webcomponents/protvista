@@ -1,0 +1,21 @@
+/* Splash home hero: keep the three call-to-action buttons on a single row.
+   Starlight's hero action group wraps by default (flex-wrap: wrap), which drops
+   the third button onto its own line. Force one row on wider viewports, and let
+   it wrap again on narrow screens so the buttons never overflow on mobile. The
+   `.hero .actions` selector only exists on splash pages, so this is inert
+   everywhere else. */
+@media (min-width: 50rem) {
+  .hero .actions {
+    flex-wrap: nowrap;
+  }
+}
+
+/* Tighten the gap between each hero button's label and its trailing icon.
+   Starlight's `.sl-link-button` defaults to `gap: 0.5em` which, with the 1.5rem
+   icon, reads as a floating glyph detached from the words. Applies to all three
+   hero actions. */
+.hero .actions .sl-link-button {
+  gap: 0.3em;
+  /* Keep each label on a single line (e.g. "Check out the Starter Kit"). */
+  white-space: nowrap;
+}

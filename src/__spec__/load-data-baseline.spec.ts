@@ -65,13 +65,13 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
-import { loadConfig } from '../schema/load';
-import type { NormalizedConfig } from '../schema/normalize';
+import { loadConfig } from '../schema/load.js';
+import type { NormalizedConfig } from '../schema/normalize.js';
 import {
   loadProtvistaData,
   UNFILTERED_SUFFIX,
   type AdapterMap,
-} from '../load-data';
+} from '../load-data.js';
 
 const REFERENCE_ACCESSION = 'P05067';
 
@@ -235,14 +235,16 @@ function makeSimpleAdapter(adapterName: string) {
 }
 
 /**
- * InterPro has a special-case branch in the loader: the adapter output is
- * walked to collect `locations[].representative` fragments, which are
- * emitted as synthetic features with `type: 'InterPro Representative
- * Domain'`. We return a shape that exercises both `representative: true`
- * (should be emitted) and `representative: false` (should be dropped).
+ * InterPro representative-domain flattening now lives inside the real
+ * `interpro-entries-json` adapter (the loader is generic and no longer
+ * post-processes any adapter's output). This stub mirrors that: it walks
+ * `locations[].representative` fragments and returns the synthetic
+ * features (`type: 'InterPro Representative Domain'`) directly, exercising
+ * both `representative: true` (emitted) and `representative: false`
+ * (dropped) — so the loader sees exactly what the real adapter produces.
  */
 function makeInterproAdapter() {
-  return vi.fn(() => [
+  const entries = [
     {
       accession: 'IPR-STUB-REPRESENTATIVE',
       source: 'InterPro',
@@ -266,7 +268,25 @@ function makeInterproAdapter() {
         },
       ],
     },
-  ]);
+  ];
+  return vi.fn(() => {
+    const representativeDomains: Array<Record<string, unknown>> = [];
+    entries.forEach((feature) => {
+      feature.locations?.forEach((location) => {
+        if (location.representative) {
+          location.fragments?.forEach((fragment) => {
+            representativeDomains.push({
+              ...feature,
+              type: 'InterPro Representative Domain',
+              start: fragment.start,
+              end: fragment.end,
+            });
+          });
+        }
+      });
+    });
+    return representativeDomains;
+  });
 }
 
 /** Stub adapter for `nightingale-colored-sequence` tracks: returns a
@@ -285,12 +305,20 @@ function makeHeatmapAdapter(
 
 /** Stub adapter for `nightingale-variation-canvas` tracks (both the
  *  variation and RNA-editing detail tracks resolve to this component):
- *  returns `{ sequence, variants }`, ignoring input args. */
-function makeVariationShapedAdapter(payload: {
-  sequence: string;
-  variants: Array<Record<string, unknown>>;
-}) {
-  return vi.fn(() => payload);
+ *  returns `{ sequence, variants }`. When `guardEmpty` is set it mirrors
+ *  the real variation adapter's empty-payload guard — returning `null`
+ *  for an empty fetched body (an empty array) — so the loader (which no
+ *  longer guards) leaves that track's slot empty. */
+function makeVariationShapedAdapter(
+  payload: {
+    sequence: string;
+    variants: Array<Record<string, unknown>>;
+  },
+  guardEmpty = false
+) {
+  return vi.fn((raw?: unknown) =>
+    guardEmpty && Array.isArray(raw) && raw.length === 0 ? null : payload
+  );
 }
 
 /** Stub adapter for `nightingale-linegraph-track` tracks: returns an
@@ -314,7 +342,10 @@ function buildMockAdapters(): AdapterMap {
     'uniprot-proteins-pdb-json': makeSimpleAdapter(
       'uniprot-proteins-pdb-json'
     ),
-    'uniprot-variation-json': makeVariationShapedAdapter(VARIATION_FIXTURE),
+    'uniprot-variation-json': makeVariationShapedAdapter(
+      VARIATION_FIXTURE,
+      true
+    ),
     'uniprot-variation-counts-json': makeLinegraphAdapter(
       VARIATION_COUNTS_FIXTURE
     ),
@@ -371,7 +402,7 @@ describe('loadProtvistaData baseline (schema-driven default config)', () => {
       REFERENCE_ACCESSION,
       config,
       cannedFetch,
-      mockAdapters
+      (name) => mockAdapters[name]
     );
     expect(result).toMatchSnapshot();
   });
@@ -381,7 +412,7 @@ describe('loadProtvistaData baseline (schema-driven default config)', () => {
       REFERENCE_ACCESSION,
       config,
       cannedFetch,
-      mockAdapters
+      (name) => mockAdapters[name]
     );
     const callCounts = Object.fromEntries(
       Object.entries(mockAdapters)
@@ -396,7 +427,7 @@ describe('loadProtvistaData baseline (schema-driven default config)', () => {
       REFERENCE_ACCESSION,
       config,
       cannedFetch,
-      mockAdapters
+      (name) => mockAdapters[name]
     );
     const fetched = cannedFetch.mock.calls.map(([u]) => u).sort();
     expect({ accession: REFERENCE_ACCESSION, fetched }).toMatchSnapshot();
@@ -411,7 +442,7 @@ describe('loadProtvistaData baseline (schema-driven default config)', () => {
       REFERENCE_ACCESSION,
       config,
       withFeatures,
-      mockAdapters
+      (name) => mockAdapters[name]
     );
     expect(result.hasData).toBe(true);
   });
@@ -422,25 +453,27 @@ describe('loadProtvistaData baseline (schema-driven default config)', () => {
       REFERENCE_ACCESSION,
       config,
       cannedFetch,
-      mockAdapters
+      (name) => mockAdapters[name]
     );
     expect(result.hasData).toBe(false);
   });
 
-  it('honors the variation-adapter early-return on empty raw data', async () => {
-    // When the raw response for a variation URL is `[]`, loadProtvistaData
-    // must NOT call the adapter and must NOT populate the track key.
+  it('leaves the variation slot empty when the adapter guards an empty payload', async () => {
+    // The empty-payload guard now lives in the variation adapter (it
+    // returns `null` for an empty body). The loader is generic: it always
+    // runs the resolved adapter and treats a nullish result as no-data, so
+    // the track key stays unpopulated.
     const result = await loadProtvistaData(
       REFERENCE_ACCESSION,
       config,
       async (url) =>
         url.includes('/variation/') ? [] : { fixture: true, url },
-      mockAdapters
+      (name) => mockAdapters[name]
     );
     const variationAdapter = mockAdapters[
       'uniprot-variation-json'
     ] as ReturnType<typeof vi.fn>;
-    expect(variationAdapter).not.toHaveBeenCalled();
+    expect(variationAdapter).toHaveBeenCalled();
     expect(result.data).not.toHaveProperty('VARIATION-variation');
   });
 
@@ -454,7 +487,7 @@ describe('loadProtvistaData baseline (schema-driven default config)', () => {
       REFERENCE_ACCESSION,
       config,
       cannedFetch,
-      mockAdapters
+      (name) => mockAdapters[name]
     );
     const baselineKey = `VARIATION-variation${UNFILTERED_SUFFIX}`;
     // Same reference as the live slot at load time.
@@ -472,7 +505,7 @@ describe('loadProtvistaData baseline (schema-driven default config)', () => {
       REFERENCE_ACCESSION,
       config,
       cannedFetch,
-      mockAdapters
+      (name) => mockAdapters[name]
     );
     // The track id in `default-config.yaml` is literally "InterPro
     // representative domain" (with spaces), so the data key is
@@ -502,7 +535,7 @@ describe('loadProtvistaData baseline (schema-driven default config)', () => {
       '',
       config,
       cannedFetch,
-      mockAdapters
+      (name) => mockAdapters[name]
     );
     // The function still produces group aggregates for each group
     // (since we only skip *at the component level* when accession is

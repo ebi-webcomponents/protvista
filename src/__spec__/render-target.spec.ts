@@ -37,16 +37,16 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // `setupFiles` in `vite.config.mjs`. Static imports below therefore
 // resolve against the stubs.
 import { render } from 'lit';
-import type { KnownComponentName, RenderingOptions } from '../schema/types';
-import type { NormalizedConfig } from '../schema/normalize';
-import { CSS_PREFIX } from '../styles/css-prefix';
+import type { KnownComponentName, RenderingOptions } from '../schema/types.js';
+import type { NormalizedConfig } from '../schema/normalize.js';
+import { CSS_PREFIX } from '../styles/css-prefix.js';
 // Side-effect import: loading `protvista-uniprot` runs the
 // `@customElement('protvista-uniprot')` decorator, registering the
 // element so `document.createElement('protvista-uniprot')` returns a
 // real instance (not a generic HTMLElement). We never reference the
 // default export directly — all instances come from
 // `document.createElement` below.
-import '../protvista-uniprot';
+import '../protvista-uniprot.js';
 
 // Reference sequence length chosen to match `P05067` (Amyloid precursor
 // protein), the accession used in the load-data baseline.

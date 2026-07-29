@@ -17,7 +17,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { featuresJson } from '../adapters/features-json';
+import { featuresJson } from '../adapters/features-json.js';
 
 describe('features-json adapter', () => {
   it('passes a well-formed array through to clean feature records', () => {

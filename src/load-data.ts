@@ -12,12 +12,11 @@
  *   1. Collect every `data[0].url` from every track, de-duplicate.
  *   2. Fetch each unique URL (substituting `{accession}`) via the caller-
  *      supplied fetch function.
- *   3. For each group: for each track: pluck the raw response, run
+ *   3. For each group: for each track: pluck the raw response, resolve
  *      the named adapter (the `adapter:` field carries the schema-level
- *      name — e.g. `uniprot-features-json` — which is used verbatim as
- *      the key into the caller-supplied `adapters` map), apply InterPro
- *      representative-domain flattening if relevant, apply the single-
- *      type filter if the track has one, and assign the result to
+ *      name — e.g. `uniprot-features-json` — which the injected resolver
+ *      looks up in the registry) and run it, apply the single-type filter
+ *      if the track has one, and assign the result to
  *      `data[`${group}-${track}`]`.
  *   4. Assign a group-level aggregate at `data[group]` — which is
  *      `.flat()` for most components, or `groupData[0]` for
@@ -32,15 +31,14 @@
  * `__unfiltered` keys as inert baselines, not live renderer payload.
  */
 
-import type { NormalizedConfig, NormalizedTrack } from './schema/normalize';
+import type { NormalizedConfig, NormalizedTrack } from './schema/normalize.js';
 import {
   TEXT_BODY_ADAPTERS,
   GENERIC_FILE_ADAPTERS,
-} from './schema/file-formats';
-import type { TransformedInterPro } from './adapters/types/interpro';
-import { resolveTooltip } from './tooltips/resolve';
-import { tooltipDefaults } from './tooltips/defaults';
-import type { TooltipContext, TooltipSpec } from './tooltips/types';
+} from './schema/file-formats.js';
+import { resolveTooltip } from './tooltips/resolve.js';
+import { tooltipDefaults } from './tooltips/defaults.js';
+import type { TooltipContext, TooltipSpec } from './tooltips/types.js';
 
 /**
  * Minimal shape the loader needs from an adapter: a function of the raw
@@ -51,6 +49,16 @@ import type { TooltipContext, TooltipSpec } from './tooltips/types';
 type AdapterFn = (...rawArgs: any[]) => unknown | Promise<unknown>;
 
 export type AdapterMap = Record<string, AdapterFn>;
+
+/**
+ * How the loader obtains an adapter function for a track's `adapter:`
+ * name. This is the loader's single point of contact with adapter
+ * resolution — it holds no adapter map and knows no adapter names. The
+ * component wires this to the schema `Registry` (`registry.getAdapter`),
+ * so validation and runtime resolve through the same source of truth and
+ * a consumer-registered adapter runs as soon as it validates.
+ */
+export type AdapterResolver = (name: string) => AdapterFn | undefined;
 
 /**
  * Fetch a single URL. `responseType` tells the fetcher how to read the
@@ -223,7 +231,7 @@ export async function loadProtvistaData(
   accession: string,
   config: NormalizedConfig,
   fetchOne: FetchOne,
-  adapters: AdapterMap,
+  getAdapter: AdapterResolver,
   customTrackData: CustomTrackData = {},
   /**
    * Targeted-retry scope. When present, only `only`'s
@@ -261,7 +269,8 @@ export async function loadProtvistaData(
       const raw = trackUrl(track.data);
       const list = (Array.isArray(raw) ? raw : [raw]).filter((u) => u !== '');
       const adapter = track.data[0]?.adapter;
-      const wantsText = adapter !== undefined && TEXT_BODY_ADAPTERS.has(adapter);
+      const wantsText =
+        adapter !== undefined && TEXT_BODY_ADAPTERS.has(adapter);
       for (const t of list) {
         templates.add(t);
         if (wantsText) bodyType.set(t, 'text');
@@ -316,7 +325,8 @@ export async function loadProtvistaData(
     }
     const source = track.data[0];
     const isGenericFileAdapter =
-      source?.adapter !== undefined && GENERIC_FILE_ADAPTERS.has(source.adapter);
+      source?.adapter !== undefined &&
+      GENERIC_FILE_ADAPTERS.has(source.adapter);
     const isInline = source?.from === 'inline';
     if (
       (isGenericFileAdapter || isInline) &&
@@ -424,39 +434,23 @@ export async function loadProtvistaData(
             (u) => rawData[u as string] || []
           );
 
-          // variation-adapter refuses to run against an empty payload
-          // (behaviour preserved from the legacy loader).
-          if (
-            adapter === 'uniprot-variation-json' &&
-            (trackData[0] as unknown[]).length === 0
-          ) {
-            return;
-          }
-
-          // 1. Convert data
-          let transformedData: any = adapter
-            ? await adapters[adapter].apply(null, trackData)
-            : trackData;
-
-          if (adapter === 'interpro-entries-json') {
-            const representativeDomains: any[] = [];
-            (transformedData as TransformedInterPro | undefined)?.forEach(
-              (feature) => {
-                feature.locations?.forEach((location) => {
-                  if (location.representative) {
-                    location.fragments?.forEach((fragment) => {
-                      representativeDomains.push({
-                        ...feature,
-                        type: 'InterPro Representative Domain',
-                        start: fragment.start,
-                        end: fragment.end,
-                      });
-                    });
-                  }
-                });
-              }
-            );
-            transformedData = representativeDomains;
+          // 1. Convert data. The adapter function is resolved by name
+          //    through the injected registry resolver — the loader itself
+          //    holds no adapter map and knows no adapter names. Empty-body
+          //    guards and any post-processing now live inside the adapters.
+          //    A configured adapter that resolves to nothing is a
+          //    registration gap: surface it as a per-track failure (caught
+          //    below) rather than a silent no-op.
+          let transformedData: any = trackData;
+          if (adapter) {
+            const adapterFn = getAdapter(adapter);
+            if (!adapterFn) {
+              throw new Error(
+                `No adapter registered for '${adapter}'. ` +
+                  `Register it with registerAdapter().`
+              );
+            }
+            transformedData = await adapterFn(...trackData);
           }
 
           // 2. Filter raw data if filter is specified

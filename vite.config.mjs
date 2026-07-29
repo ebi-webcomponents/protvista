@@ -1,4 +1,6 @@
 import { fileURLToPath } from 'node:url';
+import { copyFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { defineConfig } from 'vite';
 import envCompatible from 'vite-plugin-env-compatible';
 import { createHtmlPlugin } from 'vite-plugin-html';
@@ -14,6 +16,27 @@ import { playwright } from '@vitest/browser-playwright';
 // weight (or actively harmful) under test, so drop them there.
 const isVitest = !!process.env.VITEST;
 
+// Ship the canonical default config alongside the built library, at
+// `dist/default-config.yaml`, so the Starter Kit's
+// `extends: https://cdn.jsdelivr.net/npm/protvista-uniprot@<v>/dist/default-config.yaml`
+// recipe resolves from the published tarball. The package publishes only
+// `dist` (files: ["dist"]), and `src/default-config.yaml` is self-contained (no
+// further `extends`), so this one copied file is all a consumer needs — no raw
+// `src/` in the tarball. The tarball guard in scripts/validate-package.sh pins
+// that this file actually ships.
+function emitDefaultConfig() {
+  return {
+    name: 'protvista-emit-default-config',
+    apply: 'build',
+    async writeBundle(options) {
+      const source = fileURLToPath(
+        new URL('./src/default-config.yaml', import.meta.url)
+      );
+      await copyFile(source, join(options.dir, 'default-config.yaml'));
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     viteCommonjs(),
@@ -22,6 +45,7 @@ export default defineConfig({
     ...(isVitest
       ? []
       : [
+          emitDefaultConfig(),
           createHtmlPlugin({
             inject: {
               data: {
@@ -30,8 +54,26 @@ export default defineConfig({
             },
           }),
           dts({
-            outDir: 'dist/types',
-            insertTypesEntry: true,
+            // `outDirs`, not `outDir` — the singular form is not an option
+            // this plugin reads, so it silently fell back to Vite's
+            // `build.outDir` and scattered declarations across `dist/`.
+            outDirs: 'dist/types',
+            // The mirrored `src/index.ts` lands at `dist/types/index.d.ts`,
+            // which is already where package.json `types` points — so there
+            // is no separate entry stub to insert.
+            insertTypesEntry: false,
+            // Type-checked (tsconfig `include`) but not shipped. The
+            // playground is a docs-site page, not public API — `src/index.ts`
+            // does not export it, and its declarations would drag
+            // `codemirror`/`@codemirror/lint` (devDependencies) into the
+            // published types, where a consumer cannot resolve them.
+            exclude: [
+              'node_modules/**',
+              'src/**/__spec__/**',
+              'src/**/__tests__/**',
+              'src/**/__browser__/**',
+              'src/playground/**',
+            ],
           }),
         ]),
   ],
@@ -49,10 +91,10 @@ export default defineConfig({
     target: 'ES2021',
     sourcemap: true,
     // The lib build must not copy `public/` (the hosted JSON Schema) into
-    // `dist/`: the schema is served from GitHub Pages, its authored source
-    // already ships via the `src` entry in package.json `files`, and a
-    // `dist/schema/...` path would not match the schema's `$id`. The demo
-    // build (vite.demo.config.mjs) still copies it into `demo/` for Pages.
+    // `dist/`: the schema is served from GitHub Pages, it is inlined into the
+    // bundle at build time by `src/schema/validate.ts`, and a
+    // `dist/schema/...` path would not match the schema's `$id`. The app
+    // build (vite.bench.config.mjs) still copies it into `site/` for Pages.
     copyPublicDir: false,
     lib: {
       entry: 'src/index.ts',
@@ -169,10 +211,10 @@ export default defineConfig({
         // Type-only files — no runtime to cover.
         'src/**/*.d.ts',
         'src/types/**',
-        'src/adapters/types/**',
+        'src/schema/adapters/types/**',
         // Static lookup tables / config constants — no branches or funcs
         // to cover, and including them inflates aggregate %.
-        'src/adapters/config/**',
+        'src/schema/adapters/config/**',
         // Style template strings.
         'src/styles/**',
         // Playground DOM / CodeMirror wiring — integration-level, not

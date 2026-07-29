@@ -59,8 +59,8 @@
  * viewer — matching the delimited adapters.
  */
 
-import type { AdapterFunction } from '../types';
-import { parseDecimal, type FeatureRecord } from './dsv';
+import type { AdapterFunction } from '../types.js';
+import { parseDecimal, type FeatureRecord } from './dsv.js';
 
 /**
  * BED coordinates are non-negative integers, so we accept exactly that.

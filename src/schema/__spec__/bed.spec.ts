@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { bed } from '../adapters/bed';
+import { bed } from '../adapters/bed.js';
 
 describe('bed adapter', () => {
   it('shifts BED 0-based half-open coordinates to 1-based inclusive', () => {

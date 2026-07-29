@@ -29,15 +29,16 @@ import {
   loadProtvistaData,
   type AdapterMap,
   type CustomTrackData,
-} from '../load-data';
-import type { TooltipSpec } from '../tooltips/types';
-import { ACCESSION, makeConfig } from './fixtures';
+} from '../load-data.js';
+import type { TooltipSpec } from '../tooltips/types.js';
+import { ACCESSION, makeConfig } from './fixtures.js';
 
 // The `from: custom` branch short-circuits before URL fetch, so fetchOne
 // should never be consulted. A spying stub lets tests assert that.
 const fetchOne = vi.fn(async (url: string) => ({ url }));
 
 const noopAdapters: AdapterMap = {};
+const resolveNoopAdapter = (name: string) => noopAdapters[name];
 
 describe('loadProtvistaData — from: custom / setTrackData()', () => {
   beforeEach(() => {
@@ -65,7 +66,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       ACCESSION,
       config,
       fetchOne,
-      noopAdapters,
+      resolveNoopAdapter,
       customTrackData
     );
 
@@ -128,7 +129,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       ACCESSION,
       config,
       fetchOne,
-      noopAdapters,
+      resolveNoopAdapter,
       customTrackData
     );
 
@@ -157,7 +158,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       ACCESSION,
       config,
       fetchOne,
-      noopAdapters,
+      resolveNoopAdapter,
       customTrackData
     );
 
@@ -180,7 +181,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       ACCESSION,
       config,
       fetchOne,
-      noopAdapters,
+      resolveNoopAdapter,
       {} // no customTrackData
     );
 
@@ -216,7 +217,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       ACCESSION,
       config,
       fetchOne,
-      noopAdapters,
+      resolveNoopAdapter,
       {} // no customTrackData → track early-returns undefined
     );
 
@@ -242,7 +243,7 @@ describe('loadProtvistaData — from: custom / setTrackData()', () => {
       ACCESSION,
       config,
       fetchOne,
-      noopAdapters,
+      resolveNoopAdapter,
       customTrackData
     );
     const track = data['GROUP-mine'] as Array<{
