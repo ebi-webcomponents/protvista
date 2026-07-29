@@ -29,4 +29,7 @@ empty page to a custom, themed viewer in four steps. Otherwise pick a starting
 point above, or read the **[Overview](/protvista/overview)** for what it does,
 who it's for, and where to go next.
 
+Just want to see what's new? Read the walkthrough:
+**[Bring your own data: the Playground and Starter Kit are live](/protvista/blog/playground-and-starter-kit)**.
+
 _Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

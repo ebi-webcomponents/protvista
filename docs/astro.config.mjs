@@ -125,6 +125,15 @@ export default defineConfig({
         // link to it from the top of the sidebar. Starlight prepends the base.
         { label: 'Playground ↗', link: '/playground/' },
         {
+          label: 'Blog',
+          items: [
+            {
+              label: 'Playground & Starter Kit',
+              link: '/blog/playground-and-starter-kit',
+            },
+          ],
+        },
+        {
           label: 'Getting started',
           items: [
             { label: 'Overview', link: '/overview' },
