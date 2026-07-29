@@ -24,23 +24,23 @@
  * `KnownAdapterName` in `../types`, and add one line to the table below.
  */
 
-import type { AdapterFunction, KnownAdapterName } from '../types';
-import { featuresCsv } from './features-csv';
-import { featuresTsv } from './features-tsv';
-import { featuresJson } from './features-json';
-import { bed } from './bed';
-import { featureAdapter } from './feature-adapter';
-import { interproAdapter } from './interpro-adapter';
-import { proteomicsAdapter } from './proteomics-adapter';
-import { proteomicsPtmAdapter } from './ptm-exchange-adapter';
-import { structureAdapter } from './structure-adapter';
-import { variationAdapter } from './variation-adapter';
-import { variationGraphAdapter } from './variation-graph-adapter';
-import { rnaEditingAdapter } from './rna-editing-adapter';
-import { rnaEditingGraphAdapter } from './rna-editing-graph-adapter';
-import { alphafoldConfidenceAdapter } from './alphafold-confidence-adapter';
-import { alphamissensePathogenicityAdapter } from './alphamissense-pathogenicity-adapter';
-import { alphamissenseHeatmapAdapter } from './alphamissense-heatmap-adapter';
+import type { AdapterFunction, KnownAdapterName } from '../types.js';
+import { featuresCsv } from './features-csv.js';
+import { featuresTsv } from './features-tsv.js';
+import { featuresJson } from './features-json.js';
+import { bed } from './bed.js';
+import { featureAdapter } from './feature-adapter.js';
+import { interproAdapter } from './interpro-adapter.js';
+import { proteomicsAdapter } from './proteomics-adapter.js';
+import { proteomicsPtmAdapter } from './ptm-exchange-adapter.js';
+import { structureAdapter } from './structure-adapter.js';
+import { variationAdapter } from './variation-adapter.js';
+import { variationGraphAdapter } from './variation-graph-adapter.js';
+import { rnaEditingAdapter } from './rna-editing-adapter.js';
+import { rnaEditingGraphAdapter } from './rna-editing-graph-adapter.js';
+import { alphafoldConfidenceAdapter } from './alphafold-confidence-adapter.js';
+import { alphamissensePathogenicityAdapter } from './alphamissense-pathogenicity-adapter.js';
+import { alphamissenseHeatmapAdapter } from './alphamissense-heatmap-adapter.js';
 
 export const BUILTIN_ADAPTERS: ReadonlyArray<
   readonly [KnownAdapterName, AdapterFunction]

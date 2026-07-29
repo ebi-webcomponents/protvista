@@ -12,8 +12,8 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { createRegistry, registerBuiltinAdapters } from '../registry';
-import type { AdapterFunction, KnownAdapterName } from '../types';
+import { createRegistry, registerBuiltinAdapters } from '../registry.js';
+import type { AdapterFunction, KnownAdapterName } from '../types.js';
 
 vi.mock('../adapters', () => {
   const table: ReadonlyArray<readonly [KnownAdapterName, AdapterFunction]> = [

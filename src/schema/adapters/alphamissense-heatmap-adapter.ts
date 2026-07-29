@@ -1,10 +1,10 @@
 import type { AlphaFoldPayload } from '@nightingale-elements/nightingale-structure';
 
-import type { AdapterFunction } from '../types';
+import type { AdapterFunction } from '../types.js';
 import {
   cellSplitter,
   rowSplitter,
-} from './alphamissense-pathogenicity-adapter';
+} from './alphamissense-pathogenicity-adapter.js';
 
 const parseCSV = (rawText: string): Array<Record<string, string>> => {
   const data = [];

@@ -140,6 +140,42 @@ error messages (adopters grep their logs for strings like `"Unknown adapter"`).
 5. Update documentation if applicable.
 6. Commit your changes with clear, descriptive messages.
 
+### Import extensions
+
+Relative imports in `src` carry the **emitted** extension:
+
+```ts
+import { fetchAll } from './utils/index.js'; // not './utils'
+import ProtvistaUniprot from './protvista-uniprot.js'; // not './protvista-uniprot'
+```
+
+`.js` is correct even though the file is `.ts` — it names the file the
+declaration will point at. `vite-plugin-dts` copies specifiers into the
+emitted `.d.ts` verbatim, and an extensionless one does not resolve for
+consumers using Node's ESM rules (`moduleResolution: "node16"`/`"nodenext"`),
+which silently degrades their types.
+
+The rule is about emitted declarations, so it applies to `src` only —
+`docs/` and `bench/` are not published and need not follow it.
+
+`moduleResolution` here is `"bundler"`, which tolerates both forms, so the
+compiler will not catch a missing extension — `src/__spec__/package-contract.spec.ts`
+does. Switching to `"NodeNext"` to enforce it at compile time is not
+currently possible: several `@nightingale-elements` packages declare
+`"type": "module"` while using extensionless relative imports in their own
+`.d.ts`, so their type exports disappear under Node ESM resolution.
+
+### Dependency versions
+
+Runtime `dependencies` use caret ranges (`^1.2.3`); `devDependencies` are
+pinned to exact versions. The asymmetry is deliberate: caret ranges let a
+consumer's package manager dedupe our runtime deps (`lit`, `ajv`, the
+`@nightingale-elements/*` packages) against their own copy instead of
+bundling a duplicate, while exact devDeps plus the committed `yarn.lock`
+keep CI and local builds reproducible. Don't "fix" the inconsistency by
+pinning runtime deps exact — that reintroduces duplicate copies in consumer
+bundles. The lockfile is the source of truth for the exact versions.
+
 ### Commit Messages
 
 - Use present tense ("Add feature" not "Added feature").

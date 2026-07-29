@@ -7,8 +7,8 @@
  * adapters can never drift.
  */
 
-import type { AdapterFunction } from '../types';
-import { parseDelimited, rowsToFeatureRecords } from './dsv';
+import type { AdapterFunction } from '../types.js';
+import { parseDelimited, rowsToFeatureRecords } from './dsv.js';
 
 export const featuresTsv: AdapterFunction = (raw) => {
   if (typeof raw !== 'string') {

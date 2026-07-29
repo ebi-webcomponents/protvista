@@ -40,10 +40,10 @@ import NightingaleLinegraphTrack from '@nightingale-elements/nightingale-linegra
 import NightingaleSequenceHeatmap from '@nightingale-elements/nightingale-sequence-heatmap';
 import NightingaleFilter from '@nightingale-elements/nightingale-filter';
 
-import ProtvistaUniprotStructure from './protvista-uniprot-structure';
+import ProtvistaUniprotStructure from './protvista-uniprot-structure.js';
 
-import type { Registry } from './schema/registry';
-import type { KnownComponentName } from './schema/types';
+import type { Registry } from './schema/registry.js';
+import type { KnownComponentName } from './schema/types.js';
 
 /**
  * Data components an author selects (directly or via a semantic kind).

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="ProtVista">
+  <defs>
+    <clipPath id="tile"><rect width="32" height="32" rx="6"/></clipPath>
+  </defs>
+  <g clip-path="url(#tile)">
+    <!-- Diagonal blue/green split echoing the EBI web-components mark. -->
+    <rect width="32" height="32" fill="#2a6cb0"/>
+    <polygon points="32,0 32,32 0,32" fill="#47a64e"/>
+    <text x="16" y="16.5" text-anchor="middle" dominant-baseline="central"
+          font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+          font-size="19" font-weight="700" fill="#ffffff">P</text>
+  </g>
+</svg>

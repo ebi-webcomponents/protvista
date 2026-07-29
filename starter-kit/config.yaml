@@ -1,0 +1,27 @@
+# This is your viewer. Edit this file, save it, reload the page.
+#
+# `accession:` is the UniProt entry the viewer is built around. The
+# component fetches that protein's sequence before it draws anything,
+# so this field is required even when every track is a local file —
+# which also means the page needs internet access even for your own
+# offline data.
+#
+# `rows:` is what to draw. Each entry is either a group of tracks or,
+# as here, a single standalone track: an entry with `data:` and no
+# `tracks:` needs no group wrapper. A `data:` path ending in `.csv` or
+# `.tsv` picks the right parser for you — no `adapter:` needed.
+#
+# Paths in `data:` are resolved against THIS PAGE, not against this
+# file. They start from the folder that holds index.html, which is why
+# the sample below says `./data/...` and not `./hotspots.csv`.
+#
+# Every field a config can hold:
+# https://ebi-webcomponents.github.io/protvista/configure
+$schema: https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json
+accession: P05067
+rows:
+  - id: hotspots
+    label: Hotspots
+    kind: features
+    data: ./data/hotspots.csv
+    description: Hotspot regions identified by our lab's pipeline

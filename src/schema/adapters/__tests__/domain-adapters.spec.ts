@@ -13,9 +13,9 @@
 
 import { describe, it, expect } from 'vitest';
 
-import { interproAdapter } from '../interpro-adapter';
-import { variationAdapter } from '../variation-adapter';
-import { featureAdapter } from '../feature-adapter';
+import { interproAdapter } from '../interpro-adapter.js';
+import { variationAdapter } from '../variation-adapter.js';
+import { featureAdapter } from '../feature-adapter.js';
 
 describe('interproAdapter', () => {
   const RAW = {

@@ -879,10 +879,10 @@ Accessibility is a grant-level commitment (see the OMP) and is baked into the sc
 
 Rich, stateful, product-specific tooltips (evidence icons, taxonomy lookups, cross-links into an app's own routing, React components) are not a config concern. The library offers exactly two paths for the per-datapoint tooltip surface, and there is no in-between — no programmatic per-`kind` override registry ships:
 
-1. **Declarative tooltips (library-owned).** Authored in YAML as `dataTooltip` (`kind: fields` or `kind: markdown`, or the bare-string shorthand) and rendered by the library's built-in Floating-UI click popover. See [`docs/data-tooltip.md`](../docs/data-tooltip.md).
+1. **Declarative tooltips (library-owned).** Authored in YAML as `dataTooltip` (`kind: fields` or `kind: markdown`, or the bare-string shorthand) and rendered by the library's built-in Floating-UI click popover. See [Author tooltips](https://ebi-webcomponents.github.io/protvista/data-tooltip).
 2. **Consumer-owned tooltips (host-owned).** The React host sets `notooltip` on the element, listens for the Nightingale `change` event, and renders its own overlay at the reported coordinates. This is the canonical path for React adopters and the contract is normative below.
 
-A tutorial-flavoured walkthrough with a copy-pasteable minimal example lives at [`docs/react-integration.md`](../docs/react-integration.md); this section is the normative contract.
+A tutorial-flavoured walkthrough with a copy-pasteable minimal example lives at [Rich tooltips in React](https://ebi-webcomponents.github.io/protvista/react-integration); this section is the normative contract.
 
 ### The `notooltip` attribute
 
@@ -916,7 +916,7 @@ Two interaction edge cases worth knowing:
 
 ### React 19 note
 
-The mount/unmount of the `change` listener is naturally expressed as a single ref callback that returns its cleanup function (React 19). Prefer that shape over the older split-`useEffect` mount/unmount pair; new adopters should not copy the split form as canonical. The worked example in [`docs/react-integration.md`](../docs/react-integration.md) shows both.
+The mount/unmount of the `change` listener is naturally expressed as a single ref callback that returns its cleanup function (React 19). Prefer that shape over the older split-`useEffect` mount/unmount pair; new adopters should not copy the split form as canonical. The worked example in [Rich tooltips in React](https://ebi-webcomponents.github.io/protvista/react-integration) shows both.
 
 ## Security and trust model
 
@@ -1172,9 +1172,9 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 
 1. ~~**Preset namespace.**~~ **Resolved.** `extends:` accepts URLs (`http(s)://…`) and file paths (`/…`, `./…`, `../…`); the default loader does not ship a preset registry. Embedders who want a registered-name indirection can pass `opts.resolver` when calling `mergeExtends`. No `@<org>/<name>` namespace is baked into the viewer.
 
-2. **Distribution mechanism for the EBI-published default config.** The default UniProt config is authored in `src/default-config.yaml` and ships in the npm package (via `"files": ["dist", "src"]` in `package.json`), which means it is incidentally reachable via public CDN mirrors like `https://cdn.jsdelivr.net/npm/protvista-uniprot@<v>/src/default-config.yaml`. That incidental reachability is not yet a deliberate distribution commitment. Open sub-questions:
+2. **Distribution mechanism for the EBI-published default config.** The default UniProt config is authored in `src/default-config.yaml`, and the library build copies it verbatim to `dist/default-config.yaml`, which the npm package publishes (`"files": ["dist"]`). It is therefore deliberately reachable at a version-pinned CDN path — `https://cdn.jsdelivr.net/npm/protvista-uniprot@<v>/dist/default-config.yaml` — which the Starter Kit's `extends:` recipe uses and tests pin (`schema-publishing.spec.ts` plus the tarball guard in `scripts/validate-package.sh`). Publishing the built `dist/` copy rather than raw `src/` keeps the source file layout a refactor-safe internal concern. Remaining open sub-questions:
 
-   - **Is `src/default-config.yaml` the public artifact adopters should `extends:` against**, or should we ship a separate, stable, explicitly-documented "base config" endpoint so the file layout stays a refactor-safe internal concern?
+   - **Should the CDN `dist/default-config.yaml` path stay the committed public artifact**, or should we additionally ship an EBI-hosted, explicitly-documented "base config" endpoint decoupled from the npm/CDN mirror? (Publishing the built `dist/` copy already keeps the `src/` layout a refactor-safe internal concern.)
    - **Which URL do we commit to in examples?** Options include the npm-to-CDN mirror (`jsdelivr`, `unpkg`, etc.), an EBI-hosted stable URL (`https://<ebi-host>/protvista/configs/uniprot-default.yaml`), or a versioned URL that ties adopters to a specific release.
    - **Do we ship a preset-name indirection as part of v1.0**, so adopters can write `extends: "@ebi/uniprot-default"` and let the resolver insulate them from URL changes? If yes, a matching default resolver ships alongside; if no, every adopter hard-codes whichever URL we pick.
    - **Versioning story.** A stable unversioned URL tracks the live default (updates propagate automatically, but adopters lose reproducibility). A versioned URL pins the base (adopters reproduce exactly, but must bump manually). Both can be offered; the examples should pick one as canonical.

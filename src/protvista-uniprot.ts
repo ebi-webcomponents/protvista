@@ -18,57 +18,58 @@ import { amColorScale } from '@nightingale-elements/nightingale-structure';
 // schema registry (seeded from `BUILTIN_ADAPTERS`) and the loader resolves
 // them by name via `this.registry.getAdapter`. Only this type is still
 // needed for a local narrowing below.
-import type { TransformedVariant } from './schema/adapters/variation-adapter';
+import type { TransformedVariant } from './schema/adapters/variation-adapter.js';
 
-import { loadComponent } from './utils';
+import { loadComponent } from './utils/index.js';
 import {
   STRUCTURAL_COMPONENTS,
   registerBuiltinComponents,
-} from './built-in-components';
+} from './built-in-components.js';
 import {
   loadProtvistaData,
   UNFILTERED_SUFFIX,
   type CustomTrackData,
-} from './load-data';
+} from './load-data.js';
 import {
   installClickTooltip,
   type TooltipController,
-} from './tooltips/popover';
-import { renderLabel } from './tooltips/resolve';
+} from './tooltips/popover.js';
+import { renderLabel } from './tooltips/resolve.js';
 
-import filterConfig, { colorConfig } from './filter-config';
+import filterConfig, { colorConfig } from './filter-config.js';
 
 // Schema-driven config pipeline. The default YAML is
 // bundled as a raw string so `js-yaml` stays lazy-loaded — adopters
 // who pass a parsed `viewerConfig` object never pull in the parser.
 import defaultConfigYaml from './default-config.yaml?raw';
-import { loadConfig } from './schema/load';
-import { type Registry, createRegistry } from './schema/registry';
+import { loadConfig } from './schema/load.js';
+import { type Registry, createRegistry } from './schema/registry.js';
 import type {
   KnownComponentName,
   ProtvistaViewerConfig,
   AdapterFunction,
   SemanticKindDefinition,
   ColorStop,
-} from './schema/types';
-import type { NormalizedConfig, NormalizedTrack } from './schema/normalize';
-import { renderingToAttrs } from './renderer/render-helpers';
+} from './schema/types.js';
+import type { NormalizedConfig, NormalizedTrack } from './schema/normalize.js';
+import { renderingToAttrs } from './renderer/render-helpers.js';
 
 import loaderIcon from './icons/spinner.svg';
-import protvistaStyles from './styles/protvista-styles';
-import loaderStyles from './styles/loader-styles';
-import errorStyles from './styles/error-styles';
-import { CSS_PREFIX } from './styles/css-prefix';
-import { injectStyleOnce, installTokenDefaults } from './styles/inject';
+import { inlineSvg } from './icons/inline.js';
+import protvistaStyles from './styles/protvista-styles.js';
+import loaderStyles from './styles/loader-styles.js';
+import errorStyles from './styles/error-styles.js';
+import { CSS_PREFIX } from './styles/css-prefix.js';
+import { injectStyleOnce, installTokenDefaults } from './styles/inject.js';
 
 // User-facing error surfaces. `ConfigValidationError` is a value import
 // (used for the `instanceof` narrowing in `_init`'s catch); the display
 // formatter is *not* imported here — it is pulled in lazily via
-// `await import('./errors/format')` only when a config error actually
+// `await import('./errors/format.js')` only when a config error actually
 // occurs, so the happy path never downloads it.
-import { ConfigValidationError, type ValidationIssue } from './schema/errors';
-import type { ErrorPhase, ErrorContext } from './errors/report';
-import type { FormattedError } from './errors/format';
+import { ConfigValidationError, type ValidationIssue } from './schema/errors.js';
+import type { ErrorPhase, ErrorContext } from './errors/report.js';
+import type { FormattedError } from './errors/format.js';
 
 // Performance marks emitted at three lifecycle transitions:
 //   protvista:script-start    component connectedCallback runs
@@ -241,7 +242,7 @@ class ProtvistaUniprot extends LitElement {
    * instead of the viewer (or the silent blank it used to show for a
    * config / sequence failure). For a config failure the rich
    * `FormattedError` fields (grouped issues) are filled in after the
-   * lazy `./errors/format` chunk resolves; until then the one-line
+   * lazy `./errors/format.js` chunk resolves; until then the one-line
    * `summary` is enough to render. Not a reactive property (it's an
    * object) — every mutation is paired with `requestUpdate()`.
    */
@@ -960,7 +961,7 @@ class ProtvistaUniprot extends LitElement {
         // against an accession swap re-running `_init()` and replacing
         // `_mountError` while we awaited the chunk.
         if (issues.length) {
-          const { formatValidationIssues } = await import('./errors/format');
+          const { formatValidationIssues } = await import('./errors/format.js');
           if (this._mountError?.phase === 'config') {
             this._mountError = {
               phase: 'config',
@@ -1591,7 +1592,7 @@ class ProtvistaUniprot extends LitElement {
     }
     if (this.loading) {
       return html`<div class="protvista-loader">
-        ${svg`${unsafeHTML(loaderIcon)}`}
+        ${svg`${unsafeHTML(inlineSvg(loaderIcon))}`}
       </div>`;
     }
     // Derive error visibility once for this render — every group/track

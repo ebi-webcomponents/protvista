@@ -1,7 +1,7 @@
 import ColorHash from 'color-hash';
 
-import type { AdapterFunction } from '../types';
-import { InterProProteinSearch, TransformedInterPro } from './types/interpro';
+import type { AdapterFunction } from '../types.js';
+import { InterProProteinSearch, TransformedInterPro } from './types/interpro.js';
 
 // Copied from InterPro to replicate the same colours for the representative domains
 const colorHash = new ColorHash({

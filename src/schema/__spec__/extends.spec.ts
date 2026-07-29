@@ -18,15 +18,15 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { mergeExtends } from '../extends';
-import { loadConfig } from '../load';
-import { ConfigValidationError } from '../errors';
+import { mergeExtends } from '../extends.js';
+import { loadConfig } from '../load.js';
+import { ConfigValidationError } from '../errors.js';
 import type {
   GroupConfig,
   ProtvistaViewerConfig,
   TopLevelEntry,
-} from '../types';
-import { isGroupConfig } from '../discriminate';
+} from '../types.js';
+import { isGroupConfig } from '../discriminate.js';
 
 // Narrow a merged top-level entry to a group for `.tracks` assertions,
 // failing loudly if a test accidentally produced a standalone track.

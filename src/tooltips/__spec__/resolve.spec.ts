@@ -3,8 +3,8 @@
  * `markdown`) gets a representative input.
  */
 import { describe, it, expect } from 'vitest';
-import { resolveTooltip } from '../resolve';
-import type { TooltipContext } from '../types';
+import { resolveTooltip } from '../resolve.js';
+import type { TooltipContext } from '../types.js';
 
 const ctx: TooltipContext = {
   accession: 'P05067',

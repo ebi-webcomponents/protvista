@@ -1,0 +1,138 @@
+# Publishes `starter-kit/` to the standalone template repository
+# `ebi-webcomponents/protvista-starter-kit`.
+#
+# The kit is developed here so the test suite can gate it
+# (`src/__spec__/starter-kit.spec.ts`); this workflow is the only thing that
+# copies it out. That direction is one-way: edits made directly in the template
+# repository are overwritten by the next release.
+#
+# Setup required once, before the first run:
+#   1. Generate a key pair:  ssh-keygen -t ed25519 -C protvista-starter-kit -f key
+#   2. Add `key.pub` to the TEMPLATE repository as a deploy key, WITH write
+#      access (Settings -> Deploy keys).
+#   3. Add the private key to THIS repository as the secret
+#      STARTER_KIT_DEPLOY_KEY (Settings -> Secrets and variables -> Actions).
+#   4. Tick "Template repository" in the template repository's settings.
+#
+# A deploy key rather than a personal access token: it is scoped to that one
+# repository, it does not expire, and it does not stop working when someone
+# leaves the organisation.
+name: Publish starter kit
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Show what would be published, but do not push"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+env:
+  TARGET_REPO: ebi-webcomponents/protvista-starter-kit
+
+jobs:
+  # Split from `publish` deliberately: this job installs third-party
+  # dependencies and runs their lifecycle scripts, and must never share a
+  # runner with the deploy key.
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "yarn"
+
+      - run: yarn install --frozen-lockfile
+
+      # Never publish a kit the suite has not validated. This covers the
+      # version pin, the sample data, and that every config still loads and
+      # renders against the code being released.
+      - name: Validate the kit
+        run: yarn test:unit
+
+  publish:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      # No dependency install in this job — only `git`, `rsync`, `curl` and
+      # the runner's own `node`, all preinstalled.
+      - uses: actions/checkout@v4
+
+      - name: Publish
+        env:
+          DEPLOY_KEY: ${{ secrets.STARTER_KIT_DEPLOY_KEY }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${DEPLOY_KEY:-}" ]; then
+            echo "::error::STARTER_KIT_DEPLOY_KEY is not set — see the setup notes in this workflow."
+            exit 1
+          fi
+
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes"
+
+          # A release supplies its tag; a manual run falls back to the version
+          # the kit is pinned to, which the test suite has just confirmed
+          # matches package.json.
+          TAG="${RELEASE_TAG:-}"
+          if [ -z "$TAG" ]; then
+            TAG="v$(node -p "require('./package.json').version")"
+          fi
+
+          git clone --depth 1 "git@github.com:${TARGET_REPO}.git" target
+
+          # Mirror the directory exactly, so a file deleted here is deleted
+          # there. --exclude .git protects the clone's own history.
+          rsync -a --delete --exclude '.git/' starter-kit/ target/
+
+          # The kit carries a "this does not work yet" notice while the version
+          # it pins is unpublished. Strip it once that version is actually on
+          # npm, so the release that makes the kit work cannot ship a banner
+          # saying it doesn't. Driven by the registry rather than by anyone
+          # remembering; src/__spec__/starter-kit.spec.ts keeps the markers
+          # balanced so this range delete stays reliable.
+          PINNED="$(node -p "require('./package.json').version")"
+          if curl --fail --silent --show-error \
+               "https://registry.npmjs.org/protvista-uniprot/${PINNED}" \
+               -o /dev/null 2>/dev/null; then
+            echo "protvista-uniprot@${PINNED} is published — removing the unpublished notice."
+            for f in target/index.html target/README.md; do
+              sed -i '/protvista:unpublished:start/,/protvista:unpublished:end/d' "$f"
+            done
+          else
+            echo "::warning::protvista-uniprot@${PINNED} is not on npm yet — publishing the kit with its 'does not work yet' notice intact."
+          fi
+
+          cd target
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          if git diff --staged --quiet; then
+            echo "The template repository is already up to date with $TAG."
+            exit 0
+          fi
+
+          echo "Changes to publish as $TAG:"
+          git diff --staged --stat
+
+          if [ "${DRY_RUN:-false}" = "true" ]; then
+            echo "::notice::Dry run — nothing pushed."
+            exit 0
+          fi
+
+          git commit -m "Publish $TAG"
+          git push

@@ -1,4 +1,6 @@
-# Theming ProtVista
+---
+title: Theming ProtVista
+---
 
 `<protvista-uniprot>` exposes a documented styling API built on two
 native web standards, so you can match the viewer to your application
@@ -13,9 +15,6 @@ Overriding these is the supported way to customise the interface.
 Internal class names (the hash-prefixed `.pv-*` classes) are **not** a
 public API and may change between releases — theme through the tokens
 and parts below instead.
-
-> This document is licensed CC BY 4.0, like the rest of the ProtVista
-> documentation.
 
 ## Why two mechanisms?
 
@@ -191,3 +190,5 @@ protvista-uniprot-datatable::part(row):hover {
   accessibility work; likewise a token-swap on top of this layer.
 - **No-code styling panel** — the interactive playground will let
   non-developers adjust these tokens with live preview.
+
+_Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

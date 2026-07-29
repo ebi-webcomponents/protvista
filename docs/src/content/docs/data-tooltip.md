@@ -1,4 +1,6 @@
-# Authoring `dataTooltip`
+---
+title: Authoring dataTooltip
+---
 
 `dataTooltip` controls the per-datapoint tooltip shown when a user clicks a feature on a track. It has three authoring forms, listed here from least to most expressive. Pick the simplest one that works — the rendering pipeline is the same for all three.
 
@@ -24,7 +26,7 @@ tracks:
 
 A declarative list of labelled rows. Each entry renders as `<h5>label</h5><p>value</p>`. Use this when the tooltip is a flat property sheet without prose or conditional content.
 
-`path` is a dotted path against the item (e.g. `association.0.name`). Missing or empty values drop out silently rather than rendering an empty row. The value at `path` is coerced to string, HTML-escaped, and wrapped in `<p>` at the leaf. There is no per-field render hook — for rich, interactive, or stateful tooltips (xref badges, evidence icons, taxonomy lookups, React components, …), listen for the Nightingale `change` event on the element and mount your own UI, setting the `notooltip` attribute on `<protvista-uniprot>` to suppress the built-in popover.
+`path` is a dotted path against the item (e.g. `association.0.name`). Missing or empty values drop out silently rather than rendering an empty row. The value at `path` is coerced to string, HTML-escaped, and wrapped in `<p>` at the leaf. There is no per-field render hook; when you need rich, interactive, or stateful tooltips (xref badges, evidence icons, taxonomy lookups, React components, …), own the overlay in the host instead — see [React host integration](/protvista/react-integration).
 
 ```yaml
 tracks:
@@ -64,3 +66,5 @@ tracks:
 ## When to leave `dataTooltip` off
 
 For every track in the default config, no `dataTooltip` is set. Each semantic `kind` carries a sensible tooltip default — authors who just want the canonical UniProt look get it for free. Only set `dataTooltip` when you want a track-specific override, or when you're authoring a track that doesn't match an existing kind's default.
+
+_Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

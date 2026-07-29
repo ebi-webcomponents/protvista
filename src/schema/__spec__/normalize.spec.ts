@@ -31,13 +31,13 @@ import {
   normalizeConfig,
   titleCaseId,
   type NormalizedConfig,
-} from '../normalize';
-import { createRegistry } from '../registry';
+} from '../normalize.js';
+import { createRegistry } from '../registry.js';
 import type {
   ProtvistaViewerConfig,
   TopLevelEntry,
   TrackConfig,
-} from '../types';
+} from '../types.js';
 
 // ─────────────────────────────────────────────────────────────
 // Fixture helpers

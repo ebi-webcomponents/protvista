@@ -12,8 +12,8 @@
  * parse-failure surface rather than crashing the viewer.
  */
 
-import type { AdapterFunction } from '../types';
-import { parseDelimited, rowsToFeatureRecords } from './dsv';
+import type { AdapterFunction } from '../types.js';
+import { parseDelimited, rowsToFeatureRecords } from './dsv.js';
 
 export const featuresCsv: AdapterFunction = (raw) => {
   if (typeof raw !== 'string') {

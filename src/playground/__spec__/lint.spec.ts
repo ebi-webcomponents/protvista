@@ -5,7 +5,7 @@
  * codes (so the editor and `src/schema/validate.ts` never drift).
  */
 import { describe, it, expect } from 'vitest';
-import { computeDiagnostics } from '../lint';
+import { computeDiagnostics } from '../lint.js';
 
 const VALID = `accession: P05067
 rows:

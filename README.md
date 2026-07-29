@@ -66,9 +66,8 @@ Then display the component:
 ### Importing as a module
 
 ```js
-import ProtvistaUniprot from 'protvista-uniprot';
-
-window.customElements.define('protvista-uniprot', ProtvistaUniprot);
+// The element self-registers as <protvista-uniprot> on import.
+import 'protvista-uniprot';
 ```
 
 You can then use it like this:
@@ -83,9 +82,9 @@ Reactive properties on the `<protvista-uniprot>` element (HTML attribute name in
 
 - `accession` [`accession`]: `string` — UniProt accession to display. Takes precedence over the `accession` field in `config` if both are set.
 - `configSrc` [`config-src`]: `string` — URL or file path to a YAML or JSON config. Fetched and parsed at mount time. See [Configuration](#configuration).
-- `config`: `ProtvistaViewerConfig` — a parsed config object, assigned as a JS property. Alternative to `config-src` when the embedder already has the config in memory.
+- `viewerConfig`: `ProtvistaViewerConfig` — a parsed config object (or a YAML/JSON string), assigned as a JS property (no matching HTML attribute). Alternative to `config-src` when the embedder already has the config in memory.
 - `nostructure` [`nostructure`]: `boolean` (default `false`) — suppresses the PDBe 3D structure group.
-- `notooltip` [`notooltip`]: `boolean` (default `false`) — suppresses the built-in click tooltip. Typically set by embedders rendering their own overlay. See [React host integration](./docs/react-integration.md) for the consumer-side pattern.
+- `notooltip` [`notooltip`]: `boolean` (default `false`) — suppresses the built-in click tooltip. Typically set by embedders rendering their own overlay. See [React host integration](https://ebi-webcomponents.github.io/protvista/react-integration) for the consumer-side pattern.
 - `suspend` [`suspend`]: `boolean` (default `false`) — pauses rendering. Useful when the accession is about to change and you want to avoid a flash of intermediate state.
 
 ## Development
@@ -97,7 +96,10 @@ yarn install
 yarn start
 ```
 
-to install dependencies and start the local development server.
+to install dependencies and start the Astro dev server (`yarn start` =
+`yarn docs:dev`) — it serves the docs **and** the native playground page (the
+docs are the site home). Use `yarn site:build && yarn site:preview` to preview
+the whole site (docs + playground + bench) exactly as GitHub Pages serves it.
 
 ## Testing
 
@@ -123,7 +125,7 @@ Coverage output is for local use only and is not committed. Open `coverage/index
 
 ### Continuous integration
 
-Every push and pull request runs three steps via [`.github/workflows/test-and-deploy.yml`](./.github/workflows/test-and-deploy.yml): `yarn test:lint`, `yarn test:types`, and `yarn test:coverage`, under Node 24 on `ubuntu-latest`. The coverage step runs the full unit suite and enforces the coverage floor (see below), so a PR that drops coverage below the floor fails CI. A separate `build` job runs `yarn build` (and, on `main`, `yarn build:demo`) and deploys the demo to GitHub Pages.
+Every push and pull request runs three steps via [`.github/workflows/test-and-deploy.yml`](./.github/workflows/test-and-deploy.yml): `yarn test:lint`, `yarn test:types`, and `yarn test:coverage`, under Node 24 on `ubuntu-latest`. The coverage step runs the full unit suite and enforces the coverage floor (see below), so a PR that drops coverage below the floor fails CI. A separate `build` job runs `yarn build` (and, on `next`, `yarn site:build`, which builds the Astro + Starlight docs — including the playground page — plus the bench page into `site/`) and deploys that to GitHub Pages.
 
 ### Coverage
 
@@ -149,7 +151,7 @@ See [`bench/README.md`](./bench/README.md) for scenarios, capture procedure, and
 The viewer is driven by a declarative configuration — a document that lists the rows to display, the tracks within each row, and where their data comes from. Authors write against a schema of high-level domain concepts (`kind: features`, `kind: variants`, `kind: confidence-score`, …) and never need to name Nightingale components or adapters directly. Two authoring forms are supported:
 
 - **YAML** (recommended) — passed via the `config-src` attribute pointing at a URL or file path.
-- **JSON** — assigned to the `.config` property on the element.
+- **JSON** — assigned to the `viewerConfig` property on the element.
 
 ### Minimal config
 
@@ -177,13 +179,15 @@ The viewer renders a single collapsible group "Domains" (label title-cased from 
 
 ### Learning more
 
-- **Configuration vs data.** [`docs/configuration-vs-data.md`](./docs/configuration-vs-data.md) explains the boundary between what your config controls and what a data provider must supply — the Intent/Representation split, with a diagram and a paired example.
+- **Tutorial.** The guided [end-to-end tutorial](https://ebi-webcomponents.github.io/protvista/tutorial) — add the component, point it at an accession, add your own track from a CSV, `extends` the default viewer, and theme it. The best starting point for newcomers.
+- **User guide.** The task-oriented [ProtVista user guide](https://ebi-webcomponents.github.io/protvista/) — embedding the viewer, authoring a config, built-in track kinds, loading your own data (CSV/TSV/JSON/BED), troubleshooting, and escape hatches. Rendered from [`docs/`](./docs).
+- **Configuration vs data.** [Configuration vs data](https://ebi-webcomponents.github.io/protvista/configuration-vs-data) explains the boundary between what your config controls and what a data provider must supply — the Intent/Representation split, with a diagram and a paired example.
 - **Schema reference.** [`specs/config-approach.md`](./specs/config-approach.md) documents every field (`rows`, `tracks`, `sources`, `defaults`, `extends`, `kind`, `data`, `rendering`, `dataTooltip`) with worked examples and edge-case semantics. This is the normative source.
 - **Canonical default.** [`src/default-config.yaml`](./src/default-config.yaml) is the UniProt viewer itself, authored in the new schema. Useful as a reference.
 - **Worked examples.** [`examples/`](./examples) is the canonical, CI-validated set of runnable example configs — one per generic-format adapter (CSV/TSV/JSON/BED), inline data, a minimal URL-sourced config, and an `extends:`-based config that layers a custom track on the shipped default. See [`examples/README.md`](./examples/README.md).
-- **Adapter reference.** [`docs/adapter-reference.md`](./docs/adapter-reference.md) lists the expected payload shape and fields for every built-in kind and adapter, generated from the adapter code and drift-tested. A machine-readable schema for the bring-your-own feature record is served at [`feature-record.schema.json`](./public/schema/v1/feature-record.schema.json).
-- **Authoring `dataTooltip`.** [`docs/data-tooltip.md`](./docs/data-tooltip.md) covers the three authoring forms (bare string, `kind: fields`, `kind: markdown`) with examples.
-- **React host integration.** [`docs/react-integration.md`](./docs/react-integration.md) shows how a React host owns its own rich tooltips via the `change` event + `notooltip`, with a minimal worked example. The normative contract is [`specs/config-approach.md`](./specs/config-approach.md#react-host-integration).
+- **Adapter reference.** [Adapter reference](https://ebi-webcomponents.github.io/protvista/adapter-reference) lists the expected payload shape and fields for every built-in kind and adapter, generated from the adapter code and drift-tested. A machine-readable schema for the bring-your-own feature record is served at [`feature-record.schema.json`](./public/schema/v1/feature-record.schema.json).
+- **Authoring `dataTooltip`.** [Author tooltips](https://ebi-webcomponents.github.io/protvista/data-tooltip) covers the three authoring forms (bare string, `kind: fields`, `kind: markdown`) with examples.
+- **React host integration.** [Rich tooltips in React](https://ebi-webcomponents.github.io/protvista/react-integration) shows how a React host owns its own rich tooltips via the `change` event + `notooltip`, with a minimal worked example. The normative contract is [`specs/config-approach.md`](./specs/config-approach.md#react-host-integration).
 
 ## Events
 

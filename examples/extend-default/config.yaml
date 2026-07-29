@@ -14,9 +14,9 @@
 # origin-absolute path resolves correctly under that same default
 # fetcher regardless of which page's `config-src` mounts this file —
 # as long as the page is served from this repo's root (e.g. the dev
-# server, `yarn start`; the built `demo/` bundle does not expose
+# server, `yarn start`; the built `site/` bundle does not expose
 # `src/` as static files, so this specific example is a dev-time
-# reference, not something the deployed demo site can mount). See
+# reference, not something the deployed site can mount). See
 # examples/README.md and the "default-fetcher semantics" test in
 # `src/__spec__/examples.spec.ts`, which pins this exact contract
 # against the real, unmodified default fetcher (no CI-only shim).

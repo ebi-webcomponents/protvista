@@ -1,7 +1,7 @@
 import { AminoAcid } from '@nightingale-elements/nightingale-variation-canvas';
 
-import type { AdapterFunction } from '../types';
-import { RnaEditing, TransformedRnaEditing } from './types/rna-editing';
+import type { AdapterFunction } from '../types.js';
+import { RnaEditing, TransformedRnaEditing } from './types/rna-editing.js';
 
 export const rnaEditingAdapter: AdapterFunction = (
   raw

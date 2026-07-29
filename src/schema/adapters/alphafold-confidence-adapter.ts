@@ -1,6 +1,6 @@
 import type { AlphaFoldPayload } from '@nightingale-elements/nightingale-structure';
 
-import type { AdapterFunction } from '../types';
+import type { AdapterFunction } from '../types.js';
 
 type AlphafoldConfidencePayload = {
   residueNumber: Array<number>;

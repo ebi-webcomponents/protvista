@@ -1,4 +1,13 @@
-<!DOCTYPE html>
+---
+// Native, full-screen configuration playground (a plain Astro page, NOT a
+// Starlight doc — no nav/sidebar chrome). The markup is server-rendered; the
+// heavy bits (the <protvista-uniprot> component + the playground controller)
+// load only on the client via the <script> at the bottom, so nothing renders
+// server-side. Replaces the standalone playground.html + vite.playground.config
+// build — this page is built by `astro build` alongside the docs.
+---
+
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -8,15 +17,90 @@
       content="Edit a ProtVista YAML/JSON config with live validation and a live viewer preview. Share your setup with a link."
     />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap"
       rel="stylesheet"
     />
-    <style>
+  </head>
+
+  <body>
+    <header class="bar">
+      <a class="home" href="/protvista/">← Docs</a>
+      <h1>Configuration playground</h1>
+
+      <div class="field">
+        <label for="preset">Preset</label>
+        <select id="preset" aria-label="Configuration preset"></select>
+      </div>
+
+      <div class="field">
+        <label for="accession">Accession</label>
+        <input
+          id="accession"
+          type="text"
+          value="P05067"
+          spellcheck="false"
+          autocomplete="off"
+        />
+      </div>
+
+      <button id="run" type="button" title="Update the preview (Ctrl/Cmd+Enter)">
+        <span aria-hidden="true">▶</span> Run
+      </button>
+    </header>
+    <p id="preset-desc" class="preset-desc" aria-live="polite"></p>
+
+    <main id="panels">
+      <section class="pane" aria-label="Config editor">
+        <h2>Config (YAML or JSON)</h2>
+        <div id="editor"></div>
+        <div
+          class="errors"
+          role="region"
+          aria-label="Validation results"
+          aria-live="polite"
+        >
+          <p id="error-summary">Loading…</p>
+          <ul id="errors"></ul>
+        </div>
+      </section>
+
+      <div
+        class="splitter"
+        id="splitter"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize panels"
+        aria-valuemin="15"
+        aria-valuemax="85"
+        aria-valuenow="50"
+        tabindex="0"
+      ></div>
+
+      <section class="pane" aria-label="Live preview">
+        <h2>Preview</h2>
+        <p id="preview-stale" role="status" hidden>
+          <span aria-hidden="true">▶</span> Preview is out of date — press
+          <strong>Run</strong> (Ctrl/Cmd+Enter) to update it. Fix any errors
+          listed on the left first.
+        </p>
+        <div id="preview"></div>
+      </section>
+    </main>
+
+    <!-- Client-only: runs the playground controller, which itself imports
+         and registers <protvista-uniprot>. Imported from the library source
+         at the repo root (see fs.allow in astro.config.mjs); Astro bundles
+         this as a client script. The explicit component import is therefore
+         redundant, but keeps this page's registration greppable. -->
+    <script>
+      import '../../../src/protvista-uniprot';
+      import '../../../src/playground/index';
+    </script>
+
+    <style is:global>
       :root {
         --ink: #1a1a2e;
         --muted: #55566a;
@@ -33,10 +117,6 @@
         color: var(--ink);
         background: var(--bg);
         margin: 0;
-        /* Fill the viewport with a definite height (flex column handles a
-           wrapped header, no magic number) and hide page overflow, so each
-           pane scrolls internally and independently rather than the whole
-           page growing with the config. */
         display: flex;
         flex-direction: column;
         height: 100vh;
@@ -104,8 +184,6 @@
         flex: 1 1 auto;
         min-height: 0;
         display: grid;
-        /* Left pane | draggable splitter | right pane. The fr weights are
-           set by splitter.ts; default to an even split. */
         grid-template-columns: var(--left, 1fr) 8px var(--right, 1fr);
         background: var(--bg);
       }
@@ -129,8 +207,6 @@
         display: flex;
         flex-direction: column;
         min-width: 0;
-        /* Grid items default to min-height:auto; 0 lets the pane shrink so
-           its editor/preview child owns the scroll. */
         min-height: 0;
         overflow: hidden;
       }
@@ -177,8 +253,6 @@
         display: none;
       }
       .errors {
-        /* Fixed footer of the config pane — always visible at the bottom,
-           regardless of how far the editor above is scrolled. */
         flex: none;
         border-top: 1px solid var(--line);
         background: #fff;
@@ -194,7 +268,6 @@
         padding-left: 1.1rem;
         font-size: 0.85rem;
         color: var(--err);
-        /* Only the list scrolls; the summary line stays pinned above it. */
         max-height: 9rem;
         overflow: auto;
       }
@@ -204,8 +277,19 @@
       #errors li {
         margin: 0.15rem 0;
       }
+      .preset-desc {
+        flex: none;
+        margin: 0;
+        padding: 0.4rem 1.25rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+      }
+      .preset-desc:empty {
+        display: none;
+      }
       @media (max-width: 760px) {
-        /* Stack the panes and let the page scroll normally. */
         body {
           height: auto;
           overflow: visible;
@@ -225,76 +309,5 @@
         }
       }
     </style>
-  </head>
-
-  <body>
-    <header class="bar">
-      <h1>Configuration playground</h1>
-
-      <div class="field">
-        <label for="preset">Preset</label>
-        <select id="preset" aria-label="Configuration preset"></select>
-      </div>
-
-      <div class="field">
-        <label for="accession">Accession</label>
-        <input
-          id="accession"
-          type="text"
-          value="P05067"
-          spellcheck="false"
-          autocomplete="off"
-        />
-      </div>
-
-      <button id="run" type="button" title="Update the preview (Ctrl/Cmd+Enter)">
-        <span aria-hidden="true">▶</span> Run
-      </button>
-      <a class="home" href="./index.html">← Home</a>
-    </header>
-
-    <main id="panels">
-      <section class="pane" aria-label="Config editor">
-        <h2>Config (YAML or JSON)</h2>
-        <div id="editor"></div>
-        <div
-          class="errors"
-          role="region"
-          aria-label="Validation results"
-          aria-live="polite"
-        >
-          <p id="error-summary">Loading…</p>
-          <ul id="errors"></ul>
-        </div>
-      </section>
-
-      <div
-        class="splitter"
-        id="splitter"
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Resize panels"
-        aria-valuemin="15"
-        aria-valuemax="85"
-        aria-valuenow="50"
-        tabindex="0"
-      ></div>
-
-      <section class="pane" aria-label="Live preview">
-        <h2>Preview</h2>
-        <p id="preview-stale" role="status" hidden>
-          <span aria-hidden="true">▶</span> Preview is out of date — press
-          <strong>Run</strong> (Ctrl/Cmd+Enter) to update it. Fix any errors
-          listed on the left first.
-        </p>
-        <div id="preview"></div>
-      </section>
-    </main>
-
-    <!-- Registers the <protvista-uniprot> custom element. This page entry is
-         the reliable registration point: a bare side-effect import alone can
-         be tree-shaken because package.json sets "sideEffects": false. -->
-    <script type="module" src="./src/protvista-uniprot.ts"></script>
-    <script type="module" src="./src/playground/index.ts"></script>
   </body>
 </html>

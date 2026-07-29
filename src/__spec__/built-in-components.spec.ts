@@ -17,13 +17,13 @@ import {
   RENDERABLE_COMPONENTS,
   STRUCTURAL_COMPONENTS,
   registerBuiltinComponents,
-} from '../built-in-components';
-import { RENDERABLE_COMPONENT_NAMES } from '../schema/components';
+} from '../built-in-components.js';
+import { RENDERABLE_COMPONENT_NAMES } from '../schema/components.js';
 import {
   createRegistry,
   RegistryCollisionError,
   type Registry,
-} from '../schema/registry';
+} from '../schema/registry.js';
 
 describe('built-in-components — table shape', () => {
   it('exposes 10 built-in tags split into 5 renderable + 5 structural', () => {

@@ -1,13 +1,15 @@
-# React host integration
+---
+title: React host integration
+---
 
 When you need a tooltip the config can't express — a React component, evidence badges, taxonomy lookups, links into your app's own routing, or any stateful UI — you own it in the host. The library hands you an event; you render the overlay.
 
 There are exactly two paths for the per-datapoint tooltip, and nothing in between:
 
-- **Declarative (library renders it).** Author `dataTooltip` in YAML and let the built-in click popover render it. Pick this whenever it's enough — see [`data-tooltip.md`](./data-tooltip.md).
+- **Declarative (library renders it).** Author `dataTooltip` in YAML and let the built-in click popover render it. Pick this whenever it's enough — see [Authoring `dataTooltip`](/protvista/data-tooltip).
 - **Consumer-owned (you render it).** Set `notooltip` on the element, listen for the `change` event, and mount your own overlay. This page walks through that path.
 
-The normative contract for everything below lives in [`specs/config-approach.md`](../specs/config-approach.md#react-host-integration); this page is the tutorial.
+The normative contract for everything below lives in [`specs/config-approach.md`](https://github.com/ebi-webcomponents/protvista/blob/next/specs/config-approach.md#react-host-integration); this page is the tutorial.
 
 ## The shape of it
 
@@ -120,3 +122,5 @@ const hostRef = (el: HTMLElement | null) => {
 ```
 
 Prefer this once you're on React 19 — don't copy the split mount/unmount `useEffect` shape as the canonical form.
+
+_Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._
