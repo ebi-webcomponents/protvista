@@ -94,14 +94,16 @@ const resolveLocalRef = (ref: string): string =>
  * The kit's `extends:` target is a pinned jsDelivr URL, which cannot
  * be fetched here — the version it names is published at release time,
  * not now. Serving this repo's own `src/default-config.yaml` in its
- * place is the honest substitution: jsDelivr will serve that exact
- * file, because `package.json` ships `src` in its `files` array (an
- * invariant pinned by `schema-publishing.spec.ts`).
+ * place is the honest substitution: jsDelivr serves the tarball's
+ * `dist/default-config.yaml`, which the build copies verbatim from
+ * `src/default-config.yaml` (see the emit step in vite.config.mjs), and
+ * `package.json` ships `dist` in its `files` array (both invariants
+ * pinned by `schema-publishing.spec.ts` + the tarball guard).
  */
 const extendsFetcher = async (ref: string): Promise<string> => {
   if (/^https?:\/\//i.test(ref)) {
     expect(
-      ref.endsWith('/src/default-config.yaml'),
+      ref.endsWith('/dist/default-config.yaml'),
       `unexpected remote extends target: ${ref}`
     ).toBe(true);
     return readFile(join(REPO_ROOT, 'src/default-config.yaml'), 'utf8');

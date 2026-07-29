@@ -155,7 +155,7 @@ at the end.
 `extends: /src/default-config.yaml` resolves only when the page is served from
 this repo's root; a deployed site must point `extends` at a hosted copy instead —
 either your own, or the published package on a CDN:
-`https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0/src/default-config.yaml`
+`https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0/dist/default-config.yaml`
 (available once 5.0.0 ships, as above). See
 [Author a config](/protvista/configure#reuse-the-default-with-extends) for the
 merge rules and the full caveat.

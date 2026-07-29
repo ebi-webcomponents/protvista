@@ -1,4 +1,6 @@
 import { fileURLToPath } from 'node:url';
+import { copyFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { defineConfig } from 'vite';
 import envCompatible from 'vite-plugin-env-compatible';
 import { createHtmlPlugin } from 'vite-plugin-html';
@@ -14,6 +16,27 @@ import { playwright } from '@vitest/browser-playwright';
 // weight (or actively harmful) under test, so drop them there.
 const isVitest = !!process.env.VITEST;
 
+// Ship the canonical default config alongside the built library, at
+// `dist/default-config.yaml`, so the Starter Kit's
+// `extends: https://cdn.jsdelivr.net/npm/protvista-uniprot@<v>/dist/default-config.yaml`
+// recipe resolves from the published tarball. The package publishes only
+// `dist` (files: ["dist"]), and `src/default-config.yaml` is self-contained (no
+// further `extends`), so this one copied file is all a consumer needs — no raw
+// `src/` in the tarball. The tarball guard in scripts/validate-package.sh pins
+// that this file actually ships.
+function emitDefaultConfig() {
+  return {
+    name: 'protvista-emit-default-config',
+    apply: 'build',
+    async writeBundle(options) {
+      const source = fileURLToPath(
+        new URL('./src/default-config.yaml', import.meta.url)
+      );
+      await copyFile(source, join(options.dir, 'default-config.yaml'));
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     viteCommonjs(),
@@ -22,6 +45,7 @@ export default defineConfig({
     ...(isVitest
       ? []
       : [
+          emitDefaultConfig(),
           createHtmlPlugin({
             inject: {
               data: {

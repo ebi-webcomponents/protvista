@@ -74,23 +74,25 @@ describe('npm distribution — files the Starter Kit fetches from the CDN', () =
   // The Starter Kit (`starter-kit/`, published to
   // ebi-webcomponents/protvista-starter-kit) ships a recipe whose
   // `extends:` points at
-  // https://cdn.jsdelivr.net/npm/protvista-uniprot@<version>/src/default-config.yaml
+  // https://cdn.jsdelivr.net/npm/protvista-uniprot@<version>/dist/default-config.yaml
   //
-  // jsDelivr serves that path straight out of the npm tarball, so it
-  // exists only while `src` stays in package.json `files`. Trimming
-  // that to `["dist"]` is an obvious-looking size win — the tarball
-  // carries all of src/**/*.ts as dead weight — and it would silently
-  // 404 every Starter Kit copy in the wild, with nothing else in this
-  // repo failing. Hence this test.
+  // jsDelivr serves that path straight out of the npm tarball. The package
+  // publishes only `dist` (a lean tarball — no raw `src`), so the build copies
+  // the self-contained `src/default-config.yaml` into `dist/default-config.yaml`
+  // (the emit step in vite.config.mjs). These two guards keep the chain intact:
+  // `dist` stays published (below), and the config's source of truth still
+  // exists (below); the tarball guard in scripts/validate-package.sh pins that
+  // the emitted `dist/default-config.yaml` actually ships. Break any link and a
+  // deployed Starter Kit's `extends:` 404s, with nothing else here failing.
   const pkg = JSON.parse(
     readFileSync(resolve(process.cwd(), 'package.json'), 'utf8')
   ) as { files?: string[] };
 
-  it('publishes `src`, which the Starter Kit `extends:` URL resolves into', () => {
-    expect(pkg.files).toContain('src');
+  it('publishes `dist`, which the Starter Kit `extends:` URL resolves into', () => {
+    expect(pkg.files).toContain('dist');
   });
 
-  it('still ships the config that URL points at', () => {
+  it('still ships the source config the build copies into dist/', () => {
     expect(
       statOrNull(resolve(process.cwd(), 'src/default-config.yaml'))
     ).not.toBeNull();
