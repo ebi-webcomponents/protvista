@@ -35,11 +35,23 @@
   },
   "module": "dist/protvista-uniprot.mjs",
   "types": "dist/types/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "config": [
+        "./dist/types/config.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/protvista-uniprot.mjs",
       "default": "./dist/protvista-uniprot.mjs"
+    },
+    "./config": {
+      "types": "./dist/types/config.d.ts",
+      "import": "./dist/config.mjs",
+      "default": "./dist/config.mjs"
     },
     "./package.json": "./package.json"
   },

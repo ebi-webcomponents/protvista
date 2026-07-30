@@ -92,15 +92,51 @@ describe('package.json packaging contract', () => {
     expect(pkg.type).toBe('module');
   });
 
-  it('resolves types through `exports`, first and before `default`', () => {
+  it('resolves types through every `exports` subpath, first and before `default`', () => {
     // Without a `types` condition, TypeScript on `moduleResolution`
-    // `bundler`/`node16` resolves *through* `exports` and never consults
-    // the top-level `types` field, so consumers get no declarations.
-    const conditions = Object.keys(pkg.exports['.']);
-    expect(conditions).toContain('types');
-    expect(conditions[0]).toBe('types');
-    if (conditions.includes('default')) {
-      expect(conditions[conditions.length - 1]).toBe('default');
+    // `bundler`/`node16` resolves *through* `exports` and never consults the
+    // top-level `types` field, so consumers get no declarations. Every
+    // conditional subpath (the root and `./config`) must lead with it.
+    for (const [subpath, target] of Object.entries(pkg.exports)) {
+      if (typeof target !== 'object' || target === null) continue;
+      const conditions = Object.keys(target);
+      expect(conditions, subpath).toContain('types');
+      expect(conditions[0], subpath).toBe('types');
+      if (conditions.includes('default')) {
+        expect(conditions[conditions.length - 1], subpath).toBe('default');
+      }
+    }
+  });
+
+  it('exposes the pure config on a subpath distinct from the element bundle', () => {
+    // `./config` is the side-effect-free path to `filterConfig` / `colorConfig`
+    // (README, CHANGELOG). It only delivers that if it resolves to its *own*
+    // output, never the self-registering root bundle — otherwise importing it
+    // drags the element in and the split buys nothing. Purity of that output
+    // is enforced at the source layer by config-subpath-purity.spec.ts; this
+    // just pins that the manifest keeps the two paths separate.
+    const config = pkg.exports['./config'];
+    expect(config, 'missing "./config" export').toBeTypeOf('object');
+    expect(config.import).toBe('./dist/config.mjs');
+    expect(config.import).not.toBe(pkg.exports['.'].import);
+    expect(config.types).not.toBe(pkg.exports['.'].types);
+  });
+
+  it('remaps every non-root subpath for node10 via `typesVersions`', () => {
+    // node10 (the classic resolver) predates `exports`, so a subpath like
+    // `protvista-uniprot/config` is invisible to it — attw's node10 check
+    // reports "no resolution" — unless `typesVersions` points its declarations
+    // at the built `.d.ts`. Modern resolvers ignore `typesVersions` when
+    // `exports` carries a `types` condition, so this only affects node10. The
+    // root is covered by the top-level `types` field; `./package.json` is not a
+    // types entry. Every other subpath needs a mapping.
+    const subpaths = Object.keys(pkg.exports).filter(
+      (k) => k !== '.' && k !== './package.json'
+    );
+    const mapped = pkg.typesVersions?.['*'] ?? {};
+    for (const sub of subpaths) {
+      const key = bare(sub); // "./config" -> "config"
+      expect(Object.keys(mapped), sub).toContain(key);
     }
   });
 });
@@ -155,7 +191,7 @@ describe.skipIf(!pkg.module || !existsSync(resolve(root, pkg.module)))(
     // objects are flattened so adding one does not throw here.
     const declared = [
       ...new Set(
-        [pkg.module, pkg.types, ...Object.values(pkg.exports['.'])]
+        [pkg.module, pkg.types, ...Object.values(pkg.exports)]
           .flatMap((v) => (typeof v === 'object' && v ? Object.values(v) : [v]))
           .filter((v): v is string => typeof v === 'string')
           .map(bare)

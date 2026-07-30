@@ -1,5 +1,11 @@
-import { type VariationDatum } from '@nightingale-elements/nightingale-variation-canvas';
-import { ClinicalSignificance } from '@nightingale-elements/nightingale-variation-canvas';
+// Type-only: neither name is used as a value here, so nothing from
+// `@nightingale-elements/nightingale-variation-canvas` is pulled in at
+// runtime. This is what keeps this module (and the `./config` subpath that
+// re-exports it) free of the variation element's registration side effect.
+import type {
+  VariationDatum,
+  ClinicalSignificance,
+} from '@nightingale-elements/nightingale-variation-canvas';
 
 const scaleColors = {
   UPDiseaseColor: '#990000',
