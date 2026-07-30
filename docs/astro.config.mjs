@@ -131,15 +131,10 @@ export default defineConfig({
         // The playground is a separate full-screen Astro page (not a doc);
         // link to it from the top of the sidebar. Starlight prepends the base.
         { label: 'Playground ↗', link: '/playground/' },
-        {
-          label: 'Blog',
-          items: [
-            {
-              label: 'Playground & Starter Kit',
-              link: '/blog/playground-and-starter-kit',
-            },
-          ],
-        },
+        // A single link to the blog index, which lists every post. Keeping the
+        // sidebar to one entry means a new post needs no config change — only
+        // a line in blog/index.md.
+        { label: 'Blog', link: '/blog/' },
         {
           label: 'Getting started',
           items: [
