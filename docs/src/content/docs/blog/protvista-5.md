@@ -1,22 +1,23 @@
 ---
 title: 'Put your own protein data on screen: ProtVista 5 is in beta'
-description: A configuration file now does what used to take a developer — load your own annotations beside UniProt's, rearrange the view, and publish it, without writing code.
+description: A configuration file now does what used to take a developer. Load your own annotations beside UniProt's, rearrange the view, and publish it, without writing code.
 ---
 
-Research groups keep annotations of their own — hotspot regions, custom domain
-calls, lab-specific variant lists — and they usually sit in a spreadsheet, away
-from the sequence context that makes them mean something. Putting them on screen
-next to UniProt's domains and variants used to need a developer.
+Research groups keep annotations of their own: hotspot regions, custom domain
+calls, lab-specific variant lists. They usually sit in a spreadsheet, away from
+the sequence context that makes them mean something. Putting them on screen next
+to UniProt's domains and variants used to need a developer.
 
 ProtVista 5 is now in beta, and it doesn't. This release is for the people
-looking at proteins rather than the people building viewers: everything below
-happens in a configuration file, a button, or a template repository.
+looking at proteins rather than the people building software: everything below
+takes a short text file, a button, or a copy of a ready-made page.
 
-It is built in the open, and v5 carries work from outside the core team — thank
-you to [Jishanahmed AR Shaikh](https://github.com/jishanahmed-shaikh), who
-tightened type safety right across the codebase
+ProtVista is free and open source, and anyone can contribute. Version 5 includes
+work from outside our team. Thank you to
+[Jishanahmed AR Shaikh](https://github.com/jishanahmed-shaikh), who made the
+code more reliable and easier to maintain
 ([#137](https://github.com/ebi-webcomponents/protvista/pull/137)), and to
-[Epi-Lo](https://github.com/Epi-Lo) for taking on the same problem.
+[Epi-Lo](https://github.com/Epi-Lo), who took on the same problem.
 
 :::tip[Bring your data to the ProtVista hackathon: 7–9 October 2026]
 Three free days online, working directly with the developers to get your own
@@ -34,9 +35,9 @@ come first served. Applications close 1 October 2026.**
 
 ## Load your own data
 
-Save your annotations as CSV, TSV, JSON, or BED, and name the file in a
-configuration document. The extension picks the parser, so there is nothing else
-to wire up:
+Save your annotations as CSV, TSV, JSON, or BED, then point to them from a short
+configuration file. The file extension tells ProtVista how to read your data, so
+there is nothing else to set up:
 
 ```yaml
 accession: P05067
@@ -48,26 +49,26 @@ rows:
 ```
 
 That is the whole change. Your track appears alongside everything UniProt
-already shows, and the same file works whether you are viewing one protein or
-a hundred. Data sources are yours to choose too — nothing in the viewer assumes
-EMBL-EBI's, so a group running its own API can point every row at it.
+already shows, and the same file works whether you are looking at one protein or
+a hundred. You choose where the data comes from, too: nothing here assumes
+EMBL-EBI, so a group with its own database can use that instead.
 
 **Learn more:** [Load your own data](/protvista/your-data) covers all four
-formats and the full field reference, and
-[Author a config](/protvista/configure) explains how to layer your track on top
-of the canonical UniProt view rather than replacing it.
+formats and every field you can use, and
+[Author a config](/protvista/configure) explains how to add your track on top of
+the full UniProt view rather than replacing it.
 
 ## Rearrange what you see
 
-Every viewer now has a **Customize** button. In that mode each row gets
-move-up / move-down controls and a show/hide toggle: reorder groups, reorder
+Every viewer now has a **Customize** button. Click it and each row gains
+move-up and move-down buttons and a show/hide switch: reorder groups, reorder
 tracks within a group, hide what you don't need. No configuration file, no code
-at all — and no drag gesture either, so it works the same with a mouse, a
-touchscreen, or a keyboard.
+at all, and nothing to drag, so it works the same with a mouse, a touchscreen,
+or a keyboard.
 
-The arrangement you make sticks. It comes back the next time you open that
-viewer, and it travels in a shareable link, so "move Variants above Domains"
-becomes something you send rather than something you explain.
+The arrangement you make sticks. It is still there next time you open that
+viewer, and you can share it as a link, so "move Variants above Domains" becomes
+something you send rather than something you explain.
 
 **Learn more:** [Customize the layout](/protvista/customize-layout).
 
@@ -78,17 +79,18 @@ becomes something you send rather than something you explain.
 ## Try it now, then publish it
 
 The [playground](/protvista/playground/) is the fastest way to see any of this:
-a configuration editor beside a live viewer, with nothing to install. Type an
-accession, edit the configuration, watch it render. Every view has its own URL,
-so you can send a colleague the exact thing you are looking at.
+an editor beside a live viewer, with nothing to install. Type an accession, edit
+the settings, watch the picture change. Every view has its own web address, so
+you can send a colleague exactly what you are looking at.
 
 When you want to keep it, the
-[Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit) is a
-template repository: select **Use this template**, drop your data file into
-`data/`, edit `config.yaml`, and switch on GitHub Pages. You get a live, shareable
-viewer with no build step, no `npm install`, and no JavaScript. A bundled check
-validates your configuration on every push, so a mistyped field shows up as a
-failed check rather than a puzzle later.
+[Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit) gives
+you a ready-made copy of everything: select **Use this template**, put your data
+file in the `data` folder, edit `config.yaml`, and switch on GitHub Pages. You
+get a live web page you can share, without installing anything or writing any
+code. Your settings are checked automatically each time you save a change, so a
+mistyped field is flagged straight away instead of leaving you with an empty
+track and no explanation.
 
 ## Getting it
 
@@ -99,18 +101,17 @@ ProtVista yourself, this release is on npm under the `beta` tag:
 npm install protvista-uniprot@beta
 ```
 
-It is a beta on purpose. The stable 4.9 line stays the default install, so
-existing deployments are untouched, and the configuration format may still
-shift before the stable 5.0 release. If you are integrating now, we would
-particularly like to hear from you.
+It is a beta on purpose. The stable 4.9 release stays the default, so nothing
+you already have will change, and the configuration format may still shift
+before 5.0 is final. If you are building on it now, we would particularly like
+to hear from you.
 
 ## Hackathon: visualise your own data
 
-If anything above left you with an idea — a dataset worth wiring in, a
-visualisation you need, an integration with your own resource — bring it to the
-hackathon. It is open to researchers, bioinformaticians, and developers alike,
-whether or not you have used ProtVista before, and no prior contribution to the
-project is expected.
+Bring us an idea: a dataset you want to see on screen, a figure you need for a
+paper, a way to show your group's data next to UniProt's. The hackathon is open
+to researchers, bioinformaticians, and developers alike, whether or not you have
+used ProtVista before, and you do not need to have contributed to the project.
 
 |                        |                             |
 | ---------------------- | --------------------------- |
@@ -123,12 +124,12 @@ project is expected.
 
 ## Where to go next
 
-- [Tutorial](/protvista/tutorial) — an empty page to a custom, themed viewer, in four steps.
-- [Load your own data](/protvista/your-data) — CSV, TSV, JSON, BED, and inline data.
-- [Customize the layout](/protvista/customize-layout) — reorder, show and hide, share, persist.
-- [Author a config](/protvista/configure) — the structure of a configuration document.
-- [Match your site's style](/protvista/theming) — colours from the configuration, or your own CSS.
-- [Playground](/protvista/playground/) — edit a configuration live and share it by link.
+- [Tutorial](/protvista/tutorial) — from an empty page to your own viewer, in four steps.
+- [Load your own data](/protvista/your-data) — CSV, TSV, JSON and BED, field by field.
+- [Customize the layout](/protvista/customize-layout) — reorder, show and hide, and share the result.
+- [Author a config](/protvista/configure) — what goes in the configuration file.
+- [Match your site's style](/protvista/theming) — set the colours to match your own pages.
+- [Playground](/protvista/playground/) — try changes live and share them by link.
 - [Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit) — use the template, add your data, publish.
 - [Source and issues](https://github.com/ebi-webcomponents/protvista) — questions, bugs, and feature requests.
 - [Office hours](https://github.com/ebi-webcomponents/protvista/blob/next/CONTRIBUTING.md#office-hours) — monthly live help with setup and your own data, no registration needed.
