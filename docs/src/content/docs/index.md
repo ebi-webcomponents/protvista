@@ -22,8 +22,7 @@ hero:
 :::tip[ProtVista has been refactored]
 **Version 5 is in beta.** Put your own data on screen beside UniProt's,
 rearrange the view, and publish it — all without writing code.
-[Read the announcement](/protvista/blog/protvista-5), or see everything on the
-[blog](/protvista/blog/).
+[Read the announcement on the blog](/protvista/blog/protvista-5).
 :::
 
 ProtVista is a web component — the custom element `<protvista-uniprot>` — that
