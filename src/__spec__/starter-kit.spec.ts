@@ -167,7 +167,9 @@ describe('starter kit — distribution invariants', () => {
     const found: { file: string; version: string }[] = [];
     for (const rel of VERSION_PINNED_FILES) {
       const text = readFileSync(join(KIT_ROOT, rel), 'utf8');
-      for (const m of text.matchAll(/protvista-uniprot@(\d+\.\d+\.\d+)/g)) {
+      for (const m of text.matchAll(
+        /protvista-uniprot@(\d+\.\d+\.\d+(?:-[\w.]+)?)/g
+      )) {
         found.push({ file: rel, version: m[1] });
       }
     }

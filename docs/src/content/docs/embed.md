@@ -39,8 +39,8 @@ from source with `yarn install && yarn build` in a clone of the
 [repository](https://github.com/ebi-webcomponents/protvista) and copy the
 **contents** of `dist/` next to your page — the build is code-split, so the
 `.mjs` loads sibling chunks from the same directory and will not run alone. Once
-5.0 is on npm, load it from a CDN instead, which serves the chunks alongside it:
-`https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0/dist/protvista-uniprot.mjs`.
+the v5 beta is on npm, load it from a CDN instead, which serves the chunks alongside it:
+`https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.1/dist/protvista-uniprot.mjs`.
 
 ### 2. As an npm package
 

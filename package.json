@@ -1,7 +1,7 @@
 {
   "name": "protvista-uniprot",
   "description": "ProtVista tool for the UniProt website",
-  "version": "5.0.0",
+  "version": "5.0.0-beta.1",
   "type": "module",
   "files": [
     "dist"
@@ -78,7 +78,7 @@
   },
   "homepage": "https://ebi-webcomponents.github.io/protvista",
   "publishConfig": {
-    "tag": "next"
+    "tag": "beta"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",

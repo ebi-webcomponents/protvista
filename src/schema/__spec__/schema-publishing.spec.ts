@@ -205,7 +205,8 @@ function findPlaceholderReferences(): string[] {
 // docs prose name the *published* release, which predates this one, and
 // must not be forced to the dev version. Broadening to another CDN host
 // later is a one-line change to this pattern.
-const CDN_PIN_RE = /cdn\.jsdelivr\.net\/npm\/protvista-uniprot@(\d+\.\d+\.\d+)/g;
+const CDN_PIN_RE =
+  /cdn\.jsdelivr\.net\/npm\/protvista-uniprot@(\d+\.\d+\.\d+(?:-[\w.]+)?)/g;
 
 function findCdnVersionPins(): { file: string; version: string }[] {
   const pins: { file: string; version: string }[] = [];
