@@ -62,6 +62,12 @@ Also in this release:
   and `dist/types/*.d.ts`, which TypeScript treated as a CJS declaration
   describing an ESM file — reported by `attw` as "masquerading as CJS" on
   both `node16` resolution modes.
+- The built element entry is code-split: `dist/protvista-uniprot.mjs` loads
+  sibling chunks — `errors.js` and the shared `filter-config.js` statically,
+  `format.js` / `js-yaml.js` lazily — from the same directory. Bundlers and
+  CDNs (jsDelivr, unpkg) resolve these automatically, so the npm and CDN paths
+  need no change; a consumer copying the build to serve it directly must copy
+  the whole `dist/` folder, not the `.mjs` alone.
 - This package's own declarations now resolve under `node16`/`nodenext`.
   `moduleResolution: "bundler"` permits extensionless relative imports, the
   emitted `.d.ts` reproduced them faithfully, and they then failed to resolve

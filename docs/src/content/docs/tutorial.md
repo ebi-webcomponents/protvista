@@ -40,13 +40,23 @@ accession:
 ```
 
 `protvista-uniprot.mjs` is the component's built ES-module bundle. Until 5.0 is
-published to npm, build it from source and copy it next to your page:
+published to npm, build it from source and copy the **contents** of `dist/` next
+to your page. The build is code-split, so `protvista-uniprot.mjs` loads sibling
+chunks (`errors.js`, and lazily `format.js` / `js-yaml.js`) from the same
+directory — the single file will not run on its own:
 
 ```sh
 git clone https://github.com/ebi-webcomponents/protvista
 cd protvista
 yarn install && yarn build
-# then copy dist/protvista-uniprot.mjs next to your HTML page
+# then copy the contents of dist/ next to your HTML page
+```
+
+Once 5.0 is on npm, skip the build and load it from a CDN instead, which serves
+the chunks alongside the entry file:
+
+```html
+<script type="module" src="https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0/dist/protvista-uniprot.mjs"></script>
 ```
 
 That single attribute gives you the **full default UniProt viewer** for the
