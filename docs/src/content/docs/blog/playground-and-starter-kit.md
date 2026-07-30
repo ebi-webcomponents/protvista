@@ -161,14 +161,14 @@ touchscreen, or a keyboard — there is no drag gesture to reproduce.
 
 A hidden row or track collapses to a dimmed placeholder rather than
 disappearing, and its Show control remains reachable. Outside Customize
-mode, an **"N hidden"** indicator beside the Customize button reports how
+mode, an **"N tracks hidden"** indicator beside the Customize button reports how
 much is currently tucked away; selecting it re-enters Customize mode and
 opens every group holding something hidden, so the relevant controls are
 never more than one click away.
 
 ### Step 4: Reset, or confirm and continue
 
-**Reset** restores the authored layout exactly. There is no separate save
+**Reset** restores the tracks back to its original state, displaying all tracks. There is no separate save
 action otherwise — **Done** simply exits Customize mode, and the
 arrangement you made is already in effect.
 
