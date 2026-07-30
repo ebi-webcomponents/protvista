@@ -39,14 +39,25 @@ accession:
 <protvista-uniprot accession="P05067"></protvista-uniprot>
 ```
 
-`protvista-uniprot.mjs` is the component's built ES-module bundle. Until 5.0 is
-published to npm, build it from source and copy it next to your page:
+`protvista-uniprot.mjs` is the component's built ES-module bundle. Until the v5
+beta is published to npm, build it from source and copy the **contents** of
+`dist/` next to your page. The build is code-split, so `protvista-uniprot.mjs`
+loads sibling chunks (`errors.js` and `filter-config.js`, plus lazily
+`format.js` / `js-yaml.js`) from the same directory — the single file will not
+run on its own:
 
 ```sh
 git clone https://github.com/ebi-webcomponents/protvista
 cd protvista
 yarn install && yarn build
-# then copy dist/protvista-uniprot.mjs next to your HTML page
+# then copy the contents of dist/ next to your HTML page
+```
+
+Once the v5 beta is on npm, skip the build and load it from a CDN instead, which
+serves the chunks alongside the entry file:
+
+```html
+<script type="module" src="https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.1/dist/protvista-uniprot.mjs"></script>
 ```
 
 That single attribute gives you the **full default UniProt viewer** for the
@@ -155,8 +166,8 @@ at the end.
 `extends: /src/default-config.yaml` resolves only when the page is served from
 this repo's root; a deployed site must point `extends` at a hosted copy instead —
 either your own, or the published package on a CDN:
-`https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0/dist/default-config.yaml`
-(available once 5.0.0 ships, as above). See
+`https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.1/dist/default-config.yaml`
+(available once 5.0.0-beta.1 ships, as above). See
 [Author a config](/protvista/configure#reuse-the-default-with-extends) for the
 merge rules and the full caveat.
 :::

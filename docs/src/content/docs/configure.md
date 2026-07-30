@@ -154,12 +154,12 @@ beyond local development, point `extends` at your own hosted copy of the config,
 or at the published package on a CDN:
 
 ```yaml
-extends: https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0/dist/default-config.yaml
+extends: https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.1/dist/default-config.yaml
 ```
 
 That path is served straight from the npm tarball, so pin an exact version — a
 config written against one release is not guaranteed to merge cleanly into
-another. It resolves once 5.0.0 is published; see the release note on the
+another. It resolves once 5.0.0-beta.1 is published; see the release note on the
 [tutorial](/protvista/tutorial).
 :::
 

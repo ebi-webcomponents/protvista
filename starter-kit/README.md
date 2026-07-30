@@ -5,9 +5,9 @@ A template repository for putting your own protein annotations on screen next to
 <!-- protvista:unpublished:start -->
 **Read this first: this template does not work yet**
 
-> ProtVista 5.0.0 has not been published to npm. `index.html` pins `protvista-uniprot@5.0.0` on jsDelivr, that address returns "not found" today, and the page shows a "Could not load the viewer" box instead of a protein.
+> ProtVista 5.0.0-beta.1 has not been published to npm. `index.html` pins `protvista-uniprot@5.0.0-beta.1` on jsDelivr, that address returns "not found" today, and the page shows a "Could not load the viewer" box instead of a protein.
 >
-> Everything else in the kit is real and final — the config, the sample data, the validation, the layout. Nothing here needs to change when 5.0.0 ships; the same files simply start working. Watch [the releases page](https://github.com/ebi-webcomponents/protvista/releases), then reload.
+> Everything else in the kit is real and final — the config, the sample data, the validation, the layout. Nothing here needs to change when 5.0.0-beta.1 ships; the same files simply start working. Watch [the releases page](https://github.com/ebi-webcomponents/protvista/releases), then reload.
 >
 > To see the same configuration working right now, open the [ProtVista playground](https://ebi-webcomponents.github.io/protvista/playground/).
 <!-- protvista:unpublished:end -->

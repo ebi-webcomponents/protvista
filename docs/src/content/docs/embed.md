@@ -34,10 +34,13 @@ then use the tag:
 <protvista-uniprot accession="P05067"></protvista-uniprot>
 ```
 
-`protvista-uniprot.mjs` is the built bundle. Until 5.0 is published, produce it
-from source with `yarn install && yarn build` in a clone of the
-[repository](https://github.com/ebi-webcomponents/protvista) and copy
-`dist/protvista-uniprot.mjs` next to your page.
+`protvista-uniprot.mjs` is the built bundle. Until the v5 beta is published,
+produce it from source with `yarn install && yarn build` in a clone of the
+[repository](https://github.com/ebi-webcomponents/protvista) and copy the
+**contents** of `dist/` next to your page — the build is code-split, so the
+`.mjs` loads sibling chunks from the same directory and will not run alone. Once
+the v5 beta is on npm, load it from a CDN instead, which serves the chunks alongside it:
+`https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.1/dist/protvista-uniprot.mjs`.
 
 ### 2. As an npm package
 
@@ -54,10 +57,12 @@ import 'protvista-uniprot';
 ```
 
 :::caution
-The published release is `protvista-uniprot@4.9.3`, which predates the config
-surface these docs describe (`rows:`, `kind:`, `extends:`). Until 5.0 ships,
-`npm install` gives you a viewer that will not read the configs in this guide —
-build from source as above.
+A plain `npm install protvista-uniprot` gives you `4.9.3` — the current stable
+release, which predates the config surface these docs describe (`rows:`,
+`kind:`, `extends:`) and will not read the configs in this guide. That stays
+true for as long as v5 is in beta, because the beta publishes under the `beta`
+dist-tag rather than `latest`. Install the beta explicitly with
+`npm install protvista-uniprot@beta`, or build from source as above.
 :::
 
 Either way, the tag behaves like any other HTML element — style it, size it,

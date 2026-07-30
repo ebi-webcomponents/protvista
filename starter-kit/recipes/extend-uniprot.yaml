@@ -16,7 +16,7 @@
 # editing anything.
 $schema: https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json
 accession: P05067
-extends: https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0/dist/default-config.yaml
+extends: https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.1/dist/default-config.yaml
 
 rows:
   - id: MY_LAB
