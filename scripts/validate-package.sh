@@ -51,6 +51,16 @@ else
 fi
 
 # ---- 2. static checks ----------------------------------------------------
+# Drop any pre-existing build first. `dist/` is gitignored, so a working tree
+# can carry output from an older checkout, and `package-contract.spec.ts`
+# asserts against `dist/` *whenever it exists* (it skips when absent). A stale
+# tree therefore fails the unit step on entry points the build below would have
+# produced correctly — a confusing signal, since the same spec passes when it is
+# re-run after the build. CI never sees this: its test job runs on a fresh
+# checkout with no `dist/`, so the assertions skip there. Removing it makes a
+# local run match CI and leaves the build below as the single source of `dist/`.
+rm -rf dist
+
 run "Lint"               yarn test:lint
 run "Type-check (tsc)"   yarn test:types      # compiles the .js-extension churn
 run "Unit tests"         yarn test:unit       # incl. package-contract source + purity checks
