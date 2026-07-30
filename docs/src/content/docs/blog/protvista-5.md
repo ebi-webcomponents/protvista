@@ -12,13 +12,19 @@ ProtVista 5 is now in beta, and it doesn't. This release is for the people
 looking at proteins rather than the people building viewers: everything below
 happens in a configuration file, a button, or a template repository.
 
+It is built in the open, and v5 carries work from outside the core team — thank
+you to [Jishanahmed AR Shaikh](https://github.com/jishanahmed-shaikh), who
+tightened type safety right across the codebase
+([#137](https://github.com/ebi-webcomponents/protvista/pull/137)), and to
+[Epi-Lo](https://github.com/Epi-Lo) for taking on the same problem.
+
 :::tip[Bring your data to the ProtVista hackathon: 7–9 October 2026]
 Three free days online, working directly with the developers to get your own
 datasets into ProtVista and shape how they are visualised. **30 places, first
 come first served. Applications close 1 October 2026.**
 
 [Apply now](https://www.ebi.ac.uk/training/events/protvista-hackathon/) ·
-[More about the hackathon](#come-and-build-something-with-us)
+[More about the hackathon](#hackathon-visualise-your-own-data)
 :::
 
 <!-- TODO(screenshot): the money shot — a custom "Hotspots" track rendered
@@ -98,14 +104,7 @@ existing deployments are untouched, and the configuration format may still
 shift before the stable 5.0 release. If you are integrating now, we would
 particularly like to hear from you.
 
-## Come and build something with us
-
-ProtVista is developed in the open, and v5 carries work from outside the core
-team. Thank you to
-[Jishanahmed AR Shaikh](https://github.com/jishanahmed-shaikh), who tightened
-type safety right across the codebase
-([#137](https://github.com/ebi-webcomponents/protvista/pull/137)), and to
-[Epi-Lo](https://github.com/Epi-Lo) for taking on the same problem.
+## Hackathon: visualise your own data
 
 If anything above left you with an idea — a dataset worth wiring in, a
 visualisation you need, an integration with your own resource — bring it to the
