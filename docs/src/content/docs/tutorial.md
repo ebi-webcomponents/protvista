@@ -58,9 +58,9 @@ yarn install && yarn build
 # then copy the contents of dist/ next to your HTML page
 ```
 
-That single attribute gives you the **full default UniProt viewer** for the
-protein: domains, variants, binding sites, structure coverage, AlphaFold
-confidence, and more. No config required.
+Either way, the `accession` attribute on its own gives you the **full default
+UniProt viewer** for that protein: domains, variants, binding sites, structure
+coverage, AlphaFold confidence, and more. No config required.
 
 :::tip[Try it live]
 Open the [default viewer for P05067](/protvista/playground/#preset=uniprot-default&accession=P05067).

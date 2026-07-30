@@ -16,6 +16,17 @@ import { readFileSync } from 'node:fs';
 const { version } = JSON.parse(
   readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')
 ) as { version: string };
+
+// Same treatment as the docs chip (src/components/SocialIcons.astro): filled
+// while this is a pre-release, outlined once it is not, so it quietens down by
+// itself at 5.0.0. Keep the two in step — they are the same statement in two
+// places, and a reader moving between them should see one thing, not two.
+const isPrerelease = version.includes('-');
+const versionTooltip = isPrerelease
+  ? `This playground runs ProtVista ${version}, a beta pre-release. ` +
+    `npm install protvista-uniprot still gives the stable 4.x line; ` +
+    `install this one with npm install protvista-uniprot@beta.`
+  : `This playground runs ProtVista ${version}.`;
 ---
 
 <!doctype html>
@@ -41,10 +52,9 @@ const { version } = JSON.parse(
       <a class="home" href="/protvista/">← Docs</a>
       <h1>Configuration playground</h1>
       <a
-        class="version"
+        class:list={['version', { 'is-prerelease': isPrerelease }]}
         href="/protvista/blog/protvista-5"
-        title={`Running ProtVista ${version}. npm install protvista-uniprot still gives the stable 4.x line.`}
-        >v{version}</a
+        title={versionTooltip}>v{version}</a
       >
 
       <div class="field">
@@ -160,22 +170,36 @@ const { version } = JSON.parse(
         text-decoration: none;
         font-size: 0.9rem;
       }
-      /* Version pill: states which release the playground runs, since this
-         page is outside Starlight and gets no docs banner. */
+      /* Version chip: states which release the playground runs. This page is
+         outside Starlight, so it cannot use the docs chip component — the
+         styling mirrors it deliberately (src/components/SocialIcons.astro). */
       header.bar a.version {
-        color: inherit;
-        opacity: 0.75;
+        display: inline-flex;
+        align-items: center;
+        color: var(--accent);
         text-decoration: none;
         font-size: 0.75rem;
         font-variant-numeric: tabular-nums;
+        line-height: 1;
+        white-space: nowrap;
         border: 1px solid currentColor;
         border-radius: 999px;
-        padding: 0.05rem 0.45rem;
-        white-space: nowrap;
+        padding: 0.25em 0.6em;
       }
       header.bar a.version:hover,
       header.bar a.version:focus-visible {
-        opacity: 1;
+        color: #06427f;
+      }
+      /* A pre-release is the case worth noticing, so give it the accent fill. */
+      header.bar a.version.is-prerelease {
+        background-color: var(--accent);
+        color: #fff;
+        border-color: transparent;
+      }
+      header.bar a.version.is-prerelease:hover,
+      header.bar a.version.is-prerelease:focus-visible {
+        color: #fff;
+        opacity: 0.85;
       }
       .field {
         display: flex;

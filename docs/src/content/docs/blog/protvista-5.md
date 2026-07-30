@@ -80,17 +80,17 @@ something you send rather than something you explain.
 
 The [playground](/protvista/playground/) is the fastest way to see any of this:
 an editor beside a live viewer, with nothing to install. Type an accession, edit
-the settings, watch the picture change. Every view has its own web address, so
-you can send a colleague exactly what you are looking at.
+the configuration, watch the picture change. Every view has its own web address,
+so you can send a colleague exactly what you are looking at.
 
 When you want to keep it, the
 [Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit) gives
 you a ready-made copy of everything: select **Use this template**, put your data
 file in the `data` folder, edit `config.yaml`, and switch on GitHub Pages. You
 get a live web page you can share, without installing anything or writing any
-code. Your settings are checked automatically each time you save a change, so a
-mistyped field is flagged straight away instead of leaving you with an empty
-track and no explanation.
+code. Your configuration is checked automatically each time you save a change,
+so a mistyped field is flagged straight away instead of leaving you with an
+empty track and no explanation.
 
 ## Getting it
 
