@@ -80,9 +80,9 @@ you send rather than something you explain.
 ## Try it now, then publish it
 
 The [playground](/protvista/playground/) is an editor beside a live viewer, with
-nothing to install. Type an accession, edit the configuration, watch the picture
-change. Every view has its own web address, so you can send a colleague exactly
-what you are looking at.
+nothing to install. Type an accession, edit the configuration, watch the
+visualisation change. Every view has its own web address, so you can send a
+colleague exactly what you are looking at.
 
 When you want to keep it, the
 [Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit) is a
