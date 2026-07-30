@@ -1,5 +1,5 @@
 ---
-title: "Put your own protein data on screen: ProtVista 5 is in beta"
+title: 'Put your own protein data on screen: ProtVista 5 is in beta'
 description: A configuration file now does what used to take a developer — load your own annotations beside UniProt's, rearrange the view, and publish it, without writing code.
 ---
 
@@ -12,7 +12,7 @@ ProtVista 5 is now in beta, and it doesn't. This release is for the people
 looking at proteins rather than the people building viewers: everything below
 happens in a configuration file, a button, or a template repository.
 
-:::tip[Bring your data to the ProtVista hackathon — 7–9 October 2026]
+:::tip[Bring your data to the ProtVista hackathon: 7–9 October 2026]
 Three free days online, working directly with the developers to get your own
 datasets into ProtVista and shape how they are visualised. **30 places, first
 come first served. Applications close 1 October 2026.**
@@ -68,7 +68,6 @@ becomes something you send rather than something you explain.
      move-down and show/hide controls. Same spec as above: 400x300, 72dpi,
      alt text, CC BY 4.0 caption. -->
 
-
 ## Try it now, then publish it
 
 The [playground](/protvista/playground/) is the fastest way to see any of this:
@@ -113,12 +112,12 @@ hackathon. It is open to researchers, bioinformaticians, and developers alike,
 whether or not you have used ProtVista before, and no prior contribution to the
 project is expected.
 
-| | |
-| --- | --- |
-| **Dates** | 7–9 October 2026 |
-| **Format** | Online, free |
-| **Places** | 30, first come first served |
-| **Applications close** | 1 October 2026 |
+|                        |                             |
+| ---------------------- | --------------------------- |
+| **Dates**              | 7–9 October 2026            |
+| **Format**             | Online, free                |
+| **Places**             | 30, first come first served |
+| **Applications close** | 1 October 2026              |
 
 [Apply for the hackathon](https://www.ebi.ac.uk/training/events/protvista-hackathon/)
 
@@ -140,7 +139,6 @@ A webinar covering the same ground in more depth is coming later this year.
      a link — e.g. "A [webinar](URL) covering the same ground in more depth is
      coming later this year." Publishing without the link is deliberate: a bare
      placeholder URL must never ship. -->
-
 
 ---
 
