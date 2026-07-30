@@ -12,6 +12,19 @@ ProtVista 5 is now in beta, and it doesn't. This release is for the people
 looking at proteins rather than the people building viewers: everything below
 happens in a configuration file, a button, or a template repository.
 
+:::tip[Bring your data to the ProtVista hackathon — 7–9 October 2026]
+Three free days online, working directly with the developers to get your own
+datasets into ProtVista and shape how they are visualised. **30 places, first
+come first served. Applications close 1 October 2026.**
+
+[Apply now](https://www.ebi.ac.uk/training/events/protvista-hackathon/)
+:::
+
+<!-- TODO(screenshot): the money shot — a custom "Hotspots" track rendered
+     beneath UniProt's own domains and variants on P05067. Capture from the
+     running site at 400x300, 72dpi; needs descriptive alt text and a caption
+     crediting the source, licensed CC BY 4.0 like the rest of the docs. -->
+
 ## Load your own data
 
 Save your annotations as CSV, TSV, JSON, or BED, and name the file in a
@@ -51,6 +64,11 @@ becomes something you send rather than something you explain.
 
 **Learn more:** [Customize the layout](/protvista/customize-layout).
 
+<!-- TODO(screenshot): Customize mode active — a row showing its move-up /
+     move-down and show/hide controls. Same spec as above: 400x300, 72dpi,
+     alt text, CC BY 4.0 caption. -->
+
+
 ## Try it now, then publish it
 
 The [playground](/protvista/playground/) is the fastest way to see any of this:
@@ -82,14 +100,14 @@ particularly like to hear from you.
 
 ## Come and build something with us
 
-We are running a free online **ProtVista hackathon on 7–9 October 2026** — three
-days working directly with the developers to get your own datasets into
-ProtVista, shape how they are visualised, and contribute to the project. It is
-open to researchers, bioinformaticians, and developers, whether or not you have
-used ProtVista before.
+If anything above left you with an idea — a dataset worth wiring in, a
+visualisation you need, an integration with your own resource — bring it to the
+hackathon. It is open to researchers, bioinformaticians, and developers alike,
+whether or not you have used ProtVista before, and no prior contribution to the
+project is expected.
 
-There are **30 places, first come first served, and applications close on
-1 October 2026**.
+**7–9 October 2026, online, free. 30 places, first come first served.
+Applications close 1 October 2026.**
 
 [Apply for the hackathon](https://www.ebi.ac.uk/training/events/protvista-hackathon/)
 
@@ -106,6 +124,12 @@ There are **30 places, first come first served, and applications close on
 - [Office hours](https://github.com/ebi-webcomponents/protvista/blob/next/CONTRIBUTING.md#office-hours) — monthly live help with setup and your own data, no registration needed.
 
 A webinar covering the same ground in more depth is coming later this year.
+
+<!-- TODO(url): once the webinar is scheduled, replace the sentence above with
+     a link — e.g. "A [webinar](URL) covering the same ground in more depth is
+     coming later this year." Publishing without the link is deliberate: a bare
+     placeholder URL must never ship. -->
+
 
 ---
 
