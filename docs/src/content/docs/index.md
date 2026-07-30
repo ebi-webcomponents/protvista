@@ -19,6 +19,13 @@ hero:
       variant: primary
 ---
 
+:::tip[ProtVista has been refactored]
+**Version 5 is in beta.** Put your own data on screen beside UniProt's,
+rearrange the view, and publish it — all without writing code.
+[Read the announcement](/protvista/blog/protvista-5), or see everything on the
+[blog](/protvista/blog/).
+:::
+
 ProtVista is a web component — the custom element `<protvista-uniprot>` — that
 renders protein annotations as horizontal **tracks** aligned to the amino-acid
 sequence. Give it a UniProt **accession** and an optional YAML/JSON **config**;
@@ -28,9 +35,5 @@ New here? The end-to-end **[Tutorial](/protvista/tutorial)** takes you from an
 empty page to a custom, themed viewer in four steps. Otherwise pick a starting
 point above, or read the **[Overview](/protvista/overview)** for what it does,
 who it's for, and where to go next.
-
-Just want to see what's new?
-**[ProtVista 5 is in beta](/protvista/blog/protvista-5)** — put your own data on
-screen, rearrange the view, and publish it, without writing code.
 
 _Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

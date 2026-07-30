@@ -106,8 +106,12 @@ hackathon. It is open to researchers, bioinformaticians, and developers alike,
 whether or not you have used ProtVista before, and no prior contribution to the
 project is expected.
 
-**7–9 October 2026, online, free. 30 places, first come first served.
-Applications close 1 October 2026.**
+| | |
+| --- | --- |
+| **Dates** | 7–9 October 2026 |
+| **Format** | Online, free |
+| **Places** | 30, first come first served |
+| **Applications close** | 1 October 2026 |
 
 [Apply for the hackathon](https://www.ebi.ac.uk/training/events/protvista-hackathon/)
 
