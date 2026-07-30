@@ -34,13 +34,21 @@ then use the tag:
 <protvista-uniprot accession="P05067"></protvista-uniprot>
 ```
 
-`protvista-uniprot.mjs` is the built bundle. Until the v5 beta is published,
-produce it from source with `yarn install && yarn build` in a clone of the
+`protvista-uniprot.mjs` is the built bundle. The simplest way to get it is from
+a CDN, which serves the published v5 beta with nothing to install:
+
+```html
+<script
+  type="module"
+  src="https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.1/dist/protvista-uniprot.mjs"
+></script>
+```
+
+To build it yourself, run `yarn install && yarn build` in a clone of the
 [repository](https://github.com/ebi-webcomponents/protvista) and copy the
-**contents** of `dist/` next to your page — the build is code-split, so the
-`.mjs` loads sibling chunks from the same directory and will not run alone. Once
-the v5 beta is on npm, load it from a CDN instead, which serves the chunks alongside it:
-`https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.1/dist/protvista-uniprot.mjs`.
+**contents** of `dist/` next to your page. Copy the whole folder: the build is
+split up, so the `.mjs` loads sibling files from the same directory and will not
+run alone.
 
 ### 2. As an npm package
 

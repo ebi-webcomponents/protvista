@@ -5,6 +5,17 @@
 // load only on the client via the <script> at the bottom, so nothing renders
 // server-side. Replaces the standalone playground.html + vite.playground.config
 // build — this page is built by `astro build` alongside the docs.
+import { readFileSync } from 'node:fs';
+
+// Which version this playground runs. It is built from the repo source, so it
+// exercises whatever `package.json` says — currently a v5 pre-release, while
+// `npm install protvista-uniprot` still resolves the 4.x line. Not a Starlight
+// page, so it cannot inherit the docs' version banner (see
+// src/components/VersionBanner.astro); it shows the version in the header bar
+// instead, read from the manifest so a release bump carries it automatically.
+const { version } = JSON.parse(
+  readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')
+) as { version: string };
 ---
 
 <!doctype html>
@@ -29,6 +40,12 @@
     <header class="bar">
       <a class="home" href="/protvista/">← Docs</a>
       <h1>Configuration playground</h1>
+      <a
+        class="version"
+        href="/protvista/blog/protvista-5"
+        title={`Running ProtVista ${version}. npm install protvista-uniprot still gives the stable 4.x line.`}
+        >v{version}</a
+      >
 
       <div class="field">
         <label for="preset">Preset</label>
@@ -142,6 +159,23 @@
         color: var(--accent);
         text-decoration: none;
         font-size: 0.9rem;
+      }
+      /* Version pill: states which release the playground runs, since this
+         page is outside Starlight and gets no docs banner. */
+      header.bar a.version {
+        color: inherit;
+        opacity: 0.75;
+        text-decoration: none;
+        font-size: 0.75rem;
+        font-variant-numeric: tabular-nums;
+        border: 1px solid currentColor;
+        border-radius: 999px;
+        padding: 0.05rem 0.45rem;
+        white-space: nowrap;
+      }
+      header.bar a.version:hover,
+      header.bar a.version:focus-visible {
+        opacity: 1;
       }
       .field {
         display: flex;

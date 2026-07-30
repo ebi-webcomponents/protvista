@@ -1,0 +1,87 @@
+---
+/**
+ * Overrides Starlight's Banner so a version notice appears on every docs page,
+ * not just pages that opt in via frontmatter.
+ *
+ * This site is built from `next` and documents v5, but `npm install
+ * protvista-uniprot` still resolves the 4.x line (v5 publishes under the `beta`
+ * dist-tag). Someone arriving from a search engine therefore reads about
+ * `rows:`, `kind:` and `extends:` — none of which the default install
+ * understands. The banner names the version the page describes and points at
+ * the stable line, so that mismatch is visible before it wastes anyone's time.
+ *
+ * The version is read from the package manifest at build time rather than
+ * written here, so a release bump carries it automatically and it cannot go
+ * stale the way hand-written "unreleased" notes did.
+ *
+ * Starlight's own per-page `banner:` frontmatter still works: when a page sets
+ * one, it renders below this notice.
+ */
+import { readFileSync } from 'node:fs';
+
+const { version } = JSON.parse(
+  readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')
+) as { version: string };
+
+// `5.0.0-beta.1` -> `5.0.0-beta.1` shown verbatim; the pre-release suffix is
+// the whole point of the notice, so it is not trimmed.
+const isPrerelease = version.includes('-');
+
+const { banner } = Astro.locals.starlightRoute.entry.data;
+---
+
+<div class="pv-version-banner" data-pagefind-ignore>
+  These docs describe <strong>ProtVista {version}</strong>{
+    isPrerelease ? ', a beta pre-release.' : '.'
+  }{' '}
+  <code>npm install protvista-uniprot</code> still gives you the stable 4.x line;
+  install this one with <code>npm install protvista-uniprot@beta</code>. See the{' '}
+  <a href="/protvista/blog/protvista-5">release announcement</a>.
+</div>
+
+{
+  banner && (
+    <div class="sl-banner" data-pagefind-ignore set:html={banner.content} />
+  )
+}
+
+<style>
+  @layer starlight.core {
+    .pv-version-banner {
+      padding: var(--sl-nav-pad-y) var(--sl-nav-pad-x);
+      background-color: var(--sl-color-bg-accent);
+      color: var(--sl-color-text-invert);
+      line-height: var(--sl-line-height-headings);
+      text-align: center;
+      text-wrap: balance;
+      font-size: var(--sl-text-sm);
+      box-shadow: var(--sl-shadow-sm);
+    }
+    .pv-version-banner :global(a) {
+      color: inherit;
+    }
+    .pv-version-banner :global(code) {
+      background-color: rgb(255 255 255 / 0.15);
+      color: inherit;
+      border: none;
+    }
+
+    /* Keep Starlight's own per-page banner looking like itself. */
+    .sl-banner {
+      --__sl-banner-text: var(
+        --sl-color-banner-text,
+        var(--sl-color-text-invert)
+      );
+      padding: var(--sl-nav-pad-y) var(--sl-nav-pad-x);
+      background-color: var(--sl-color-banner-bg, var(--sl-color-bg-accent));
+      color: var(--__sl-banner-text);
+      line-height: var(--sl-line-height-headings);
+      text-align: center;
+      text-wrap: balance;
+      box-shadow: var(--sl-shadow-sm);
+    }
+    .sl-banner :global(a) {
+      color: var(--__sl-banner-text);
+    }
+  }
+</style>
