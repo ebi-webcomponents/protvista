@@ -1,0 +1,82 @@
+---
+/**
+ * Adds a version chip to the site header, beside the social icons.
+ *
+ * Why it exists: this site is built from `next` and documents v5, but
+ * `npm install protvista-uniprot` still resolves the 4.x line (v5 publishes
+ * under the `beta` dist-tag). Someone arriving from a search engine otherwise
+ * reads about `rows:`, `kind:` and `extends:` with nothing on the page saying
+ * the release they would install understands none of it.
+ *
+ * Why a chip and not a banner: a full-width notice on every page is louder than
+ * the message needs to be. The chip stays visible in the header, carries the
+ * detail in its tooltip, and links to the announcement. It mirrors the pill in
+ * the playground header (src/pages/playground.astro), which is not a Starlight
+ * page and so cannot share this component.
+ *
+ * Overriding `SocialIcons` is the least invasive way in — Starlight has no slot
+ * beside the social links. Rendering `<Default />` rather than reproducing its
+ * markup means the icons keep whatever behaviour Starlight gives them, through
+ * upgrades.
+ *
+ * The version is read from the package manifest at build time, so a release
+ * bump carries it and it cannot drift from what is actually published.
+ */
+import Default from '@astrojs/starlight/components/SocialIcons.astro';
+import { readFileSync } from 'node:fs';
+
+const { version } = JSON.parse(
+  readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')
+) as { version: string };
+
+const isPrerelease = version.includes('-');
+const tooltip = isPrerelease
+  ? `These docs describe ProtVista ${version}, a beta pre-release. ` +
+    `npm install protvista-uniprot still gives the stable 4.x line; ` +
+    `install this one with npm install protvista-uniprot@beta.`
+  : `These docs describe ProtVista ${version}.`;
+---
+
+<a
+  class:list={['pv-version-chip', { 'is-prerelease': isPrerelease }]}
+  href="/protvista/blog/protvista-5"
+  title={tooltip}
+>
+  v{version}
+</a>
+
+<Default><slot /></Default>
+
+<style>
+  @layer starlight.core {
+    .pv-version-chip {
+      display: inline-flex;
+      align-items: center;
+      color: var(--sl-color-text-accent);
+      text-decoration: none;
+      font-size: var(--sl-text-xs);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      white-space: nowrap;
+      border: 1px solid currentColor;
+      border-radius: 999px;
+      padding: 0.25em 0.6em;
+      margin-inline-end: 0.5rem;
+    }
+    .pv-version-chip:hover,
+    .pv-version-chip:focus-visible {
+      color: var(--sl-color-white);
+    }
+    /* A pre-release is the case worth noticing, so give it the accent fill. */
+    .pv-version-chip.is-prerelease {
+      background-color: var(--sl-color-bg-accent);
+      color: var(--sl-color-text-invert);
+      border-color: transparent;
+    }
+    .pv-version-chip.is-prerelease:hover,
+    .pv-version-chip.is-prerelease:focus-visible {
+      color: var(--sl-color-text-invert);
+      opacity: 0.85;
+    }
+  }
+</style>

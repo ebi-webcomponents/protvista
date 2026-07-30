@@ -105,12 +105,12 @@ export default defineConfig({
         'Embed an interactive protein feature viewer and load your own data — no framework required.',
       // Keeps the splash home's three hero buttons on one row (see the file).
       customCss: ['./src/styles/hero.css'],
-      // Every page states which version it documents. Starlight's own `banner`
-      // is per-page frontmatter, so a site-wide notice needs the component
-      // override; ours reads the version from package.json and still renders
-      // any page's own `banner:` beneath it. See the component for why.
+      // Every page states which version it documents, as a chip beside the
+      // social icons in the header. Starlight has no slot there, so the chip
+      // rides on a `SocialIcons` override that reproduces the default markup.
+      // See the component for why it exists and why it is not a banner.
       components: {
-        Banner: './src/components/VersionBanner.astro',
+        SocialIcons: './src/components/SocialIcons.astro',
       },
       // Serve the site favicon (docs/public/favicon.svg → /protvista/favicon.svg).
       // Written base-absolute because Astro does not prefix `base` onto head hrefs.
