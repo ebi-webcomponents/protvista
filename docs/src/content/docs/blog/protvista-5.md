@@ -100,6 +100,13 @@ particularly like to hear from you.
 
 ## Come and build something with us
 
+ProtVista is developed in the open, and v5 carries work from outside the core
+team. Thank you to
+[Jishanahmed AR Shaikh](https://github.com/jishanahmed-shaikh), who tightened
+type safety right across the codebase
+([#137](https://github.com/ebi-webcomponents/protvista/pull/137)), and to
+[Epi-Lo](https://github.com/Epi-Lo) for taking on the same problem.
+
 If anything above left you with an idea — a dataset worth wiring in, a
 visualisation you need, an integration with your own resource — bring it to the
 hackathon. It is open to researchers, bioinformaticians, and developers alike,
@@ -140,8 +147,8 @@ A webinar covering the same ground in more depth is coming later this year.
 _30 July 2026._
 
 This work was supported by the Research Software Maintenance Fund, managed by
-the Software Sustainability Institute and funded by UKRI through their Digital
-Research Infrastructure programme via grant AH/Z000114/1.
+the Software Sustainability Institute and funded by UKRI grant reference
+AH/Z000114/1.
 
 Code is licensed under the MIT License; documentation and sample data are
 licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
