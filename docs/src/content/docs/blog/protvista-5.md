@@ -17,7 +17,8 @@ Three free days online, working directly with the developers to get your own
 datasets into ProtVista and shape how they are visualised. **30 places, first
 come first served. Applications close 1 October 2026.**
 
-[Apply now](https://www.ebi.ac.uk/training/events/protvista-hackathon/)
+[Apply now](https://www.ebi.ac.uk/training/events/protvista-hackathon/) ·
+[More about the hackathon](#come-and-build-something-with-us)
 :::
 
 <!-- TODO(screenshot): the money shot — a custom "Hotspots" track rendered
