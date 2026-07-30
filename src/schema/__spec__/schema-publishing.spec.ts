@@ -163,6 +163,12 @@ const SCAN_EXTENSIONS = new Set([
   '.md',
   '.html',
 ]);
+// Skip dependency trees, build output, and generated caches. The caches
+// matter as much as the outputs: `.astro` holds a content-collection store
+// that embeds the docs' own text, so a stale one from a build predating a
+// version bump reports the *old* pin and fails the check below against a
+// gitignored file no one edited. Everything here is either gitignored or not
+// authored, so nothing scannable is lost.
 const IGNORE_DIR_NAMES = new Set([
   'node_modules',
   'dist',
@@ -175,6 +181,8 @@ const IGNORE_DIR_NAMES = new Set([
   '.lighthouseci',
   '.vscode',
   '.idea',
+  '.astro',
+  '.cache',
 ]);
 const PLACEHOLDER_MARKERS: Array<string | RegExp> = [
   'TODO-PUBLISH-BEFORE-V5-RELEASE',
