@@ -1,15 +1,15 @@
 ---
 title: 'Put your own protein data on screen: ProtVista 5 is in beta'
-description: A configuration file now does what used to take a developer. Load your own annotations beside UniProt's, rearrange the view, and publish it, without writing code.
+description: Put your own annotations on screen beside UniProt's, rearrange the view, and publish it. For scientists, bioinformaticians and developers alike, with very little code.
 ---
 
-Research groups keep annotations of their own: hotspot regions, custom domain
-calls, lab-specific variant lists. They usually sit in a spreadsheet, away from
-the sequence context that makes them mean something. Putting them on screen next
-to UniProt's domains and variants used to need a developer.
+Research groups in protein science keep annotations of their own: hotspot
+regions, custom domain calls, lab-specific variant lists. They usually sit in a
+spreadsheet, away from the sequence context that makes them mean something.
 
-ProtVista 5 is now in beta, and it doesn't. This release is for the people
-looking at proteins rather than the people building software: everything below
+ProtVista 5, now in beta, is designed to help you put them on screen beside
+UniProt's own domains and variants. It is for scientists, bioinformaticians and
+developers alike, and it is built to need very little code: everything below
 takes a short text file, a button, or a copy of a ready-made page.
 
 ProtVista is free and open source, and anyone can contribute. Version 5 includes
