@@ -98,7 +98,7 @@ Also in this release:
   stop a consumer's resolver deduplicating, which for `lit` means a second
   copy of `ReactiveElement` in the same page.
 - Added `repository`, `bugs`, `homepage` and `keywords`, and set
-  `publishConfig.tag` to `next` so a v5 publish cannot take the `latest` tag
+  `publishConfig.tag` to `beta` so a v5 publish cannot take the `latest` tag
   from the 4.x production line.
 - `src/playground/**` is excluded from the emitted declarations. It is a
   docs-site page rather than public API, and its types referenced `codemirror`
@@ -185,7 +185,9 @@ stylesheet lives in the document's global selector scope. To make its
 class names collision-proof against consumer and child-component styles,
 every internal class name and wrapper/wiring DOM id now carries a
 package-specific hash prefix, `pv-cecb45-` (derived from
-`sha1('protvista-uniprot@' + version)`, exposed as `CSS_PREFIX` in
+`sha1('protvista-uniprot@' + <release version>)` — the base version, ignoring
+any pre-release suffix, so it is stable across the 5.0.0 line — exposed as
+`CSS_PREFIX` in
 `src/styles/css-prefix.ts`). The rules remain tag-scoped under
 `protvista-uniprot` as defence-in-depth.
 

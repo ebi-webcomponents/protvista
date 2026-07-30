@@ -39,11 +39,12 @@ accession:
 <protvista-uniprot accession="P05067"></protvista-uniprot>
 ```
 
-`protvista-uniprot.mjs` is the component's built ES-module bundle. Until 5.0 is
-published to npm, build it from source and copy the **contents** of `dist/` next
-to your page. The build is code-split, so `protvista-uniprot.mjs` loads sibling
-chunks (`errors.js`, and lazily `format.js` / `js-yaml.js`) from the same
-directory — the single file will not run on its own:
+`protvista-uniprot.mjs` is the component's built ES-module bundle. Until the v5
+beta is published to npm, build it from source and copy the **contents** of
+`dist/` next to your page. The build is code-split, so `protvista-uniprot.mjs`
+loads sibling chunks (`errors.js` and `filter-config.js`, plus lazily
+`format.js` / `js-yaml.js`) from the same directory — the single file will not
+run on its own:
 
 ```sh
 git clone https://github.com/ebi-webcomponents/protvista
@@ -166,7 +167,7 @@ at the end.
 this repo's root; a deployed site must point `extends` at a hosted copy instead —
 either your own, or the published package on a CDN:
 `https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.1/dist/default-config.yaml`
-(available once 5.0.0 ships, as above). See
+(available once 5.0.0-beta.1 ships, as above). See
 [Author a config](/protvista/configure#reuse-the-default-with-extends) for the
 merge rules and the full caveat.
 :::

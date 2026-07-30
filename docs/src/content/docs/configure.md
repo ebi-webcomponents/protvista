@@ -159,7 +159,7 @@ extends: https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.1/dist/defaul
 
 That path is served straight from the npm tarball, so pin an exact version — a
 config written against one release is not guaranteed to merge cleanly into
-another. It resolves once 5.0.0 is published; see the release note on the
+another. It resolves once 5.0.0-beta.1 is published; see the release note on the
 [tutorial](/protvista/tutorial).
 :::
 
