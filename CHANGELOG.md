@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+### Added — side-effect-free `protvista-uniprot/config` subpath
+
+The variant `filterConfig` and `colorConfig` now have a dedicated,
+side-effect-free entry point:
+
+```js
+import { filterConfig, colorConfig } from 'protvista-uniprot/config';
+```
+
+Importing them from the package root still works but pulls the whole viewer:
+the root self-registers `<protvista-uniprot>` on load, so a bundler must keep
+it (and Lit, every Nightingale track, Mol*) whenever the module is reached.
+The `./config` subpath is built as its own output (`dist/config.mjs`) that
+reaches none of that, so a consumer importing only the filter data can
+tree-shake the element away. The element bundle imports the same chunk, so
+the config is not duplicated.
+
+`filter-config.ts` reaches nothing at runtime for this to hold — its
+`@nightingale-elements/nightingale-variation-canvas` imports are now
+type-only — and a spec walks the subpath's import graph and fails if it ever
+reaches a custom-element registration.
+
+The subpath's declarations are also mapped through `typesVersions` so the
+classic (node10) resolver — which predates `exports` and would otherwise not
+find them — resolves the types; modern resolvers ignore it and use `exports`.
+
 ### Fixed — packaging: `import 'protvista-uniprot'` survives bundling
 
 The package declared `"sideEffects": false`, promising bundlers that no
@@ -15,10 +41,10 @@ field is now removed, restoring the default assumption that a module may
 act on load.
 
 Consequence worth knowing: importing only the named exports
-(`filterConfig`, `colorConfig`, `ProtvistaUniprotStructure`) can no longer
-shake the component out, so those consumers now pay the full bundle. A
-side-effect-free `./config` subpath export would restore that, but is not
-yet implemented.
+(`filterConfig`, `colorConfig`, `ProtvistaUniprotStructure`) from the package
+root can no longer shake the component out, so those consumers now pay the
+full bundle. For `filterConfig` / `colorConfig`, the new side-effect-free
+`protvista-uniprot/config` subpath (above) restores tree-shaking.
 
 Also in this release:
 

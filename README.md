@@ -76,6 +76,16 @@ You can then use it like this:
 <protvista-uniprot accession="P05067"></protvista-uniprot>
 ```
 
+### Importing the variant config without the element
+
+The variant filter and colour config are available from a side-effect-free `protvista-uniprot/config` subpath:
+
+```js
+import { filterConfig, colorConfig } from 'protvista-uniprot/config';
+```
+
+Import these from `protvista-uniprot/config`, not the package root. The root self-registers `<protvista-uniprot>` on load, so importing anything from it makes a bundler keep the whole viewer (Lit, the Nightingale tracks, Mol*). The `./config` subpath reaches none of that, so a consumer that only needs the filter data can tree-shake the element away.
+
 ## API
 
 Reactive properties on the `<protvista-uniprot>` element (HTML attribute name in brackets where it differs from the JS property name):

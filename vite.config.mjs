@@ -97,9 +97,19 @@ export default defineConfig({
     // build (vite.bench.config.mjs) still copies it into `site/` for Pages.
     copyPublicDir: false,
     lib: {
-      entry: 'src/index.ts',
+      // Two entry points, each emitted as its own ES module:
+      //  - `protvista-uniprot` — the self-registering element bundle.
+      //  - `config` — the side-effect-free variant filter/colour config,
+      //    published as the `./config` subpath. Kept a separate output so a
+      //    consumer importing `protvista-uniprot/config` never pulls the
+      //    element (and its Nightingale/Mol* deps) in. The element bundle
+      //    imports this same chunk, so the config is not duplicated.
+      entry: {
+        'protvista-uniprot': 'src/index.ts',
+        config: 'src/config.ts',
+      },
       formats: ['es'],
-      fileName: () => 'protvista-uniprot.mjs',
+      fileName: (_format, entryName) => `${entryName}.mjs`,
     },
     rollupOptions: {
       output: {

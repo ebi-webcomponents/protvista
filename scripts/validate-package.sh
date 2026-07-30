@@ -111,7 +111,7 @@ check_tarball() {
     const testDts = files.filter((p) => /__(spec|tests|browser)__/.test(p));
     if (testDts.length) problems.push("ships test files: " + testDts.join(", "));
 
-    for (const need of ["dist/protvista-uniprot.mjs", "dist/types/index.d.ts", "dist/default-config.yaml"]) {
+    for (const need of ["dist/protvista-uniprot.mjs", "dist/config.mjs", "dist/types/index.d.ts", "dist/types/config.d.ts", "dist/default-config.yaml"]) {
       if (!files.includes(need)) problems.push("missing " + need);
     }
 
