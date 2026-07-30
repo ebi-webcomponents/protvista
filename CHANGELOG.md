@@ -1,6 +1,154 @@
 # Changelog
 
-## Unreleased
+## 5.0.0-beta.1 — 2026-07-30
+
+First public beta of v5, published on the `beta` dist-tag. The stable 4.x line
+stays on `latest`: `npm install protvista-uniprot` still resolves 4.9.x, and
+this release is opt-in via `npm install protvista-uniprot@beta`. Schemas and
+APIs may still change before 5.0.0.
+
+The theme of the release is removing hardcoded assumptions. A viewer used to be
+whatever `src/config.ts` said it was, against data sources fixed at EBI. It is
+now driven by a configuration document you supply, over sources you choose,
+arranged by whoever is looking at it.
+
+### Added — configuration-driven loading
+
+A viewer is now described by a YAML or JSON configuration document rather than
+compiled-in TypeScript. Point the element at one:
+
+```html
+<protvista-uniprot config-src="./my-config.yaml"></protvista-uniprot>
+```
+
+or assign an already-parsed object to the `viewerConfig` property. The document
+declares its own data sources, the rows to draw, and how each is rendered:
+
+```yaml
+accession: P05067
+sources:
+  features: https://www.ebi.ac.uk/proteins/api/features/{accession}
+rows:
+  - id: DOMAINS
+    tracks:
+      - id: domain
+        kind: features
+        filter: DOMAIN
+        data: features
+```
+
+This replaces a 912-line hand-written `src/config.ts` that enumerated 15 groups
+and roughly 40 tracks with four EBI web addresses baked into it (deleted in
+`945ca9f`). Consequences worth knowing:
+
+- **The data sources are yours.** Nothing in the loader assumes EBI. A
+  deployment can point every row at its own endpoints.
+- **`extends:`** pulls in another config — including the canonical UniProt one,
+  published at
+  `https://cdn.jsdelivr.net/npm/protvista-uniprot@<version>/dist/default-config.yaml` —
+  so "the default viewer plus my track" is a few lines, not a fork.
+- **No build step.** Changing what a viewer shows no longer means editing source
+  and rebuilding.
+
+### Added — a published JSON Schema for viewer configurations
+
+Configs are validated against a schema published at a stable URL, so a config
+can be checked before it ever reaches a browser:
+
+- `https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json`
+- `https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json`
+
+Validation runs at load time and reports failures through the error surfaces
+below rather than rendering a blank viewer. The schema is versioned under
+`/v1/`, and the copy under `public/schema/v1/` is pinned byte-identical to the
+authored source by a test, so the hosted document cannot drift from the code.
+
+### Added — load your own data from CSV, TSV, JSON, or BED
+
+A `features` row can read a data file directly. The extension picks the parser,
+so there is no adapter to configure:
+
+```yaml
+rows:
+  - id: hotspots
+    label: Hotspots
+    kind: features
+    data: ./hotspots.csv
+```
+
+`.csv`, `.tsv`, `.json`, and `.bed` are recognised (`src/schema/file-formats.ts`).
+A feature record's required columns are `type`, `start`, `end`, and
+`description`; `score` is optional. Paths resolve against the hosting **page**,
+not the config file.
+
+The built-in adapters for UniProt's own payload shapes — variation, proteomics,
+PTM-Exchange, InterPro, RNA editing, structure coverage, AlphaFold confidence,
+AlphaMissense — are now selected by name from the config rather than wired in
+code, and are listed in the published adapter reference.
+
+### Added — Customize mode: reorder, show, and hide without code
+
+Every viewer now carries a **Customize** control. In that mode each row grows
+move-up / move-down buttons and a show/hide toggle: rows can be reordered and
+hidden, and tracks reordered within their group or hidden individually. There is
+no drag gesture — every control is operable by mouse, touch, and keyboard alike.
+
+The same arrangement is available programmatically, and a layout edit rewrites
+the viewer's config, so `getConfig()` exports exactly what the user arranged:
+
+- `setRowOrder(order)`, `setTrackOrder(rowId, order)`
+- `setRowVisibility(rowId, visible)`, `setTrackVisibility(groupId, trackId, visible)`
+- `resetLayout()`, `getConfig()`, `getLayout()`
+
+Each emits a `protvista-layout-change` event.
+
+A layout **persists per configuration** — keyed on a hash of the config's row and
+track ids, not on the accession — so it applies to every protein viewed with the
+same config. It is stored in `localStorage` and encoded in a shareable `?layout=`
+URL parameter. Set `no-persist-layout` to opt out of all of it.
+
+### Added — declarative tooltips
+
+Per-datapoint tooltips are authored as Markdoc templates in the config
+(`dataTooltip`) instead of assembled as HTML strings in code:
+
+```yaml
+dataTooltip: "### {% $name %}\n\n**Score:** `{% $score %}`"
+```
+
+This replaces five files of hand-built markup that carried UniProt-specific
+lookup tables into every consumer's bundle, and it means a tooltip for your own
+data needs no JavaScript.
+
+### Added — extension points for cases the config cannot express
+
+The configuration covers the common ground; these escape hatches cover the rest,
+without forking. Each registers against the element before it loads:
+
+- `registerAdapter(name, fn)` — transform a payload shape the built-ins don't know.
+- `registerComponent(name, ctor)` — render with your own custom element.
+- `registerSemanticKind(name, def)` — define a new `kind:` for configs to use.
+- `registerTheme(name, stops)` — add a named colour scale.
+
+### Changed — dense tracks render on canvas
+
+Feature and variant tracks, which can carry thousands of annotations on one
+protein, now draw on HTML canvas rather than SVG
+(`nightingale-track-canvas`, `nightingale-variation-canvas`,
+`nightingale-colored-sequence`, `nightingale-sequence-heatmap`). This keeps
+interaction responsive on densely annotated proteins and on modest hardware.
+
+### Added — accessibility work and an automated baseline
+
+The Customize controls are buttons rather than a drag interaction, carry 24×24px
+targets, never signal state by colour alone, and announce each move through a
+polite live region (for example "Domains moved to position 2 of 12"). A
+browser-mode test layer drives real Chromium with axe-core assertions, and
+reports no violations with Customize mode active.
+
+This is a baseline, not a conformance claim: the manual WCAG audit is a later
+deliverable, and `docs/accessibility-baseline.md` records both what is covered
+and the residual gaps.
 
 ### Added — side-effect-free `protvista-uniprot/config` subpath
 
