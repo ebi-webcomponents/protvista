@@ -24,7 +24,7 @@ import {
   captureStable,
 } from './ready.mjs';
 import { encode, write, checkSize, join } from './encode.mjs';
-import { sameImage } from './compare.mjs';
+import { sameImage, drift } from './compare.mjs';
 import { byId, outPath } from './manifest.mjs';
 
 const argv = process.argv.slice(2);
@@ -34,6 +34,10 @@ const val = (f) => argv.find((a) => a.startsWith(`${f}=`))?.split('=')[1];
 const CHECK = has('--check');
 const ASSERT_CLEAN = has('--assert-clean');
 const ONLY = val('--only')?.split(',').filter(Boolean);
+
+/** Where `--check` leaves its evidence. Gitignored, and uploaded by CI: a
+ *  percentage says how much moved, only the picture says what. */
+const DRIFT_DIR = val('--drift-dir') ?? 'screenshot-drift';
 
 /** Read the prefix from source rather than hardcoding `pv-cecb45`: the class
  *  names are explicitly outside the compatibility contract, so a harness that
@@ -189,8 +193,29 @@ async function render(shot) {
   return encode(await capture(shot), shot);
 }
 
+/**
+ * What `--check` leaves behind for whoever reads the failure: the fresh bytes,
+ * and the committed image, the fresh one and the difference joined into a
+ * single strip. Reviewers see this as a CI artifact, so it has to answer "is
+ * this a real change?" on its own.
+ */
+async function writeComparison(id, committed, fresh, heatmap) {
+  write(`${DRIFT_DIR}/${id}.fresh.png`, fresh);
+  // Nothing to compare against for a shot that has never been committed, and
+  // nothing to draw when the two differ in size — the fresh bytes are the whole
+  // story in both cases.
+  if (!committed) return;
+  write(
+    `${DRIFT_DIR}/${id}.compare.png`,
+    await join(heatmap ? [committed, fresh, heatmap] : [committed, fresh], {
+      gap: 16,
+      background: '#808080',
+    })
+  );
+}
+
 let failures = 0;
-let drift = 0;
+let drifted = 0;
 const warnings = [];
 
 for (const shot of selected) {
@@ -221,10 +246,21 @@ for (const shot of selected) {
     if (CHECK) {
       if (!existing) {
         console.log(`MISSING (${(png.length / 1024).toFixed(0)} KB would be written)`);
-        drift++;
+        await writeComparison(shot.id, null, png, null);
+        drifted++;
       } else if (!same) {
-        console.log(`DRIFTED (${(existing.length / 1024).toFixed(0)} KB → ${(png.length / 1024).toFixed(0)} KB)`);
-        drift++;
+        // Kilobytes were never the question — a shot can gain a whole row and
+        // lose weight. Measure what actually moved, and draw it.
+        const { fraction, resized, heatmap } = await drift(existing, png, {
+          heatmap: true,
+        });
+        console.log(
+          resized
+            ? `DRIFTED (dimensions changed, ${(existing.length / 1024).toFixed(0)} KB → ${(png.length / 1024).toFixed(0)} KB)`
+            : `DRIFTED (${(fraction * 100).toFixed(2)}% of pixels, ${(existing.length / 1024).toFixed(0)} KB → ${(png.length / 1024).toFixed(0)} KB)`
+        );
+        await writeComparison(shot.id, existing, png, heatmap);
+        drifted++;
       } else {
         console.log('unchanged');
       }
@@ -253,10 +289,14 @@ if (failures) {
   console.error(`\n${failures}/${selected.length} shot(s) failed.`);
   process.exit(1);
 }
-if (CHECK && drift) {
+if (CHECK && drifted) {
   console.error(
-    `\n${drift}/${selected.length} image(s) differ from what is committed. ` +
-      `Regenerate with \`yarn screenshots\`.`
+    `\n${drifted}/${selected.length} image(s) differ from what is committed.\n` +
+      `  ${DRIFT_DIR}/<id>.compare.png   committed | fresh | difference\n` +
+      `  ${DRIFT_DIR}/<id>.fresh.png     the new bytes, if the change is wanted\n` +
+      `Drift that traces the text and nothing else is the font rasteriser ` +
+      `differing between this machine and the one that generated the committed ` +
+      `images, not a UI change. Regenerate with \`yarn screenshots\`.`
   );
   process.exit(1);
 }

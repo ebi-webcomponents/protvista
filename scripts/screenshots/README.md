@@ -16,6 +16,35 @@ yarn screenshots --refresh-fixtures   # re-record the pinned payloads (rare)
 Chromium is required: `npx playwright install chromium`. Some sandboxes block
 that download; the CI check job skips rather than fails in that case.
 
+## Reading a `--check` failure
+
+`--check` reports the fraction of pixels that moved, and writes what it found to
+`screenshot-drift/` (gitignored, uploaded by CI as an artifact):
+
+```
+  tutorial-standalone-csv … DRIFTED (1.80% of pixels, 9 KB → 8 KB)
+```
+
+- `<id>.compare.png` — the committed image, the fresh one and the difference
+  joined into one strip.
+- `<id>.fresh.png` — the new bytes, if the change is the wanted one.
+
+**Read the difference panel, not the percentage.** Drift that traces every glyph
+and leaves the tracks, rulers and borders untouched is the font rasteriser
+differing between machines: FreeType's hinting and Chromium's subpixel
+antialiasing vary by platform, and the Open Sans that every shot renders in is
+pinned in `fixtures/` and identical everywhere, so the letterforms are the same
+and only their pixels are not. It reaches 1.8% of an image with per-channel
+deltas at the full 255, which no threshold can safely tell from a real change —
+but it looks like text and nothing else. Drift with a shape to it, or a
+percentage in the tens, is the UI having moved.
+
+Captures are byte-stable *within* a machine — measured: three consecutive runs
+of a shot produce identical files, which is what `--assert-clean` exists to keep
+true, the two 3D shots excepted (that is what their `tolerance` is for). So
+drift against images you generated yourself is a real change; drift in CI
+against images generated on another machine may not be.
+
 ## Why it is built this way
 
 **Screenshots taken by hand rot.** They are captured at whatever window size

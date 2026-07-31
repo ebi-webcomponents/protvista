@@ -9,7 +9,10 @@ name: Screenshots
 #   - `regenerate` (manual)  — the canonical generator. Runs on Linux and opens
 #     a PR with whatever changed. Use it after a UI change or before a release.
 #   - `check` (pull request) — tells a reviewer "the UI moved and the docs
-#     images no longer match". Advisory only; see the tolerance note below.
+#     images no longer match". Advisory only; see the tolerance note below. It
+#     reports how much of each image moved and uploads a committed/fresh/diff
+#     strip as an artifact, because the number alone cannot separate a real
+#     change from rasterisation noise.
 #
 # NOTE: `workflow_dispatch` only becomes available once this file exists on the
 # repository's default branch (`main`). `publish-starter-kit.yml` hit exactly
@@ -38,9 +41,11 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     # Advisory. Font rasterisation differs between the machine that generated
-    # the committed images and this runner, so a strict failure here would
-    # block unrelated work on noise. A reviewer reads the annotation and
-    # decides whether to run `regenerate`.
+    # the committed images and this runner — measured at 1.8% of pixels on
+    # `tutorial-standalone-csv`, every one of them inside a glyph, with the
+    # tracks and rulers byte-identical — so a strict failure here would block
+    # unrelated work on noise. A reviewer reads the annotation, opens the
+    # `screenshot-drift` artifact, and decides whether to run `regenerate`.
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
@@ -61,6 +66,21 @@ jobs:
       - name: Compare against the committed images
         if: steps.browser.outcome == 'success'
         run: yarn screenshots:check
+
+      # The percentage in the log says how much moved; only the picture says
+      # what. Each `<id>.compare.png` is the committed image, the fresh one and
+      # the difference joined into one strip — drift that traces every glyph and
+      # leaves the tracks untouched is rasterisation, not a UI change.
+      # `always()` because the step above exits non-zero precisely when there is
+      # something to upload.
+      - name: Upload the drift evidence
+        if: always() && steps.browser.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-drift
+          path: screenshot-drift/
+          if-no-files-found: ignore
+          retention-days: 14
 
   regenerate:
     name: Regenerate and open a PR
