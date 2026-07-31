@@ -14,6 +14,13 @@ tracks to show and where their data comes from.
 
 _The playground: edit a configuration on the left, see it render on the right._
 
+Beneath the tracks, ProtVista also renders the protein's known 3D structures,
+so a feature you can see along the sequence can be looked at in space:
+
+![A three-dimensional ribbon model of a fragment of amyloid precursor protein, its two chains drawn in green and orange, with ordered water molecules shown as small scattered spheres.](../../assets/screenshots/structure-viewer.png)
+
+_The 3D pane beneath the tracks, showing the experimental PDB entry 1AAP for P05067._
+
 Because it's a standard custom element, it drops into any page — plain HTML,
 React, Vue, Angular — with a `<script>` tag and no build step. You do not need
 to know the underlying rendering library or name any internal components: you

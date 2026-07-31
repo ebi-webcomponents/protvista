@@ -119,6 +119,14 @@
     "sha256": "a093b888254afd7deb8e37cccfd434e7d06ed47d22cfed9621631d80e1e81554",
     "recordedAt": "2026-07-31T05:35:22.679Z"
   },
+  "https://rest.uniprot.org/uniprotkb/P05067": {
+    "file": "net/rest.uniprot.org/uniprotkb/P05067",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 460852,
+    "sha256": "9db298dd484521274d58f7075a48671af7f7e731676567f135f028322a901b48",
+    "recordedAt": "2026-07-31T10:27:07.983Z"
+  },
   "https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/P05067": {
     "file": "net/www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/P05067",
     "status": 200,
@@ -134,6 +142,22 @@
     "bytes": 9847,
     "sha256": "44c6a1c5731d4129fc3d13ababeeadb8c9fc4e78078c9644eaf53ec9b7da93b8",
     "recordedAt": "2026-07-31T05:37:04.421Z"
+  },
+  "https://www.ebi.ac.uk/pdbe/api/mappings/uniprot/1AAP": {
+    "file": "net/www.ebi.ac.uk/pdbe/api/mappings/uniprot/1AAP",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 648,
+    "sha256": "3d3af5c4975c5f30d3767d3ebf4cf9189cfb15af45571f5565455c1882a5dceb",
+    "recordedAt": "2026-07-31T10:27:45.590Z"
+  },
+  "https://www.ebi.ac.uk/pdbe/model-server/v1/1aap/full?encoding=bcif": {
+    "file": "net/www.ebi.ac.uk/pdbe/model-server/v1/1aap/full__encoding=bcif",
+    "status": 200,
+    "contentType": "application/octet-stream",
+    "bytes": 81426,
+    "sha256": "dd3e5ecc20d88b32bd9e6de892bb8ec66ecfddb99a45739a225c2e6483b2984f",
+    "recordedAt": "2026-07-31T10:27:51.787Z"
   },
   "https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/P05067.json?exclude_provider=pdbe": {
     "file": "net/www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/P05067.json__exclude_provider=pdbe",

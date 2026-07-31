@@ -190,6 +190,27 @@ shots.push(
     caption: 'The playground: edit a configuration on the left, see it render on the right.',
   },
   {
+    id: 'structure-viewer',
+    // The 3D pane, which every other shot deliberately excludes. It needs the
+    // real structure endpoints and the AlphaFold model served from fixtures
+    // (`structure: true`), SwiftShader forced on the browser (capture.mjs), and
+    // a small tolerance: Mol* settles to marginally different anti-aliasing on
+    // each run — measured at ~0.3% of pixels, with no perceptible difference.
+    url: `${PLAYGROUND}#preset=uniprot-default&accession=P05067`,
+    // Narrower than the 3D pane's natural width: Mol* fits the model to the
+    // canvas, so a wide short canvas letterboxes a tall molecule into a strip.
+    viewport: { width: 1150, height: 1500 },
+    expectGroups: DEFAULT_GROUPS,
+    structure: true,
+    tolerance: 0.01,
+    // The canvas, not the whole element: the element is half empty margin.
+    clip: { element: 'nightingale-structure canvas', stopBefore: null },
+    doc: 'docs/src/content/docs/overview.md',
+    alt: 'A three-dimensional ribbon model of a fragment of amyloid precursor protein, its two chains drawn in green and orange, with ordered water molecules shown as small scattered spheres.',
+    caption:
+      'The 3D pane beneath the tracks, showing the experimental PDB entry 1AAP for P05067.',
+  },
+  {
     id: 'theming-comparison',
     // Two captures of the same configuration, joined: default on the left, the
     // `theme:` block applied on the right.
