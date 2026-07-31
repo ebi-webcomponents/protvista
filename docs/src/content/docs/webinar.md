@@ -1,11 +1,11 @@
 ---
-title: Webinar
-description: A recorded walkthrough of ProtVista v5 — from basic exploration to loading your own data.
+title: Prerecorded webinar
+description: A prerecorded webinar walking through ProtVista v5 — from basic exploration to loading your own data.
 ---
 
-A recorded walkthrough of ProtVista v5 — from basic exploration to configuring
-the viewer and loading your own datasets. It covers the same ground as the
-[Tutorial](/protvista/tutorial) in more depth; the
+A prerecorded webinar walking through ProtVista v5 — from basic exploration to
+configuring the viewer and loading your own datasets. It covers the same ground
+as the [Tutorial](/protvista/tutorial) in more depth; the
 [Overview](/protvista/overview) is a good companion.
 
 <!-- PENDING: when the recording URL is live, (1) delete this comment and the

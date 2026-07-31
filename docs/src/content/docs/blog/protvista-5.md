@@ -133,7 +133,7 @@ contributed to the project.
 - [Source and issues](https://github.com/ebi-webcomponents/protvista) — questions, bugs, and feature requests.
 - [Office hours](https://github.com/ebi-webcomponents/protvista/blob/next/CONTRIBUTING.md#office-hours) — monthly live help with setup and your own data, no registration needed.
 
-A [webinar](/protvista/webinar) covering the same ground in more depth is available.
+A prerecorded [webinar](/protvista/webinar) covering the same ground in more depth is available.
 
 ---
 
