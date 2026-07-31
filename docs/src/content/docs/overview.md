@@ -15,7 +15,9 @@ tracks to show and where their data comes from.
 _The playground: edit a configuration on the left, see it render on the right._
 
 Beneath the tracks, ProtVista also renders the protein's known 3D structures,
-so a feature you can see along the sequence can be looked at in space:
+so a feature you can see along the sequence can be looked at in space. The 3D
+view is rendered by [Mol\*](https://github.com/molstar/molstar), reached through
+Nightingale's structure component:
 
 ![A three-dimensional ribbon model of a fragment of amyloid precursor protein, its two chains drawn in green and orange, with ordered water molecules shown as small scattered spheres.](../../assets/screenshots/structure-viewer.png)
 
