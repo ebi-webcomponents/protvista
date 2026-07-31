@@ -105,6 +105,13 @@ export default defineConfig({
         'Embed an interactive protein feature viewer and load your own data — no framework required.',
       // Keeps the splash home's three hero buttons on one row (see the file).
       customCss: ['./src/styles/hero.css'],
+      // Every page states which version it documents, as a chip beside the
+      // social icons in the header. Starlight has no slot there, so the chip
+      // rides on a `SocialIcons` override that reproduces the default markup.
+      // See the component for why it exists and why it is not a banner.
+      components: {
+        SocialIcons: './src/components/SocialIcons.astro',
+      },
       // Serve the site favicon (docs/public/favicon.svg → /protvista/favicon.svg).
       // Written base-absolute because Astro does not prefix `base` onto head hrefs.
       head: [
@@ -131,6 +138,10 @@ export default defineConfig({
         // The playground is a separate full-screen Astro page (not a doc);
         // link to it from the top of the sidebar. Starlight prepends the base.
         { label: 'Playground ↗', link: '/playground/' },
+        // A single link to the blog index, which lists every post. Keeping the
+        // sidebar to one entry means a new post needs no config change — only
+        // a line in blog/index.md.
+        { label: 'Blog', link: '/blog/' },
         {
           label: 'Getting started',
           items: [

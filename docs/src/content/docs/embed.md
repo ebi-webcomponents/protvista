@@ -12,7 +12,10 @@ Point the element at a UniProt accession and you get the full default UniProt
 viewer for that protein:
 
 ```html
-<script type="module" src="./protvista-uniprot.mjs"></script>
+<script
+  type="module"
+  src="https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.1/dist/protvista-uniprot.mjs"
+></script>
 
 <protvista-uniprot accession="P05067"></protvista-uniprot>
 ```
@@ -26,21 +29,27 @@ reference protein used throughout these docs; swap in any UniProt accession.
 
 Import the built file as an [ES
 module](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules),
-then use the tag:
+then use the tag. The simplest source is a CDN, which serves the published v5
+beta with nothing to install:
 
 ```html
-<script type="module" src="./protvista-uniprot.mjs"></script>
+<script
+  type="module"
+  src="https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.1/dist/protvista-uniprot.mjs"
+></script>
 
 <protvista-uniprot accession="P05067"></protvista-uniprot>
 ```
 
-`protvista-uniprot.mjs` is the built bundle. Until the v5 beta is published,
-produce it from source with `yarn install && yarn build` in a clone of the
-[repository](https://github.com/ebi-webcomponents/protvista) and copy the
-**contents** of `dist/` next to your page — the build is code-split, so the
-`.mjs` loads sibling chunks from the same directory and will not run alone. Once
-the v5 beta is on npm, load it from a CDN instead, which serves the chunks alongside it:
-`https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.1/dist/protvista-uniprot.mjs`.
+Pin the exact version, as above: `@beta` and `@5` would move under you as the
+beta develops.
+
+To host the file yourself instead, run `yarn install && yarn build` in a clone of
+the [repository](https://github.com/ebi-webcomponents/protvista), copy the
+**contents** of `dist/` next to your page, and point the tag at your own copy
+(`src="./protvista-uniprot.mjs"`). Copy the whole folder: the build is split up,
+so the `.mjs` loads sibling files from the same directory and will not run
+alone.
 
 ### 2. As an npm package
 

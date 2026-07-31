@@ -12,6 +12,14 @@ whatever `src/config.ts` said it was, against data sources fixed at EBI. It is
 now driven by a configuration document you supply, over sources you choose,
 arranged by whoever is looking at it.
 
+With thanks to the contributors from outside the core team:
+[**Jishanahmed AR Shaikh**](https://github.com/jishanahmed-shaikh), whose
+[#137](https://github.com/ebi-webcomponents/protvista/pull/137) forbade `any`
+across the codebase and turned on `noImplicitAny` and `strictNullChecks`
+(closing [#133](https://github.com/ebi-webcomponents/protvista/issues/133)),
+through two rounds of review; and [**Epi-Lo**](https://github.com/Epi-Lo), who
+took on the same problem in parallel.
+
 ### Added — configuration-driven loading
 
 A viewer is now described by a YAML or JSON configuration document rather than
