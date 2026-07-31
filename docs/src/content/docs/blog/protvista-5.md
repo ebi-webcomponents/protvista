@@ -15,8 +15,7 @@ text file, a button, or a copy of a ready-made page.
 ProtVista is free and open source, and anyone can contribute. Version 5 includes
 work from outside our team. Thank you to
 [Jishanahmed AR Shaikh](https://github.com/jishanahmed-shaikh), who made the
-code more reliable and easier to maintain
-([#137](https://github.com/ebi-webcomponents/protvista/pull/137)), and to
+code more reliable and easier to maintain, and to
 [Epi-Lo](https://github.com/Epi-Lo), who took on the same problem.
 
 :::tip[Bring your data to the ProtVista hackathon: 7–9 October 2026]
