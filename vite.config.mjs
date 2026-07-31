@@ -145,6 +145,9 @@ export default defineConfig({
             'src/**/__spec__/*.spec.ts',
             'src/**/__tests__/*.spec.ts',
             'src/**/*.spec.ts',
+            // The screenshot harness lives outside `src/` (it is build tooling,
+            // not shipped code) and its drift test lives with it.
+            'scripts/**/*.spec.mjs',
           ],
           // The browser specs live under `src/**/__browser__/` and must
           // never load under jsdom (they use `@vitest/browser/context`).

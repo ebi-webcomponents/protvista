@@ -10,6 +10,10 @@ AlphaFold confidence, and more. You give it a UniProt **accession** (a protein
 identifier such as `P05067`) and, optionally, a **config** describing which
 tracks to show and where their data comes from.
 
+![The ProtVista playground: a configuration editor on the left and a live protein viewer on the right, with preset and accession selectors along the top.](../../assets/screenshots/playground-ui.png)
+
+_The playground: edit a configuration on the left, see it render on the right._
+
 Because it's a standard custom element, it drops into any page — plain HTML,
 React, Vue, Angular — with a `<script>` tag and no build step. You do not need
 to know the underlying rendering library or name any internal components: you

@@ -67,8 +67,9 @@ Open the [default viewer for P05067](/protvista/playground/#preset=uniprot-defau
 Swap the accession in the header to view any other protein.
 :::
 
-<!-- TODO(screenshot): the full default UniProt viewer for P05067 — all built-in
-     track groups. Capture from the running site; needs descriptive alt text. -->
+![The default UniProt viewer for P05067, showing collapsed track groups for molecule processing, sequence information, topology, domains, sites, PTMs, epitopes, antigens, mutagenesis, variation, proteomics, structure coverage, AlphaFold confidence and AlphaMissense pathogenicity, aligned to the protein's sequence.](../../assets/screenshots/tutorial-default-viewer.png)
+
+_The full default UniProt viewer, from one accession and no configuration._
 
 
 [Embed the viewer](/protvista/embed) covers both ways to load the component and
@@ -122,7 +123,9 @@ Open [the CSV track in the playground](/protvista/playground/#preset=csv). It
 renders the same config against a hosted copy of `hotspots.csv`.
 :::
 
-<!-- TODO(screenshot): the standalone "Hotspots" CSV track rendered on its own. -->
+![A ProtVista viewer showing a single track named Hotspots, with three labelled feature blocks positioned along the amino-acid sequence of P05067.](../../assets/screenshots/tutorial-standalone-csv.png)
+
+_A standalone track loaded from a CSV file._
 
 
 [Load your own data](/protvista/your-data) covers the full feature record and the
@@ -176,8 +179,9 @@ see the base you're extending. To see it combined with your track, switch
 ships.
 :::
 
-<!-- TODO(screenshot): the "My lab" group layered on top of the full default
-     viewer (captured from `yarn docs:dev`, where the extends path resolves). -->
+![The full default UniProt viewer for P05067 with an additional group labelled My lab at the bottom, containing the lab's own Hotspots track.](../../assets/screenshots/tutorial-extended.png)
+
+_A lab's own group layered on top of the canonical UniProt viewer with `extends:`._
 
 ## Step 4: Style it
 
@@ -221,8 +225,9 @@ one lever, or force the CSS with `!important`. See
 [Theme the viewer](/protvista/theming) lists every token and the datatable
 `::part` hooks.
 
-<!-- TODO(screenshot): the recoloured viewer after theming (theme.labelColor /
-     accentColor, or the CSS custom properties). -->
+![A ProtVista viewer whose row labels are tinted pale green, showing a track of features supplied inline in the configuration.](../../assets/screenshots/tutorial-themed.png)
+
+_The `inline-data` preset's `theme:` block: `labelColor` tints the row-label panel._
 
 ## You're done
 

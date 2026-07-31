@@ -2,6 +2,10 @@
 title: Theming ProtVista
 ---
 
+![Two ProtVista viewers side by side showing the same track. The left has default grey row labels; the right has the same labels tinted pale green by a theme block.](../../assets/screenshots/theming-comparison.png)
+
+_The same viewer before and after a `theme:` block: default on the left, themed on the right._
+
 `<protvista-uniprot>` exposes a documented styling API built on two
 native web standards, so you can match the viewer to your application
 with **plain CSS and no JavaScript**:

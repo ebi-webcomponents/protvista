@@ -1,0 +1,210 @@
+{
+  "https://alphafold.ebi.ac.uk/api/prediction/P05067": {
+    "file": "net/alphafold.ebi.ac.uk/api/prediction/P05067",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 31420,
+    "sha256": "b7a6356ffe0edd1ef7c9f3800315909d47ad043ce2e0918a1597225bca2fc625",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://alphafold.ebi.ac.uk/files/AF-P05067-F1-aa-substitutions.csv": {
+    "file": "net/alphafold.ebi.ac.uk/files/AF-P05067-F1-aa-substitutions.csv",
+    "status": 200,
+    "contentType": "text/csv",
+    "bytes": 280438,
+    "sha256": "2a6acca53f05d2d7111ceea5eb1a0d51e696f029ef635408623b033ae094fac1",
+    "recordedAt": "2026-07-31T05:37:04.421Z"
+  },
+  "https://alphafold.ebi.ac.uk/files/AF-P05067-F1-confidence_v6.json": {
+    "file": "net/alphafold.ebi.ac.uk/files/AF-P05067-F1-confidence_v6.json",
+    "status": 200,
+    "contentType": "application/octet-stream",
+    "bytes": 10656,
+    "sha256": "26c1e1496f92242d46b6cbe36b0bd7c8c53f5c1ef8a56cd6802ecd01f94696a2",
+    "recordedAt": "2026-07-31T05:37:04.421Z"
+  },
+  "https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap": {
+    "file": "net/fonts.googleapis.com/css2__family=Open+Sans_wght@400;700_display=swap",
+    "status": 200,
+    "contentType": "text/css; charset=utf-8",
+    "bytes": 12028,
+    "sha256": "6efd2bfffc28cc8d42fa421939d82038e80f45167dad34788c85e0096401aabe",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTS-muw.woff2": {
+    "file": "net/fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTS-muw.woff2",
+    "status": 200,
+    "contentType": "font/woff2",
+    "bytes": 48320,
+    "sha256": "d8e4fe0452aa2076429a9bb5d8757d00a994dd95986cf950e9a1a371b9a072a0",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTS2mu1aB.woff2": {
+    "file": "net/fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTS2mu1aB.woff2",
+    "status": 200,
+    "contentType": "font/woff2",
+    "bytes": 16920,
+    "sha256": "7abb700b280437b795e68b3a85a1dcbfdf04bb815555762033ade4f7894f2554",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTSCmu1aB.woff2": {
+    "file": "net/fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTSCmu1aB.woff2",
+    "status": 200,
+    "contentType": "font/woff2",
+    "bytes": 16496,
+    "sha256": "cc762462ea67b7815649ea3cc005699e3b95b3244b59eb2ce2d22e3ad33497c2",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTSGmu1aB.woff2": {
+    "file": "net/fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTSGmu1aB.woff2",
+    "status": 200,
+    "contentType": "font/woff2",
+    "bytes": 35156,
+    "sha256": "d5bab8e28732fe3d10dcef4f77b9c248605bbb2a87d289a2539251ceafab536a",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTSKmu1aB.woff2": {
+    "file": "net/fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTSKmu1aB.woff2",
+    "status": 200,
+    "contentType": "font/woff2",
+    "bytes": 49268,
+    "sha256": "95dd03b930aca04ab393f625101f7367e3abc83b3b09e6074de1fc081ba6fd1c",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTSOmu1aB.woff2": {
+    "file": "net/fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTSOmu1aB.woff2",
+    "status": 200,
+    "contentType": "font/woff2",
+    "bytes": 4504,
+    "sha256": "197ef1e4874d6f8f59bcb8f303029b7fd40aebd7a23aa96c1b649b3faea5d57c",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTSumu1aB.woff2": {
+    "file": "net/fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTSumu1aB.woff2",
+    "status": 200,
+    "contentType": "font/woff2",
+    "bytes": 26588,
+    "sha256": "2809606237a64bd9c1461e727f369ddfd77a350e4900fffe64e8bfe16a2b3454",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTSymu1aB.woff2": {
+    "file": "net/fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTSymu1aB.woff2",
+    "status": 200,
+    "contentType": "font/woff2",
+    "bytes": 21332,
+    "sha256": "08ea4cf0a7c61077656395aa7dc728a6d184ee4bdae03a1bc34c17ee97e8f31c",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTUGmu1aB.woff2": {
+    "file": "net/fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTUGmu1aB.woff2",
+    "status": 200,
+    "contentType": "font/woff2",
+    "bytes": 26596,
+    "sha256": "8f80f993e523f2e6c2d097552740fd26331658da23ffad31d26edcdd3aeec370",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTVOmu1aB.woff2": {
+    "file": "net/fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTVOmu1aB.woff2",
+    "status": 200,
+    "contentType": "font/woff2",
+    "bytes": 51912,
+    "sha256": "a093b888254afd7deb8e37cccfd434e7d06ed47d22cfed9621631d80e1e81554",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/P05067": {
+    "file": "net/www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/P05067",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 11620,
+    "sha256": "61b2b10dd89dd2e49f8a7c57edc09e5cbe935dda99207ed41d4e8be20451d897",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/P05067?type=domain&page_size=100": {
+    "file": "net/www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/P05067__type=domain_page_size=100",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 9847,
+    "sha256": "44c6a1c5731d4129fc3d13ababeeadb8c9fc4e78078c9644eaf53ec9b7da93b8",
+    "recordedAt": "2026-07-31T05:37:04.421Z"
+  },
+  "https://www.ebi.ac.uk/proteins/api/antigen/P05067": {
+    "file": "net/www.ebi.ac.uk/proteins/api/antigen/P05067",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 1418,
+    "sha256": "83b1422e5efa6469c0426d18e3584c6941a4b728a28247fdddfce3242870cbb6",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://www.ebi.ac.uk/proteins/api/epitope/P05067": {
+    "file": "net/www.ebi.ac.uk/proteins/api/epitope/P05067",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 360972,
+    "sha256": "4b13c9f41475b52cb5768d137adceeaeabdbfac40841d2d2bec0e6a7073dae6e",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://www.ebi.ac.uk/proteins/api/features/P05067": {
+    "file": "net/www.ebi.ac.uk/proteins/api/features/P05067",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 90181,
+    "sha256": "abbcb50e2ba9f211df56b0622b77d6e245d5e86b476c610241cb5a27bf8c4230",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://www.ebi.ac.uk/proteins/api/mutagenesis/P05067": {
+    "file": "net/www.ebi.ac.uk/proteins/api/mutagenesis/P05067",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 630587,
+    "sha256": "662840b902731ba0c14e9d0c01f6e8cb10741bf1b99e20ffec4acb2b42a01153",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://www.ebi.ac.uk/proteins/api/proteins/P05067": {
+    "file": "net/www.ebi.ac.uk/proteins/api/proteins/P05067",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 422978,
+    "sha256": "a68ec1e9cd37d1a90916a0c88fef9881239e8c901f20880525463b8ba24f03a2",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://www.ebi.ac.uk/proteins/api/proteomics/hpp/P05067": {
+    "file": "net/www.ebi.ac.uk/proteins/api/proteomics/hpp/P05067",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 813077,
+    "sha256": "0aee377f741d34bb820f1f8e58ad66c88e00bbb52cbd4755bfea0abb359f09c2",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/P05067": {
+    "file": "net/www.ebi.ac.uk/proteins/api/proteomics/nonPtm/P05067",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 158706,
+    "sha256": "41c56bce4b20c78ec8087f1bf71694b29516c594ea31ec295f5c9b1cb0d57178",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/P05067": {
+    "file": "net/www.ebi.ac.uk/proteins/api/proteomics/ptm/P05067",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 88895,
+    "sha256": "dcd05e160a82c1b959a734507ef3b46db759b9920b13556a2d2d30c57ca7af10",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://www.ebi.ac.uk/proteins/api/rna-editing/P05067": {
+    "file": "net/www.ebi.ac.uk/proteins/api/rna-editing/P05067",
+    "status": 404,
+    "contentType": "application/json",
+    "bytes": 221,
+    "sha256": "4b838a86b3aa3350c31b15c265f184361475ba8cc9ca846f428737ad75704301",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  },
+  "https://www.ebi.ac.uk/proteins/api/variation/P05067": {
+    "file": "net/www.ebi.ac.uk/proteins/api/variation/P05067",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 1564072,
+    "sha256": "6d113f9e36f5fb0b168f26bf867c630ae57ec25344ca428ee4891551b4fd09a5",
+    "recordedAt": "2026-07-31T05:35:22.679Z"
+  }
+}

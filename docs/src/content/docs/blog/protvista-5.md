@@ -28,10 +28,9 @@ come first served. Applications close 1 October 2026.**
 [More about the hackathon](#hackathon-visualise-your-own-data)
 :::
 
-<!-- TODO(screenshot): the money shot — a custom "Hotspots" track rendered
-     beneath UniProt's own domains and variants on P05067. Capture from the
-     running site at 400x300, 72dpi; needs descriptive alt text and a caption
-     crediting the source, licensed CC BY 4.0 like the rest of the docs. -->
+![A ProtVista viewer showing a lab's own Hotspots track directly beneath a track of UniProt domains, both aligned to the same protein sequence.](../../../assets/screenshots/blog-custom-track.png)
+
+_Your own annotations beside UniProt's, from one configuration file._
 
 ## Load your own data
 
@@ -73,9 +72,9 @@ you send rather than something you explain.
 
 **Learn more:** [Customize the layout](/protvista/customize-layout).
 
-<!-- TODO(screenshot): Customize mode active — a row showing its move-up /
-     move-down and show/hide controls. Same spec as above: 400x300, 72dpi,
-     alt text, CC BY 4.0 caption. -->
+![The ProtVista viewer in Customize mode. Each track row has gained move-up and move-down buttons and a show/hide switch beside its label.](../../../assets/screenshots/blog-customize-mode.png)
+
+_Customize mode: reorder and hide rows without touching a configuration file._
 
 ## Try it now, then publish it
 
