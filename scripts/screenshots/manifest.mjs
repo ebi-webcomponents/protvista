@@ -17,7 +17,8 @@ import { readFileSync } from 'node:fs';
 const PLAYGROUND = '/protvista/playground/';
 
 /**
- * How much any shot may differ before it counts as a different picture.
+ * How much any shot may differ before it counts as a different picture. One
+ * number, every shot, every comparison — no per-shot overrides.
  *
  * Byte-exactness only ever held *within* one machine. Across machines the text
  * rasteriser differs — FreeType hinting and Chromium's subpixel antialiasing
@@ -27,16 +28,15 @@ const PLAYGROUND = '/protvista/playground/';
  * tracks, rulers and borders byte-identical. Reporting all of it as drift made
  * the check unreadable and blocked nothing useful.
  *
- * 10% is a little over twice the worst of that. It is deliberately blunt: a
+ * 10% is a little over twice the worst of that, and comfortably over the
+ * noisiest thing in the set (`home-hero`, 1.7-2.1% between consecutive runs as
+ * Mol*'s anti-aliasing is resampled into 400px). It is deliberately blunt: a
  * change confined to a small part of one image — a track's colour, a renamed
- * label — now passes silently. What still fails is what a reader would notice:
- * a row appearing or vanishing, a layout reflow, the viewer failing to render.
- *
- * `--assert-clean` deliberately does *not* use this. Two captures on one
- * machine that disagree are a real defect in the harness, not cross-machine
- * noise, and that check stays as strict as each shot's own `tolerance`.
+ * label — now passes silently, in `--check`, in whether a file is rewritten,
+ * and in `--assert-clean`. What still fails is what a reader would notice: a
+ * row appearing or vanishing, a layout reflow, the viewer failing to render.
  */
-export const DEFAULT_TOLERANCE = 0.1;
+export const TOLERANCE = 0.1;
 
 /** The tutorial's Step 3 config, loaded verbatim so the figure cannot drift
  *  from the YAML block printed beside it (which `tutorial-doc.spec.ts` already
@@ -92,16 +92,10 @@ export const shots = [
     viewport: { width: 2450, height: 1800 },
     expectGroups: DEFAULT_GROUPS,
     structure: true,
-    // Looser than the standalone 3D shot's 1%: downscaling ~1189px to 400
-    // resamples Mol*'s per-run anti-aliasing across a much smaller image, which
-    // measures 1.7-2.1% between runs. 3% left too thin a margin over that — an
-    // unlucky pair crossed it and rewrote the file with nothing visibly
-    // different in it — so this is set to keep roughly the same 2.5x headroom
-    // over measured noise that `structure-viewer` has (0.4% against 1%). The
-    // cost is honest — drift below 5% will not be reported for this one image.
-    // Every other shot stays byte-exact, and a UI change worth noticing moves
-    // far more than 5% of a 400px square.
-    tolerance: 0.05,
+    // No tolerance of its own — `TOLERANCE` covers this comfortably.
+    // Downscaling ~1189px to 400 resamples Mol*'s per-run anti-aliasing across
+    // a much smaller image, which measures 1.7-2.1% between runs — the noisiest
+    // shot in the set, and still well inside the shared 10%.
     clip: { aspect: 1, stopBefore: null },
     resizeTo: { width: 400, height: 400 },
     doc: 'docs/src/content/docs/index.md',
@@ -223,10 +217,10 @@ shots.push(
   {
     id: 'structure-viewer',
     // The 3D pane on its own. It needs the real structure endpoints served from
-    // fixtures (`structure: true`), SwiftShader forced on the browser
-    // (capture.mjs), and a small tolerance: Mol* settles to marginally
-    // different anti-aliasing on each run — measured at ~0.3% of pixels, with
-    // no perceptible difference.
+    // fixtures (`structure: true`) and SwiftShader forced on the browser
+    // (capture.mjs). Mol* settles to marginally different anti-aliasing on each
+    // run — measured at 0.4% of pixels, with no perceptible difference — which
+    // `DEFAULT_TOLERANCE` absorbs like everything else.
     //
     // What resolves is the experimental PDB entry 1AAP, not the AlphaFold
     // model; with `rest.uniprot.org` unreachable it falls back to AlphaFold
@@ -237,7 +231,6 @@ shots.push(
     viewport: { width: 1150, height: 1500 },
     expectGroups: DEFAULT_GROUPS,
     structure: true,
-    tolerance: 0.01,
     // The canvas, not the whole element: the element is half empty margin.
     clip: { element: 'nightingale-structure canvas', stopBefore: null },
     doc: 'docs/src/content/docs/overview.md',

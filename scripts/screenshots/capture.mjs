@@ -25,7 +25,7 @@ import {
 } from './ready.mjs';
 import { encode, write, checkSize, join } from './encode.mjs';
 import { sameImage, drift } from './compare.mjs';
-import { byId, outPath, DEFAULT_TOLERANCE } from './manifest.mjs';
+import { byId, outPath, TOLERANCE } from './manifest.mjs';
 
 const argv = process.argv.slice(2);
 const has = (f) => argv.includes(f);
@@ -226,7 +226,7 @@ for (const shot of selected) {
 
     if (ASSERT_CLEAN) {
       const again = await render(shot);
-      const { same, delta } = await sameImage(png, again, shot.tolerance);
+      const { same, delta } = await sameImage(png, again, TOLERANCE);
       if (!same) {
         throw new Error(
           'two consecutive captures differ — output is not reproducible' +
@@ -238,14 +238,9 @@ for (const shot of selected) {
     const warn = checkSize(shot.id, png.length);
     if (warn) warnings.push(warn);
 
-    // Comparing across machines, so the lenient default applies unless the shot
-    // asks for something tighter (the 3D shots do). `--assert-clean` above
-    // stays on the shot's own tolerance: that one compares two captures from
-    // *this* machine, where disagreement is a defect rather than noise.
-    const tolerance = shot.tolerance ?? DEFAULT_TOLERANCE;
     const existing = existsSync(path) ? readFileSync(path) : null;
     const { same } = existing
-      ? await sameImage(existing, png, tolerance)
+      ? await sameImage(existing, png, TOLERANCE)
       : { same: false };
 
     if (CHECK) {
@@ -262,7 +257,7 @@ for (const shot of selected) {
         console.log(
           resized
             ? `DRIFTED (dimensions changed, ${(existing.length / 1024).toFixed(0)} KB → ${(png.length / 1024).toFixed(0)} KB)`
-            : `DRIFTED (${(fraction * 100).toFixed(2)}% of pixels, over the ${(tolerance * 100).toFixed(0)}% tolerance)`
+            : `DRIFTED (${(fraction * 100).toFixed(2)}% of pixels, over the ${(TOLERANCE * 100).toFixed(0)}% tolerance)`
         );
         await writeComparison(shot.id, existing, png, heatmap);
         drifted++;
@@ -271,8 +266,9 @@ for (const shot of selected) {
       }
     } else if (same) {
       // Visually identical to what is committed. Leave the file alone rather
-      // than rewriting it — otherwise a shot with a tolerance (the 3D viewer)
-      // would dirty the diff on every run for no visible reason.
+      // than rewriting it — otherwise the 3D shots, which never settle to the
+      // same pixels twice, would dirty the diff on every run for no visible
+      // reason.
       console.log('unchanged');
     } else {
       write(path, png);

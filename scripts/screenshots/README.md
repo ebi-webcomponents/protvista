@@ -30,16 +30,17 @@ that download; the CI check job skips rather than fails in that case.
 - `<id>.fresh.png` — the new bytes, if the change is the wanted one.
 
 **A report means something moved further than rasterisation ever does**, since
-the tolerance already absorbs that (see `DEFAULT_TOLERANCE` in `manifest.mjs`).
-Open the difference panel anyway before regenerating: drift that traces every
-glyph and leaves the tracks, rulers and borders untouched is still the font
-rasteriser, just an unusually text-heavy shot of it; drift with a shape to it —
-a row appearing, a band moving, a pane collapsing — is the UI.
+`TOLERANCE` already absorbs that (see `manifest.mjs`). Open the difference panel
+anyway before regenerating: drift that traces every glyph and leaves the tracks,
+rulers and borders untouched is still the font rasteriser, just an unusually
+text-heavy shot of it; drift with a shape to it — a row appearing, a band
+moving, a pane collapsing — is the UI.
 
-Captures are byte-stable *within* a machine — measured: three consecutive runs
-of a shot produce identical files, the two 3D shots excepted (that is what their
-own `tolerance` is for). `--assert-clean` holds that line and ignores the
-lenient default, so it still catches a harness that has gone non-deterministic.
+Captures are byte-stable *within* a machine: three consecutive runs of a shot
+produce identical files, the two 3D shots excepted, where Mol\* re-settles its
+anti-aliasing. `--assert-clean` uses the same 10%, so it now catches only gross
+instability — a page that never settles, a race in the fixtures — rather than
+every pixel.
 
 ## Why it is built this way
 
@@ -111,19 +112,16 @@ that never settle, or an oversized file.
 - **`structure: true`** — include the 3D pane, which is otherwise stubbed away
   (see below). Such a shot is run in a separate browser with SwiftShader forced,
   and needs a `tolerance`.
-- **`tolerance`** — the fraction of pixels that may differ before two images
-  count as different. It governs `--check` **and whether the file is rewritten
-  at all** — without that last part a tolerated shot would dirty the diff on
-  every run. Every shot gets `DEFAULT_TOLERANCE`, 10%, unless it asks for
-  something tighter; the two 3D shots do (1% for the standalone view, 5% for the
-  hero, where downscaling to 400px amplifies Mol\*'s per-run noise). 10% is a
-  little over twice the 1.7–4.3% that text rasterisation alone moves between
-  machines. The cost is blunt and worth knowing: a change confined to a small
-  part of one image — a track's colour, a renamed label — now passes silently.
-  What still fails is what a reader would notice: a row appearing or vanishing,
-  a reflow, a viewer that did not render. `--assert-clean` is deliberately
-  exempt and stays on each shot's own tolerance, since two captures from one
-  machine disagreeing is a defect rather than noise.
+- **`TOLERANCE`** — not a per-shot option: one number in `manifest.mjs`, 10%,
+  is the fraction of pixels that may differ before two images count as
+  different. It governs `--check`, `--assert-clean`, **and whether a file is
+  rewritten at all** — without that last part the 3D shots would dirty the diff
+  on every run. 10% is a little over twice the 1.7–4.3% that text rasterisation
+  alone moves between machines, and well clear of the noisiest shot in the set
+  (`home-hero`, 1.7–2.1% between consecutive runs). The cost is blunt and worth
+  knowing: a change confined to a small part of one image — a track's colour, a
+  renamed label — now passes silently. What still fails is what a reader would
+  notice: a row appearing or vanishing, a reflow, a viewer that did not render.
 
 ## Things that will bite you
 
