@@ -13,11 +13,11 @@ The normative contract for everything below lives in [`specs/config-approach.md`
 
 ## The shape of it
 
-1. **Set `notooltip`** so the built-in popover stays out of your way.
-2. **Attach a `change` listener** to the `<protvista-uniprot>` element.
-3. **Branch on `detail.eventType`** — `click` opens a tooltip; `mouseover` / `mouseout` drive hover; `reset` (scroll/zoom) dismisses.
-4. **Read `detail.feature`** (the full datapoint, including any library-precomputed `tooltipContent`) and **`detail.coords`** (an `[x, y]` page-coordinate tuple).
-5. **Render your overlay** at those coordinates and **dismiss** on the `{ undefined, 'reset', 'click' }` set.
+1. Set `notooltip` so the built-in popover stays out of your way.
+2. Attach a `change` listener to the `<protvista-uniprot>` element.
+3. Branch on `detail.eventType`: `click` opens a tooltip, `mouseover`/`mouseout` drive hover, and `reset` (scroll/zoom) dismisses.
+4. Read `detail.feature` (the full datapoint, including any library-precomputed `tooltipContent`) and `detail.coords` (an `[x, y]` page-coordinate tuple).
+5. Render your overlay at those coordinates, and dismiss it on the `{ undefined, 'reset', 'click' }` set.
 
 ### `notooltip` does not hide the content
 

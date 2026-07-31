@@ -4,10 +4,11 @@ title: Configuration vs data
 
 ProtVista draws a deliberate line between two things, and knowing which side of the line you're on saves a lot of confusion when you bring your own data.
 
-- **Viewer configuration** — *what to show and how*. The rows and tracks, where each track's data comes from, and how it's rendered. You author this as a YAML/JSON config, and it's validated by the [config JSON Schema](https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json).
-- **Track payloads** — *the data itself*. The shape each track actually consumes (a list of feature records, an API response, …). A **data provider** supplies this — either an EBI API you point at, or a file you author. The config schema names adapters and kinds but **does not** define payload shapes; those are documented in the [adapter reference](/protvista/adapter-reference).
+**Viewer configuration** is what to show and how: the rows and tracks, where each track's data comes from, and how it's rendered. You author this as a YAML/JSON config, and it's validated by the [config JSON Schema](https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json).
 
-This is the **Intent / Representation** split. The normative definition lives in [`specs/config-approach.md`](https://github.com/ebi-webcomponents/protvista/blob/next/specs/config-approach.md); this page is the user-facing version.
+**Track payloads** are the data itself, the shape each track actually consumes (a list of feature records, an API response, and so on). A data provider supplies this, either UniProt's API you point at or a file you author. The config schema names adapters and kinds but does not define payload shapes; those are documented in the [adapter reference](/protvista/adapter-reference).
+
+This is the Intent / Representation split. The normative definition lives in [`specs/config-approach.md`](https://github.com/ebi-webcomponents/protvista/blob/next/specs/config-approach.md); this page is the user-facing version.
 
 ## The boundary at a glance
 
@@ -30,15 +31,14 @@ flowchart TB
 **What your configuration controls (Intent)**
 
 - Which rows and tracks appear, their labels and grouping.
-- The semantic `kind` of each track (`features`, `variants`, `confidence-score`, …) — a domain concept, not a component or adapter name.
+- The semantic `kind` of each track (`features`, `variants`, `confidence-score`, …). This is a domain concept, not a component or adapter name.
 - Where the data comes from: `data:` with `from: url` / `file` / `inline` / `custom`, and named `sources`.
 - Rendering: `color`, `shape`, `height`, `layout`, `colorScale`.
-- Convenience shortcuts: a single-type `filter:`, and `dataTooltip` templates.
+- Convenience shortcuts, such as a single-type `filter:` and `dataTooltip` templates.
 
 **What a data provider supplies (Representation)**
 
-- The actual payload each track consumes — for a built-in kind, an EBI API response the adapter transforms; for bring-your-own-data, a file whose fields you author.
-- The per-adapter shapes are documented in the [adapter reference](/protvista/adapter-reference). Bring-your-own-data authors care about the generic **feature record** (`type`, `start`, `end`, optional `description`/`score`); a machine-readable schema is served at [`feature-record.schema.json`](https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json).
+The actual payload each track consumes. For a built-in kind that's a UniProt API response the adapter transforms; for bring-your-own-data it's a file whose fields you author. The per-adapter shapes are documented in the [adapter reference](/protvista/adapter-reference). Bring-your-own-data authors mainly need the generic feature record (`type`, `start`, `end`, optional `description`/`score`); a machine-readable schema is served at [`feature-record.schema.json`](https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json).
 
 The **bridge** between the two sides is the `data` descriptor plus the `kind`: your config declares *where* the data is and *which* adapter (directly, or via the kind) turns it into a payload the track renders.
 

@@ -18,30 +18,19 @@ that to the right components, data adapters, and layout for you.
 
 ## Who it's for
 
-- **Scientists** who want to look at a protein without writing code — open the
-  [playground](/protvista/playground/), type an accession, and explore.
-- **Bioinformaticians** bringing their own annotations — load a CSV, TSV, JSON,
-  or BED file alongside the live UniProt tracks. See
-  [Load your own data](/protvista/your-data).
-- **Developers** embedding the viewer in an application — add the element,
-  author a config, and wire up events. Start with
-  [Embed the viewer](/protvista/embed).
+If you're a scientist who wants to look at a protein without writing code, open the [playground](/protvista/playground/), type an accession, and explore. If you're a bioinformatician bringing your own annotations, you can load a CSV, TSV, JSON, or BED file alongside the live UniProt tracks — see [Load your own data](/protvista/your-data). And if you're a developer embedding the viewer in an application, add the element, author a config, and wire up events; start with [Embed the viewer](/protvista/embed).
 
 ## Find your path
 
-- **New here?** Take the end-to-end [Tutorial](/protvista/tutorial) — from an
-  empty page to a custom, themed viewer in four steps. For the pieces on their
-  own, see [Embed the viewer](/protvista/embed) then
-  [Author a config](/protvista/configure).
-- **Bringing your own data?** Go straight to
-  [Load your own data](/protvista/your-data).
-- **What each track type draws?** See [Built-in track kinds](/protvista/track-kinds).
-- **Config vs. what a provider supplies?** Read
-  [Configuration vs data](/protvista/configuration-vs-data).
-- **Validating configs or working at scale?** Point your editor at the
-  [config JSON Schema](/protvista/configure#editor-autocomplete).
-- **Beyond the built-ins?** See the [Escape hatches](/protvista/escape-hatches).
-- **Something not rendering?** Check [Troubleshoot errors](/protvista/troubleshooting).
+New to ProtVista? Take the end-to-end [Tutorial](/protvista/tutorial), which walks from an empty page to a custom, themed viewer in four steps. For the pieces on their own, see [Embed the viewer](/protvista/embed) and then [Author a config](/protvista/configure). Bringing your own data? Go straight to [Load your own data](/protvista/your-data).
+
+For more specific questions:
+
+- What does each track type draw? See [Built-in track kinds](/protvista/track-kinds).
+- How does a config relate to what a provider supplies? Read [Configuration vs data](/protvista/configuration-vs-data).
+- Validating configs or working at scale? Point your editor at the [config JSON Schema](/protvista/configure#editor-autocomplete).
+- Need more than the built-ins? See the [Escape hatches](/protvista/escape-hatches).
+- Something not rendering? Check [Troubleshoot errors](/protvista/troubleshooting).
 
 ## Tools & resources
 
