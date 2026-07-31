@@ -72,10 +72,14 @@ export const shots = [
     structure: true,
     // Looser than the standalone 3D shot's 1%: downscaling ~1189px to 400
     // resamples Mol*'s per-run anti-aliasing across a much smaller image, which
-    // measures 1.7-2.1% between runs. The cost is honest — drift below 3% will
-    // not be reported for this one image. Every other shot stays byte-exact,
-    // and a UI change worth noticing moves far more than 3% of a 400px square.
-    tolerance: 0.03,
+    // measures 1.7-2.1% between runs. 3% left too thin a margin over that — an
+    // unlucky pair crossed it and rewrote the file with nothing visibly
+    // different in it — so this is set to keep roughly the same 2.5x headroom
+    // over measured noise that `structure-viewer` has (0.4% against 1%). The
+    // cost is honest — drift below 5% will not be reported for this one image.
+    // Every other shot stays byte-exact, and a UI change worth noticing moves
+    // far more than 5% of a 400px square.
+    tolerance: 0.05,
     clip: { aspect: 1, stopBefore: null },
     resizeTo: { width: 400, height: 400 },
     doc: 'docs/src/content/docs/index.md',

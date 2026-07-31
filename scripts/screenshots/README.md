@@ -120,8 +120,11 @@ that never settle, or an oversized file.
   `--check`, `--assert-clean`, **and whether the file is rewritten at all** —
   without that last part a tolerated shot would dirty the diff on every run.
   Only the two shots containing the 3D model use it: 1% for the standalone
-  view, 3% for the home hero, where downscaling to 400px amplifies the same
-  noise. The cost is real: drift under that threshold is not reported.
+  view, 5% for the home hero, where downscaling to 400px amplifies the same
+  noise. Both are set about 2.5x above what that noise measures — 0.4% and 2.0%
+  between consecutive runs — because a thinner margin rewrites the file on an
+  unlucky pair for no visible reason. The cost is real: drift under that
+  threshold is not reported.
 
 ## Things that will bite you
 
