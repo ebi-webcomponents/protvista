@@ -1,5 +1,44 @@
 # Changelog
 
+## 5.0.0-beta.2 — 2026-07-31
+
+The second v5 beta, still on the `beta` dist-tag: `npm install
+protvista-uniprot` continues to resolve stable 4.9.x, and this release is opt-in
+via `npm install protvista-uniprot@beta`. Schemas and APIs may still change
+before 5.0.0.
+
+The whole of this release is the 3D structure viewer catching up. The
+`protvista-uniprot-structure` element was rewritten for v5 and, in doing so,
+lost capabilities the 4.x viewer had. Those are now reapplied on top of the
+rewrite, together with a small public API for driving the viewer from the
+outside. With thanks to **Swaathik**, who ported the 4.x work.
+
+### Added — the 3D structure viewer regains its 4.x capabilities
+
+`protvista-uniprot-structure` now loads and describes structures the way 4.x
+did, on top of the v5 rewrite:
+
+- **AlphaFold complexes.** Predictions are fetched with
+  `include_complexes=true`, so complexes appear alongside monomers. Each row
+  carries its oligomeric state (e.g. `Homodimer`) and the UniProt chains it
+  covers, and monomers sort ahead of complexes.
+- **`.cif` downloads and cleaner links.** Experimental structures expose a
+  PDBe `…_updated.cif` download URL; AlphaFold rows link to the model's `.cif`
+  and to the AlphaFold search page. PDBe links are simplified.
+- **Empty data is handled.** An accession with no structures renders cleanly
+  instead of failing.
+
+### Added — attributes and an event to drive the viewer
+
+The element can now be controlled and observed from the page:
+
+- **`selected-id`** — pre-select a structure by id; the viewer honours it once
+  the structure list has loaded, without waiting for a click.
+- **`no-table`** — render the 3D view on its own, without the accompanying
+  structures table.
+- **`structures-loaded`** — a `CustomEvent` fired once structures resolve,
+  carrying the processed list so a host page can react to what is available.
+
 ## 5.0.0-beta.1 — 2026-07-30
 
 First public beta of v5, published on the `beta` dist-tag. The stable 4.x line

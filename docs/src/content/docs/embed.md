@@ -14,7 +14,7 @@ viewer for that protein:
 ```html
 <script
   type="module"
-  src="https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.1/dist/protvista-uniprot.mjs"
+  src="https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.2/dist/protvista-uniprot.mjs"
 ></script>
 
 <protvista-uniprot accession="P05067"></protvista-uniprot>
@@ -35,7 +35,7 @@ beta with nothing to install:
 ```html
 <script
   type="module"
-  src="https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.1/dist/protvista-uniprot.mjs"
+  src="https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.2/dist/protvista-uniprot.mjs"
 ></script>
 
 <protvista-uniprot accession="P05067"></protvista-uniprot>
