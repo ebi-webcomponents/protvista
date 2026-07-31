@@ -202,6 +202,31 @@ describe.skipIf(!pkg.module || !existsSync(resolve(root, pkg.module)))(
       expect(existsSync(resolve(root, rel))).toBe(true);
     });
 
+    it('ships the browser `process` shim in the entry bundle, not the config subpath', () => {
+      // The published dist is loaded straight from a CDN as
+      // `<script type="module">` with no bundler, where Node's `process` global
+      // is absent. Mol* (reached via <protvista-uniprot-structure>) reads bare
+      // `process.env` / `process.hrtime` / `process.versions` when it
+      // initialises the 3D pane, so without a shim the bundle throws
+      // `ReferenceError: process is not defined` ("Failed to init Mol*") and the
+      // pane stays blank while the 2D tracks still render. src/process-shim.ts
+      // installs a guarded `process` on `globalThis`; this pins that the shim
+      // survived into the built entry, and that it did *not* leak into the
+      // side-effect-free `./config` output (whose purity is enforced at source
+      // by config-subpath-purity.spec.ts).
+      //
+      // Whitespace-insensitive so it holds minified or not; the assignment to
+      // `globalThis.process` is the shim's signature and never occurs in Mol*,
+      // which reads `process` but never assigns the global.
+      const installsShim = /globalThis(?:\.process|\[["']process["']\])\s*=/;
+      const strip = (rel: string) => read(rel).replace(/\s+/g, '');
+
+      expect(strip(bare(pkg.module))).toMatch(installsShim);
+      expect(strip(bare(pkg.exports['./config'].import))).not.toMatch(
+        installsShim
+      );
+    });
+
     it('emits declarations from exactly one producer', () => {
       // `tsc` and vite-plugin-dts both used to emit declarations. The
       // plugin's output directory was misconfigured (`outDir` is not an
