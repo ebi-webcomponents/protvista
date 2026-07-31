@@ -142,6 +142,7 @@ export default defineConfig({
         // sidebar to one entry means a new post needs no config change — only
         // a line in blog/index.md.
         { label: 'Blog', link: '/blog/' },
+        { label: 'Webinar', link: '/webinar' },
         {
           label: 'Getting started',
           items: [

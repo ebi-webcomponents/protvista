@@ -133,12 +133,7 @@ contributed to the project.
 - [Source and issues](https://github.com/ebi-webcomponents/protvista) — questions, bugs, and feature requests.
 - [Office hours](https://github.com/ebi-webcomponents/protvista/blob/next/CONTRIBUTING.md#office-hours) — monthly live help with setup and your own data, no registration needed.
 
-A webinar covering the same ground in more depth is coming later this year.
-
-<!-- TODO(url): once the webinar is scheduled, replace the sentence above with
-     a link — e.g. "A [webinar](URL) covering the same ground in more depth is
-     coming later this year." Publishing without the link is deliberate: a bare
-     placeholder URL must never ship. -->
+A [webinar](/protvista/webinar) covering the same ground in more depth is available.
 
 ---
 

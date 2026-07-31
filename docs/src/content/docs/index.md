@@ -20,6 +20,10 @@ hero:
       link: https://github.com/ebi-webcomponents/protvista-starter-kit
       icon: seti:notebook
       variant: primary
+    - text: Watch the webinar
+      link: /protvista/webinar
+      icon: youtube
+      variant: primary
 ---
 
 :::tip[ProtVista has been refactored]
