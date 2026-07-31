@@ -21,6 +21,13 @@ export const SEED_URLS = [
   'https://www.ebi.ac.uk/proteins/api/proteomics/hpp/P05067',
   'https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/P05067?type=domain&page_size=100',
   'https://alphafold.ebi.ac.uk/api/prediction/P05067',
+  // The same endpoint again, with the query `<protvista-uniprot-structure>`
+  // adds for itself (`Use predictions API for fetching complexes`, a6803a2).
+  // Two consumers, two URLs: the config's `alphafoldPrediction:` source asks
+  // without it, the structure pane with it, and a fixture is keyed by the whole
+  // URL. Missing this one aborts *every* shot, structure or not, because the
+  // pane mounts on every page.
+  'https://alphafold.ebi.ac.uk/api/prediction/P05067?include_complexes=true',
   // Followed from the AlphaFold prediction response.
   'https://alphafold.ebi.ac.uk/files/AF-P05067-F1-confidence_v6.json',
   'https://alphafold.ebi.ac.uk/files/AF-P05067-F1-aa-substitutions.csv',

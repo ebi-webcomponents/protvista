@@ -7,6 +7,14 @@
     "sha256": "b7a6356ffe0edd1ef7c9f3800315909d47ad043ce2e0918a1597225bca2fc625",
     "recordedAt": "2026-07-31T05:35:22.679Z"
   },
+  "https://alphafold.ebi.ac.uk/api/prediction/P05067?include_complexes=true": {
+    "file": "net/alphafold.ebi.ac.uk/api/prediction/P05067__include_complexes=true",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 41016,
+    "sha256": "9a370d056d44c8b64ecd41cf4d6e90280e9a9fd740ab70d66591e1cd3c63864c",
+    "recordedAt": "2026-07-31T15:02:35.674Z"
+  },
   "https://alphafold.ebi.ac.uk/files/AF-P05067-F1-aa-substitutions.csv": {
     "file": "net/alphafold.ebi.ac.uk/files/AF-P05067-F1-aa-substitutions.csv",
     "status": 200,
