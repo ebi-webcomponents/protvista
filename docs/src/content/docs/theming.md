@@ -175,22 +175,10 @@ protvista-uniprot-datatable::part(row):hover {
 
 ## What is *not* themable here
 
-- **Data-domain colours** — the AlphaFold pLDDT and AlphaMissense
-  pathogenicity ramps, and variant/PTM colours — are semantic data
-  encodings, not interface chrome. They are themed through the viewer
-  configuration (`registerTheme()` / rendering presets), not these
-  tokens.
-- **Nightingale track internals** — the track canvases are rendered by
-  the upstream `@nightingale-elements/*` components; only the properties
-  those components choose to expose can be set from here.
+Data-domain colours — the AlphaFold pLDDT and AlphaMissense pathogenicity ramps, and variant/PTM colours — are semantic data encodings, not interface chrome, so they're themed through the viewer configuration (`registerTheme()` / rendering presets) instead of these tokens. Nightingale track internals are also out of scope: the track canvases are rendered by the upstream `@nightingale-elements/*` components, so only the properties those components choose to expose can be set from here.
 
 ## On the roadmap
 
-- **Dark mode** — a `prefers-color-scheme` default token set. The token
-  layer above is the substrate; the palette itself is planned follow-on.
-- **Colour-blind-friendly palettes** — part of the viewer's WCAG
-  accessibility work; likewise a token-swap on top of this layer.
-- **No-code styling panel** — the interactive playground will let
-  non-developers adjust these tokens with live preview.
+Dark mode is planned as a `prefers-color-scheme` default token set — the token layer above is the substrate, and the palette itself is the follow-on work. Colour-blind-friendly palettes are part of the viewer's WCAG accessibility work and will likewise be a token-swap on top of this layer. Further out, the interactive playground should grow a no-code styling panel that lets non-developers adjust these tokens with live preview.
 
 _Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

@@ -156,7 +156,7 @@ Every push and pull request runs three steps via [`.github/workflows/test-and-de
 
 ### Coverage
 
-Coverage is gated by a fixed floor (a coverage ratchet, #162) configured under `test.coverage.thresholds` in [`vite.config.mjs`](./vite.config.mjs) and enforced by the CI coverage step. The floor is bumped up manually as coverage improves and is never lowered without justification.
+Coverage is gated by a fixed floor (a coverage ratchet) configured under `test.coverage.thresholds` in [`vite.config.mjs`](./vite.config.mjs) and enforced by the CI coverage step. The floor is bumped up manually as coverage improves and is never lowered without justification.
 
 Captured 2026-07-24 via `yarn test:coverage` (v8 instrumentation, 727 tests across 53 spec files):
 
