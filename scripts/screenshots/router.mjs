@@ -16,7 +16,7 @@ import { readFileSync } from 'node:fs';
 import { loadIndex, loadBody } from './fixtures.mjs';
 
 /**
- * The 3D structure pane is deliberately kept out of every capture.
+ * The 3D structure pane is kept out of captures unless a shot asks for it.
  *
  * `nostructure` defaults to false, so `<protvista-uniprot-structure>` always
  * mounts; left alone it loads Mol* (WebGL) and a multi-megabyte model, whose
@@ -29,14 +29,18 @@ import { loadIndex, loadBody } from './fixtures.mjs';
  * ALPHAFOLD_CONFIDENCE, ALPHAMISSENSE_PATHOGENICITY) are ordinary rows fed by
  * the AlphaFold fixture and are unaffected, so nothing the docs claim is lost.
  *
- * `ready.mjs` asserts `<nightingale-structure>` never appears, so if a future
- * release starts feeding the pane differently this fails loudly instead of
- * going flaky.
+ * For such a shot `ready.mjs` asserts `<nightingale-structure>` never appears,
+ * so if a future release starts feeding the pane differently this fails loudly
+ * instead of going flaky.
  *
  * A shot that genuinely wants the 3D viewer sets `structure: true`, which skips
- * these stubs and serves the real payloads (including the AlphaFold model) from
- * fixtures. That path needs SwiftShader forced on the browser and a small
- * comparison tolerance — see capture.mjs and compare.mjs.
+ * these stubs, serves the real payloads from fixtures, and lifts that
+ * assertion. What then renders for P05067 is the *experimental* PDB entry 1AAP
+ * (resolved via `rest.uniprot.org` -> 3D-Beacons -> the PDBe model server),
+ * not the AlphaFold model — worth knowing, because if `rest.uniprot.org` is
+ * unreachable the pane silently falls back to AlphaFold and the picture changes
+ * without failing. That path also needs SwiftShader forced on the browser and a
+ * small comparison tolerance — see capture.mjs and compare.mjs.
  */
 const STRUCTURE_STUBS = [/rest\.uniprot\.org\/uniprotkb\//, /3dbeacons/];
 

@@ -196,11 +196,15 @@ shots.push(
   },
   {
     id: 'structure-viewer',
-    // The 3D pane, which every other shot deliberately excludes. It needs the
-    // real structure endpoints and the AlphaFold model served from fixtures
-    // (`structure: true`), SwiftShader forced on the browser (capture.mjs), and
-    // a small tolerance: Mol* settles to marginally different anti-aliasing on
-    // each run — measured at ~0.3% of pixels, with no perceptible difference.
+    // The 3D pane on its own. It needs the real structure endpoints served from
+    // fixtures (`structure: true`), SwiftShader forced on the browser
+    // (capture.mjs), and a small tolerance: Mol* settles to marginally
+    // different anti-aliasing on each run — measured at ~0.3% of pixels, with
+    // no perceptible difference.
+    //
+    // What resolves is the experimental PDB entry 1AAP, not the AlphaFold
+    // model; with `rest.uniprot.org` unreachable it falls back to AlphaFold
+    // silently, which is a different picture and not an error. See router.mjs.
     url: `${PLAYGROUND}#preset=uniprot-default&accession=P05067`,
     // Narrower than the 3D pane's natural width: Mol* fits the model to the
     // canvas, so a wide short canvas letterboxes a tall molecule into a strip.

@@ -30,11 +30,11 @@ released in lockstep. Captures run against a local build rather than the
 deployed site for the same reason: a screenshot should show the commit it ships
 beside, so an image and the UI change together in one PR.
 
-**Everything is pinned.** The viewer fetches a dozen URLs — UniProt, InterPro,
-AlphaFold — and UniProt is curated continuously, so a live capture would drift
-silently and CI would depend on EBI being reachable. `fixtures/` holds those
-payloads and `router.mjs` serves them. A request that is _not_ pinned aborts and
-fails the run rather than quietly reaching the network.
+**Everything is pinned.** The viewer fetches some thirty URLs — UniProt,
+InterPro, AlphaFold, PDBe — and UniProt is curated continuously, so a live
+capture would drift silently and CI would depend on EBI being reachable.
+`fixtures/` holds those payloads and `router.mjs` serves them. A request that is
+_not_ pinned aborts and fails the run rather than quietly reaching the network.
 
 **Failure is loud.** A screenshot of a broken viewer is worse than no
 screenshot, so a run fails on: an unpinned request, a page or console error, an
@@ -83,27 +83,44 @@ that never settle, or an oversized file.
 - **`out`** — write somewhere other than `docs/src/assets/screenshots/`. Only
   `readme-hero` uses it, because GitHub and npm resolve README image paths
   relative to the file.
+- **`structure: true`** — include the 3D pane, which is otherwise stubbed away
+  (see below). Such a shot is run in a separate browser with SwiftShader forced,
+  and needs a `tolerance`.
+- **`tolerance`** — the fraction of pixels that may differ before two images
+  count as different, for shots that cannot be byte-exact. It governs
+  `--check`, `--assert-clean`, **and whether the file is rewritten at all** —
+  without that last part a tolerated shot would dirty the diff on every run.
+  Only the two shots containing the 3D model use it: 1% for the standalone
+  view, 3% for the home hero, where downscaling to 400px amplifies the same
+  noise. The cost is real: drift under that threshold is not reported.
 
 ## Things that will bite you
 
-- **The 3D structure pane is excluded by default, but it does work.** A shot can
-  set `structure: true` to get it: the stubs are skipped, the AlphaFold model is
-  served from fixtures, and the browser is launched with SwiftShader forced.
+- **The 3D structure pane is excluded unless a shot asks for it.**
+  `nostructure` defaults to false, so the pane always mounts; left alone it
+  loads Mol\* (WebGL) and a multi-megabyte model whose canvas and camera never
+  settle reproducibly. By default `router.mjs` serves `[]` for its two
+  endpoints, which keeps `<nightingale-structure>` from being created at all,
+  captures clip to just above the pane, and `ready.mjs` fails the run if the
+  element appears anyway.
+- **A shot that wants the 3D pane sets `structure: true`.** The stubs are
+  skipped, the real payloads come from fixtures, the `nightingale-structure`
+  assertion is lifted, and the browser is launched with SwiftShader forced.
   That last part is essential — without
   `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader`, headless
-  Chromium refuses Mol*'s WebGL context, and Mol* then gives up _before
+  Chromium refuses Mol\*'s WebGL context, and Mol\* then gives up _before
   requesting its model_, leaving a silently blank pane that looks like a
-  missing-data problem. Those flags are applied only to structure shots, in a
+  missing-data problem. The flags are applied only to structure shots, in a
   separate browser: with them on, the ordinary Nightingale track canvases never
-  stop redrawing and no other shot reaches pixel stability.
-  Mol* also settles to marginally different anti-aliasing per run (~0.3% of
-  pixels), so such a shot needs a `tolerance` — see `compare.mjs`.
-- **Otherwise the 3D structure pane is excluded.** `nostructure` defaults to
-  false, so the pane always mounts; left alone it loads Mol\* (WebGL) and a
-  multi-megabyte model whose canvas and camera never settle reproducibly.
-  `router.mjs` serves `[]` for its two endpoints, which keeps
-  `<nightingale-structure>` from being created at all, and captures clip to just
-  above the pane. `ready.mjs` fails the run if the element ever appears.
+  stop redrawing and no other shot reaches pixel stability. Mol\* also settles
+  to marginally different anti-aliasing per run (~0.3% of pixels), so such a
+  shot needs a `tolerance`.
+- **What the 3D pane shows is resolved over three hops**, and a broken one is
+  silent. For P05067 the viewer asks `rest.uniprot.org` for cross-references,
+  3D-Beacons for a model list, then the PDBe model server for the bcif — landing
+  on the _experimental_ entry **1AAP**. If `rest.uniprot.org` cannot be reached
+  it falls back to the AlphaFold model instead: a different picture, no error.
+  If the structure images change, check that first.
 - **Fixtures are recorded with Node, not the browser.** Chromium in some proxied
   environments cannot complete HTTP/2 to `www.ebi.ac.uk`
   (`ERR_HTTP2_PROTOCOL_ERROR`) where Node succeeds, so browser-driven recording
@@ -127,7 +144,7 @@ that never settle, or an oversized file.
 yarn screenshots --refresh-fixtures
 ```
 
-Deliberate and rare. The payloads are ~4 MB raw (~0.3–0.4 MB packed), so a
+Deliberate and rare. The payloads are ~6 MB raw across ~30 URLs, so a
 refresh is a real commit; review `fixtures/index.json`, where each entry records
 the URL, status, byte count, hash and retrieval date, and expect the images to
 change with it. Do it at release time, so the pictures document the science of
@@ -141,6 +158,7 @@ node scripts/screenshots/record-cli.mjs "https://example.org/new/endpoint"
 
 ## Licensing
 
-Fixtures are third-party data (UniProt, InterPro, AlphaFold) stored solely to
-make documentation builds reproducible. The Open Sans web font under
+Fixtures are third-party data — UniProt (`rest.uniprot.org`, the Proteins API),
+InterPro, PDBe (structure mappings and the bcif model) and AlphaFold — stored
+solely to make documentation builds reproducible. The Open Sans web font under
 `fixtures/net/fonts.gstatic.com/` is used under the SIL Open Font License.

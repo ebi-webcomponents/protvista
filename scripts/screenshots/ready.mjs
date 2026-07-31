@@ -203,7 +203,8 @@ export async function assertCapturable(page, ledger, consoleProblems, { structur
 
 /**
  * The clip rectangle. Defaults to the viewer element, stopping before the 3D
- * structure pane (which is deliberately excluded — see router.mjs).
+ * structure pane, which is excluded unless the shot opts in — see router.mjs.
+ * A shot that wants the pane sets `clip.stopBefore: null` to lift the cut.
  */
 export async function clipRect(page, shot) {
   if (shot.clip?.rect) return shot.clip.rect;
