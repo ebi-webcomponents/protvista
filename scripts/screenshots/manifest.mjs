@@ -61,21 +61,26 @@ const CC_BY = 'https://creativecommons.org/licenses/by/4.0/';
 export const shots = [
   {
     id: 'home-hero',
-    // The default viewer, whose fourteen dense rows actually fill a square. The
-    // two-row `json` preset was tried first and left three quarters of the hero
-    // empty.
+    // The whole product in one square: every track group *and* the 3D model
+    // beneath them. The viewer's height is fixed whatever its width, so the
+    // viewport is tuned so the `aspect: 1` crop lands just below the 3D canvas
+    // — including the model, excluding the structure datatable under it, which
+    // is unreadable at 400px and only adds clutter.
     url: `${PLAYGROUND}#preset=uniprot-default&accession=P05067`,
-    // Below ~900 the playground stacks the editor above the preview and the
-    // viewer lands thousands of pixels down the page, out of the viewport. Stay
-    // wide enough for the side-by-side layout; the 604px-wide viewer gives a
-    // 604² crop that downsamples cleanly to the 400² Starlight renders.
-    viewport: { width: 1280, height: 1400 },
+    viewport: { width: 2450, height: 1800 },
     expectGroups: DEFAULT_GROUPS,
-    clip: { aspect: 1 },
+    structure: true,
+    // Looser than the standalone 3D shot's 1%: downscaling ~1189px to 400
+    // resamples Mol*'s per-run anti-aliasing across a much smaller image, which
+    // measures 1.7-2.1% between runs. The cost is honest — drift below 3% will
+    // not be reported for this one image. Every other shot stays byte-exact,
+    // and a UI change worth noticing moves far more than 3% of a 400px square.
+    tolerance: 0.03,
+    clip: { aspect: 1, stopBefore: null },
     resizeTo: { width: 400, height: 400 },
     doc: 'docs/src/content/docs/index.md',
     hero: true,
-    alt: 'A ProtVista viewer showing many rows of protein annotation — molecule processing, sequence information, topology, domains, sites and modifications — drawn as coloured tracks aligned to the amino-acid sequence of P05067.',
+    alt: 'The ProtVista viewer showing many rows of protein annotation — domains, sites, modifications, variants and structure coverage — drawn as coloured tracks along the sequence of P05067, with a three-dimensional ribbon model of the protein beneath them.',
     caption: null, // the splash hero takes no caption
   },
   {
