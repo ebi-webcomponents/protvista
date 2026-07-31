@@ -23,6 +23,14 @@
     "sha256": "26c1e1496f92242d46b6cbe36b0bd7c8c53f5c1ef8a56cd6802ecd01f94696a2",
     "recordedAt": "2026-07-31T05:37:04.421Z"
   },
+  "https://alphafold.ebi.ac.uk/files/AF-P05067-F1-model_v6.cif": {
+    "file": "net/alphafold.ebi.ac.uk/files/AF-P05067-F1-model_v6.cif",
+    "status": 200,
+    "contentType": "application/octet-stream",
+    "bytes": 703787,
+    "sha256": "672d7a9013d8a8f8bb7b68f319fcf99b7a6223401a9882f8c9e6ce08e83eccff",
+    "recordedAt": "2026-07-31T10:09:06.569Z"
+  },
   "https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap": {
     "file": "net/fonts.googleapis.com/css2__family=Open+Sans_wght@400;700_display=swap",
     "status": 200,
@@ -126,6 +134,14 @@
     "bytes": 9847,
     "sha256": "44c6a1c5731d4129fc3d13ababeeadb8c9fc4e78078c9644eaf53ec9b7da93b8",
     "recordedAt": "2026-07-31T05:37:04.421Z"
+  },
+  "https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/P05067.json?exclude_provider=pdbe": {
+    "file": "net/www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/P05067.json__exclude_provider=pdbe",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 12463,
+    "sha256": "fd4d8b95ead9ad9f942e2e5790e68ef55a9dd17fcb66b745a53e39dc5d6a6ef2",
+    "recordedAt": "2026-07-31T10:08:16.605Z"
   },
   "https://www.ebi.ac.uk/proteins/api/antigen/P05067": {
     "file": "net/www.ebi.ac.uk/proteins/api/antigen/P05067",

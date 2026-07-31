@@ -155,7 +155,7 @@ export async function assertGroups(page, prefix, expectGroups) {
  * Assertions that must hold at capture time. Each corresponds to a way the
  * viewer can look plausible while being wrong.
  */
-export async function assertCapturable(page, ledger, consoleProblems) {
+export async function assertCapturable(page, ledger, consoleProblems, { structure = false } = {}) {
   if (ledger.unpinned.size) {
     throw new Error(
       `unpinned network request(s) — record them with --refresh-fixtures:\n` +
@@ -169,7 +169,7 @@ export async function assertCapturable(page, ledger, consoleProblems) {
     );
   }
 
-  const bad = await page.evaluate(() => {
+  const bad = await page.evaluate((allowStructure) => {
     const el = document.querySelector('protvista-uniprot');
     const issues = [];
     if (!el) issues.push('no <protvista-uniprot> on the page');
@@ -187,14 +187,14 @@ export async function assertCapturable(page, ledger, consoleProblems) {
     }
     // If this ever appears, Mol*/WebGL mounted and the capture is no longer
     // reproducible. See the STRUCTURE_STUBS note in router.mjs.
-    if (document.querySelector('nightingale-structure')) {
+    if (!allowStructure && document.querySelector('nightingale-structure')) {
       issues.push('<nightingale-structure> mounted — capture is non-deterministic');
     }
     if (location.search.includes('layout=')) {
       issues.push('a persisted ?layout= leaked into the URL');
     }
     return issues;
-  });
+  }, structure);
 
   if (bad.length) {
     throw new Error(`viewer is not capturable:\n${bad.map((b) => `  ${b}`).join('\n')}`);

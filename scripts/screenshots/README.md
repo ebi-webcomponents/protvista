@@ -86,7 +86,19 @@ that never settle, or an oversized file.
 
 ## Things that will bite you
 
-- **The 3D structure pane is deliberately excluded.** `nostructure` defaults to
+- **The 3D structure pane is excluded by default, but it does work.** A shot can
+  set `structure: true` to get it: the stubs are skipped, the AlphaFold model is
+  served from fixtures, and the browser is launched with SwiftShader forced.
+  That last part is essential — without
+  `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader`, headless
+  Chromium refuses Mol*'s WebGL context, and Mol* then gives up _before
+  requesting its model_, leaving a silently blank pane that looks like a
+  missing-data problem. Those flags are applied only to structure shots, in a
+  separate browser: with them on, the ordinary Nightingale track canvases never
+  stop redrawing and no other shot reaches pixel stability.
+  Mol* also settles to marginally different anti-aliasing per run (~0.3% of
+  pixels), so such a shot needs a `tolerance` — see `compare.mjs`.
+- **Otherwise the 3D structure pane is excluded.** `nostructure` defaults to
   false, so the pane always mounts; left alone it loads Mol\* (WebGL) and a
   multi-megabyte model whose canvas and camera never settle reproducibly.
   `router.mjs` serves `[]` for its two endpoints, which keeps

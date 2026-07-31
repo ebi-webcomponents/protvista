@@ -24,6 +24,7 @@ import {
   captureStable,
 } from './ready.mjs';
 import { encode, write, checkSize, join } from './encode.mjs';
+import { sameImage } from './compare.mjs';
 import { byId, outPath } from './manifest.mjs';
 
 const argv = process.argv.slice(2);
@@ -72,13 +73,35 @@ if (!has('--no-build')) {
 
 const selected = byId(ONLY);
 const { baseURL, stop } = await startServer();
-const browser = await chromium.launch();
+/**
+ * Two browsers, launched on demand.
+ *
+ * Headless Chromium refuses Mol*'s WebGL context request unless SwiftShader is
+ * forced ("Could not create a WebGL rendering context"), after which it gives
+ * up before even fetching a model and the 3D pane renders silently blank. But
+ * forcing it is *not* harmless elsewhere: with those flags the Nightingale
+ * track canvases never stop redrawing, so ordinary shots never reach pixel
+ * stability. Only a shot that asks for the structure pane gets them.
+ */
+const browsers = {};
+const GL_ARGS = [
+  '--use-gl=angle',
+  '--use-angle=swiftshader',
+  '--enable-unsafe-swiftshader',
+];
+async function browserFor(shot) {
+  const key = shot.structure ? 'gl' : 'default';
+  browsers[key] ??= await chromium.launch(
+    shot.structure ? { args: GL_ARGS } : {}
+  );
+  return browsers[key];
+}
 
 /** One capture pass over one shot, in its own context. A fresh context per shot
  *  is not tidiness: the playground persists layout to localStorage and mirrors
  *  it into `?layout=`, so a reused profile would silently change what renders. */
 async function capture(shot, frame = shot) {
-  const context = await browser.newContext({
+  const context = await (await browserFor(shot)).newContext({
     viewport: shot.viewport,
     deviceScaleFactor: 2,
     colorScheme: 'light',
@@ -101,7 +124,7 @@ async function capture(shot, frame = shot) {
   });
 
   const ledger = createLedger();
-  await installRoutes(context, { baseURL, ledger });
+  await installRoutes(context, { baseURL, ledger, structure: shot.structure });
 
   const page = await context.newPage();
   const consoleProblems = watchConsole(page);
@@ -135,7 +158,9 @@ async function capture(shot, frame = shot) {
 
   // Only now: interactions can legitimately change which rows are revealed.
   await assertGroups(page, CSS_PREFIX, frame.expectGroups ?? shot.expectGroups);
-  await assertCapturable(page, ledger, consoleProblems);
+  await assertCapturable(page, ledger, consoleProblems, {
+    structure: shot.structure,
+  });
 
   const clip = await clipRect(page, shot);
   // Fit the viewport to the content so Playwright does not take the
@@ -176,9 +201,11 @@ for (const shot of selected) {
 
     if (ASSERT_CLEAN) {
       const again = await render(shot);
-      if (!png.equals(again)) {
+      const { same, delta } = await sameImage(png, again, shot.tolerance);
+      if (!same) {
         throw new Error(
-          'two consecutive captures differ — output is not reproducible'
+          'two consecutive captures differ — output is not reproducible' +
+            (delta === null ? '' : ` (${(delta * 100).toFixed(3)}% of pixels)`)
         );
       }
     }
@@ -186,17 +213,26 @@ for (const shot of selected) {
     const warn = checkSize(shot.id, png.length);
     if (warn) warnings.push(warn);
 
+    const existing = existsSync(path) ? readFileSync(path) : null;
+    const { same } = existing
+      ? await sameImage(existing, png, shot.tolerance)
+      : { same: false };
+
     if (CHECK) {
-      const existing = existsSync(path) ? readFileSync(path) : null;
       if (!existing) {
         console.log(`MISSING (${(png.length / 1024).toFixed(0)} KB would be written)`);
         drift++;
-      } else if (!existing.equals(png)) {
+      } else if (!same) {
         console.log(`DRIFTED (${(existing.length / 1024).toFixed(0)} KB → ${(png.length / 1024).toFixed(0)} KB)`);
         drift++;
       } else {
         console.log('unchanged');
       }
+    } else if (same) {
+      // Visually identical to what is committed. Leave the file alone rather
+      // than rewriting it — otherwise a shot with a tolerance (the 3D viewer)
+      // would dirty the diff on every run for no visible reason.
+      console.log('unchanged');
     } else {
       write(path, png);
       console.log(`${(png.length / 1024).toFixed(0)} KB → ${path}`);
@@ -208,7 +244,7 @@ for (const shot of selected) {
   }
 }
 
-await browser.close();
+await Promise.all(Object.values(browsers).map((b) => b.close()));
 stop();
 
 for (const w of warnings) console.warn(`warning: ${w}`);

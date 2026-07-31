@@ -78,9 +78,32 @@ export function loadBody(entry) {
  * treated as a failure: `proteins/api/rna-editing/P05067` genuinely 404s, and
  * replaying that 404 is what reproduces the real viewer.
  */
+/**
+ * A proxy or corporate firewall refusing the request looks, to `fetch`, exactly
+ * like the API returning an error — and a recorded non-2xx is legitimate here
+ * (`proteins/api/rna-editing` genuinely 404s). Storing a block page as if it
+ * were an API response is silent poisoning: the capture then replays it and the
+ * viewer renders as though the service were down. Catch the shapes a sandbox or
+ * proxy actually produces.
+ */
+function looksLikeProxyBlock(status, body) {
+  if (status !== 403 && status !== 407) return false;
+  const head = body.subarray(0, 400).toString('utf8');
+  return /blocked by network policy|proxy|firewall|not allowed by/i.test(head);
+}
+
 export async function record(url, index, { now }) {
   const res = await fetch(url, { headers: { 'user-agent': RECORD_UA } });
   const body = Buffer.from(await res.arrayBuffer());
+
+  if (looksLikeProxyBlock(res.status, body)) {
+    throw new Error(
+      `refusing to record ${url}: the response is a network-policy block, not the ` +
+        `API's own answer.\n  ${body.subarray(0, 200).toString('utf8').trim()}\n` +
+        `  Allow this domain and re-run, or the capture will replay the block page.`
+    );
+  }
+
   const file = fixturePath(url);
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, body);

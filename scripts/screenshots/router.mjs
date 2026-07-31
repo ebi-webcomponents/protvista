@@ -32,6 +32,11 @@ import { loadIndex, loadBody } from './fixtures.mjs';
  * `ready.mjs` asserts `<nightingale-structure>` never appears, so if a future
  * release starts feeding the pane differently this fails loudly instead of
  * going flaky.
+ *
+ * A shot that genuinely wants the 3D viewer sets `structure: true`, which skips
+ * these stubs and serves the real payloads (including the AlphaFold model) from
+ * fixtures. That path needs SwiftShader forced on the browser and a small
+ * comparison tolerance — see capture.mjs and compare.mjs.
  */
 const STRUCTURE_STUBS = [/rest\.uniprot\.org\/uniprotkb\//, /3dbeacons/];
 
@@ -39,7 +44,7 @@ export function createLedger() {
   return { unpinned: new Set(), served: new Set(), stubbed: new Set() };
 }
 
-export async function installRoutes(context, { baseURL, ledger }) {
+export async function installRoutes(context, { baseURL, ledger, structure = false }) {
   const index = loadIndex();
 
   await context.route('**/*', async (route) => {
@@ -76,8 +81,8 @@ export async function installRoutes(context, { baseURL, ledger }) {
       return route.continue();
     }
 
-    // 3. Structure pane.
-    if (STRUCTURE_STUBS.some((re) => re.test(url))) {
+    // 3. Structure pane, unless this shot asked for it (see `structure` above).
+    if (!structure && STRUCTURE_STUBS.some((re) => re.test(url))) {
       ledger.stubbed.add(url);
       return route.fulfill({
         status: 200,
