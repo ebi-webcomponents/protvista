@@ -4,6 +4,9 @@ description: Embed an interactive protein feature viewer and load your own data 
 template: splash
 hero:
   tagline: Visualize protein sequence features within the browser. Use UniProt data or bring your own. Use standalone or embed within your own website. Configuration driven with minimal coding.
+  image:
+    alt: The ProtVista viewer showing many rows of protein annotation — domains, sites, modifications, variants and structure coverage — drawn as coloured tracks along the sequence of P05067, with a three-dimensional ribbon model of the protein beneath them.
+    file: ../../assets/screenshots/home-hero.png
   actions:
     - text: Learn more
       link: /protvista/overview

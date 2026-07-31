@@ -6,6 +6,10 @@ description: Let end users reorder and show/hide tracks live, ship a track hidde
 End users can reorder rows and show or hide tracks directly in the viewer,
 live, without editing the config or writing code.
 
+![A close view of ProtVista track rows in Customize mode. Each row shows its label, a show/hide switch, and move-up and move-down buttons.](../../assets/screenshots/customize-controls.png)
+
+_The per-row controls: show or hide, and move up or down._
+
 **The config is the source of truth.** A user's edits are written into the
 viewer's configuration — reordering a row moves it in `rows:`, hiding a track
 sets the same `hidden:` field an author could have written. Nothing is layered

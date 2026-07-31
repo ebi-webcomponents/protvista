@@ -46,14 +46,26 @@ export default [
     },
   },
 
-  /* Bench runners — node scripts, not shipped. */
+  /* Bench runners and the screenshot harness — node scripts, not shipped. */
   {
-    files: ['bench/**/*.{mjs,cjs}'],
+    files: ['bench/**/*.{mjs,cjs}', 'scripts/**/*.{mjs,cjs}'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
       globals: {
         ...globals.node,
+      },
+    },
+  },
+
+  /* The screenshot harness evaluates functions inside the page, where `window`
+     globals are in scope rather than Node's. */
+  {
+    files: ['scripts/screenshots/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.browser,
       },
     },
   },

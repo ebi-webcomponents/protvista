@@ -31,7 +31,9 @@
     "bench:bundle": "yarn build && node bench/bundle-size.mjs",
     "bench:lighthouse": "yarn bench:build && lhci autorun --config=bench/lighthouserc.cjs",
     "bench:summary": "node bench/summarize.mjs",
-    "cdn:clear": "./scripts/clearCDNcaches.sh"
+    "cdn:clear": "./scripts/clearCDNcaches.sh",
+    "screenshots": "node scripts/screenshots/capture.mjs",
+    "screenshots:check": "node scripts/screenshots/capture.mjs --check"
   },
   "module": "dist/protvista-uniprot.mjs",
   "types": "dist/types/index.d.ts",

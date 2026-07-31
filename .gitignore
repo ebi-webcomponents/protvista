@@ -22,6 +22,9 @@ bench/results/
 .vitest-attachments/
 **/__screenshots__/
 
+# Evidence written by `yarn screenshots:check` when an image has drifted
+screenshot-drift/
+
 # Python bytecode caches (scripts/)
 __pycache__/
 *.py[cod]
