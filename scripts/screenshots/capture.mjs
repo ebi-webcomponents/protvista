@@ -25,7 +25,7 @@ import {
 } from './ready.mjs';
 import { encode, write, checkSize, join } from './encode.mjs';
 import { sameImage, drift } from './compare.mjs';
-import { byId, outPath } from './manifest.mjs';
+import { byId, outPath, DEFAULT_TOLERANCE } from './manifest.mjs';
 
 const argv = process.argv.slice(2);
 const has = (f) => argv.includes(f);
@@ -238,9 +238,14 @@ for (const shot of selected) {
     const warn = checkSize(shot.id, png.length);
     if (warn) warnings.push(warn);
 
+    // Comparing across machines, so the lenient default applies unless the shot
+    // asks for something tighter (the 3D shots do). `--assert-clean` above
+    // stays on the shot's own tolerance: that one compares two captures from
+    // *this* machine, where disagreement is a defect rather than noise.
+    const tolerance = shot.tolerance ?? DEFAULT_TOLERANCE;
     const existing = existsSync(path) ? readFileSync(path) : null;
     const { same } = existing
-      ? await sameImage(existing, png, shot.tolerance)
+      ? await sameImage(existing, png, tolerance)
       : { same: false };
 
     if (CHECK) {
@@ -257,7 +262,7 @@ for (const shot of selected) {
         console.log(
           resized
             ? `DRIFTED (dimensions changed, ${(existing.length / 1024).toFixed(0)} KB → ${(png.length / 1024).toFixed(0)} KB)`
-            : `DRIFTED (${(fraction * 100).toFixed(2)}% of pixels, ${(existing.length / 1024).toFixed(0)} KB → ${(png.length / 1024).toFixed(0)} KB)`
+            : `DRIFTED (${(fraction * 100).toFixed(2)}% of pixels, over the ${(tolerance * 100).toFixed(0)}% tolerance)`
         );
         await writeComparison(shot.id, existing, png, heatmap);
         drifted++;
@@ -294,9 +299,9 @@ if (CHECK && drifted) {
     `\n${drifted}/${selected.length} image(s) differ from what is committed.\n` +
       `  ${DRIFT_DIR}/<id>.compare.png   committed | fresh | difference\n` +
       `  ${DRIFT_DIR}/<id>.fresh.png     the new bytes, if the change is wanted\n` +
-      `Drift that traces the text and nothing else is the font rasteriser ` +
-      `differing between this machine and the one that generated the committed ` +
-      `images, not a UI change. Regenerate with \`yarn screenshots\`.`
+      `The tolerance already absorbs cross-machine text rasterisation, so this ` +
+      `moved further than that. Look before regenerating with ` +
+      `\`yarn screenshots\`.`
   );
   process.exit(1);
 }

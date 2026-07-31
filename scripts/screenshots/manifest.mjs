@@ -16,6 +16,28 @@ import { readFileSync } from 'node:fs';
 
 const PLAYGROUND = '/protvista/playground/';
 
+/**
+ * How much any shot may differ before it counts as a different picture.
+ *
+ * Byte-exactness only ever held *within* one machine. Across machines the text
+ * rasteriser differs — FreeType hinting and Chromium's subpixel antialiasing
+ * vary by platform, so the same pinned Open Sans draws the same letterforms out
+ * of different pixels — and that alone measured 1.7-4.3% of every shot between
+ * the machine that generated the committed images and a Linux runner, with the
+ * tracks, rulers and borders byte-identical. Reporting all of it as drift made
+ * the check unreadable and blocked nothing useful.
+ *
+ * 10% is a little over twice the worst of that. It is deliberately blunt: a
+ * change confined to a small part of one image — a track's colour, a renamed
+ * label — now passes silently. What still fails is what a reader would notice:
+ * a row appearing or vanishing, a layout reflow, the viewer failing to render.
+ *
+ * `--assert-clean` deliberately does *not* use this. Two captures on one
+ * machine that disagree are a real defect in the harness, not cross-machine
+ * noise, and that check stays as strict as each shot's own `tolerance`.
+ */
+export const DEFAULT_TOLERANCE = 0.1;
+
 /** The tutorial's Step 3 config, loaded verbatim so the figure cannot drift
  *  from the YAML block printed beside it (which `tutorial-doc.spec.ts` already
  *  pins to this same file). Passed through the playground's `#config=`. */

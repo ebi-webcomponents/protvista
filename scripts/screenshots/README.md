@@ -22,28 +22,24 @@ that download; the CI check job skips rather than fails in that case.
 `screenshot-drift/` (gitignored, uploaded by CI as an artifact):
 
 ```
-  tutorial-standalone-csv … DRIFTED (1.80% of pixels, 9 KB → 8 KB)
+  tutorial-standalone-csv … DRIFTED (12.40% of pixels, over the 10% tolerance)
 ```
 
 - `<id>.compare.png` — the committed image, the fresh one and the difference
   joined into one strip.
 - `<id>.fresh.png` — the new bytes, if the change is the wanted one.
 
-**Read the difference panel, not the percentage.** Drift that traces every glyph
-and leaves the tracks, rulers and borders untouched is the font rasteriser
-differing between machines: FreeType's hinting and Chromium's subpixel
-antialiasing vary by platform, and the Open Sans that every shot renders in is
-pinned in `fixtures/` and identical everywhere, so the letterforms are the same
-and only their pixels are not. It reaches 1.8% of an image with per-channel
-deltas at the full 255, which no threshold can safely tell from a real change —
-but it looks like text and nothing else. Drift with a shape to it, or a
-percentage in the tens, is the UI having moved.
+**A report means something moved further than rasterisation ever does**, since
+the tolerance already absorbs that (see `DEFAULT_TOLERANCE` in `manifest.mjs`).
+Open the difference panel anyway before regenerating: drift that traces every
+glyph and leaves the tracks, rulers and borders untouched is still the font
+rasteriser, just an unusually text-heavy shot of it; drift with a shape to it —
+a row appearing, a band moving, a pane collapsing — is the UI.
 
 Captures are byte-stable *within* a machine — measured: three consecutive runs
-of a shot produce identical files, which is what `--assert-clean` exists to keep
-true, the two 3D shots excepted (that is what their `tolerance` is for). So
-drift against images you generated yourself is a real change; drift in CI
-against images generated on another machine may not be.
+of a shot produce identical files, the two 3D shots excepted (that is what their
+own `tolerance` is for). `--assert-clean` holds that line and ignores the
+lenient default, so it still catches a harness that has gone non-deterministic.
 
 ## Why it is built this way
 
@@ -116,15 +112,18 @@ that never settle, or an oversized file.
   (see below). Such a shot is run in a separate browser with SwiftShader forced,
   and needs a `tolerance`.
 - **`tolerance`** — the fraction of pixels that may differ before two images
-  count as different, for shots that cannot be byte-exact. It governs
-  `--check`, `--assert-clean`, **and whether the file is rewritten at all** —
-  without that last part a tolerated shot would dirty the diff on every run.
-  Only the two shots containing the 3D model use it: 1% for the standalone
-  view, 5% for the home hero, where downscaling to 400px amplifies the same
-  noise. Both are set about 2.5x above what that noise measures — 0.4% and 2.0%
-  between consecutive runs — because a thinner margin rewrites the file on an
-  unlucky pair for no visible reason. The cost is real: drift under that
-  threshold is not reported.
+  count as different. It governs `--check` **and whether the file is rewritten
+  at all** — without that last part a tolerated shot would dirty the diff on
+  every run. Every shot gets `DEFAULT_TOLERANCE`, 10%, unless it asks for
+  something tighter; the two 3D shots do (1% for the standalone view, 5% for the
+  hero, where downscaling to 400px amplifies Mol\*'s per-run noise). 10% is a
+  little over twice the 1.7–4.3% that text rasterisation alone moves between
+  machines. The cost is blunt and worth knowing: a change confined to a small
+  part of one image — a track's colour, a renamed label — now passes silently.
+  What still fails is what a reader would notice: a row appearing or vanishing,
+  a reflow, a viewer that did not render. `--assert-clean` is deliberately
+  exempt and stays on each shot's own tolerance, since two captures from one
+  machine disagreeing is a defect rather than noise.
 
 ## Things that will bite you
 
