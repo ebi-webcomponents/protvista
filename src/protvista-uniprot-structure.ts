@@ -149,7 +149,7 @@ const processPDBData = (data: UniProtKBData): ProcessedStructureData[] =>
   data.uniProtKBCrossReferences
     ? data.uniProtKBCrossReferences
         .filter((xref) => xref.database === 'PDB')
-        .sort((refA, refB) => refA.id.localeCompare(refB.id))
+        .sort((refA, refB) => refB.id.localeCompare(refA.id))
         .map(({ id, properties }) => {
           if (!properties) {
             return;
