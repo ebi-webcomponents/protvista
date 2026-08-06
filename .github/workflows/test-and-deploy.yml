@@ -4,10 +4,12 @@ on:
   push:
   pull_request:
 
+# GitHub Pages is deployed from the `next` branch only (see its own
+# workflow). `main` must not deploy Pages, or a push here overwrites the v5
+# docs site with the old 4.x demo. So this workflow only tests and builds;
+# it no longer needs the pages/id-token write scopes.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   test:
@@ -53,26 +55,3 @@ jobs:
 
       - name: Build
         run: yarn build
-
-      - name: Build demo
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: yarn build:demo
-
-      - name: Upload Pages artifact
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: demo/
-
-  deploy-pages:
-    name: Deploy to GitHub Pages
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
