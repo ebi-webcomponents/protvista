@@ -86,7 +86,7 @@ The variant filter and colour config are available from a side-effect-free `prot
 import { filterConfig, colorConfig } from 'protvista-uniprot/config';
 ```
 
-Import these from `protvista-uniprot/config`, not the package root. The root self-registers `<protvista-uniprot>` on load, so importing anything from it makes a bundler keep the whole viewer (Lit, the Nightingale tracks, Mol*). The `./config` subpath reaches none of that, so a consumer that only needs the filter data can tree-shake the element away.
+Import these from `protvista-uniprot/config`, not the package root. The root self-registers `<protvista-uniprot>` on load, so importing anything from it makes a bundler keep the whole viewer (Lit, the Nightingale tracks, Mol\*). The `./config` subpath reaches none of that, so a consumer that only needs the filter data can tree-shake the element away.
 
 ## API
 
