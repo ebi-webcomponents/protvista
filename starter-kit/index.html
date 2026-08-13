@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ProtVista Starter Kit</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1rem;
+      }
+      header {
+        margin-bottom: 1rem;
+      }
+      code {
+        background: #f2f2f2;
+        padding: 0.1em 0.3em;
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>ProtVista Starter Kit</h1>
+      <p>
+        This page loads ProtVista from a CDN, its layout from
+        <code>config.json</code>, and one of the tracks from the local
+        <code>data/</code> folder — no JavaScript required beyond the two tags
+        below.
+      </p>
+    </header>
+
+    <!--
+      The viewer. Everything is driven by attributes:
+      - accession:  the UniProt accession to display
+      - config-src: URL of the viewer configuration (validated against
+                    schema/protvista-config.schema.json; on error the viewer
+                    logs the problems and falls back to the default UniProt view)
+    -->
+    <protvista-uniprot
+      accession="P05067"
+      config-src="./config.json"
+    ></protvista-uniprot>
+
+    <script
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/protvista-uniprot@latest/dist/protvista-uniprot.mjs"
+    ></script>
+  </body>
+</html>

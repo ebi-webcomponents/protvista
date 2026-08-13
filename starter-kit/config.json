@@ -1,0 +1,58 @@
+{
+  "$schema": "https://raw.githubusercontent.com/ebi-webcomponents/protvista/main/schema/protvista-config.schema.json",
+  "categories": [
+    {
+      "name": "MY_ANNOTATIONS",
+      "label": "My annotations",
+      "trackType": "nightingale-track-canvas",
+      "tracks": [
+        {
+          "name": "my-domains",
+          "label": "My domains",
+          "filter": "DOMAIN",
+          "trackType": "nightingale-track-canvas",
+          "tooltip": "Domains from my own analysis, loaded from the local data folder",
+          "data": [
+            {
+              "adapter": "feature-adapter",
+              "url": "./data/my-features.json"
+            }
+          ]
+        },
+        {
+          "name": "my-sites",
+          "label": "My sites",
+          "filter": "SITE",
+          "trackType": "nightingale-track-canvas",
+          "tooltip": "Sites of interest from my own analysis",
+          "data": [
+            {
+              "adapter": "feature-adapter",
+              "url": "./data/my-features.json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "PUBLIC_DOMAINS_AND_SITES",
+      "label": "Public: domains & sites",
+      "trackType": "nightingale-track-canvas",
+      "tracks": [
+        {
+          "name": "domain",
+          "label": "UniProt domains",
+          "filter": "DOMAIN",
+          "trackType": "nightingale-track-canvas",
+          "tooltip": "Domains from the public UniProt Proteins API, mixed with your local tracks",
+          "data": [
+            {
+              "adapter": "feature-adapter",
+              "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

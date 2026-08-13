@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Question / discussion
+    url: https://github.com/ebi-webcomponents/protvista/discussions
+    about: Ask questions about embedding ProtVista or loading your own data.

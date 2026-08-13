@@ -80,7 +80,8 @@ You can then use it like this:
 ## API
 
 - `accession`: `string`
-- `config?`: `Array` (see [Configuration](#configuration))
+- `config?`: `Object` (see [Configuration](#configuration))
+- `config-src?`: `string` — URL of a JSON viewer configuration (see [Configuration](#configuration))
 - `nostructure?`: `boolean` (default: `false`)
 
 ## Development
@@ -130,30 +131,37 @@ See [`bench/README.md`](./bench/README.md) for scenarios, capture procedure, and
 
 ## Configuration
 
-You can pass your own configuration to the component using the `config` attribute/property.
+ProtVista mounts categories and tracks dynamically from a viewer
+configuration. There are two ways to supply your own:
 
-```json
-{
-  "categories": [
-    {
-      "name": "string",
-      "label": "string",
-      "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation-canvas,
-      "adapter": "feature-adapter|structure-adapter|proteomics-adapter|variation-adapter",
-      "url": "string",
-      "tracks": [
-        {
-          "name": "string",
-          "label": "string",
-          "filter": "string",
-          "trackType": "nightingale-track-canvas|nightingale-linegraph-track|nightingale-variation-canvas,
-          "tooltip": "string"
-        }
-      ]
-    }
-  ]
-}
-```
+- **`config-src` attribute** (no code): point the component at a JSON file.
+  The file is validated against the published
+  [configuration schema](./schema/protvista-config.schema.json); on failure
+  every problem is reported on the console and the viewer falls back to the
+  default UniProt configuration.
+
+  ```html
+  <protvista-uniprot
+    accession="P05067"
+    config-src="./config.json"
+  ></protvista-uniprot>
+  ```
+
+- **`config` property** (JavaScript): assign a configuration object directly.
+  A validator is exported for programmatic use:
+
+  ```js
+  import { validateConfig, formatConfigErrors } from 'protvista-uniprot';
+  ```
+
+The full contract — including the distinction between the **viewer
+configuration** (owned by ProtVista) and **track payloads** (owned by data
+providers/adapters) — is documented in
+[docs/configuration.md](./docs/configuration.md).
+
+To visualise your own data without writing any code, start from the
+[Starter Kit](./starter-kit/): an HTML page, a sample configuration, and a
+local data folder you can copy and edit.
 
 ## Events
 

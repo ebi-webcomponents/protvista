@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ebi-webcomponents/protvista/blob/main/schema/protvista-config.schema.json",
+  "title": "ProtVista viewer configuration",
+  "description": "Formal schema for the ProtVista viewer configuration model. It describes what the viewer mounts and where it fetches data from (categories, tracks, data sources, and rendering options). It deliberately does NOT describe track payloads: the shape of the data returned by each data source is a separate contract, defined per adapter/track type. See docs/configuration.md for the distinction.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["categories"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional reference to this schema, to enable editor validation and autocompletion."
+    },
+    "categories": {
+      "type": "array",
+      "description": "Ordered list of track categories. Categories are rendered top to bottom in the order given here.",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/category" }
+    }
+  },
+  "$defs": {
+    "trackType": {
+      "type": "string",
+      "description": "The Nightingale visualisation element used to render a track.",
+      "enum": [
+        "nightingale-track-canvas",
+        "nightingale-interpro-track",
+        "nightingale-colored-sequence",
+        "nightingale-variation-canvas",
+        "nightingale-linegraph-track",
+        "nightingale-sequence-heatmap"
+      ]
+    },
+    "adapter": {
+      "type": "string",
+      "description": "Built-in adapter used to transform the payload returned by `url` into the shape expected by the track type. Omit when the data source already returns data in the track's native payload shape.",
+      "enum": [
+        "feature-adapter",
+        "structure-adapter",
+        "proteomics-adapter",
+        "variation-adapter",
+        "variation-graph-adapter",
+        "interpro-adapter",
+        "alphafold-confidence-adapter",
+        "alphamissense-pathogenicity-adapter",
+        "alphamissense-heatmap-adapter",
+        "proteomics-ptm-adapter",
+        "rna-editing-adapter",
+        "rna-editing-graph-adapter"
+      ]
+    },
+    "dataSource": {
+      "type": "object",
+      "description": "Where and how a track gets its data.",
+      "additionalProperties": false,
+      "required": ["url"],
+      "properties": {
+        "url": {
+          "description": "URL template for the data source. The literal token `{accession}` is replaced with the viewer's accession at load time. Relative URLs are resolved against the embedding page, so local files work too. An array means the payloads of several endpoints are combined by the adapter.",
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1
+            }
+          ]
+        },
+        "adapter": { "$ref": "#/$defs/adapter" }
+      }
+    },
+    "track": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "trackType", "data", "tooltip"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique identifier of the track within its category."
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable label shown next to the track. Defaults to a prettified `name`."
+        },
+        "labelUrl": {
+          "type": "string",
+          "description": "URL template the label links to. `{accession}` is replaced at render time."
+        },
+        "filter": {
+          "type": "string",
+          "description": "Feature-type filter applied to the adapter output (e.g. `SIGNAL`, `CHAIN`). Only features whose type matches are shown in this track."
+        },
+        "trackType": { "$ref": "#/$defs/trackType" },
+        "data": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/dataSource" }
+        },
+        "tooltip": {
+          "type": "string",
+          "description": "Description of the track shown in the category/track tooltip."
+        },
+        "color": {
+          "type": "string",
+          "description": "CSS colour used for features in this track. Overrides the category colour."
+        },
+        "shape": {
+          "type": "string",
+          "description": "Feature shape (e.g. `rectangle`, `bridge`, `diamond`). Overrides the category shape."
+        },
+        "scale": {
+          "type": "string",
+          "description": "Colour scale for nightingale-colored-sequence tracks (e.g. `hydrophobicity-scale`)."
+        },
+        "color-range": {
+          "type": "string",
+          "description": "Colour range for scaled tracks, as accepted by nightingale-colored-sequence (e.g. `#ffdd00:-2,#0000FF:2`)."
+        },
+        "filterComponent": {
+          "type": "string",
+          "enum": ["nightingale-filter"],
+          "description": "Optional filter UI rendered alongside the track."
+        },
+        "helpPage": {
+          "type": "string",
+          "description": "Slug of the UniProt help page linked from the track label."
+        }
+      }
+    },
+    "category": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "label", "trackType", "tracks"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique identifier of the category (e.g. `DOMAINS_AND_SITES`)."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable category label shown in the collapsed category row."
+        },
+        "trackType": { "$ref": "#/$defs/trackType" },
+        "tracks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/track" },
+          "description": "Tracks shown when the category is expanded. May be empty for categories rendered only in their collapsed, aggregated form."
+        },
+        "color": {
+          "type": "string",
+          "description": "Default CSS colour for features in this category."
+        },
+        "shape": {
+          "type": "string",
+          "description": "Default feature shape for this category."
+        },
+        "scale": {
+          "type": "string",
+          "description": "Colour scale for nightingale-colored-sequence categories."
+        },
+        "color-range": {
+          "type": "string",
+          "description": "Colour range for scaled categories."
+        },
+        "helpPage": {
+          "type": "string",
+          "description": "Slug of the UniProt help page linked from the category label."
+        }
+      }
+    }
+  }
+}

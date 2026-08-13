@@ -44,6 +44,7 @@ import config, {
   ProtvistaTrackConfig,
   TrackType,
 } from './config';
+import { validateConfig, formatConfigErrors } from './config-validator';
 
 import { TransformedInterPro } from './adapters/types/interpro';
 import { StructureFeature } from './adapters/structure-adapter';
@@ -188,6 +189,7 @@ class ProtvistaUniprot extends LitElement {
     variants: TransformedVariant[];
   };
   private config?: ProtvistaConfig;
+  private configSrc?: string;
 
   constructor() {
     super();
@@ -208,6 +210,7 @@ class ProtvistaUniprot extends LitElement {
       data: { type: Object },
       openCategories: { type: Array },
       config: { type: Object },
+      configSrc: { type: String, attribute: 'config-src', reflect: true },
       notooltip: { type: Boolean, reflect: true },
       nostructure: { type: Boolean, reflect: true },
     };
@@ -490,7 +493,10 @@ class ProtvistaUniprot extends LitElement {
     this._loadDataInComponents();
   }
 
-  _init() {
+  async _init() {
+    if (!this.config && this.configSrc) {
+      this.config = await this.loadExternalConfig(this.configSrc);
+    }
     if (!this.config) {
       this.config = config;
     }
@@ -520,6 +526,38 @@ class ProtvistaUniprot extends LitElement {
         this.displayCoordinates.end = e.detail.displayend;
       }
     });
+  }
+
+  /**
+   * Load a viewer configuration from a URL (set via the `config-src`
+   * attribute) and validate it against the published configuration contract
+   * (see schema/protvista-config.schema.json). On any failure the error is
+   * reported on the console and the viewer falls back to the built-in
+   * UniProt configuration.
+   */
+  async loadExternalConfig(url: string): Promise<ProtvistaConfig | undefined> {
+    let payload: unknown;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} for ${url}`);
+      }
+      payload = await response.json();
+    } catch (e) {
+      console.error(
+        `Couldn't load ProtVista configuration from "${url}", falling back to the default configuration`,
+        e
+      );
+      return undefined;
+    }
+    const result = validateConfig(payload);
+    if (!result.valid) {
+      console.error(
+        `Configuration loaded from "${url}" is invalid, falling back to the default configuration.\n${formatConfigErrors(result.errors)}`
+      );
+      return undefined;
+    }
+    return result.config;
   }
 
   async loadEntry(
