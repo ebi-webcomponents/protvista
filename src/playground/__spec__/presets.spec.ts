@@ -67,7 +67,9 @@ describe('presets', () => {
       expect(preset).toBeDefined();
       // Repointed to the served /protvista/sample-data/ path so it loads.
       expect(preset!.config).toContain('/protvista/sample-data/hotspots.');
-      expect(preset!.config).not.toMatch(/data:\s*\.\/hotspots\./);
+      // No bare relative `data:` path survives (covers both `./hotspots.*`
+      // and extend-uniprot's `./data/hotspots-extends.csv`).
+      expect(preset!.config).not.toMatch(/data:\s*\.\//);
     }
   });
 });

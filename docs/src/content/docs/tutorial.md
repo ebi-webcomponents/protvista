@@ -174,9 +174,10 @@ merge rules and the full caveat.
 
 :::tip[Try it live]
 Open the [full default viewer](/protvista/playground/#preset=uniprot-default) to
-see the base you're extending. To see it combined with your track, switch
-`extends:` to the CDN URL above — that form resolves from any page, once 5.0.0
-ships.
+see the base you're extending, then open the
+[extended viewer](/protvista/playground/#preset=extend-uniprot) to see your own
+track layered on top of it — that preset uses the CDN `extends:` URL above, so it
+resolves right on the hosted page.
 :::
 
 ![The full default UniProt viewer for P05067 with an additional group labelled My lab at the bottom, containing the lab's own Hotspots track.](../../assets/screenshots/tutorial-extended.png)
