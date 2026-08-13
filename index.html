@@ -26,12 +26,33 @@
     <div>
       <!-- Accession is read from ?accession= (default P05067). Used by the
            bench/ workflow to swap scenarios without duplicating HTML. -->
+      <form
+        id="accession-form"
+        style="margin: 0.5rem 0 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center"
+      >
+        <label for="accession-input">UniProt accession:</label>
+        <input
+          id="accession-input"
+          name="accession"
+          type="text"
+          required
+          pattern="[A-Za-z0-9\-]+"
+          placeholder="e.g. P05067, P04637, P68871"
+          style="padding: 0.35rem 0.5rem; min-width: 16rem"
+        />
+        <button type="submit" style="padding: 0.35rem 0.8rem">View</button>
+        <span style="color: #666; font-size: 0.85em">
+          All tracks are fetched live from UniProt / EBI APIs.
+        </span>
+      </form>
       <protvista-uniprot id="pv"></protvista-uniprot>
       <script>
         const params = new URLSearchParams(location.search);
-        document
-          .getElementById('pv')
-          .setAttribute('accession', params.get('accession') || 'P05067');
+        const accession = (params.get('accession') || 'P05067').trim();
+        document.getElementById('pv').setAttribute('accession', accession);
+        // The form does a normal GET navigation to ?accession=<value>, which
+        // reloads the page and feeds the value back through the code above.
+        document.getElementById('accession-input').value = accession;
       </script>
       <!-- Good multimer -->
       <!-- <protvista-uniprot accession="Q55DI5"></protvista-uniprot> -->
