@@ -21,11 +21,16 @@
  *     Those files are served from `docs/public/sample-data/` (copies of the
  *     canonical `examples/csv|json/hotspots.*`). That is the only edit from
  *     verbatim, and it makes the presets render on the native Astro page.
+ *   - `extend-uniprot` (from `starter-kit/recipes/`) layers a custom track
+ *     on the full default viewer via `extends:`. It pins the jsDelivr
+ *     `dist/default-config.yaml` URL — fetched over the network at render
+ *     time — so it resolves on the hosted page, unlike `examples/extend-default`
+ *     whose `extends: /src/default-config.yaml` only loads under the dev
+ *     server (the built `site/` bundle does not serve `/src/`). Its `./data/`
+ *     sample is repointed at the served `hotspots.csv` like the presets above.
  *   - `extend-default` / `tsv` / `bed` are intentionally omitted:
- *     `extend-default` extends `/src/default-config.yaml`, which the
- *     built `site/` bundle does not serve (see the note in that example
- *     and examples/README.md); `tsv` duplicates `csv`'s shape and `bed`
- *     is niche.
+ *     `extend-default` is the dev-only `/src/`-extends variant just described;
+ *     `tsv` duplicates `csv`'s shape and `bed` is niche.
  *
  * `__spec__/presets.spec.ts` loads every preset through `loadConfig`, so
  * a broken seed can never ship.
@@ -35,6 +40,11 @@ import basicConfig from '../../examples/basic/config.yaml?raw';
 import inlineDataConfig from '../../examples/inline-data/config.yaml?raw';
 import csvConfig from '../../examples/csv/config.yaml?raw';
 import jsonConfig from '../../examples/json/config.yaml?raw';
+// The CDN-`extends:` recipe from the Starter Kit. Its base config is a
+// version-pinned jsDelivr URL, so — unlike examples/extend-default, which
+// extends the dev-only `/src/` path — it resolves on the hosted playground
+// (the element fetches it over the network at render time).
+import extendUniprotConfig from '../../starter-kit/recipes/extend-uniprot.yaml?raw';
 import { DEFAULT_ACCESSION } from './url-state.js';
 
 // Repoint a file-backed example's page-relative data path at the sample data
@@ -45,6 +55,15 @@ const withServedData = (config: string): string =>
   config.replace(
     /data:\s*\.\/(hotspots\.\w+)/,
     'data: /protvista/sample-data/$1'
+  );
+
+// The extend-uniprot recipe ships its sample under `./data/`; repoint it at the
+// same served hotspots.csv the csv/json presets use so it renders on the page.
+// (Its `extends:` jsDelivr URL is fetched over the network at render time.)
+const withServedExtendsData = (config: string): string =>
+  config.replace(
+    'data: ./data/hotspots-extends.csv',
+    'data: /protvista/sample-data/hotspots.csv'
   );
 
 export interface Preset {
@@ -95,6 +114,15 @@ export const PRESETS: readonly Preset[] = [
     label: 'UniProt + your own data (JSON)',
     description: 'A live UniProt track alongside a bring-your-own-JSON track.',
     config: withServedData(jsonConfig),
+    accession: DEFAULT_ACCESSION,
+  },
+  {
+    id: 'extend-uniprot',
+    label: 'Extend UniProt (your track + the full default viewer)',
+    description:
+      'Your own track layered on the entire default UniProt viewer via ' +
+      'extends: — fetches the version-pinned base config over the network.',
+    config: withServedExtendsData(extendUniprotConfig),
     accession: DEFAULT_ACCESSION,
   },
 ];

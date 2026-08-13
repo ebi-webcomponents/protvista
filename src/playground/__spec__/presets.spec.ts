@@ -4,6 +4,9 @@
  * broken seed can never reach the playground UI.
  */
 import { describe, it, expect } from 'vitest';
+import { readFile } from 'node:fs/promises';
+import { resolve, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { loadConfig } from '../../schema/load.js';
 import { createRegistry } from '../../schema/registry.js';
 import {
@@ -12,6 +15,27 @@ import {
   getPreset,
   isDevPreset,
 } from '../presets.js';
+
+// This spec lives at src/playground/__spec__/ → three levels up is the repo root.
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+
+/**
+ * The `extend-uniprot` preset's `extends:` is a version-pinned jsDelivr URL
+ * whose release is not published in CI. Mirror `starter-kit.spec.ts`:
+ * substitute this repo's `src/default-config.yaml` (which the build copies
+ * verbatim to the `dist/` file jsDelivr serves) so the seed loads offline.
+ * Presets without an `extends:` never invoke this fetcher.
+ */
+const extendsFetcher = async (ref: string): Promise<string> => {
+  if (/^https?:\/\//i.test(ref)) {
+    expect(
+      ref.endsWith('/dist/default-config.yaml'),
+      `unexpected remote extends target: ${ref}`
+    ).toBe(true);
+    return readFile(join(REPO_ROOT, 'src/default-config.yaml'), 'utf8');
+  }
+  throw new Error(`unexpected local extends target: ${ref}`);
+};
 
 describe('presets', () => {
   it('exposes the default preset', () => {
@@ -31,13 +55,14 @@ describe('presets', () => {
         loadConfig(preset.config, {
           accession: preset.accession,
           registry: createRegistry(),
+          extendsFetcher,
         })
       ).resolves.toBeDefined();
     }
   );
 
   it('file-backed presets point at the served sample data, not a bare page-relative file', () => {
-    for (const id of ['csv', 'json']) {
+    for (const id of ['csv', 'json', 'extend-uniprot']) {
       const preset = getPreset(id);
       expect(preset).toBeDefined();
       // Repointed to the served /protvista/sample-data/ path so it loads.

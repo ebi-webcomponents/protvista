@@ -53,7 +53,8 @@ Which examples are surfaced is curated for a single hosted page (the rationale i
 
 - `basic` and `inline-data` render fully standalone.
 - `csv` (a single standalone track — one row, no group) and `json` (a live UniProt API track next to the BYO file) are bring-your-own-file. The examples reference `data: ./hotspots.*`, which the loader resolves against the *page*, not the config's directory (see the path-resolution caveat in `examples/README.md`). So `presets.ts` repoints them at the site-absolute `/protvista/sample-data/hotspots.*`, served from `docs/public/sample-data/` (copies of `examples/csv|json/hotspots.*`). That is what makes the file-backed presets render on the playground page.
-- `extend-default` is omitted: it `extends: /src/default-config.yaml`, which the built `site/` bundle does not serve, so it can only load under the dev server. `tsv` (same shape as `csv`) and `bed` (niche) are omitted for brevity — add them to `PRESETS` if wanted.
+- `extend-uniprot` (from `starter-kit/recipes/`) is surfaced: it layers a custom track on the full default viewer via `extends:`, pinned to the jsDelivr `dist/default-config.yaml` URL, which the element fetches over the network at render time — so it works on the hosted page. `presets.spec.ts` loads it offline by substituting `src/default-config.yaml` (the `starter-kit.spec.ts` pattern). Its `./data/` sample path is repointed at the served `hotspots.csv`.
+- `extend-default` is omitted: it `extends: /src/default-config.yaml`, which the built `site/` bundle does not serve, so it can only load under the dev server (`extend-uniprot` is the hosted-page-friendly variant). `tsv` (same shape as `csv`) and `bed` (niche) are omitted for brevity — add them to `PRESETS` if wanted.
 
 ## Q2 "Documentation and training" deliverables (done)
 
