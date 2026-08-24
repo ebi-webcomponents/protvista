@@ -35,11 +35,14 @@ import { loadIndex, loadBody } from './fixtures.mjs';
  *
  * A shot that genuinely wants the 3D viewer sets `structure: true`, which skips
  * these stubs, serves the real payloads from fixtures, and lifts that
- * assertion. What then renders for P05067 is the *experimental* PDB entry 1AAP
- * (resolved via `rest.uniprot.org` -> 3D-Beacons -> the PDBe model server),
- * not the AlphaFold model — worth knowing, because if `rest.uniprot.org` is
- * unreachable the pane silently falls back to AlphaFold and the picture changes
- * without failing. That path also needs SwiftShader forced on the browser and a
+ * assertion. It also pins `structureId`, because *which* structure the pane
+ * shows is otherwise decided by sorting UniProt's PDB cross-references, and
+ * both that list and the sort have changed under the fixtures before (see
+ * PINNED_STRUCTURE in manifest.mjs). What renders for P05067 is therefore the
+ * *experimental* PDB entry 1AAP (resolved via `rest.uniprot.org` -> 3D-Beacons
+ * -> the PDBe model server), not the AlphaFold model — worth knowing, because
+ * if `rest.uniprot.org` is unreachable the pane falls back to AlphaFold and the
+ * picture changes without failing. That path needs SwiftShader forced and a
  * small comparison tolerance — see capture.mjs and compare.mjs.
  */
 const STRUCTURE_STUBS = [/rest\.uniprot\.org\/uniprotkb\//, /3dbeacons/];

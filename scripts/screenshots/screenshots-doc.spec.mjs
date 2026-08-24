@@ -23,6 +23,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, basename } from 'node:path';
 import { shots, outPath } from './manifest.mjs';
+import { structureUrls } from './seeds.mjs';
+import { loadIndex } from './fixtures.mjs';
 
 const read = (rel) => readFileSync(resolve(process.cwd(), rel), 'utf8');
 const exists = (rel) => existsSync(resolve(process.cwd(), rel));
@@ -82,6 +84,35 @@ describe('documentation screenshots match their manifest', () => {
     // real project file (a `/protvista/...` URL fails schema validation).
     expect(doc).toContain(`file: ../../assets/screenshots/${hero.id}.png`);
     expect(doc).toContain(`alt: ${hero.alt}`);
+  });
+
+  it('every 3D shot pins the structure it photographs', () => {
+    // Otherwise the figure is of whichever entry the pane sorts first, which is
+    // a property of continuously curated data and of code free to reorder it —
+    // neither of which the caption beside the image knows about. See
+    // PINNED_STRUCTURE in manifest.mjs.
+    for (const shot of shots.filter((s) => s.structure)) {
+      expect(
+        shot.structureId,
+        `${shot.id} shows the 3D pane but does not pin a structureId`
+      ).toBeTruthy();
+    }
+  });
+
+  it('every pinned structure has its fixtures recorded', () => {
+    // The browser-based capture would catch this too, by aborting an unpinned
+    // request — but only where a browser can run. Here it costs nothing and
+    // fails in the ordinary unit suite, naming the URLs to record.
+    const index = loadIndex();
+    const missing = [
+      ...new Set(shots.filter((s) => s.structureId).map((s) => s.structureId)),
+    ].flatMap((id) => structureUrls(id).filter((url) => !index[url]));
+    expect(
+      missing,
+      `record with: node scripts/screenshots/record-cli.mjs ${missing
+        .map((u) => `"${u}"`)
+        .join(' ')}`
+    ).toEqual([]);
   });
 
   it('no TODO(screenshot) marker survives for a captured shot', () => {

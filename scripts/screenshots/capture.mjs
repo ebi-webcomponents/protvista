@@ -6,6 +6,7 @@
  *   yarn screenshots --check             report drift, write nothing
  *   yarn screenshots --assert-clean      capture twice, fail if unstable
  *   yarn screenshots --refresh-fixtures  re-record the pinned network payloads
+ *   yarn screenshots --record-missing    pin whatever a run found unpinned
  *   yarn screenshots --no-build          reuse the existing site/ build
  *
  * See README.md for how the pieces fit together and how to add a shot.
@@ -33,7 +34,11 @@ const val = (f) => argv.find((a) => a.startsWith(`${f}=`))?.split('=')[1];
 
 const CHECK = has('--check');
 const ASSERT_CLEAN = has('--assert-clean');
+const RECORD_MISSING = has('--record-missing');
 const ONLY = val('--only')?.split(',').filter(Boolean);
+
+/** Every URL the run reached for that no fixture had, across all shots. */
+const unpinnedAcrossRun = new Set();
 
 /** Where `--check` leaves its evidence. Gitignored, and uploaded by CI: a
  *  percentage says how much moved, only the picture says what. */
@@ -127,9 +132,51 @@ async function capture(shot, frame = shot) {
     else document.addEventListener('DOMContentLoaded', attach);
   });
 
+  // Pin which structure the 3D pane shows, so the figure does not depend on how
+  // the pane happens to order UniProt's PDB cross-references (see
+  // PINNED_STRUCTURE in manifest.mjs). `selected-id` must be set *before* the
+  // pane's own fetch resolves, since it only defaults to the first row when the
+  // consumer has not chosen — the observer runs a microtask after the element
+  // is inserted, long before any network settles. `document` is observed rather
+  // than `documentElement`, which may not exist yet when init scripts run.
+  if (shot.structureId) {
+    await context.addInitScript((id) => {
+      const pin = (el) => {
+        if (!el.hasAttribute('selected-id')) el.setAttribute('selected-id', id);
+      };
+      const scan = (node) => {
+        if (node.nodeType !== 1) return;
+        if (node.localName === 'protvista-uniprot-structure') pin(node);
+        node.querySelectorAll?.('protvista-uniprot-structure').forEach(pin);
+      };
+      new MutationObserver((records) => {
+        for (const record of records) record.addedNodes.forEach(scan);
+      }).observe(document, { childList: true, subtree: true });
+    }, shot.structureId);
+  }
+
   const ledger = createLedger();
   await installRoutes(context, { baseURL, ledger, structure: shot.structure });
 
+  try {
+    return await capturePage(context, ledger, shot, frame);
+  } finally {
+    // Whatever went wrong, keep what this shot reached for that no fixture
+    // had: the run prints one paste-ready record command at the end rather
+    // than leaving each failure to be read and retyped separately.
+    for (const url of ledger.unpinned) unpinnedAcrossRun.add(url);
+    // Reported, not thrown: a context whose browser has already gone rejects
+    // on close, and letting that propagate would replace the error that
+    // actually explains the failure with one about tidying up after it.
+    await context
+      .close()
+      .catch((e) => console.error(`\nclosing the context failed: ${e.message}`));
+  }
+}
+
+/** The pass itself: everything from opening the page to stable pixels. Split
+ *  out so `capture()` can own the context's lifetime and its ledger. */
+async function capturePage(context, ledger, shot, frame) {
   const page = await context.newPage();
   const consoleProblems = watchConsole(page);
 
@@ -164,6 +211,7 @@ async function capture(shot, frame = shot) {
   await assertGroups(page, CSS_PREFIX, frame.expectGroups ?? shot.expectGroups);
   await assertCapturable(page, ledger, consoleProblems, {
     structure: shot.structure,
+    structureId: shot.structureId,
   });
 
   const clip = await clipRect(page, shot);
@@ -178,9 +226,7 @@ async function capture(shot, frame = shot) {
     await waitForViewer(page, CSS_PREFIX);
   }
 
-  const raw = await captureStable(page, await clipRect(page, shot));
-  await context.close();
-  return raw;
+  return captureStable(page, await clipRect(page, shot));
 }
 
 /** A shot is either one capture, or several joined into a comparison. */
@@ -286,6 +332,51 @@ stop();
 
 for (const w of warnings) console.warn(`warning: ${w}`);
 
+/**
+ * Unpinned URLs, gathered once for the whole run.
+ *
+ * An unpinned request is reported per shot as the reason that shot failed, but
+ * the useful question is the run-level one: *which* URLs, and are they URLs the
+ * viewer is supposed to ask for? Recording is deliberately not automatic —
+ * a URL that appears without the fixtures having changed means the code changed
+ * what the viewer fetches, and that is worth looking at before pinning it.
+ */
+if (unpinnedAcrossRun.size) {
+  const urls = [...unpinnedAcrossRun];
+  if (RECORD_MISSING) {
+    const { recordFixtures } = await import('./record.mjs');
+    await recordFixtures(urls);
+    console.error(`\nRecorded ${urls.length} url(s). Re-run to capture with them pinned.`);
+  } else {
+    // Two different pieces of news, and only one of them is bad. A shot that
+    // failed was *stopped* by an unpinned request. A run where everything
+    // captured reached the URL late — after the readiness checks, during the
+    // settle loop — so the picture was taken with that request refused, which
+    // is worth saying out loud but is not a failure and is not worded like one.
+    const header = failures
+      ? `${urls.length} url(s) were requested and are not pinned:`
+      : `warning: every shot captured, but ${urls.length} url(s) were ` +
+        `requested after the readiness checks and refused:`;
+    console.error(
+      `\n${header}\n` +
+        urls.map((u) => `  ${u}`).join('\n') +
+        `\nIf the viewer is meant to ask for these, pin them:\n\n` +
+        `  yarn screenshots --record-missing --no-build${ONLY ? ` --only=${ONLY.join(',')}` : ''}\n\n` +
+        `If the fixtures did not change, the *code* changed what the viewer\n` +
+        `fetches — a different structure, source or endpoint. Check that the\n` +
+        `figure still shows what its caption claims before recording.`
+    );
+  }
+}
+
+/**
+ * Two kinds of bad news, two exit codes, because they deserve different
+ * answers. **1** — a shot could not be captured at all: an unpinned request, a
+ * page error, a viewer that did not render. Something is broken, and no image
+ * can be regenerated until it is fixed. **2** — every shot captured, but the
+ * pictures moved. That is a judgement call for whoever reads the diff strip,
+ * and on a pull request it is advisory (see .github/workflows/screenshots.yml).
+ */
 if (failures) {
   console.error(`\n${failures}/${selected.length} shot(s) failed.`);
   process.exit(1);
@@ -299,6 +390,6 @@ if (CHECK && drifted) {
       `moved further than that. Look before regenerating with ` +
       `\`yarn screenshots\`.`
   );
-  process.exit(1);
+  process.exit(2);
 }
 console.log(`\n${selected.length} shot(s) ok.`);

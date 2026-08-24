@@ -11,6 +11,7 @@ yarn screenshots --check              # report drift, write nothing (CI)
 yarn screenshots --assert-clean       # capture twice, fail if not identical
 yarn screenshots --no-build           # reuse the existing site/ build
 yarn screenshots --refresh-fixtures   # re-record the pinned payloads (rare)
+yarn screenshots --record-missing     # pin whatever this run found unpinned
 ```
 
 Chromium is required: `npx playwright install chromium`. Some sandboxes block
@@ -112,6 +113,13 @@ that never settle, or an oversized file.
 - **`structure: true`** — include the 3D pane, which is otherwise stubbed away
   (see below). Such a shot is run in a separate browser with SwiftShader forced,
   and needs a `tolerance`.
+- **`structureId`** — which PDB entry the 3D pane shows, pinned through the
+  pane's `selected-id`. Required for a `structure: true` shot, and asserted at
+  capture time. Without it the figure is of whichever entry the pane sorts
+  first, which is a property of continuously curated data and of code free to
+  reorder it: when the sort flipped to descending, the selection went 1AAP →
+  9UMH and every 3D capture aborted on a mappings URL no fixture had. The
+  caption names a structure, so the shot should too.
 - **`TOLERANCE`** — not a per-shot option: one number in `manifest.mjs`, 10%,
   is the fraction of pixels that may differ before two images count as
   different. It governs `--check`, `--assert-clean`, **and whether a file is
@@ -146,10 +154,11 @@ that never settle, or an oversized file.
   shot needs a `tolerance`.
 - **What the 3D pane shows is resolved over three hops**, and a broken one is
   silent. For P05067 the viewer asks `rest.uniprot.org` for cross-references,
-  3D-Beacons for a model list, then the PDBe model server for the bcif — landing
-  on the _experimental_ entry **1AAP**. If `rest.uniprot.org` cannot be reached
-  it falls back to the AlphaFold model instead: a different picture, no error.
-  If the structure images change, check that first.
+  3D-Beacons for a model list, then the PDBe model server for the bcif. Which
+  entry it lands on is pinned by the shot's `structureId` (**1AAP**) rather than
+  left to the pane's own ordering. If `rest.uniprot.org` cannot be reached it
+  falls back to the AlphaFold model instead: a different picture, no error. If
+  the structure images change, check that first.
 - **Fixtures are recorded with Node, not the browser.** Chromium in some proxied
   environments cannot complete HTTP/2 to `www.ebi.ac.uk`
   (`ERR_HTTP2_PROTOCOL_ERROR`) where Node succeeds, so browser-driven recording
@@ -179,11 +188,19 @@ the URL, status, byte count, hash and retrieval date, and expect the images to
 change with it. Do it at release time, so the pictures document the science of
 the release rather than of an arbitrary Tuesday.
 
-If a capture reports an unpinned URL, pass it directly:
+If a capture reports an unpinned URL, pin what the run found:
 
 ```sh
+yarn screenshots --record-missing --no-build   # then re-run to capture
 node scripts/screenshots/record-cli.mjs "https://example.org/new/endpoint"
 ```
+
+Read the URL before recording it. **An unpinned URL that appears without the
+fixtures having changed means the code changed what the viewer fetches** — a
+different structure, source or endpoint — and recording it pins the new
+behaviour into the figures without anyone having looked at them. That is how
+`mappings/uniprot/9UMH` showed up: a change of sort order moved the 3D pane onto
+another PDB entry, which the shots now pin explicitly (`structureId`).
 
 ## Licensing
 

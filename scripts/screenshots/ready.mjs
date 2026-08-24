@@ -155,10 +155,15 @@ export async function assertGroups(page, prefix, expectGroups) {
  * Assertions that must hold at capture time. Each corresponds to a way the
  * viewer can look plausible while being wrong.
  */
-export async function assertCapturable(page, ledger, consoleProblems, { structure = false } = {}) {
+export async function assertCapturable(
+  page,
+  ledger,
+  consoleProblems,
+  { structure = false, structureId } = {}
+) {
   if (ledger.unpinned.size) {
     throw new Error(
-      `unpinned network request(s) — record them with --refresh-fixtures:\n` +
+      `unpinned network request(s) — see the summary at the end of the run:\n` +
         [...ledger.unpinned].map((u) => `  ${u}`).join('\n')
     );
   }
@@ -169,7 +174,21 @@ export async function assertCapturable(page, ledger, consoleProblems, { structur
     );
   }
 
-  const bad = await page.evaluate((allowStructure) => {
+  // The 3D pane resolves on its own clock, three fetches deep, and no earlier
+  // gate waits for it: `waitForViewer` settles on the track rows, and the first
+  // sized canvas it sees is a track's. Wait for the element before asking which
+  // structure it shows, so a pane that is merely late reads as late rather than
+  // as the wrong molecule.
+  if (structureId) {
+    // The label carries the pinned id: when the gate does time out, the entry
+    // the pane was asked for is the first thing worth knowing — an id no row
+    // matches leaves the pane mounted but empty, and nothing else would say so.
+    await until(page, `3D pane mounted (pinned ${structureId})`, () =>
+      page.evaluate(() => !!document.querySelector('nightingale-structure'))
+    );
+  }
+
+  const bad = await page.evaluate(({ allowStructure, wantStructure }) => {
     const el = document.querySelector('protvista-uniprot');
     const issues = [];
     if (!el) issues.push('no <protvista-uniprot> on the page');
@@ -190,11 +209,25 @@ export async function assertCapturable(page, ledger, consoleProblems, { structur
     if (!allowStructure && document.querySelector('nightingale-structure')) {
       issues.push('<nightingale-structure> mounted — capture is non-deterministic');
     }
+    // A shot that pins its structure must have got that structure. Without
+    // this the pin failing is invisible: the pane simply falls back to
+    // whichever entry it sorts first and photographs a different molecule
+    // under a caption that names this one.
+    if (wantStructure) {
+      const shown = document
+        .querySelector('nightingale-structure')
+        ?.getAttribute('structure-id');
+      if (shown !== wantStructure) {
+        issues.push(
+          `3D pane shows ${shown ?? 'no structure'}, not the pinned ${wantStructure}`
+        );
+      }
+    }
     if (location.search.includes('layout=')) {
       issues.push('a persisted ?layout= leaked into the URL');
     }
     return issues;
-  }, structure);
+  }, { allowStructure: structure, wantStructure: structureId });
 
   if (bad.length) {
     throw new Error(`viewer is not capturable:\n${bad.map((b) => `  ${b}`).join('\n')}`);
