@@ -189,8 +189,15 @@ Finally, make it yours. There are two levers, no rebuild required.
 
 **No code: from the config.** A `theme:` block recolours the viewer chrome
 directly, so an author who doesn't write CSS can still brand the viewer.
-`labelColor` sets the row-label panel; the optional `accentColor` sets focus
-rings and the datatable's active-row marker:
+`labelColor` tints the row-label panel — group headers get the colour, track
+labels a lighter tint of it, so the group/track hierarchy stays visible; the
+optional `accentColor` sets focus rings and the datatable's active-row marker.
+Dark or light, the label text, caret and hover state are derived from your
+colour, so a dark brand colour stays readable rather than leaving near-black
+text on a near-black cell. (One caveat: mid-greys around `#808080` sit too
+close to both black and white for *any* text to reach full AA contrast — the
+viewer picks the better of the two, but a clearly light or dark colour is the
+safer choice.)
 
 ```yaml
 theme:

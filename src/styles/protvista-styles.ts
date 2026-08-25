@@ -77,7 +77,20 @@ export default css`
     max-width: var(--protvista-label-width);
     padding: 0.5em;
     line-height: normal;
+  }
+
+  /* Only the data-row labels carry the label tokens. The navigation label
+     cell and the credits cell are neutral chrome, not rows — painting them
+     with the track-label colour made a theme tint bleed above and below
+     the rows it describes, so they sit on the plain surface colour. */
+  protvista-uniprot .${p}-track-label {
     background-color: var(--protvista-track-label-bg);
+    color: var(--protvista-track-label-color);
+  }
+
+  protvista-uniprot .${p}-nav-track-label,
+  protvista-uniprot .${p}-credits {
+    background-color: var(--protvista-color-surface);
   }
 
   /* The one vertical rule in the viewer: it marks where the label column ends
@@ -107,12 +120,18 @@ export default css`
      can mean data. */
   protvista-uniprot .${p}-group-label {
     background-color: var(--protvista-group-label-bg);
+    color: var(--protvista-group-label-color);
     font-weight: 600;
     cursor: pointer;
   }
 
+  /* Hover is its own token rather than the global hover blue, because a
+     config theme may have made this cell dark: swapping in a near-white
+     background under text that was flipped to white for that dark fill
+     would erase the label on hover. A themed viewer derives this from the
+     label colour (see applyTheme); unthemed, it is the global hover. */
   protvista-uniprot .${p}-group-label:hover {
-    background-color: var(--protvista-color-bg-hover);
+    background-color: var(--protvista-group-label-hover-bg);
   }
 
   protvista-uniprot .${p}-group-label::before {

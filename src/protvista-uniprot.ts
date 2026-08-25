@@ -95,6 +95,19 @@ import errorStyles from './styles/error-styles.js';
 import configPanelStyles from './styles/config-panel-styles.js';
 import { CSS_PREFIX } from './styles/css-prefix.js';
 import { injectStyleOnce, installTokenDefaults } from './styles/inject.js';
+import {
+  type Rgb,
+  resolveColor,
+  mix,
+  tint,
+  cssRgb,
+  readableOn,
+  defaultTextColor,
+  TEXT_ON_DARK,
+  TRACK_LABEL_TINT,
+  MUTED_TEXT_WEIGHT,
+  GROUP_LABEL_HOVER_SHIFT,
+} from './styles/color.js';
 
 // User-facing error surfaces. `ConfigValidationError` is a value import
 // (used for the `instanceof` narrowing in `_init`'s catch); the display
@@ -205,6 +218,24 @@ const MOVED_HIGHLIGHT_MS = 2000;
 
 /** Monotonic per-page counter giving each element a unique id nonce. */
 let protvistaInstanceSeq = 0;
+
+/**
+ * Every token a config `theme` can write inline on the host. Listed here so
+ * `applyTheme` can clear the whole set before each apply — a re-init with a
+ * narrowed theme must not leave a stale derived value (say a white text
+ * colour chosen for a dark label that is no longer dark) behind.
+ */
+const THEME_TOKENS = [
+  '--protvista-group-label-bg',
+  '--protvista-group-label-color',
+  '--protvista-group-label-color-muted',
+  '--protvista-group-label-hover-bg',
+  '--protvista-track-label-bg',
+  '--protvista-track-label-color',
+  '--protvista-track-label-color-muted',
+  '--protvista-caret-color',
+  '--protvista-color-accent',
+] as const;
 
 @customElement('protvista-uniprot')
 class ProtvistaUniprot extends LitElement {
@@ -749,22 +780,83 @@ class ProtvistaUniprot extends LitElement {
    * removed-or-narrowed theme can't leave stale inline values on the host.
    */
   private applyTheme(theme: NormalizedConfig['theme']) {
-    for (const token of [
-      '--protvista-group-label-bg',
-      '--protvista-track-label-bg',
-      '--protvista-color-accent',
-    ]) {
-      this.style.removeProperty(token);
-    }
+    for (const token of THEME_TOKENS) this.style.removeProperty(token);
     if (!theme) return;
-    if (theme.labelColor) {
-      // The row-label side panel: group + track label backgrounds.
-      this.style.setProperty('--protvista-group-label-bg', theme.labelColor);
-      this.style.setProperty('--protvista-track-label-bg', theme.labelColor);
+    // `labelColor` recolours the row-label side panel while keeping the
+    // shipped hierarchy: the colour itself on group headers, a light tint
+    // of it on track labels — the default grey/white pair, in the
+    // author's hue. One value on both surfaces flattened the group/track
+    // distinction. `groupLabelColor` / `trackLabelColor` pin either
+    // surface exactly, overriding the derived pair.
+    //
+    // Every value is resolved to `rgb()` here rather than handed to CSS
+    // as written, because a background is only half a surface: the text,
+    // caret and hover state on top of it have to be derived from the same
+    // numbers (see `applyLabelSurface`). Resolving also means an
+    // unparseable colour is dropped instead of reaching the stylesheet.
+    //
+    // An override that doesn't resolve falls back to what `labelColor`
+    // would have given rather than to nothing: the field is ignored, as
+    // though it had not been written.
+    const pick = (value: string | undefined, fallback: Rgb | null) =>
+      (value ? resolveColor(value) : null) ?? fallback;
+
+    const base = theme.labelColor ? resolveColor(theme.labelColor) : null;
+    const group = pick(theme.groupLabelColor, base);
+    const track = pick(
+      theme.trackLabelColor,
+      base && tint(base, TRACK_LABEL_TINT)
+    );
+
+    if (group) this.applyLabelSurface('group', group);
+    if (track) this.applyLabelSurface('track', track);
+
+    // Nothing is derived from the accent, but it goes through the same
+    // resolution so every field of `theme` behaves alike: one syntax
+    // range, and one answer to an unparseable value.
+    const accent = theme.accentColor ? resolveColor(theme.accentColor) : null;
+    if (accent) {
+      this.style.setProperty('--protvista-color-accent', cssRgb(accent));
     }
-    if (theme.accentColor) {
-      this.style.setProperty('--protvista-color-accent', theme.accentColor);
-    }
+  }
+
+  /**
+   * Paint one label surface — background plus everything that has to stay
+   * legible on it.
+   *
+   * A themed background is not a standalone choice: the shipped body text
+   * is near-black, so an author who picks a dark `labelColor` would get
+   * near-black on near-black. CSS cannot pick the better of two text
+   * colours, so the choice is made numerically (`readableOn`) and written
+   * to the label's own text token. The group surface carries two extras:
+   * its collapse caret, which is a UI affordance that has to stay visible
+   * (WCAG 1.4.11), and its hover state, which would otherwise swap in the
+   * near-white global hover under text just flipped to white.
+   */
+  private applyLabelSurface(surface: 'group' | 'track', bg: Rgb) {
+    const text = readableOn(bg, [defaultTextColor(), TEXT_ON_DARK]);
+    // "Muted" has to stay a step toward the background *from the chosen
+    // text colour*, not the global grey, which is only muted against a
+    // light surface.
+    const muted = mix(text, bg, MUTED_TEXT_WEIGHT);
+
+    this.style.setProperty(`--protvista-${surface}-label-bg`, cssRgb(bg));
+    this.style.setProperty(`--protvista-${surface}-label-color`, cssRgb(text));
+    this.style.setProperty(
+      `--protvista-${surface}-label-color-muted`,
+      cssRgb(muted)
+    );
+    if (surface !== 'group') return;
+
+    this.style.setProperty('--protvista-caret-color', cssRgb(muted));
+    // A small step *toward* the text colour — darkening a light cell,
+    // lightening a dark one. That is the conventional hover cue, and
+    // because the step is small the surface never crosses the light/dark
+    // line the text colour was chosen for.
+    this.style.setProperty(
+      '--protvista-group-label-hover-bg',
+      cssRgb(mix(bg, text, 1 - GROUP_LABEL_HOVER_SHIFT))
+    );
   }
 
   /**

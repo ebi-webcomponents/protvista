@@ -1,5 +1,49 @@
 # Changelog
 
+## Unreleased
+
+### Changed — `theme.labelColor` now keeps the group/track hierarchy
+
+A config `theme.labelColor` used to paint group and track labels the same
+colour, flattening the distinction the default palette draws (grey group
+headers over white track labels). It now applies the colour to group labels
+and derives the track-label background as a light tint of it (25% over
+white) — the shipped hierarchy, in the author's hue. Existing
+configs using `labelColor` render with the new two-tone pair automatically.
+The navigation label cell and the credits cell no longer take the
+track-label colour at all: they are neutral chrome, not rows, and now sit on
+`--protvista-color-surface` (default white) so a theme tint no longer bleeds
+above and below the rows it describes. Consumers who set
+`--protvista-track-label-bg` in their own CSS are affected by that last
+point too; set `--protvista-color-surface` to match if you want the whole
+label column in one colour.
+
+### Added — explicit `theme.groupLabelColor` / `theme.trackLabelColor`
+
+For authors who want to pin either surface exactly, the `theme:` block
+accepts `groupLabelColor` and `trackLabelColor`, which override the pair
+`labelColor` would derive and map one-to-one onto
+`--protvista-group-label-bg` / `--protvista-track-label-bg`.
+
+### Fixed — a themed label now brings a text colour that reads on it
+
+Label text was fixed at the near-black `--protvista-color-text`, so a dark
+`theme.labelColor` produced near-black on near-black — and the collapse
+caret and the near-white hover background failed the same way. Each label
+surface now derives its own text, muted text, caret and hover colour from
+the background it was given, picking whichever of the default body colour
+and white contrasts better. New tokens (`--protvista-group-label-color`,
+`--protvista-track-label-color`, their `-muted` variants, and
+`--protvista-group-label-hover-bg`) expose the results, all defaulting to
+the values they replace, so an unthemed viewer is unchanged.
+
+Theme colours are resolved to `rgb()` before they reach the stylesheet.
+That is what makes the derivation possible, and it keeps every value the
+viewer emits parseable across the whole documented support matrix
+(Chrome/Edge 92+, Firefox 90+, Safari 15+) rather than only on engines with
+`color-mix()`. A colour the browser cannot parse is dropped rather than
+passed through.
+
 ## 5.0.0-beta.2 — 2026-07-31
 
 The second v5 beta, still on the `beta` dist-tag: `npm install

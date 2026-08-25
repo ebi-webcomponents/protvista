@@ -394,11 +394,23 @@ export default css`
 
   /* A hidden or dataless row still shows in customize mode so it can be
      restored — muted and italic, never colour alone (WCAG 1.4.1); the
-     control beside it reads "Show" in words. */
+     control beside it reads "Show" in words. The muted colour is the
+     *label* one, not the global one: on a dark themed label cell the
+     global muted grey is as unreadable as the body text it replaces, so a
+     themed viewer derives this from the label colour (see applyTheme).
+     Group and track are split because a theme can leave them at different
+     lightnesses — one muted colour cannot read on both. */
   protvista-uniprot .${p}-row--hidden .${p}-track-label,
   protvista-uniprot .${p}-row--hidden .${p}-group-label {
     font-style: italic;
-    color: var(--protvista-color-text-muted, #4a5056);
+  }
+
+  protvista-uniprot .${p}-row--hidden .${p}-track-label {
+    color: var(--protvista-track-label-color-muted, #4a5056);
+  }
+
+  protvista-uniprot .${p}-row--hidden .${p}-group-label {
+    color: var(--protvista-group-label-color-muted, #4a5056);
   }
 
   /* A hidden row keeps drawing its features while customizing, desaturated

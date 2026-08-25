@@ -4,8 +4,10 @@
 # from. See examples/README.md.
 accession: P05067
 # `theme` recolours the viewer chrome from the config — no CSS needed.
-# `labelColor` sets the row-label side panel; `accentColor` (optional)
-# sets focus rings / the datatable active-row marker. See docs/theming.md.
+# `labelColor` tints the row-label side panel: group headers get the
+# colour, track labels a lighter tint of it (pin either exactly with
+# `groupLabelColor` / `trackLabelColor`). `accentColor` (optional) sets
+# focus rings / the datatable active-row marker. See docs/theming.md.
 theme:
   labelColor: '#e8f5e9'
 rows:

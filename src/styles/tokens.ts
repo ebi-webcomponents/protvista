@@ -95,7 +95,8 @@ const GLOBAL_TOKENS: TokenDef[] = [
     group: 'global',
     type: 'color',
     default: '#ffffff',
-    description: 'Surface/background colour for popovers and panels.',
+    description:
+      'Surface/background colour for popovers, panels, and the neutral viewer chrome cells (navigation label, credits).',
   },
   {
     name: '--protvista-color-border',
@@ -165,11 +166,48 @@ const VIEWER_TOKENS: TokenDef[] = [
     description: 'Background of collapsible group labels.',
   },
   {
+    name: '--protvista-group-label-hover-bg',
+    group: 'viewer',
+    type: 'color',
+    default: 'var(--protvista-color-bg-hover)',
+    description: 'Background of a hovered collapsible group label.',
+  },
+  {
     name: '--protvista-track-label-bg',
     group: 'viewer',
     type: 'color',
     default: '#ffffff',
     description: 'Background of individual track labels.',
+  },
+  {
+    name: '--protvista-group-label-color',
+    group: 'viewer',
+    type: 'color',
+    default: 'var(--protvista-color-text)',
+    description: 'Text colour of collapsible group labels.',
+  },
+  {
+    name: '--protvista-track-label-color',
+    group: 'viewer',
+    type: 'color',
+    default: 'var(--protvista-color-text)',
+    description: 'Text colour of individual track labels.',
+  },
+  {
+    name: '--protvista-group-label-color-muted',
+    group: 'viewer',
+    type: 'color',
+    default: 'var(--protvista-color-text-muted)',
+    description:
+      'Recessive text on a group label — a hidden/dataless group in customize mode.',
+  },
+  {
+    name: '--protvista-track-label-color-muted',
+    group: 'viewer',
+    type: 'color',
+    default: 'var(--protvista-color-text-muted)',
+    description:
+      'Recessive text on a track label — a hidden/dataless track in customize mode.',
   },
   {
     name: '--protvista-track-border-color',

@@ -62,7 +62,7 @@ directly in the viewer config via the optional top-level `theme:` block:
 
 ```yaml
 theme:
-  labelColor: '#e8f5e9' # row-label side panel (group + track labels)
+  labelColor: '#e8f5e9' # tints the row-label panel: groups get the colour, tracks a lighter tint
   accentColor: '#0053d6' # focus rings + datatable active-row marker
 ```
 
@@ -72,11 +72,56 @@ beats both the `:where(:root)` default and ordinary page CSS (an inherited
 `:root` value or an element-selector rule), a config `theme` **takes
 precedence over page CSS**: a host that needs to override a config-supplied
 theme must use `!important` (e.g. `protvista-uniprot { --protvista-color-accent: #7b2d8e !important }`)
-or set the token inline on the element itself. `theme.labelColor` maps to
-`--protvista-group-label-bg` / `--protvista-track-label-bg`;
+or set the token inline on the element itself.
+
+`theme.labelColor` is a one-colour tint that keeps the shipped hierarchy:
+it becomes `--protvista-group-label-bg`, and `--protvista-track-label-bg`
+is derived as a light tint of it (25% of your colour over white) — the
+default grey/white group-vs-track pair, in your hue. To pin
+either surface exactly, set the explicit fields, which override the
+derived pair and map one-to-one onto the same tokens:
+
+```yaml
+theme:
+  groupLabelColor: '#c8e6c9' # exact group-label background
+  trackLabelColor: '#ffffff' # exact track-label background
+```
+
 `theme.accentColor` maps to `--protvista-color-accent`. For anything beyond
 these — or when the *page* should win over the config — use the CSS tokens
 directly and don't set `theme` in the config.
+
+### A themed label brings its own text colour
+
+A background is only half a surface, so the `theme:` block does not stop at
+one. For each label surface it paints, the component measures the colour
+and derives the rest to match:
+
+| Derived | Token |
+| --- | --- |
+| Text, whichever of the default body colour and white contrasts better | `--protvista-group-label-color`, `--protvista-track-label-color` |
+| Muted text for hidden/dataless rows in customize mode | `--protvista-group-label-color-muted`, `--protvista-track-label-color-muted` |
+| The group's collapse caret | `--protvista-caret-color` |
+| The group's hover background | `--protvista-group-label-hover-bg` |
+
+This is why a dark `labelColor` stays readable: the label text flips to
+white rather than staying near-black on a near-black fill, and the caret
+and hover state follow it instead of dropping out. The component always
+picks the better of the two candidates, but it cannot manufacture
+contrast a colour doesn't have: a mid-tone grey near `#808080` sits too
+close to both black and white for any text to clear the AA threshold, so
+prefer colours that are decisively light or dark. Set any of these tokens
+in your own CSS with `!important` if you want a different answer — the
+config theme writes them inline (see the precedence note above).
+
+Colour values are resolved to `rgb()` before they reach the stylesheet:
+hex, keywords, `rgb()` and `hsl()` all work. A value that doesn't resolve
+— a typo, or a wide-gamut `color()` — is ignored, leaving the token at its
+default, and an explicit `groupLabelColor` / `trackLabelColor` that doesn't
+resolve falls back to what `labelColor` would have given. The derivation
+always composites over the shipped white surface; if your page repaints
+`--protvista-color-surface` to something dark, set the label tokens
+directly rather than theming through the config.
 
 ## Design tokens
 
@@ -95,7 +140,7 @@ cascades everywhere it is used.
 | `--protvista-color-accent` | color | `#0053d6` | Accent — focus rings, active-row marker, primary UI. |
 | `--protvista-color-text` | color | `#222222` | Default body text colour. |
 | `--protvista-color-text-muted` | color | `#4a5056` | Muted/secondary text (tooltip labels, captions). |
-| `--protvista-color-surface` | color | `#ffffff` | Surface/background for popovers and panels. |
+| `--protvista-color-surface` | color | `#ffffff` | Surface/background for popovers, panels, and the neutral viewer chrome cells (navigation label, credits). |
 | `--protvista-color-border` | color | `#c5c8cc` | Default border for popovers and panels. |
 | `--protvista-color-disabled` | color | `#808080` | Disabled controls. |
 | `--protvista-color-bg-hover` | color | `#f1f7ff` | Background of hovered interactive chrome (buttons, list rows). |
@@ -105,12 +150,26 @@ cascades everywhere it is used.
 
 ### Viewer (labels, navigation, empty states)
 
+The label tokens cover the **data rows only**. The two cells that bracket
+them — the navigation label cell above and the credits cell below — are
+neutral chrome rather than rows, so they follow
+`--protvista-color-surface` and stay put when you retint the label column.
+Tinting them made a label colour bleed above and below the rows it
+describes. Both default to `#ffffff`, so an untouched viewer is unchanged;
+if you want the whole column in one colour, set
+`--protvista-color-surface` to match.
+
 | Token | Type | Default | Purpose |
 | --- | --- | --- | --- |
 | `--protvista-track-content-width` | length | `80vw` | Width of the track-content (visualisation) column. |
 | `--protvista-label-width` | length | `20vw` | Width of the label column (group/track/nav labels, credits). |
 | `--protvista-group-label-bg` | color | `#f1f3f5` | Background of collapsible group labels. |
+| `--protvista-group-label-hover-bg` | color | `var(--protvista-color-bg-hover)` | Background of a hovered collapsible group label. |
 | `--protvista-track-label-bg` | color | `#ffffff` | Background of individual track labels. |
+| `--protvista-group-label-color` | color | `var(--protvista-color-text)` | Text colour of collapsible group labels. |
+| `--protvista-track-label-color` | color | `var(--protvista-color-text)` | Text colour of individual track labels. |
+| `--protvista-group-label-color-muted` | color | `var(--protvista-color-text-muted)` | Recessive text on a group label — a hidden/dataless group in customize mode. |
+| `--protvista-track-label-color-muted` | color | `var(--protvista-color-text-muted)` | Recessive text on a track label — a hidden/dataless track in customize mode. |
 | `--protvista-track-border-color` | color | `#e3e6ea` | Hairline ruling the viewer grid: between rows, and between the label column and the track area. |
 | `--protvista-caret-color` | color | `#5b6169` | Group-label expand/collapse caret. |
 | `--protvista-nav-handle-fill` | color | `darkgrey` | Fill of the navigation zoom handles. |
