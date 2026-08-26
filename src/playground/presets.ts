@@ -80,15 +80,18 @@ const withServedExtendsData = (config: string): string =>
  * every push to `next`, while npm publishes only at release, so from the
  * version-bump commit until `npm publish` the pinned URL names a release that
  * does not exist yet and the preset would 404 for the whole window. The tag
- * always resolves to a published `dist/default-config.yaml`, which is the same
- * file the pin would have named (jsDelivr reports it in `x-jsd-version`).
+ * always resolves to a published `dist/default-config.yaml` — during that same
+ * window the *previous* beta's, so the hosted demo extends a base config one
+ * release behind the repo. A slightly stale demo beats a broken one, and it
+ * corrects itself at publish; jsDelivr reports which it served in
+ * `x-jsd-version`.
  */
 const BETA_BASE_CONFIG =
   'https://cdn.jsdelivr.net/npm/protvista-uniprot@beta/dist/default-config.yaml';
 
 const withPublishedExtends = (config: string): string =>
   config.replace(
-    /extends:\s*\S*\/protvista-uniprot@[^/\s]+\/dist\/default-config\.yaml/,
+    /extends:\s*(["']?)[^\s"']*\/protvista-uniprot@[^/\s"']+\/dist\/default-config\.yaml\1/,
     `extends: ${BETA_BASE_CONFIG}`
   );
 

@@ -159,22 +159,38 @@ async function capture(shot, frame = shot) {
   const ledger = createLedger();
   await installRoutes(context, { baseURL, ledger, structure: shot.structure });
 
+  // Sequenced by hand rather than `try`/`finally` because the order is the
+  // point, and the last step has to be able to fail the shot. The ledger is
+  // only complete once the context is gone, and all of it must happen before
+  // `capture()` returns: a png that reaches the caller is a png the caller
+  // writes.
+  let png;
+  let captureError;
   try {
-    return await capturePage(context, ledger, shot, frame);
-  } finally {
-    // Reported, not thrown: a context whose browser has already gone rejects
-    // on close, and letting that propagate would replace the error that
-    // actually explains the failure with one about tidying up after it.
-    await context
-      .close()
-      .catch((e) => console.error(`\nclosing the context failed: ${e.message}`));
-    // Harvested *after* the close, because a request still in flight when the
-    // page goes lands in the ledger during teardown. Whatever went wrong, keep
-    // what this shot reached for that no fixture had: the run prints one
-    // paste-ready record command at the end rather than leaving each failure to
-    // be read and retyped separately.
-    for (const url of ledger.unpinned) unpinnedAcrossRun.add(url);
+    png = await capturePage(context, ledger, shot, frame);
+  } catch (e) {
+    captureError = e;
   }
+  // Reported, not thrown: a context whose browser has already gone rejects
+  // on close, and letting that propagate would replace the error that
+  // actually explains the failure with one about tidying up after it.
+  await context
+    .close()
+    .catch((e) => console.error(`\nclosing the context failed: ${e.message}`));
+  // Harvested *after* the close, because a request still in flight when the
+  // page goes lands in the ledger during teardown. Whatever went wrong, keep
+  // what this shot reached for that no fixture had: the run prints one
+  // paste-ready record command at the end rather than leaving each failure to
+  // be read and retyped separately.
+  for (const url of ledger.unpinned) unpinnedAcrossRun.add(url);
+  if (captureError) throw captureError;
+  // Nothing has thrown for a url that arrived during teardown: it landed after
+  // `capturePage`'s last check, with the page already going down. Failing here
+  // — before the png is handed back, and so before anything can write it — is
+  // what keeps a picture drawn without that response off disk. The alternative
+  // is writing the file and then asking whoever reads the log to distrust it.
+  assertNothingUnpinned(ledger);
+  return png;
 }
 
 /** The pass itself: everything from opening the page to stable pixels. Split
@@ -345,10 +361,11 @@ for (const w of warnings) console.warn(`warning: ${w}`);
 /**
  * Unpinned URLs, gathered once for the whole run.
  *
- * Reaching one always fails the shot that reached it — `ready.mjs` checks
- * before the gates and while the 3D pane resolves, and `capturePage` checks
- * again once the pixels have settled — so this is not the news, only the
- * record: *which* URLs, collected across every shot into one command.
+ * Reaching one always fails the *shot* — `ready.mjs` checks before the gates
+ * and while the 3D pane resolves, `capturePage` checks again once the pixels
+ * have settled, and `capture` checks once more after the context is gone, for
+ * anything that arrived during teardown. So this is not the news, only the
+ * record: *which* URLs, collected into one command.
  *
  * Recording is deliberately not automatic. A URL that appears without the
  * fixtures having changed means the code changed what the viewer fetches, and

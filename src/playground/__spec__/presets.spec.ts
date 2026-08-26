@@ -91,6 +91,10 @@ describe('presets', () => {
       'extends: https://cdn.jsdelivr.net/npm/protvista-uniprot@beta/dist/default-config.yaml'
     );
     expect(config).not.toMatch(/protvista-uniprot@\d/);
+    // And it repoints a requoted recipe cleanly: an unbalanced quote would
+    // leave `extends: https://...yaml"`, a plain scalar whose trailing quote
+    // is fetched as `.yaml%22`.
+    expect(config).not.toMatch(/extends:[^\n]*["']/);
   });
 
   it('every playground link in the docs names a preset that exists', () => {

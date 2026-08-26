@@ -26,7 +26,7 @@ without changing that job):
 | code | meaning | what to do |
 | --- | --- | --- |
 | `0` | every shot captured, nothing moved | nothing |
-| `1` | **a shot could not be captured at all** — an unpinned request, a page error, a viewer that rendered empty, a 3D canvas that never painted | fix it; no image can be regenerated until it is |
+| `1` | **a shot could not be captured** — an unpinned request (including one that only arrives as the page is torn down), a page error, a viewer that rendered empty, a 3D canvas that never painted. Nothing is written for that shot | fix it; no image can be regenerated until it is |
 | `2` | `--check` only: every shot captured, but the pictures moved | read the diff strip, then regenerate if the change is the wanted one |
 
 On a pull request `2` is advisory (annotation + artifact, green job) and `1`
@@ -216,6 +216,10 @@ If a capture reports an unpinned URL, pin what the run found:
 yarn screenshots --record-missing --no-build   # then re-run to capture
 node scripts/screenshots/record-cli.mjs "https://example.org/new/endpoint"
 ```
+
+Recording pins the URL for capture but does not seed it: add it to `SEED_URLS`
+in `seeds.mjs` too, with a note on which consumer asks for it, or the next
+`yarn test` fails it as a fixture `--refresh-fixtures` will never renew.
 
 Read the URL before recording it. **An unpinned URL that appears without the
 fixtures having changed means the code changed what the viewer fetches** — a
