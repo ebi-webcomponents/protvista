@@ -17,6 +17,22 @@ yarn screenshots --record-missing     # pin whatever this run found unpinned
 Chromium is required: `npx playwright install chromium`. Some sandboxes block
 that download; the CI check job skips rather than fails in that case.
 
+## Exit codes
+
+Two kinds of bad news, told apart, because CI answers them differently
+(`.github/workflows/screenshots.yml` reads these numbers — do not renumber them
+without changing that job):
+
+| code | meaning | what to do |
+| --- | --- | --- |
+| `0` | every shot captured, nothing moved | nothing |
+| `1` | **a shot could not be captured at all** — an unpinned request, a page error, a viewer that rendered empty, a 3D canvas that never painted | fix it; no image can be regenerated until it is |
+| `2` | `--check` only: every shot captured, but the pictures moved | read the diff strip, then regenerate if the change is the wanted one |
+
+On a pull request `2` is advisory (annotation + artifact, green job) and `1`
+fails the job. Only `--check` can return `2`; a writing run has nothing to
+report drift against, since it just wrote the new bytes.
+
 ## Reading a `--check` failure
 
 `--check` reports the fraction of pixels that moved, and writes what it found to
@@ -65,8 +81,12 @@ _not_ pinned aborts and fails the run rather than quietly reaching the network.
 
 **Failure is loud.** A screenshot of a broken viewer is worse than no
 screenshot, so a run fails on: an unpinned request, a page or console error, an
-error panel, an empty viewer, a row set that differs from the manifest, pixels
-that never settle, or an oversized file.
+error panel, an empty viewer, a row set that differs from the manifest, a 3D
+canvas that mounted but painted nothing, pixels that never settle, or an
+oversized file. The unpinned check runs three times — before the gates, while
+the 3D pane resolves, and once more after the pixels settle — because the viewer
+keeps fetching after the gates pass, and a URL refused during the settle loop
+would otherwise be reported only after the image had been written.
 
 ## Adding a shot
 
@@ -146,8 +166,10 @@ that never settle, or an oversized file.
   That last part is essential — without
   `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader`, headless
   Chromium refuses Mol\*'s WebGL context, and Mol\* then gives up _before
-  requesting its model_, leaving a silently blank pane that looks like a
-  missing-data problem. The flags are applied only to structure shots, in a
+  requesting its model_, leaving a blank pane that looks like a missing-data
+  problem. `structure-id` cannot see that — it names the entry the pane
+  _asked_ for, not what Mol\* drew — so `ready.mjs` photographs the canvas and
+  fails the shot when every pixel is the same colour. The flags are applied only to structure shots, in a
   separate browser: with them on, the ordinary Nightingale track canvases never
   stop redrawing and no other shot reaches pixel stability. Mol\* also settles
   to marginally different anti-aliasing per run (~0.3% of pixels), so such a

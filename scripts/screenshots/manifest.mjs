@@ -13,8 +13,24 @@
  * not guessed.
  */
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 
 const PLAYGROUND = '/protvista/playground/';
+
+/**
+ * Read a repo file, resolved against *this module* rather than the working
+ * directory. These reads run at import time, and this module is now on the
+ * import graph of `seeds.mjs` — so `record-cli.mjs`, which has no other reason
+ * to care where it is run from, would otherwise die on ENOENT for a tutorial
+ * config it never looks at.
+ *
+ * Spelled with `resolve` rather than `new URL(rel, import.meta.url)` because
+ * Vite rewrites that second form as a static asset reference — and this module
+ * is loaded through Vite by `screenshots-doc.spec.mjs`.
+ */
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const readRepoFile = (rel) => readFileSync(resolve(REPO_ROOT, rel), 'utf8');
 
 /**
  * How much any shot may differ before it counts as a different picture. One
@@ -41,10 +57,7 @@ export const TOLERANCE = 0.1;
 /** The tutorial's Step 3 config, loaded verbatim so the figure cannot drift
  *  from the YAML block printed beside it (which `tutorial-doc.spec.ts` already
  *  pins to this same file). Passed through the playground's `#config=`. */
-const extendDefault = readFileSync(
-  'examples/extend-default/config.yaml',
-  'utf8'
-);
+const extendDefault = readRepoFile('examples/extend-default/config.yaml');
 const asHash = (yaml) => `#config=${Buffer.from(yaml).toString('base64')}`;
 
 /** Every row the default UniProt viewer draws for P05067, as measured.
@@ -75,7 +88,7 @@ const DEFAULT_GROUPS = [
 /** The inline-data example, and the same config with its `theme:` block
  *  removed. Capturing both makes a before/after where the *only* difference is
  *  the theming — using two different presets would compare different data. */
-const inlineData = readFileSync('examples/inline-data/config.yaml', 'utf8');
+const inlineData = readRepoFile('examples/inline-data/config.yaml');
 const unthemed = inlineData.replace(/^theme:\n(?:[ \t]+.*\n)*/m, '');
 
 const CC_BY = 'https://creativecommons.org/licenses/by/4.0/';

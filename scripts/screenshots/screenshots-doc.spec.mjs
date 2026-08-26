@@ -23,8 +23,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, basename } from 'node:path';
 import { shots, outPath } from './manifest.mjs';
-import { structureUrls } from './seeds.mjs';
-import { loadIndex } from './fixtures.mjs';
+import { structureUrls, PINNED_STRUCTURES, SEED_URLS } from './seeds.mjs';
+import { loadIndex, loadBody, fontUrlsFrom } from './fixtures.mjs';
 
 const read = (rel) => readFileSync(resolve(process.cwd(), rel), 'utf8');
 const exists = (rel) => existsSync(resolve(process.cwd(), rel));
@@ -104,9 +104,9 @@ describe('documentation screenshots match their manifest', () => {
     // request — but only where a browser can run. Here it costs nothing and
     // fails in the ordinary unit suite, naming the URLs to record.
     const index = loadIndex();
-    const missing = [
-      ...new Set(shots.filter((s) => s.structureId).map((s) => s.structureId)),
-    ].flatMap((id) => structureUrls(id).filter((url) => !index[url]));
+    const missing = PINNED_STRUCTURES.flatMap((id) =>
+      structureUrls(id).filter((url) => !index[url])
+    );
     expect(
       missing,
       `record with: node scripts/screenshots/record-cli.mjs ${missing
@@ -122,5 +122,49 @@ describe('documentation screenshots match their manifest', () => {
         'TODO(screenshot)'
       );
     }
+  });
+});
+
+/**
+ * `SEED_URLS` is what `--refresh-fixtures` records from an empty `fixtures/`,
+ * so it and the committed index must describe the same set. Checked in both
+ * directions, because each direction fails differently and neither is visible
+ * without a browser: a seed with no recording gives a cold start that no shot
+ * can run against, and a recording no seed reaches is a payload the repo
+ * carries and a refresh would silently drop.
+ */
+describe('the seed list and the recorded fixtures agree', () => {
+  /** Everything `recordAll` would fetch from the seeds, including the font
+   *  binaries it discovers by parsing the Google Fonts CSS it just recorded. */
+  const reachable = () => {
+    const index = loadIndex();
+    const urls = new Set(SEED_URLS);
+    for (const url of SEED_URLS) {
+      if (/fonts\.googleapis\.com/.test(url) && index[url]) {
+        for (const font of fontUrlsFrom(loadBody(index[url]))) urls.add(font);
+      }
+    }
+    return urls;
+  };
+
+  it('every seeded url is recorded', () => {
+    const index = loadIndex();
+    const missing = SEED_URLS.filter((url) => !index[url]);
+    expect(
+      missing,
+      'run `yarn screenshots --refresh-fixtures` to record the missing url(s)'
+    ).toEqual([]);
+  });
+
+  it('every recorded fixture is reachable from the seed list', () => {
+    const orphans = Object.keys(loadIndex()).filter(
+      (url) => !reachable().has(url)
+    );
+    expect(
+      orphans,
+      'recorded but unreachable from SEED_URLS — either add the url to ' +
+        'seeds.mjs (with a note on which consumer asks for it) or delete the ' +
+        'fixture, since `--refresh-fixtures` will not renew it'
+    ).toEqual([]);
   });
 });

@@ -14,6 +14,8 @@
  * on the mark photographs a blank element.
  */
 
+import { isUniform } from './compare.mjs';
+
 /** Poll `fn` until it returns truthy. Bounded; throws with context on failure. */
 async function until(page, label, fn, { tries = 120, everyMs = 250 } = {}) {
   let last;
@@ -152,6 +154,72 @@ export async function assertGroups(page, prefix, expectGroups) {
 }
 
 /**
+ * A request the fixtures do not pin was refused, so whatever the page did next
+ * it did without that response.
+ *
+ * Exported because one check at one moment does not cover it: the viewer keeps
+ * fetching after the gates pass. The 3D pane resolves three hops deep, and the
+ * settle loop runs later still — so this is asked before the gates, while
+ * waiting for the pane, and once more after the pixels stop moving
+ * (capture.mjs). Every call site fails the shot, which is what keeps the image
+ * off disk; the run-level summary only collects the URLs afterwards.
+ */
+export function assertNothingUnpinned(ledger) {
+  if (!ledger.unpinned.size) return;
+  throw new Error(
+    `unpinned network request(s) — see the summary at the end of the run:\n` +
+      [...ledger.unpinned].map((u) => `  ${u}`).join('\n')
+  );
+}
+
+/**
+ * The 3D canvas has something on it.
+ *
+ * `structure-id` below says which entry the pane *asked* for — it is rendered
+ * from the pane's own selection, before Mol* has fetched anything — so on its
+ * own it cannot tell a rendered molecule from an empty canvas. Empty is a real
+ * state, and a quiet one: without SwiftShader forced, Chromium refuses Mol*'s
+ * WebGL context and the pane gives up *before requesting its model*, leaving a
+ * full-sized canvas painted nothing at all (see capture.mjs). No other gate
+ * notices — an unpainted canvas is stable, sized, and console-clean.
+ *
+ * So look at the pixels: photograph the canvas and require that they are not
+ * all one colour. The rect is clamped to the viewport because a clip that
+ * reaches past it sends Playwright down the `captureBeyondViewport` path, which
+ * resizes the compositing surface and makes every canvas redraw.
+ */
+export async function assertStructurePainted(page, structureId) {
+  const rect = await until(page, `3D canvas sized (pinned ${structureId})`, () =>
+    page.evaluate(() => {
+      const c = document.querySelector('nightingale-structure canvas');
+      if (!c) return null;
+      const b = c.getBoundingClientRect();
+      const left = Math.max(0, b.left);
+      const top = Math.max(0, b.top);
+      const right = Math.min(innerWidth, b.right);
+      const bottom = Math.min(innerHeight, b.bottom);
+      if (right - left < 2 || bottom - top < 2) return null;
+      return {
+        x: Math.round(left + scrollX),
+        y: Math.round(top + scrollY),
+        width: Math.round(right - left),
+        height: Math.round(bottom - top),
+      };
+    })
+  );
+  await until(
+    page,
+    `3D canvas painted (pinned ${structureId}) — mounted and sized, but every ` +
+      `pixel is one colour`,
+    async () =>
+      !(await isUniform(
+        await page.screenshot({ clip: rect, animations: 'disabled' })
+      )),
+    { tries: 40 }
+  );
+}
+
+/**
  * Assertions that must hold at capture time. Each corresponds to a way the
  * viewer can look plausible while being wrong.
  */
@@ -161,12 +229,7 @@ export async function assertCapturable(
   consoleProblems,
   { structure = false, structureId } = {}
 ) {
-  if (ledger.unpinned.size) {
-    throw new Error(
-      `unpinned network request(s) — see the summary at the end of the run:\n` +
-        [...ledger.unpinned].map((u) => `  ${u}`).join('\n')
-    );
-  }
+  assertNothingUnpinned(ledger);
   if (consoleProblems.length) {
     throw new Error(
       `page reported problems:\n` +
@@ -183,9 +246,18 @@ export async function assertCapturable(
     // The label carries the pinned id: when the gate does time out, the entry
     // the pane was asked for is the first thing worth knowing — an id no row
     // matches leaves the pane mounted but empty, and nothing else would say so.
-    await until(page, `3D pane mounted (pinned ${structureId})`, () =>
-      page.evaluate(() => !!document.querySelector('nightingale-structure'))
-    );
+    //
+    // The ledger is re-read on every poll because *these* are the fetches the
+    // check above cannot have covered: they are still in flight when it runs.
+    // Without it, a model request no fixture pins reads as a pane that never
+    // mounted, thirty seconds later, with the URL that explains it relegated to
+    // the end-of-run summary.
+    await until(page, `3D pane mounted (pinned ${structureId})`, () => {
+      assertNothingUnpinned(ledger);
+      return page.evaluate(() => !!document.querySelector('nightingale-structure'));
+    });
+    await assertStructurePainted(page, structureId);
+    assertNothingUnpinned(ledger);
   }
 
   const bad = await page.evaluate(({ allowStructure, wantStructure }) => {
@@ -212,7 +284,8 @@ export async function assertCapturable(
     // A shot that pins its structure must have got that structure. Without
     // this the pin failing is invisible: the pane simply falls back to
     // whichever entry it sorts first and photographs a different molecule
-    // under a caption that names this one.
+    // under a caption that names this one. This is the pane's *intent* — that
+    // it painted at all is `assertStructurePainted`, above.
     if (wantStructure) {
       const shown = document
         .querySelector('nightingale-structure')

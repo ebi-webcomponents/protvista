@@ -21,6 +21,7 @@ import {
   waitForViewer,
   assertGroups,
   assertCapturable,
+  assertNothingUnpinned,
   clipRect,
   captureStable,
 } from './ready.mjs';
@@ -161,16 +162,18 @@ async function capture(shot, frame = shot) {
   try {
     return await capturePage(context, ledger, shot, frame);
   } finally {
-    // Whatever went wrong, keep what this shot reached for that no fixture
-    // had: the run prints one paste-ready record command at the end rather
-    // than leaving each failure to be read and retyped separately.
-    for (const url of ledger.unpinned) unpinnedAcrossRun.add(url);
     // Reported, not thrown: a context whose browser has already gone rejects
     // on close, and letting that propagate would replace the error that
     // actually explains the failure with one about tidying up after it.
     await context
       .close()
       .catch((e) => console.error(`\nclosing the context failed: ${e.message}`));
+    // Harvested *after* the close, because a request still in flight when the
+    // page goes lands in the ledger during teardown. Whatever went wrong, keep
+    // what this shot reached for that no fixture had: the run prints one
+    // paste-ready record command at the end rather than leaving each failure to
+    // be read and retyped separately.
+    for (const url of ledger.unpinned) unpinnedAcrossRun.add(url);
   }
 }
 
@@ -226,7 +229,14 @@ async function capturePage(context, ledger, shot, frame) {
     await waitForViewer(page, CSS_PREFIX);
   }
 
-  return captureStable(page, await clipRect(page, shot));
+  const png = await captureStable(page, await clipRect(page, shot));
+  // Once more, now that the pixels have stopped moving: the settle loop runs
+  // after every gate above, so a request no fixture pins can still be refused
+  // while the picture is being taken. Failing here is what keeps that picture
+  // off disk — a warning printed at the end of the run arrives after the file
+  // has already been written.
+  assertNothingUnpinned(ledger);
+  return png;
 }
 
 /** A shot is either one capture, or several joined into a comparison. */
@@ -335,11 +345,14 @@ for (const w of warnings) console.warn(`warning: ${w}`);
 /**
  * Unpinned URLs, gathered once for the whole run.
  *
- * An unpinned request is reported per shot as the reason that shot failed, but
- * the useful question is the run-level one: *which* URLs, and are they URLs the
- * viewer is supposed to ask for? Recording is deliberately not automatic —
- * a URL that appears without the fixtures having changed means the code changed
- * what the viewer fetches, and that is worth looking at before pinning it.
+ * Reaching one always fails the shot that reached it — `ready.mjs` checks
+ * before the gates and while the 3D pane resolves, and `capturePage` checks
+ * again once the pixels have settled — so this is not the news, only the
+ * record: *which* URLs, collected across every shot into one command.
+ *
+ * Recording is deliberately not automatic. A URL that appears without the
+ * fixtures having changed means the code changed what the viewer fetches, and
+ * that is worth looking at before pinning it.
  */
 if (unpinnedAcrossRun.size) {
   const urls = [...unpinnedAcrossRun];
@@ -348,17 +361,8 @@ if (unpinnedAcrossRun.size) {
     await recordFixtures(urls);
     console.error(`\nRecorded ${urls.length} url(s). Re-run to capture with them pinned.`);
   } else {
-    // Two different pieces of news, and only one of them is bad. A shot that
-    // failed was *stopped* by an unpinned request. A run where everything
-    // captured reached the URL late — after the readiness checks, during the
-    // settle loop — so the picture was taken with that request refused, which
-    // is worth saying out loud but is not a failure and is not worded like one.
-    const header = failures
-      ? `${urls.length} url(s) were requested and are not pinned:`
-      : `warning: every shot captured, but ${urls.length} url(s) were ` +
-        `requested after the readiness checks and refused:`;
     console.error(
-      `\n${header}\n` +
+      `\n${urls.length} url(s) were requested and are not pinned:\n` +
         urls.map((u) => `  ${u}`).join('\n') +
         `\nIf the viewer is meant to ask for these, pin them:\n\n` +
         `  yarn screenshots --record-missing --no-build${ONLY ? ` --only=${ONLY.join(',')}` : ''}\n\n` +

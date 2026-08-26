@@ -1,9 +1,19 @@
 /**
  * Cold-start URL list for `--refresh-fixtures`.
  *
- * Not a contract, and not hand-maintained beyond this: a capture aborts and
- * reports anything it reaches that is not pinned, so the browser itself tells
- * you what to add. This is only the starting point on an empty `fixtures/`.
+ * A capture aborts and reports anything it reaches that is not pinned, so the
+ * browser tells you what to add — but only where a browser can run, and only
+ * for URLs the current shots still reach. Neither half of that covers this
+ * list, so `screenshots-doc.spec.mjs` holds it to `fixtures/index.json`
+ * exactly, in both directions: a seed with no recording fails, and a recording
+ * no seed reaches fails too. Font binaries followed out of the Google Fonts CSS
+ * are the one exception, since `recordAll` discovers those itself.
+ *
+ * That second direction is not pedantry. Two payloads had been sitting in
+ * `fixtures/` since July that nothing fetches any more — a pre-`?type=domain`
+ * InterPro URL, and the 703 KB AlphaFold model the 3D pane downloads only when
+ * it *fails* to resolve an experimental structure — and a list checked in one
+ * direction cannot see either.
  */
 import { shots } from './manifest.mjs';
 

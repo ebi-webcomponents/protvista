@@ -29,9 +29,25 @@ import {
   rmSync,
 } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { dirname, join, resolve } from 'node:path';
 
-export const FIXTURE_DIR = 'scripts/screenshots/fixtures';
+/**
+ * Resolved against this module, not the working directory. `record-cli.mjs`
+ * pins a single URL and has no other reason to care where it is run from; with
+ * a relative path it would quietly create a second, empty `fixtures/` under
+ * whatever directory it happened to be started in and record into that.
+ * `index.json` still stores each entry's `file` relative to this directory, so
+ * the committed index is unaffected.
+ *
+ * Spelled with `resolve` rather than `new URL('fixtures', import.meta.url)`
+ * because Vite rewrites that second form as a static asset reference, and this
+ * module is loaded through Vite by `screenshots-doc.spec.mjs`.
+ */
+export const FIXTURE_DIR = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  'fixtures'
+);
 const INDEX = join(FIXTURE_DIR, 'index.json');
 const NET = join(FIXTURE_DIR, 'net');
 
