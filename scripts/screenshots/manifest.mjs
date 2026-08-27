@@ -13,8 +13,24 @@
  * not guessed.
  */
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 
 const PLAYGROUND = '/protvista/playground/';
+
+/**
+ * Read a repo file, resolved against *this module* rather than the working
+ * directory. These reads run at import time, and this module is now on the
+ * import graph of `seeds.mjs` — so `record-cli.mjs`, which has no other reason
+ * to care where it is run from, would otherwise die on ENOENT for a tutorial
+ * config it never looks at.
+ *
+ * Spelled with `resolve` rather than `new URL(rel, import.meta.url)` because
+ * Vite rewrites that second form as a static asset reference — and this module
+ * is loaded through Vite by `screenshots-doc.spec.mjs`.
+ */
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const readRepoFile = (rel) => readFileSync(resolve(REPO_ROOT, rel), 'utf8');
 
 /**
  * How much any shot may differ before it counts as a different picture. One
@@ -41,10 +57,7 @@ export const TOLERANCE = 0.1;
 /** The tutorial's Step 3 config, loaded verbatim so the figure cannot drift
  *  from the YAML block printed beside it (which `tutorial-doc.spec.ts` already
  *  pins to this same file). Passed through the playground's `#config=`. */
-const extendDefault = readFileSync(
-  'examples/extend-default/config.yaml',
-  'utf8'
-);
+const extendDefault = readRepoFile('examples/extend-default/config.yaml');
 const asHash = (yaml) => `#config=${Buffer.from(yaml).toString('base64')}`;
 
 /** Every row the default UniProt viewer draws for P05067, as measured.
@@ -75,10 +88,31 @@ const DEFAULT_GROUPS = [
 /** The inline-data example, and the same config with its `theme:` block
  *  removed. Capturing both makes a before/after where the *only* difference is
  *  the theming — using two different presets would compare different data. */
-const inlineData = readFileSync('examples/inline-data/config.yaml', 'utf8');
+const inlineData = readRepoFile('examples/inline-data/config.yaml');
 const unthemed = inlineData.replace(/^theme:\n(?:[ \t]+.*\n)*/m, '');
 
 const CC_BY = 'https://creativecommons.org/licenses/by/4.0/';
+
+/**
+ * The PDB entry the 3D shots photograph, pinned rather than inferred.
+ *
+ * Left to itself the pane selects the first row of its own list, which is a
+ * sort over UniProt's PDB cross-references — data that is curated continuously,
+ * ordered by code that is free to change. Both moved: 761fbac flipped the sort
+ * to descending, the selection went 1AAP -> 9UMH, and every 3D capture aborted
+ * on a mappings URL no fixture had ever seen. Nothing was wrong with either the
+ * sort or the fixtures; the figure simply had no say in what it was a figure
+ * *of*. With `selected-id` pinned (a supported consumer API — see the
+ * "Default to the first row only if the consumer hasn't pre-set a selection"
+ * branch in src/protvista-uniprot-structure.ts) neither a re-sort nor a new PDB
+ * entry for P05067 can change the picture or the set of URLs it needs, and
+ * `ready.mjs` fails the run if the pin does not take.
+ *
+ * 1AAP is what these images have always shown and what the prose beside them
+ * says: a small experimental fragment that still reads as a protein at 400px,
+ * unlike the cryo-EM complexes that now sort to the top.
+ */
+const PINNED_STRUCTURE = '1AAP';
 
 export const shots = [
   {
@@ -92,6 +126,7 @@ export const shots = [
     viewport: { width: 2450, height: 1800 },
     expectGroups: DEFAULT_GROUPS,
     structure: true,
+    structureId: PINNED_STRUCTURE,
     // No tolerance of its own — `TOLERANCE` covers this comfortably.
     // Downscaling ~1189px to 400 resamples Mol*'s per-run anti-aliasing across
     // a much smaller image, which measures 1.7-2.1% between runs — the noisiest
@@ -222,15 +257,18 @@ shots.push(
     // run — measured at 0.4% of pixels, with no perceptible difference — which
     // `DEFAULT_TOLERANCE` absorbs like everything else.
     //
-    // What resolves is the experimental PDB entry 1AAP, not the AlphaFold
-    // model; with `rest.uniprot.org` unreachable it falls back to AlphaFold
-    // silently, which is a different picture and not an error. See router.mjs.
+    // What it shows is the experimental PDB entry 1AAP, pinned by
+    // `structureId` rather than left to the pane's own ordering (see
+    // PINNED_STRUCTURE); not the AlphaFold model. With `rest.uniprot.org`
+    // unreachable it falls back to AlphaFold silently, which is a different
+    // picture and not an error. See router.mjs.
     url: `${PLAYGROUND}#preset=uniprot-default&accession=P05067`,
     // Narrower than the 3D pane's natural width: Mol* fits the model to the
     // canvas, so a wide short canvas letterboxes a tall molecule into a strip.
     viewport: { width: 1150, height: 1500 },
     expectGroups: DEFAULT_GROUPS,
     structure: true,
+    structureId: PINNED_STRUCTURE,
     // The canvas, not the whole element: the element is half empty margin.
     clip: { element: 'nightingale-structure canvas', stopBefore: null },
     doc: 'docs/src/content/docs/overview.md',

@@ -70,6 +70,21 @@ export async function drift(a, b, { channelDelta = 8, heatmap = false } = {}) {
   };
 }
 
+/**
+ * Is the whole image one flat colour?
+ *
+ * Asked of the 3D canvas, which can mount at full size and paint nothing (see
+ * `assertStructurePainted` in ready.mjs). Nothing else in the harness notices
+ * that: flat pixels are perfectly *stable* pixels, and they compare equal to
+ * themselves on every run. A real render — even a small molecule on a plain
+ * background — moves the per-channel standard deviation well clear of zero,
+ * while an unpainted canvas sits exactly at it.
+ */
+export async function isUniform(png, { maxStdev = 0.5 } = {}) {
+  const { channels } = await sharp(png).stats();
+  return channels.every((c) => c.stdev <= maxStdev);
+}
+
 /** Fraction of pixels differing by more than `channelDelta` per channel. */
 export async function pixelDelta(a, b, opts) {
   return (await drift(a, b, opts)).fraction;

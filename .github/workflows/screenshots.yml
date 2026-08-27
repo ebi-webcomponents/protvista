@@ -9,7 +9,8 @@ name: Screenshots
 #   - `regenerate` (manual)  — the canonical generator. Runs on Linux and opens
 #     a PR with whatever changed. Use it after a UI change or before a release.
 #   - `check` (pull request) — tells a reviewer "the UI moved and the docs
-#     images no longer match". Advisory only; see the tolerance note below. It
+#     images no longer match". Drift is advisory (see the tolerance note on the
+#     job below); a shot that could not be captured at all fails the job. It
 #     reports how much of each image moved and uploads a committed/fresh/diff
 #     strip as an artifact, because the number alone cannot separate a real
 #     change from rasterisation noise.
@@ -40,13 +41,6 @@ jobs:
     name: Check for drift
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    # Advisory. Font rasterisation differs between the machine that generated
-    # the committed images and this runner — measured at 1.8% of pixels on
-    # `tutorial-standalone-csv`, every one of them inside a glyph, with the
-    # tracks and rulers byte-identical — so a strict failure here would block
-    # unrelated work on noise. A reviewer reads the annotation, opens the
-    # `screenshot-drift` artifact, and decides whether to run `regenerate`.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -63,9 +57,29 @@ jobs:
         continue-on-error: true
         run: npx playwright install --with-deps chromium chromium-headless-shell
 
+      # Drifted images are advisory; a harness that cannot capture at all is
+      # not. Font rasterisation differs between the machine that generated the
+      # committed images and this runner — measured at 1.8% of pixels on
+      # `tutorial-standalone-csv`, every one of them inside a glyph, with the
+      # tracks and rulers byte-identical — so failing on drift would block
+      # unrelated work on noise: a reviewer reads the annotation, opens the
+      # `screenshot-drift` artifact and decides whether to run `regenerate`.
+      # But exit 1 means a shot could not be captured — an unpinned request, a
+      # page error, a viewer that rendered empty. That is a real breakage in
+      # the code or the fixtures, it blocks regenerating any image, and burying
+      # it in a green check is how `mappings/uniprot/9UMH` went unnoticed.
       - name: Compare against the committed images
         if: steps.browser.outcome == 'success'
-        run: yarn screenshots:check
+        run: |
+          set +e
+          yarn screenshots:check
+          code=$?
+          set -e
+          if [ "$code" = 2 ]; then
+            echo "::warning::Documentation screenshots drifted — see the screenshot-drift artifact, then run the Screenshots workflow to regenerate."
+            exit 0
+          fi
+          exit "$code"
 
       # The percentage in the log says how much moved; only the picture says
       # what. Each `<id>.compare.png` is the committed image, the fresh one and

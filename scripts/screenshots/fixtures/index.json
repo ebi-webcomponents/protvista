@@ -31,14 +31,6 @@
     "sha256": "26c1e1496f92242d46b6cbe36b0bd7c8c53f5c1ef8a56cd6802ecd01f94696a2",
     "recordedAt": "2026-07-31T05:37:04.421Z"
   },
-  "https://alphafold.ebi.ac.uk/files/AF-P05067-F1-model_v6.cif": {
-    "file": "net/alphafold.ebi.ac.uk/files/AF-P05067-F1-model_v6.cif",
-    "status": 200,
-    "contentType": "application/octet-stream",
-    "bytes": 703787,
-    "sha256": "672d7a9013d8a8f8bb7b68f319fcf99b7a6223401a9882f8c9e6ce08e83eccff",
-    "recordedAt": "2026-07-31T10:09:06.569Z"
-  },
   "https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap": {
     "file": "net/fonts.googleapis.com/css2__family=Open+Sans_wght@400;700_display=swap",
     "status": 200,
@@ -134,14 +126,6 @@
     "bytes": 460852,
     "sha256": "9db298dd484521274d58f7075a48671af7f7e731676567f135f028322a901b48",
     "recordedAt": "2026-07-31T10:27:07.983Z"
-  },
-  "https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/P05067": {
-    "file": "net/www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/P05067",
-    "status": 200,
-    "contentType": "application/json",
-    "bytes": 11620,
-    "sha256": "61b2b10dd89dd2e49f8a7c57edc09e5cbe935dda99207ed41d4e8be20451d897",
-    "recordedAt": "2026-07-31T05:35:22.679Z"
   },
   "https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/P05067?type=domain&page_size=100": {
     "file": "net/www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/P05067__type=domain_page_size=100",

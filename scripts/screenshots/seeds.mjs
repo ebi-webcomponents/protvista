@@ -1,10 +1,43 @@
 /**
  * Cold-start URL list for `--refresh-fixtures`.
  *
- * Not a contract, and not hand-maintained beyond this: a capture aborts and
- * reports anything it reaches that is not pinned, so the browser itself tells
- * you what to add. This is only the starting point on an empty `fixtures/`.
+ * A capture aborts and reports anything it reaches that is not pinned, so the
+ * browser tells you what to add — but only where a browser can run, and only
+ * for URLs the current shots still reach. Neither half of that covers this
+ * list, so `screenshots-doc.spec.mjs` holds it to `fixtures/index.json`
+ * exactly, in both directions: a seed with no recording fails, and a recording
+ * no seed reaches fails too. Font binaries followed out of the Google Fonts CSS
+ * are the one exception, since `recordAll` discovers those itself.
+ *
+ * That second direction is not pedantry. Two payloads had been sitting in
+ * `fixtures/` since July that nothing fetches any more — a pre-`?type=domain`
+ * InterPro URL, and the 703 KB AlphaFold model the 3D pane downloads only when
+ * it *fails* to resolve an experimental structure — and a list checked in one
+ * direction cannot see either.
  */
+import { shots } from './manifest.mjs';
+
+/**
+ * What the 3D pane fetches for one PDB entry: the residue mapping, and the
+ * model itself from the PDBe model server.
+ *
+ * Derived from the shots rather than listed by hand. Which entry they name is
+ * exactly what changed under the fixtures once already, and hand-listing is why
+ * nothing noticed: the two URLs were never in this list at all, recorded ad hoc
+ * when the 3D shots were added, so a cold-start recording produced a fixture
+ * set those shots could not run against and only a browser could say so.
+ * Tying them to `structureId` also means `screenshots-doc.spec.mjs` can assert
+ * the fixtures exist for whatever the shots pin, in the ordinary unit suite.
+ */
+export const structureUrls = (id) => [
+  `https://www.ebi.ac.uk/pdbe/api/mappings/uniprot/${id}`,
+  `https://www.ebi.ac.uk/pdbe/model-server/v1/${id.toLowerCase()}/full?encoding=bcif`,
+];
+
+export const PINNED_STRUCTURES = [
+  ...new Set(shots.filter((s) => s.structureId).map((s) => s.structureId)),
+];
+
 export const SEED_URLS = [
   // Top-level sequence. Hardcoded in the component (not `sources:`-driven), so
   // every shot needs it regardless of preset.
@@ -34,4 +67,13 @@ export const SEED_URLS = [
   // The playground's webfont. Recording the CSS pulls in the woff2 files it
   // references (see fixtures.mjs), so a capture needs no network at all.
   'https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap',
+  // The 3D pane's two list sources, both asked for on every page (the pane
+  // always mounts) and both stubbed for every shot except a `structure: true`
+  // one, which is served the real payload — see router.mjs. The first is
+  // UniProt's own PDB cross-references, which is where the pinned entry comes
+  // from: without it a `structure: true` shot resolves no structure at all.
+  'https://rest.uniprot.org/uniprotkb/P05067',
+  'https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/P05067.json?exclude_provider=pdbe',
+  // …and, for each structure a shot pins, the two URLs showing it needs.
+  ...PINNED_STRUCTURES.flatMap(structureUrls),
 ];

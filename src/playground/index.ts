@@ -304,6 +304,15 @@ function initialState(): { text: string; accession: string; presetId: string } {
       presetId: CUSTOM_OPTION,
     };
   }
+  // An id we do not know still falls back to the default preset — a shared
+  // link should show *something* — but say so rather than silently rendering a
+  // different viewer than the link asked for. `presets.spec.ts` keeps the docs'
+  // own `#preset=` links honest; this covers a hand-typed or stale one.
+  if (restored?.preset && !getPreset(restored.preset)) {
+    console.warn(
+      `Unknown preset "${restored.preset}" — falling back to ${DEFAULT_PRESET_ID}.`
+    );
+  }
   const preset =
     (restored?.preset && getPreset(restored.preset)) ||
     getPreset(DEFAULT_PRESET_ID)!;

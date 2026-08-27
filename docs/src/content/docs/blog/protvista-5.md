@@ -82,14 +82,14 @@ nothing to install. Type an accession, edit the configuration, watch the
 visualisation change. Every view has its own web address, so you can send a
 colleague exactly what you are looking at.
 
-When you want to keep it, the
+When you want to keep a view you've built, the
 [Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit) is a
-page and a configuration already wired together: select **Use this template**,
-put your data file in the `data` folder, edit `config.yaml`, and switch on
-GitHub Pages. That
-gives you a web page you can share, with nothing installed. Your configuration
-is checked each time you save a change, so a mistyped field is flagged there and
-then rather than leaving you with an empty track and no explanation.
+page and a configuration already wired together. Select **Use this template**,
+drop your data file into the `data` folder, edit `config.yaml`, and switch on
+GitHub Pages — that gives you a shareable web page with nothing installed. Each
+time you save a change, an automatic check validates `config.yaml` against
+ProtVista's schema, so a mistyped or unknown field is caught and named for you
+rather than slipping through unnoticed.
 
 ## Getting it
 

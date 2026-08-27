@@ -11,10 +11,27 @@ yarn screenshots --check              # report drift, write nothing (CI)
 yarn screenshots --assert-clean       # capture twice, fail if not identical
 yarn screenshots --no-build           # reuse the existing site/ build
 yarn screenshots --refresh-fixtures   # re-record the pinned payloads (rare)
+yarn screenshots --record-missing     # pin whatever this run found unpinned
 ```
 
 Chromium is required: `npx playwright install chromium`. Some sandboxes block
 that download; the CI check job skips rather than fails in that case.
+
+## Exit codes
+
+Two kinds of bad news, told apart, because CI answers them differently
+(`.github/workflows/screenshots.yml` reads these numbers — do not renumber them
+without changing that job):
+
+| code | meaning | what to do |
+| --- | --- | --- |
+| `0` | every shot captured, nothing moved | nothing |
+| `1` | **a shot could not be captured** — an unpinned request (including one that only arrives as the page is torn down), a page error, a viewer that rendered empty, a 3D canvas that never painted. Nothing is written for that shot | fix it; no image can be regenerated until it is |
+| `2` | `--check` only: every shot captured, but the pictures moved | read the diff strip, then regenerate if the change is the wanted one |
+
+On a pull request `2` is advisory (annotation + artifact, green job) and `1`
+fails the job. Only `--check` can return `2`; a writing run has nothing to
+report drift against, since it just wrote the new bytes.
 
 ## Reading a `--check` failure
 
@@ -64,8 +81,12 @@ _not_ pinned aborts and fails the run rather than quietly reaching the network.
 
 **Failure is loud.** A screenshot of a broken viewer is worse than no
 screenshot, so a run fails on: an unpinned request, a page or console error, an
-error panel, an empty viewer, a row set that differs from the manifest, pixels
-that never settle, or an oversized file.
+error panel, an empty viewer, a row set that differs from the manifest, a 3D
+canvas that mounted but painted nothing, pixels that never settle, or an
+oversized file. The unpinned check runs three times — before the gates, while
+the 3D pane resolves, and once more after the pixels settle — because the viewer
+keeps fetching after the gates pass, and a URL refused during the settle loop
+would otherwise be reported only after the image had been written.
 
 ## Adding a shot
 
@@ -112,6 +133,13 @@ that never settle, or an oversized file.
 - **`structure: true`** — include the 3D pane, which is otherwise stubbed away
   (see below). Such a shot is run in a separate browser with SwiftShader forced,
   and needs a `tolerance`.
+- **`structureId`** — which PDB entry the 3D pane shows, pinned through the
+  pane's `selected-id`. Required for a `structure: true` shot, and asserted at
+  capture time. Without it the figure is of whichever entry the pane sorts
+  first, which is a property of continuously curated data and of code free to
+  reorder it: when the sort flipped to descending, the selection went 1AAP →
+  9UMH and every 3D capture aborted on a mappings URL no fixture had. The
+  caption names a structure, so the shot should too.
 - **`TOLERANCE`** — not a per-shot option: one number in `manifest.mjs`, 10%,
   is the fraction of pixels that may differ before two images count as
   different. It governs `--check`, `--assert-clean`, **and whether a file is
@@ -138,18 +166,21 @@ that never settle, or an oversized file.
   That last part is essential — without
   `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader`, headless
   Chromium refuses Mol\*'s WebGL context, and Mol\* then gives up _before
-  requesting its model_, leaving a silently blank pane that looks like a
-  missing-data problem. The flags are applied only to structure shots, in a
+  requesting its model_, leaving a blank pane that looks like a missing-data
+  problem. `structure-id` cannot see that — it names the entry the pane
+  _asked_ for, not what Mol\* drew — so `ready.mjs` photographs the canvas and
+  fails the shot when every pixel is the same colour. The flags are applied only to structure shots, in a
   separate browser: with them on, the ordinary Nightingale track canvases never
   stop redrawing and no other shot reaches pixel stability. Mol\* also settles
   to marginally different anti-aliasing per run (~0.3% of pixels), so such a
   shot needs a `tolerance`.
 - **What the 3D pane shows is resolved over three hops**, and a broken one is
   silent. For P05067 the viewer asks `rest.uniprot.org` for cross-references,
-  3D-Beacons for a model list, then the PDBe model server for the bcif — landing
-  on the _experimental_ entry **1AAP**. If `rest.uniprot.org` cannot be reached
-  it falls back to the AlphaFold model instead: a different picture, no error.
-  If the structure images change, check that first.
+  3D-Beacons for a model list, then the PDBe model server for the bcif. Which
+  entry it lands on is pinned by the shot's `structureId` (**1AAP**) rather than
+  left to the pane's own ordering. If `rest.uniprot.org` cannot be reached it
+  falls back to the AlphaFold model instead: a different picture, no error. If
+  the structure images change, check that first.
 - **Fixtures are recorded with Node, not the browser.** Chromium in some proxied
   environments cannot complete HTTP/2 to `www.ebi.ac.uk`
   (`ERR_HTTP2_PROTOCOL_ERROR`) where Node succeeds, so browser-driven recording
@@ -179,11 +210,23 @@ the URL, status, byte count, hash and retrieval date, and expect the images to
 change with it. Do it at release time, so the pictures document the science of
 the release rather than of an arbitrary Tuesday.
 
-If a capture reports an unpinned URL, pass it directly:
+If a capture reports an unpinned URL, pin what the run found:
 
 ```sh
+yarn screenshots --record-missing --no-build   # then re-run to capture
 node scripts/screenshots/record-cli.mjs "https://example.org/new/endpoint"
 ```
+
+Recording pins the URL for capture but does not seed it: add it to `SEED_URLS`
+in `seeds.mjs` too, with a note on which consumer asks for it, or the next
+`yarn test` fails it as a fixture `--refresh-fixtures` will never renew.
+
+Read the URL before recording it. **An unpinned URL that appears without the
+fixtures having changed means the code changed what the viewer fetches** — a
+different structure, source or endpoint — and recording it pins the new
+behaviour into the figures without anyone having looked at them. That is how
+`mappings/uniprot/9UMH` showed up: a change of sort order moved the 3D pane onto
+another PDB entry, which the shots now pin explicitly (`structureId`).
 
 ## Licensing
 
