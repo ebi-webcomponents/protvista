@@ -15,13 +15,28 @@
  * which is unsupported below Chrome/Edge 111, Firefox 113 and Safari 16.2
  * and so would fall outside the support matrix this package documents
  * (Chrome/Edge 92+, Firefox 90+, Safari 15+ — see README.md). Every value
- * this module produces is a plain `rgb()` literal that parses everywhere.
+ * this module produces is a plain `rgb()`/`rgba()` literal that parses
+ * everywhere.
  *
- * Resolution is delegated to the browser (a throwaway probe element)
- * rather than hand-parsed, so authors get the full CSS colour syntax their
- * browser supports — hex, keywords, `rgb()`, `hsl()`, `color()` — instead
- * of a subset we happened to implement. It also means an unparseable value
- * is rejected rather than passed through to the stylesheet.
+ * Resolution takes two routes:
+ *
+ *   1. The CIE and Oklab function syntaxes — `oklch()`, `oklab()`,
+ *      `lab()`, `lch()`, and `color()` in `srgb` / `srgb-linear` /
+ *      `display-p3` — are parsed and converted here. Doing the maths
+ *      ourselves rather than asking the browser is what makes them work
+ *      across the whole support matrix: Safari 15 cannot parse `oklch()`
+ *      at all, so delegating would silently drop an author's colour on a
+ *      browser we claim to support.
+ *   2. Everything else — hex, keywords, `rgb()`, `hsl()`, `hwb()` — is
+ *      handed to the browser via a throwaway probe element, so authors
+ *      get their engine's full syntax range instead of a subset we
+ *      happened to implement. It also means an unparseable value is
+ *      rejected rather than passed through to the stylesheet.
+ *
+ * Both routes land in sRGB. A colour outside the sRGB gamut is *clamped*
+ * per channel, not gamut-mapped: the result is the nearest representable
+ * value along each axis, which is enough for a label surface and avoids
+ * shipping a gamut-mapping implementation.
  */
 
 import { TOKENS } from './tokens.js';
@@ -31,6 +46,11 @@ export interface Rgb {
   r: number;
   g: number;
   b: number;
+}
+
+/** An sRGB colour that has kept its alpha, `a` in 0–1. */
+export interface Rgba extends Rgb {
+  a: number;
 }
 
 /**
@@ -48,42 +68,226 @@ export interface Rgb {
  */
 const SURFACE: Rgb = { r: 255, g: 255, b: 255 };
 
-/** `rgb(…)` / `rgba(…)`, the form every engine serialises a colour to. */
+/** `rgb(…)` / `rgba(…)`, the form legacy colours serialise to. */
 const RGB_FUNC = /^rgba?\(([^)]+)\)$/;
 
 /**
- * Resolve any CSS colour string to opaque sRGB channels, or `null` if the
- * browser cannot parse it (which includes anything carrying extra
- * declarations, so a config value can never smuggle CSS into the sheet).
- *
- * Translucent colours are composited over {@link SURFACE}.
+ * `inherit` and friends parse as a valid `color` declaration but carry no
+ * colour of their own — they would resolve to whatever the probe happened
+ * to inherit, which is not the author's colour by any reading. Same for a
+ * `var()` reference, which resolves against the probe's custom properties
+ * rather than the viewer's.
  */
-export function resolveColor(value: string): Rgb | null {
-  const doc = globalThis.document;
-  if (!doc?.body) return null;
+const CSS_WIDE = /^(inherit|initial|unset|revert|revert-layer)$/i;
+const VAR_REF = /\bvar\s*\(/i;
 
-  const probe = doc.createElement('span');
-  // `display: none` keeps the probe out of layout; `color` still resolves.
-  probe.style.display = 'none';
-  probe.style.color = value;
-  // CSSOM drops a declaration it cannot parse, leaving the property empty
-  // — the only reliable "was that a colour?" test, since a computed style
-  // reports inherited black for an invalid value just as it would for a
-  // genuine `black`.
-  if (!probe.style.color) return null;
+/** A CIE / Oklab function: `oklch(…)`, `oklab(…)`, `lab(…)`, `lch(…)`. */
+const CIE_FUNC = /^(oklch|oklab|lab|lch)\(([^)]*)\)$/i;
+/** `color(<space> c1 c2 c3[ / a])`. */
+const COLOR_FUNC = /^color\(([^)]*)\)$/i;
 
-  let computed: string;
-  doc.body.append(probe);
-  try {
-    computed = getComputedStyle(probe).color;
-  } finally {
-    probe.remove();
+/** `<angle>` — a bare number is degrees, per CSS Color 4. */
+const ANGLE = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(deg|rad|grad|turn)?$/i;
+
+const ANGLE_TO_DEG: Record<string, number> = {
+  deg: 1,
+  rad: 180 / Math.PI,
+  grad: 0.9,
+  turn: 360,
+};
+
+/**
+ * One component of a colour function: a number, a percentage against
+ * `basis`, or `none` (which CSS Color 4 defines as zero once the colour
+ * is used rather than interpolated).
+ */
+function component(token: string, basis: number): number | null {
+  if (/^none$/i.test(token)) return 0;
+  const isPct = token.endsWith('%');
+  const value = Number(isPct ? token.slice(0, -1) : token);
+  if (!Number.isFinite(value)) return null;
+  return isPct ? (value / 100) * basis : value;
+}
+
+/** A hue angle in degrees. */
+function angle(token: string): number | null {
+  if (/^none$/i.test(token)) return 0;
+  const parts = ANGLE.exec(token);
+  if (!parts) return null;
+  return Number(parts[1]) * ANGLE_TO_DEG[(parts[2] ?? 'deg').toLowerCase()];
+}
+
+/**
+ * Split a colour function's arguments into components and alpha. CSS
+ * Color 4 separates the two with `/`; commas are tolerated between
+ * components so a hand-written value is not rejected on punctuation.
+ */
+function splitArgs(args: string): { parts: string[]; alpha: number } | null {
+  const [body, alphaToken, ...rest] = args.split('/');
+  if (rest.length) return null;
+  const parts = body.trim().split(/[\s,]+/).filter(Boolean);
+  if (alphaToken === undefined) return { parts, alpha: 1 };
+  const alpha = component(alphaToken.trim(), 1);
+  if (alpha === null) return null;
+  return { parts, alpha: Math.min(Math.max(alpha, 0), 1) };
+}
+
+/** Apply a 3×3 matrix (row-major, flat) to a 3-vector. */
+function transform(m: readonly number[], [x, y, z]: number[]): number[] {
+  return [
+    m[0] * x + m[1] * y + m[2] * z,
+    m[3] * x + m[4] * y + m[5] * z,
+    m[6] * x + m[7] * y + m[8] * z,
+  ];
+}
+
+/** The sRGB (and Display P3) transfer function: linear light → encoded. */
+function encodeGamma(c: number): number {
+  const sign = c < 0 ? -1 : 1;
+  const abs = Math.abs(c);
+  return abs <= 0.0031308
+    ? 12.92 * c
+    : sign * (1.055 * abs ** (1 / 2.4) - 0.055);
+}
+
+/** Its inverse: encoded → linear light. */
+function decodeGamma(c: number): number {
+  const sign = c < 0 ? -1 : 1;
+  const abs = Math.abs(c);
+  return abs <= 0.04045 ? c / 12.92 : sign * ((abs + 0.055) / 1.055) ** 2.4;
+}
+
+/** Encoded sRGB (0–1 nominal) → 0–255 channels, clamped to the gamut. */
+function toChannels([r, g, b]: number[]): Rgb {
+  const channel = (c: number) => Math.round(Math.min(Math.max(c, 0), 1) * 255);
+  return { r: channel(r), g: channel(g), b: channel(b) };
+}
+
+// Björn Ottosson's Oklab → LMS → linear sRGB constants.
+const OKLAB_TO_LMS = [
+  1, 0.3963377773761749, 0.2158037573099136, 1, -0.1055613458156586,
+  -0.0638541728258133, 1, -0.0894841775298119, -1.2914855480194092,
+] as const;
+const LMS_TO_LINEAR_SRGB = [
+  4.076741661347994, -3.307711590408193, 0.230969928729428, -1.2684380040921763,
+  2.6097574006633715, -0.3413193963102197, -0.004196086541837188,
+  -0.7034186144594493, 1.7076147009309444,
+] as const;
+
+// CSS Color 4 reference matrices.
+const XYZ_D65_TO_LINEAR_SRGB = [
+  3.2409699419045226, -1.537383177570094, -0.4986107602930034,
+  -0.9692436362808796, 1.8759675015077202, 0.04155505740717559,
+  0.05563007969699366, -0.20397695888897652, 1.0569715142428786,
+] as const;
+const D50_TO_D65_BRADFORD = [
+  0.9554734527042182, -0.023098536874261423, 0.0632593086610217,
+  -0.028369706963208136, 1.0099954580058226, 0.021041398966943008,
+  0.012314001688319899, -0.020507696433477912, 1.3303659366080753,
+] as const;
+const LINEAR_P3_TO_XYZ_D65 = [
+  0.4865709486482162, 0.26566769316909306, 0.1982172852343625,
+  0.2289745640697488, 0.6917385218365064, 0.079286914093745, 0,
+  0.04511338185890264, 1.043944368900976,
+] as const;
+
+/** The D50 white point `lab()` is defined against. */
+const D50: number[] = [0.3457 / 0.3585, 1, (1 - 0.3457 - 0.3585) / 0.3585];
+
+/** Oklab (L 0–1, a/b ≈ ±0.4) → encoded sRGB 0–1. */
+function oklabToSrgb(L: number, a: number, b: number): number[] {
+  const lms = transform(OKLAB_TO_LMS, [L, a, b]).map((v) => v ** 3);
+  return transform(LMS_TO_LINEAR_SRGB, lms).map(encodeGamma);
+}
+
+/** CIE Lab, D50 (L 0–100, a/b ≈ ±125) → encoded sRGB 0–1. */
+function labToSrgb(L: number, a: number, b: number): number[] {
+  const EPSILON = 216 / 24389;
+  const KAPPA = 24389 / 27;
+  const fy = (L + 16) / 116;
+  const fx = fy + a / 500;
+  const fz = fy - b / 200;
+  const xr = fx ** 3 > EPSILON ? fx ** 3 : (116 * fx - 16) / KAPPA;
+  const yr = L > KAPPA * EPSILON ? fy ** 3 : L / KAPPA;
+  const zr = fz ** 3 > EPSILON ? fz ** 3 : (116 * fz - 16) / KAPPA;
+  const xyzD50 = [xr * D50[0], yr * D50[1], zr * D50[2]];
+  const xyzD65 = transform(D50_TO_D65_BRADFORD, xyzD50);
+  return transform(XYZ_D65_TO_LINEAR_SRGB, xyzD65).map(encodeGamma);
+}
+
+/** Polar (C, H°) → the rectangular a/b pair Lab and Oklab take. */
+function fromPolar(chroma: number, hue: number): [number, number] {
+  const radians = (hue * Math.PI) / 180;
+  return [chroma * Math.cos(radians), chroma * Math.sin(radians)];
+}
+
+/**
+ * `oklch()` / `oklab()` / `lab()` / `lch()`, converted here rather than
+ * delegated so they resolve identically on every supported browser.
+ */
+function parseCieFunc(value: string): Rgba | null {
+  const matched = CIE_FUNC.exec(value);
+  if (!matched) return null;
+  const form = matched[1].toLowerCase();
+  const split = splitArgs(matched[2]);
+  if (!split || split.parts.length !== 3) return null;
+  const [first, second, third] = split.parts;
+
+  // Percentage bases are the reference ranges CSS Color 4 defines for
+  // each form: lightness is 0–1 for Oklab and 0–100 for Lab, and a
+  // chroma of 100% is 0.4 (Oklab) or 150 (Lab).
+  const isOk = form.startsWith('ok');
+  const L = component(first, isOk ? 1 : 100);
+  if (L === null) return null;
+
+  let a: number | null;
+  let b: number | null;
+  if (form === 'oklch' || form === 'lch') {
+    const chroma = component(second, isOk ? 0.4 : 150);
+    const hue = angle(third);
+    if (chroma === null || hue === null) return null;
+    [a, b] = fromPolar(Math.max(chroma, 0), hue);
+  } else {
+    const axis = isOk ? 0.4 : 125;
+    a = component(second, axis);
+    b = component(third, axis);
+    if (a === null || b === null) return null;
   }
 
-  // Everything an author is likely to write — hex, keyword, `rgb()`,
-  // `hsl()` — serialises to `rgb()`. A wide-gamut `color()` does not, and
-  // is treated as unresolvable rather than approximated.
-  const parts = RGB_FUNC.exec(computed.trim());
+  const srgb = isOk ? oklabToSrgb(L, a, b) : labToSrgb(L, a, b);
+  return { ...toChannels(srgb), a: split.alpha };
+}
+
+/** The predefined colour spaces this module can bring back to sRGB. */
+const COLOR_SPACES: Record<string, (rgb: number[]) => number[]> = {
+  srgb: (rgb) => rgb,
+  'srgb-linear': (rgb) => rgb.map(encodeGamma),
+  // P3 shares the sRGB transfer function, so decode, rotate through XYZ,
+  // and re-encode.
+  'display-p3': (rgb) =>
+    transform(
+      XYZ_D65_TO_LINEAR_SRGB,
+      transform(LINEAR_P3_TO_XYZ_D65, rgb.map(decodeGamma))
+    ).map(encodeGamma),
+};
+
+/** `color(srgb …)` / `color(srgb-linear …)` / `color(display-p3 …)`. */
+function parseColorFunc(value: string): Rgba | null {
+  const matched = COLOR_FUNC.exec(value);
+  if (!matched) return null;
+  const split = splitArgs(matched[1]);
+  if (!split || split.parts.length !== 4) return null;
+  const [space, ...channels] = split.parts;
+  const toSrgb = COLOR_SPACES[space.toLowerCase()];
+  if (!toSrgb) return null;
+  const values = channels.map((c) => component(c, 1));
+  if (values.some((v) => v === null)) return null;
+  return { ...toChannels(toSrgb(values as number[])), a: split.alpha };
+}
+
+/** `rgb(…)` / `rgba(…)`, in either the legacy or the modern form. */
+function parseRgbFunc(value: string): Rgba | null {
+  const parts = RGB_FUNC.exec(value);
   if (!parts) return null;
   // Engines serialise as `rgb(r, g, b)` / `rgba(r, g, b, a)`; newer ones
   // use spaces and a `/` before alpha. Split on either.
@@ -94,12 +298,93 @@ export function resolveColor(value: string): Rgb | null {
   if (nums.length < 3 || nums.slice(0, 3).some((n) => !Number.isFinite(n))) {
     return null;
   }
-
-  const [r, g, b] = nums;
   const alpha = nums.length > 3 && Number.isFinite(nums[3]) ? nums[3] : 1;
-  return alpha >= 1
-    ? { r, g, b }
-    : mix({ r, g, b }, SURFACE, alpha);
+  const [r, g, b] = nums
+    .slice(0, 3)
+    .map((n) => Math.round(Math.min(Math.max(n, 0), 255)));
+  return { r, g, b, a: Math.min(Math.max(alpha, 0), 1) };
+}
+
+/**
+ * The syntaxes this module converts itself. `rgb()` is deliberately not
+ * among them for an *authored* value: the browser normalises out-of-range
+ * channels and legacy quirks better than a hand parser would, so authored
+ * `rgb()` keeps going through the probe. It is parsed only on the way
+ * back out, where it is an engine's own serialisation.
+ */
+function parseConvertedSyntax(value: string): Rgba | null {
+  return parseCieFunc(value) ?? parseColorFunc(value);
+}
+
+/**
+ * Resolve any CSS colour string to sRGB channels plus alpha, or `null` if
+ * it is not a colour this module or the browser can parse (which includes
+ * anything carrying extra declarations, so a config value can never
+ * smuggle CSS into the sheet).
+ *
+ * `doc` is the document to resolve against — pass the element's own, so a
+ * viewer adopted into another document (an iframe, a printing context)
+ * measures keywords and inherited units there rather than in the top
+ * document.
+ */
+export function resolveColorWithAlpha(
+  value: string,
+  doc: Document | undefined = globalThis.document
+): Rgba | null {
+  const text = value.trim();
+  if (!text || CSS_WIDE.test(text) || VAR_REF.test(text)) return null;
+
+  // The syntaxes we convert ourselves, so they work even where the
+  // browser cannot parse them.
+  const converted = parseConvertedSyntax(text);
+  if (converted) return converted;
+
+  if (!doc?.documentElement) return null;
+
+  const probe = doc.createElement('span');
+  // `display: none` keeps the probe out of layout; `color` still resolves.
+  probe.style.display = 'none';
+  probe.style.color = text;
+  // CSSOM drops a declaration it cannot parse, leaving the property empty
+  // — the only reliable "was that a colour?" test, since a computed style
+  // reports inherited black for an invalid value just as it would for a
+  // genuine `black`.
+  if (!probe.style.color) return null;
+
+  let computed: string;
+  // `documentElement` rather than `body`: a viewer can be upgraded before
+  // body exists, and dropping the whole theme over that would be worse
+  // than parenting the probe one level up. Computed colour is unaffected.
+  doc.documentElement.append(probe);
+  try {
+    // The probe's own view, to match the document it was created in —
+    // falling back to this one for a document with no browsing context.
+    computed = (doc.defaultView ?? globalThis).getComputedStyle(probe).color;
+  } finally {
+    probe.remove();
+  }
+
+  // Legacy colours serialise to `rgb()`; a colour written in a modern
+  // space may come back in that space, so the converters run over the
+  // computed value too rather than rejecting what they could handle.
+  const serialised = computed.trim();
+  return parseRgbFunc(serialised) ?? parseConvertedSyntax(serialised);
+}
+
+/**
+ * Resolve any CSS colour string to *opaque* sRGB channels, or `null` if
+ * the value is not a resolvable colour.
+ *
+ * Translucent colours are composited over {@link SURFACE}, because every
+ * caller measures contrast against the result and contrast is a property
+ * of what the eye actually sees. Use {@link resolveColorWithAlpha} where
+ * the alpha itself has to survive.
+ */
+export function resolveColor(value: string, doc?: Document): Rgb | null {
+  const resolved = resolveColorWithAlpha(value, doc);
+  if (!resolved) return null;
+  const { r, g, b, a } = resolved;
+  return a >= 1 ? { r, g, b } : mix({ r, g, b }, SURFACE, a);
 }
 
 /** Blend `weight` (0–1) of `color` with `1 - weight` of `onto`. */
@@ -121,6 +406,15 @@ export function tint(color: Rgb, weight: number): Rgb {
 /** Serialise for a custom property: a literal every browser parses. */
 export function cssRgb({ r, g, b }: Rgb): string {
   return `rgb(${r}, ${g}, ${b})`;
+}
+
+/**
+ * Serialise keeping alpha. Emitted only where a translucent value is
+ * meaningful — see `applyTheme`'s accent handling; a label surface is
+ * flattened first, because its text colour is chosen against it.
+ */
+export function cssRgba({ r, g, b, a }: Rgba): string {
+  return a >= 1 ? cssRgb({ r, g, b }) : `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
 /** WCAG 2.x relative luminance (sRGB, 0 = black, 1 = white). */
@@ -162,6 +456,9 @@ export function readableOn(background: Rgb, candidates: [Rgb, Rgb]): Rgb {
  *  candidate with it. */
 export const TEXT_ON_DARK: Rgb = { r: 255, g: 255, b: 255 };
 
+/** Used only when the registry default cannot be resolved at all. */
+const TEXT_FALLBACK: Rgb = { r: 0x22, g: 0x22, b: 0x22 };
+
 let cachedDefaultText: Rgb | null = null;
 
 /**
@@ -175,19 +472,17 @@ let cachedDefaultText: Rgb | null = null;
  * of our hands.
  */
 export function defaultTextColor(): Rgb {
-  if (!cachedDefaultText) {
-    const declared = TOKENS.find(
-      (t) => t.name === '--protvista-color-text'
-    )?.default;
-    // The fallback only fires with no DOM to resolve against; the
-    // registry value is the source of truth in every real environment.
-    cachedDefaultText = (declared && resolveColor(declared)) ?? {
-      r: 0x22,
-      g: 0x22,
-      b: 0x22,
-    };
-  }
-  return cachedDefaultText;
+  if (cachedDefaultText) return cachedDefaultText;
+  const declared = TOKENS.find(
+    (t) => t.name === '--protvista-color-text'
+  )?.default;
+  const resolved = declared ? resolveColor(declared) : null;
+  // Only a successful resolution is cached. The fallback fires when there
+  // is no DOM to resolve against, and caching it would let one early call
+  // pin the wrong colour for the lifetime of the page — defeating the
+  // registry-is-the-source-of-truth guarantee above.
+  if (resolved) cachedDefaultText = resolved;
+  return resolved ?? TEXT_FALLBACK;
 }
 
 /**

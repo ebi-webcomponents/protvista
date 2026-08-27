@@ -8,7 +8,7 @@
  * (which runs before the fire-and-forget sequence fetch) and resolves
  * without touching the network.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 // Registers the <protvista-uniprot> element (side-effect import).
 import '../protvista-uniprot.js';
 import { contrastRatio, resolveColor, type Rgb } from '../styles/color.js';
@@ -44,6 +44,10 @@ const tokenRgb = (el: HTMLElement, name: string): Rgb => {
   if (!rgb) throw new Error(`${name} is not a resolvable colour: "${value}"`);
   return rgb;
 };
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 const WHITE: Rgb = { r: 255, g: 255, b: 255 };
 const NEAR_BLACK: Rgb = { r: 34, g: 34, b: 34 };
@@ -115,6 +119,7 @@ describe('config theme → chrome tokens on the host', () => {
   });
 
   it('drops a colour the browser cannot parse rather than emitting it', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const el = mount({
       accession: 'P05067',
       theme: { labelColor: 'not-a-colour; background: red' },
@@ -126,6 +131,7 @@ describe('config theme → chrome tokens on the host', () => {
   });
 
   it('ignores an unresolvable override and falls back to labelColor', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const el = mount({
       accession: 'P05067',
       theme: { labelColor: '#e8f5e9', groupLabelColor: 'not-a-colour' },
@@ -169,6 +175,75 @@ describe('config theme → chrome tokens on the host', () => {
     // Remove the theme entirely: all managed tokens clear.
     el.applyTheme(undefined);
     expect(token(el, '--protvista-color-accent')).toBe('');
+  });
+
+  it('leaves a consumer runtime override alone when re-applying', async () => {
+    // docs/theming.md advertises `element.style.setProperty(…)` as the
+    // runtime theming lever. A `setConfig()` re-apply clears what the
+    // previous theme wrote — it must not clear tokens it never set, or
+    // that lever silently stops working.
+    const el = mount({
+      accession: 'P05067',
+      theme: { labelColor: '#e8f5e9' },
+      rows: [inlineTrack],
+    });
+    await el._init();
+    el.style.setProperty('--protvista-color-accent', 'rgb(1, 2, 3)');
+    el.style.setProperty('--protvista-track-border-color', 'rgb(4, 5, 6)');
+
+    el.applyTheme({ labelColor: '#1a237e' });
+
+    // The label surface was re-derived...
+    expect(token(el, '--protvista-group-label-bg')).toBe('rgb(26, 35, 126)');
+    // ...and the hand-set tokens survived, including one inside
+    // THEME_TOKENS that this theme never wrote.
+    expect(token(el, '--protvista-color-accent')).toBe('rgb(1, 2, 3)');
+    expect(token(el, '--protvista-track-border-color')).toBe('rgb(4, 5, 6)');
+  });
+
+  it('keeps the alpha of a translucent accentColor', async () => {
+    // Nothing is derived from the accent, so there is no contrast
+    // measurement forcing it opaque — flattening it over white would
+    // change a colour the author chose deliberately.
+    const el = mount({
+      accession: 'P05067',
+      theme: { accentColor: 'rgba(0, 0, 255, 0.5)' },
+      rows: [inlineTrack],
+    });
+    await el._init();
+    expect(token(el, '--protvista-color-accent')).toBe('rgba(0, 0, 255, 0.5)');
+  });
+
+  it('warns rather than silently dropping a colour it cannot resolve', async () => {
+    // `theme` is not schema-validated past "a non-empty string", so this
+    // warning is the only signal a typo gets.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const el = mount({
+      accession: 'P05067',
+      theme: { labelColor: 'not-a-colour', accentColor: 'also-not' },
+      rows: [inlineTrack],
+    });
+    await el._init();
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn.mock.calls.map(([m]) => m as string).join('\n')).toContain(
+      'theme.labelColor'
+    );
+    expect(warn.mock.calls.map(([m]) => m as string).join('\n')).toContain(
+      'theme.accentColor'
+    );
+  });
+
+  it('accepts a modern colour syntax jsdom cannot parse', async () => {
+    // The CIE/Oklab forms are converted in src/styles/color.ts rather
+    // than delegated, so they resolve on every supported browser — and,
+    // as here, in a jsdom unit run.
+    const el = mount({
+      accession: 'P05067',
+      theme: { labelColor: 'oklch(0.62796 0.25768 29.234)' },
+      rows: [inlineTrack],
+    });
+    await el._init();
+    expect(token(el, '--protvista-group-label-bg')).toBe('rgb(255, 0, 0)');
   });
 });
 

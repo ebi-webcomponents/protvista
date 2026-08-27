@@ -47,6 +47,13 @@ export function injectStyleOnce(key: string, cssText: string): void {
  * consumer's own `:root { … }` rule (specificity 0,1,0) wins, regardless
  * of source order — our sheet is injected late, at mount time.
  *
+ * Only tokens with a *literal* default appear here. One that defaults
+ * from another token would have that reference substituted at the root,
+ * freezing the global's root value into what descendants inherit and
+ * making an override of the global on the host or an ancestor
+ * unreachable; those tokens carry their default chain at the point of
+ * use instead (see `tokenRef` in tokens.ts).
+ *
  * Computed once at module load rather than per `addStyles()` call.
  */
 const TOKEN_DEFAULTS_CSS = tokenDefaultsBlock(':where(:root)');

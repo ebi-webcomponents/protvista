@@ -1,5 +1,6 @@
 import { css, unsafeCSS } from 'lit';
 import { CSS_PREFIX } from './css-prefix.js';
+import { tokenRef } from './tokens.js';
 
 /**
  * Light-DOM styles for "Customize layout": the toggle that enters the mode,
@@ -20,6 +21,14 @@ import { CSS_PREFIX } from './css-prefix.js';
  * literal fallback, so the controls restyle with the rest of the viewer.
  */
 const p = unsafeCSS(CSS_PREFIX);
+
+/**
+ * Read a token whose default is another token, carrying the whole
+ * default chain down to the literal — see `tokenRef` in tokens.ts. The
+ * literal fallbacks written out by hand below are the same idea for
+ * tokens that default to a literal directly.
+ */
+const ref = (name: string) => unsafeCSS(tokenRef(name));
 
 export default css`
   /* The label column doubles as the customize toolbar: the toggle sits in the
@@ -406,11 +415,11 @@ export default css`
   }
 
   protvista-uniprot .${p}-row--hidden .${p}-track-label {
-    color: var(--protvista-track-label-color-muted, #4a5056);
+    color: ${ref('--protvista-track-label-color-muted')};
   }
 
   protvista-uniprot .${p}-row--hidden .${p}-group-label {
-    color: var(--protvista-group-label-color-muted, #4a5056);
+    color: ${ref('--protvista-group-label-color-muted')};
   }
 
   /* A hidden row keeps drawing its features while customizing, desaturated

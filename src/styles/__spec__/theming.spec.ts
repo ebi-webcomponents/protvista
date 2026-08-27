@@ -8,8 +8,15 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { TOKENS, tokenDefaults } from '../tokens.js';
+import {
+  TOKENS,
+  tokenDefaults,
+  tokenRef,
+  inheritsFromGlobal,
+} from '../tokens.js';
 import { installTokenDefaults } from '../inject.js';
+import viewerStyles from '../protvista-styles.js';
+import configPanelStyles from '../config-panel-styles.js';
 import {
   ProtvistaUniprotDatatable,
   type ColumnConfig,
@@ -56,15 +63,47 @@ describe('design-token registry', () => {
 });
 
 describe('light-DOM token defaults', () => {
-  it('emits a declaration for every non-datatable token', () => {
+  it('emits a declaration for every literal-default non-datatable token', () => {
     const css = tokenDefaults();
     for (const t of TOKENS) {
       if (t.group === 'datatable') {
         // Datatable declares its own :host defaults (with aliases).
         expect(css).not.toContain(`${t.name}:`);
+      } else if (inheritsFromGlobal(t)) {
+        // Declaring these here would substitute the global token at the
+        // root — see `tokenRef`. They are read with their chain instead.
+        expect(css, `${t.name} must not be declared at the root`).not.toContain(
+          `${t.name}:`
+        );
       } else {
         expect(css).toContain(`${t.name}: ${t.default};`);
       }
+    }
+  });
+
+  it('reads an inheriting token with its full default chain', () => {
+    // The point of the chain: `var()` substitution happens at the element
+    // that uses the value, so both the component token and the global it
+    // defaults from are picked up wherever the consumer declared them.
+    expect(tokenRef('--protvista-track-label-color')).toBe(
+      'var(--protvista-track-label-color, var(--protvista-color-text, #222222))'
+    );
+    // A literal-default token is just itself plus that literal.
+    expect(tokenRef('--protvista-color-text')).toBe(
+      'var(--protvista-color-text, #222222)'
+    );
+    expect(() => tokenRef('--protvista-not-a-token')).toThrow();
+  });
+
+  it('never reads an inheriting token bare in the shipped CSS', () => {
+    // A bare `var(--inheriting-token)` in a rule has no default at all
+    // now that the root block omits it — this is the drift guard that
+    // keeps a new rule from reintroducing one.
+    const css = [viewerStyles, configPanelStyles].map(String).join('\n');
+    for (const t of TOKENS.filter(inheritsFromGlobal)) {
+      expect(css, `${t.name} read without its default chain`).not.toContain(
+        `var(${t.name})`
+      );
     }
   });
 
@@ -97,18 +136,34 @@ describe('datatable defaults stay in sync with the registry', () => {
     }
   });
 
-  it('declares no datatable custom property missing from the registry', () => {
-    const declared = new Set(
-      [...cssText.matchAll(/(--protvista-datatable-[a-z-]+)\s*:/g)].map(
-        (m) => m[1]
-      )
+  it('references no datatable custom property missing from the registry', () => {
+    const referenced = new Set(
+      [...cssText.matchAll(/(--protvista-datatable-[a-z-]+)/g)].map((m) => m[1])
     );
     const known = new Set(datatableTokens.map((t) => t.name));
-    for (const name of declared) {
-      expect(known.has(name), `${name} declared but not in registry`).toBe(
-        true
-      );
+    for (const name of referenced) {
+      expect(known.has(name), `${name} used but not in registry`).toBe(true);
     }
+  });
+
+  it('declares no token on :host, so an override from above can reach it', () => {
+    // A declaration *on* an element beats a value *inherited* into it,
+    // whatever the specificity — so declaring these on `:host` made them
+    // reachable only by an inline style or `!important`, against what
+    // docs/theming.md promises. Every read carries its chain instead.
+    expect(cssText).not.toMatch(/--protvista-[a-z0-9-]+\s*:/);
+  });
+
+  it('still honours a --protvista-dt-* override, after the current name', () => {
+    // The back-compat aliases: tried after the token itself and before
+    // the registry default, so an old override keeps working and a new
+    // one wins over it.
+    expect(cssText).toContain(
+      'var(--protvista-datatable-border, var(--protvista-dt-border, #e0e0e0))'
+    );
+    expect(cssText).toContain(
+      'var(--protvista-datatable-accent, var(--protvista-dt-primary, var(--protvista-color-accent, #0053d6)))'
+    );
   });
 });
 

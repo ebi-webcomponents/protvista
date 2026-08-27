@@ -6,10 +6,11 @@
  * typed list is the reference for every place these tokens appear —
  *
  *   1. the light-DOM CSS default block, which is *generated* from this
- *      registry at render time (`tokenDefaults`);
- *   2. the datatable's shadow `:host` defaults and the reference table
- *      in `docs/theming.md`, which are hand-written (the datatable
- *      carries back-compat aliases; the docs add prose) but are held in
+ *      registry at render time (`tokenDefaults`), plus the default
+ *      chains the stylesheets read tokens through (`tokenRef`);
+ *   2. the datatable's shadow stylesheet and the reference table in
+ *      `docs/theming.md`, which are hand-written (the datatable carries
+ *      back-compat aliases; the docs add prose) but are held in
  *      lock-step with this registry by drift-guard tests in
  *      `src/styles/__spec__/theming.spec.ts`; and
  *   3. (future) a no-code styling panel, which can enumerate `TOKENS`,
@@ -40,9 +41,10 @@ export interface TokenDef {
   /** Coarse value kind, so a no-code UI can pick the right control. */
   type: TokenType;
   /**
-   * The default value emitted into the CSS default block. May itself be
-   * a `var(--other-token)` reference so a component token inherits from
-   * the global tier while still being independently overridable.
+   * The default value. A literal is emitted into the CSS default block;
+   * a bare `var(--other-token)` reference means "inherit from the global
+   * tier", and is *not* emitted — see {@link tokenRef} for where such a
+   * default is applied instead, and why.
    */
   default: string;
   /** One-line description for the docs table / control label. */
@@ -96,7 +98,7 @@ const GLOBAL_TOKENS: TokenDef[] = [
     type: 'color',
     default: '#ffffff',
     description:
-      'Surface/background colour for popovers, panels, and the neutral viewer chrome cells (navigation label, credits).',
+      'Surface/background colour for popovers, panels, and (by default) the neutral viewer chrome cells.',
   },
   {
     name: '--protvista-color-border',
@@ -208,6 +210,21 @@ const VIEWER_TOKENS: TokenDef[] = [
     default: 'var(--protvista-color-text-muted)',
     description:
       'Recessive text on a track label — a hidden/dataless track in customize mode.',
+  },
+  {
+    name: '--protvista-chrome-cell-bg',
+    group: 'viewer',
+    type: 'color',
+    default: 'var(--protvista-color-surface)',
+    description:
+      'Background of the neutral chrome cells in the label column (navigation label, credits) — the cells that bracket the data rows without being one.',
+  },
+  {
+    name: '--protvista-chrome-cell-color',
+    group: 'viewer',
+    type: 'color',
+    default: 'var(--protvista-color-text)',
+    description: 'Text colour of the neutral chrome cells in the label column.',
   },
   {
     name: '--protvista-track-border-color',
@@ -388,22 +405,97 @@ export const TOKENS: readonly TokenDef[] = [
   ...DATATABLE_TOKENS,
 ];
 
+/** A default that is a bare reference to another token: `var(--x)`. */
+const TOKEN_REF = /^var\((--protvista-[a-z0-9-]+)\)$/;
+
 /**
- * The token defaults that live in the light DOM, i.e. everything except
- * the datatable (which ships its own shadow `:host` defaults). Returns
- * the declaration lines only — the caller wraps them in a selector.
+ * The token a `default` points at, or `null` for a literal default.
+ * Derived from `default` rather than carried in a separate field, so the
+ * two can never disagree.
+ */
+function referencedToken(def: string): string | null {
+  return TOKEN_REF.exec(def)?.[1] ?? null;
+}
+
+/**
+ * Whether a token's default is a reference to another token rather than
+ * a literal — the tokens {@link tokenDefaults} deliberately omits.
+ */
+export function inheritsFromGlobal(t: TokenDef): boolean {
+  return referencedToken(t.default) !== null;
+}
+
+/**
+ * How a rule should *read* a token: `var(--name, …)` carrying the whole
+ * default chain, ending at the literal the chain bottoms out in.
+ *
+ * Why a rule spells out the chain rather than reading `var(--name)` and
+ * letting the default block supply the rest: a custom property is
+ * substituted where it is *declared*. A default block on `:where(:root)`
+ * saying
+ *
+ *     --protvista-track-label-color: var(--protvista-color-text);
+ *
+ * therefore resolves the global token **at the root**, and freezes that
+ * value into what every descendant inherits. A consumer overriding
+ * `--protvista-color-text` on the host element or on an ancestor — which
+ * docs/theming.md advertises, and which the Quick-start per-instance
+ * recipe relies on — would never reach the label, because their override
+ * lives below the point of substitution.
+ *
+ * Putting the chain in the rule instead moves substitution to the
+ * element that uses the value, where both levers work: the component
+ * token wins wherever it is set (including inline, as `applyTheme`
+ * writes it), and otherwise the global token is picked up from wherever
+ * the consumer declared it.
+ *
+ * Throws on an unknown name, so a typo fails at module load — these are
+ * called while building the stylesheets.
+ */
+export function tokenRef(name: string): string {
+  return `var(${name}, ${tokenDefaultRef(name)})`;
+}
+
+/**
+ * A token's default as a rule can use it: the literal, or — for a token
+ * that defaults from another — that token read with {@link tokenRef}, so
+ * the chain continues to the literal it bottoms out in.
+ *
+ * Separate from {@link tokenRef} for the case where something has to sit
+ * *between* a token and its default: the datatable's back-compat
+ * `--protvista-dt-*` aliases, which are tried after the current name and
+ * before the default.
+ */
+export function tokenDefaultRef(
+  name: string,
+  seen = new Set<string>()
+): string {
+  if (seen.has(name)) throw new Error(`cyclic token default at ${name}`);
+  seen.add(name);
+  const def = TOKENS.find((t) => t.name === name)?.default;
+  if (def === undefined) throw new Error(`unknown token ${name}`);
+  const next = referencedToken(def);
+  return next ? `var(${next}, ${tokenDefaultRef(next, seen)})` : def;
+}
+
+/**
+ * The token defaults that live in the light DOM: every non-datatable
+ * token whose default is a literal (the datatable ships its own shadow
+ * `:host` defaults). Tokens that default *from* another token are
+ * omitted — see {@link tokenRef}. Returns the declaration lines only —
+ * the caller wraps them in a selector.
  */
 export function tokenDefaults(): string {
-  return TOKENS.filter((t) => t.group !== 'datatable')
+  return TOKENS.filter((t) => t.group !== 'datatable' && !inheritsFromGlobal(t))
     .map((t) => `  ${t.name}: ${t.default};`)
     .join('\n');
 }
 
 /**
  * A complete CSS rule declaring the light-DOM token defaults on the
- * given selector (the `protvista-uniprot` host tag), so the values
- * inherit to all descendants — including into child components' shadow
- * roots via custom-property inheritance.
+ * given selector (the document root — see `installTokenDefaults`), so
+ * the values inherit to all descendants, including into child
+ * components' shadow roots via custom-property inheritance.
  */
 export function tokenDefaultsBlock(selector: string): string {
   return `${selector} {\n${tokenDefaults()}\n}`;

@@ -53,7 +53,13 @@ protvista-uniprot-datatable::part(row-active) {
 
 Because tokens are ordinary custom properties, they are also settable at
 runtime — `element.style.setProperty('--protvista-color-accent', …)` —
-which is how an interactive controls panel can drive live theming.
+which is how an interactive controls panel can drive live theming. A
+runtime override survives a later `setConfig()`: a config `theme:` clears
+only the tokens its own previous apply wrote, never one you set yourself.
+The one exception is a token the previous `theme:` *did* write — if you
+overwrite one of those by hand, the next apply clears it along with the
+rest of that theme's output. Set such a value through the config
+`theme:`, or re-apply it after `setConfig()`.
 
 ## No-code theming from the config
 
@@ -114,12 +120,22 @@ prefer colours that are decisively light or dark. Set any of these tokens
 in your own CSS with `!important` if you want a different answer — the
 config theme writes them inline (see the precedence note above).
 
-Colour values are resolved to `rgb()` before they reach the stylesheet:
-hex, keywords, `rgb()` and `hsl()` all work. A value that doesn't resolve
-— a typo, or a wide-gamut `color()` — is ignored, leaving the token at its
-default, and an explicit `groupLabelColor` / `trackLabelColor` that doesn't
-resolve falls back to what `labelColor` would have given. The derivation
-always composites over the shipped white surface; if your page repaints
+Colour values are resolved to `rgb()` before they reach the stylesheet.
+Hex, keywords, `rgb()`, `hsl()` and `hwb()` are resolved by the browser;
+`oklch()`, `oklab()`, `lab()`, `lch()` and `color()` in the `srgb`,
+`srgb-linear` and `display-p3` spaces are converted by the viewer itself,
+so they work even on browsers in the support matrix that cannot parse
+them. A colour outside the sRGB gamut is clamped per channel rather than
+gamut-mapped.
+
+A value that doesn't resolve — a typo, or a colour space not in the list
+above — is ignored with a `console.warn`, leaving the token at its
+default; an explicit `groupLabelColor` / `trackLabelColor` that doesn't
+resolve falls back to what `labelColor` would have given. `accentColor`
+keeps any alpha you give it, because nothing is derived from it; a label
+colour is composited over the surface first, since its text colour is
+chosen against the result. The derivation always composites over the
+shipped white surface, so if your page repaints
 `--protvista-color-surface` to something dark, set the label tokens
 directly rather than theming through the config.
 
@@ -128,8 +144,10 @@ directly rather than theming through the config.
 Every token has a sensible default (shown below), so a viewer with no
 custom CSS renders exactly as it always has. Component tokens whose
 default is written as `var(--protvista-…)` inherit from the global tier,
-so overriding one global token (e.g. `--protvista-color-accent`)
-cascades everywhere it is used.
+so overriding one global token (e.g. `--protvista-color-text`) cascades
+everywhere it is used — wherever you declare it, including on the host
+element or an ancestor rather than on `:root`. Setting the component
+token itself always wins over the global it defaults from.
 
 ### Global
 
@@ -140,7 +158,7 @@ cascades everywhere it is used.
 | `--protvista-color-accent` | color | `#0053d6` | Accent — focus rings, active-row marker, primary UI. |
 | `--protvista-color-text` | color | `#222222` | Default body text colour. |
 | `--protvista-color-text-muted` | color | `#4a5056` | Muted/secondary text (tooltip labels, captions). |
-| `--protvista-color-surface` | color | `#ffffff` | Surface/background for popovers, panels, and the neutral viewer chrome cells (navigation label, credits). |
+| `--protvista-color-surface` | color | `#ffffff` | Surface/background for popovers, panels, and (by default) the neutral viewer chrome cells. |
 | `--protvista-color-border` | color | `#c5c8cc` | Default border for popovers and panels. |
 | `--protvista-color-disabled` | color | `#808080` | Disabled controls. |
 | `--protvista-color-bg-hover` | color | `#f1f7ff` | Background of hovered interactive chrome (buttons, list rows). |
@@ -150,14 +168,28 @@ cascades everywhere it is used.
 
 ### Viewer (labels, navigation, empty states)
 
+> **Setting a label background in your own CSS?** Set its text colour
+> too. The contrast derivation described above runs only for the config
+> `theme:` path — CSS cannot choose the readable one of two candidates,
+> and `color-mix()` is outside this package's browser support matrix. So
+> if you set `--protvista-group-label-bg` or `--protvista-track-label-bg`
+> to something dark, also set the matching `--protvista-*-label-color`
+> and `--protvista-*-label-color-muted`, plus `--protvista-caret-color`
+> and `--protvista-group-label-hover-bg` for a group label. Otherwise the
+> text stays at the near-black default and disappears into the fill.
+
 The label tokens cover the **data rows only**. The two cells that bracket
 them — the navigation label cell above and the credits cell below — are
-neutral chrome rather than rows, so they follow
-`--protvista-color-surface` and stay put when you retint the label column.
-Tinting them made a label colour bleed above and below the rows it
-describes. Both default to `#ffffff`, so an untouched viewer is unchanged;
-if you want the whole column in one colour, set
-`--protvista-color-surface` to match.
+neutral chrome rather than rows, so they stay put when you retint the
+label column; tinting them made a label colour bleed above and below the
+rows it describes. They have their own pair,
+`--protvista-chrome-cell-bg` / `--protvista-chrome-cell-color`, which
+default from the global surface and text so an untouched viewer is
+unchanged. If you want the whole column in one colour, set that pair —
+retinting `--protvista-color-surface` instead would repaint every
+popover, tooltip and panel on the page too. The split is **backgrounds
+only** — all four cells take their text colour from a token, so the
+column never shows two text colours at once.
 
 | Token | Type | Default | Purpose |
 | --- | --- | --- | --- |
@@ -170,6 +202,8 @@ if you want the whole column in one colour, set
 | `--protvista-track-label-color` | color | `var(--protvista-color-text)` | Text colour of individual track labels. |
 | `--protvista-group-label-color-muted` | color | `var(--protvista-color-text-muted)` | Recessive text on a group label — a hidden/dataless group in customize mode. |
 | `--protvista-track-label-color-muted` | color | `var(--protvista-color-text-muted)` | Recessive text on a track label — a hidden/dataless track in customize mode. |
+| `--protvista-chrome-cell-bg` | color | `var(--protvista-color-surface)` | Background of the neutral chrome cells in the label column (navigation label, credits) — the cells that bracket the data rows without being one. |
+| `--protvista-chrome-cell-color` | color | `var(--protvista-color-text)` | Text colour of the neutral chrome cells in the label column. |
 | `--protvista-track-border-color` | color | `#e3e6ea` | Hairline ruling the viewer grid: between rows, and between the label column and the track area. |
 | `--protvista-caret-color` | color | `#5b6169` | Group-label expand/collapse caret. |
 | `--protvista-nav-handle-fill` | color | `darkgrey` | Fill of the navigation zoom handles. |
@@ -207,7 +241,14 @@ if you want the whole column in one colour, set
 > previously named `--protvista-dt-*`. Those names still work as aliases
 > for one major cycle — an existing `--protvista-dt-primary` override, for
 > example, is honoured by `--protvista-datatable-accent` — but new code
-> should use the `--protvista-datatable-*` names.
+> should use the `--protvista-datatable-*` names. If both are set, the
+> `--protvista-datatable-*` one wins.
+
+The datatable renders in a shadow root, but its tokens are set the same
+way as every other token on this page: on `:root`, on an ancestor, on the
+`<protvista-uniprot-datatable>` element, or inline. Custom properties
+inherit through the shadow boundary, so no `::part` or `!important` is
+needed to retheme it.
 
 ## Datatable `::part`
 

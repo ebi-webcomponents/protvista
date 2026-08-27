@@ -14,7 +14,7 @@ import { userEvent } from 'vitest/browser';
 
 import '../protvista-uniprot.js';
 import { CSS_PREFIX } from '../styles/css-prefix.js';
-import { mount } from './mount.js';
+import { mount, unmountAll } from './mount.js';
 import { expectNoA11yViolations } from './axe.js';
 
 const PANEL = `.${CSS_PREFIX}-error-panel`;
@@ -51,6 +51,10 @@ function stubFetch(handler: (url: string) => { ok: boolean; status: number; body
 }
 
 afterEach(() => {
+  // Unmount before restoring `fetch`: hooks run last-registered-first,
+  // so mount.js's own teardown would otherwise leave live components
+  // able to reach the real network.
+  unmountAll();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });

@@ -98,9 +98,11 @@ import { injectStyleOnce, installTokenDefaults } from './styles/inject.js';
 import {
   type Rgb,
   resolveColor,
+  resolveColorWithAlpha,
   mix,
   tint,
   cssRgb,
+  cssRgba,
   readableOn,
   defaultTextColor,
   TEXT_ON_DARK,
@@ -220,26 +222,32 @@ const MOVED_HIGHLIGHT_MS = 2000;
 let protvistaInstanceSeq = 0;
 
 /**
- * Every token a config `theme` can write inline on the host. Listed here so
- * `applyTheme` can clear the whole set before each apply — a re-init with a
- * narrowed theme must not leave a stale derived value (say a white text
- * colour chosen for a dark label that is no longer dark) behind.
+ * Every token a config `theme` can write inline on the host — the closed
+ * vocabulary `applyTheme` is allowed to touch, and nothing wider. What it
+ * *clears* between applies is the narrower set it actually wrote last
+ * time (`appliedThemeTokens`), so a consumer's own inline override on one
+ * of these survives.
  */
-const THEME_TOKENS = [
-  '--protvista-group-label-bg',
-  '--protvista-group-label-color',
-  '--protvista-group-label-color-muted',
-  '--protvista-group-label-hover-bg',
-  '--protvista-track-label-bg',
-  '--protvista-track-label-color',
-  '--protvista-track-label-color-muted',
-  '--protvista-caret-color',
-  '--protvista-color-accent',
-] as const;
+type ThemeToken =
+  | '--protvista-group-label-bg'
+  | '--protvista-group-label-color'
+  | '--protvista-group-label-color-muted'
+  | '--protvista-group-label-hover-bg'
+  | '--protvista-track-label-bg'
+  | '--protvista-track-label-color'
+  | '--protvista-track-label-color-muted'
+  | '--protvista-caret-color'
+  | '--protvista-color-accent';
 
 @customElement('protvista-uniprot')
 class ProtvistaUniprot extends LitElement {
   private openGroups: string[];
+  /**
+   * The {@link ThemeToken}s the last `applyTheme` actually wrote. Only
+   * these are cleared on the next apply, so a runtime override a consumer
+   * set inline is never collateral damage.
+   */
+  private readonly appliedThemeTokens = new Set<ThemeToken>();
   /**
    * The authored config as loaded, kept verbatim so `getConfig()` can export
    * the user's arrangement in the shape it was written rather than a
@@ -775,12 +783,20 @@ class ProtvistaUniprot extends LitElement {
    * inline itself). A no-code theming shortcut — the tokens are documented
    * in docs/theming.md.
    *
-   * Clears every token it manages up front, then sets what the theme
-   * supplies, so a re-init (accession change / retry) with a
-   * removed-or-narrowed theme can't leave stale inline values on the host.
+   * Clears the tokens *this method wrote last time* up front, then sets
+   * what the theme supplies, so a re-init (accession change / retry) with
+   * a removed-or-narrowed theme can't leave stale inline values on the
+   * host. Deliberately not the whole {@link ThemeToken} vocabulary:
+   * docs/theming.md
+   * advertises `element.style.setProperty('--protvista-…', …)` as the
+   * runtime theming lever, and clearing a token we never set would make
+   * any later `setConfig()` silently wipe a consumer's own override.
    */
   private applyTheme(theme: NormalizedConfig['theme']) {
-    for (const token of THEME_TOKENS) this.style.removeProperty(token);
+    for (const token of this.appliedThemeTokens) {
+      this.style.removeProperty(token);
+    }
+    this.appliedThemeTokens.clear();
     if (!theme) return;
     // `labelColor` recolours the row-label side panel while keeping the
     // shipped hierarchy: the colour itself on group headers, a light tint
@@ -798,12 +814,31 @@ class ProtvistaUniprot extends LitElement {
     // An override that doesn't resolve falls back to what `labelColor`
     // would have given rather than to nothing: the field is ignored, as
     // though it had not been written.
-    const pick = (value: string | undefined, fallback: Rgb | null) =>
-      (value ? resolveColor(value) : null) ?? fallback;
+    //
+    // A dropped colour is announced rather than swallowed: `theme` is not
+    // schema-validated beyond "a non-empty string", so this warning is the
+    // only signal a typo (or a syntax this browser cannot parse) gets.
+    const resolve = (field: string, value: string): Rgb | null => {
+      const resolved = resolveColor(value, this.ownerDocument);
+      if (!resolved) {
+        console.warn(
+          `Ignoring theme.${field}: "${value}" is not a colour that resolves in this browser.`
+        );
+      }
+      return resolved;
+    };
+    const pick = (
+      field: string,
+      value: string | undefined,
+      fallback: Rgb | null
+    ) => (value ? resolve(field, value) : null) ?? fallback;
 
-    const base = theme.labelColor ? resolveColor(theme.labelColor) : null;
-    const group = pick(theme.groupLabelColor, base);
+    const base = theme.labelColor
+      ? resolve('labelColor', theme.labelColor)
+      : null;
+    const group = pick('groupLabelColor', theme.groupLabelColor, base);
     const track = pick(
+      'trackLabelColor',
       theme.trackLabelColor,
       base && tint(base, TRACK_LABEL_TINT)
     );
@@ -811,13 +846,33 @@ class ProtvistaUniprot extends LitElement {
     if (group) this.applyLabelSurface('group', group);
     if (track) this.applyLabelSurface('track', track);
 
-    // Nothing is derived from the accent, but it goes through the same
-    // resolution so every field of `theme` behaves alike: one syntax
-    // range, and one answer to an unparseable value.
-    const accent = theme.accentColor ? resolveColor(theme.accentColor) : null;
-    if (accent) {
-      this.style.setProperty('--protvista-color-accent', cssRgb(accent));
+    // Nothing is derived from the accent, so — unlike a label surface,
+    // whose text colour is chosen against an opaque fill — it keeps any
+    // alpha the author wrote. It still goes through the same resolution,
+    // so every field of `theme` has one syntax range and one answer to an
+    // unparseable value.
+    if (theme.accentColor) {
+      const accent = resolveColorWithAlpha(
+        theme.accentColor,
+        this.ownerDocument
+      );
+      if (accent) {
+        this.setThemeToken('--protvista-color-accent', cssRgba(accent));
+      } else {
+        console.warn(
+          `Ignoring theme.accentColor: "${theme.accentColor}" is not a colour that resolves in this browser.`
+        );
+      }
     }
+  }
+
+  /**
+   * Set one managed theme token and remember that we set it, so the next
+   * apply clears exactly what this one wrote and nothing else.
+   */
+  private setThemeToken(name: ThemeToken, value: string) {
+    this.style.setProperty(name, value);
+    this.appliedThemeTokens.add(name);
   }
 
   /**
@@ -840,20 +895,20 @@ class ProtvistaUniprot extends LitElement {
     // light surface.
     const muted = mix(text, bg, MUTED_TEXT_WEIGHT);
 
-    this.style.setProperty(`--protvista-${surface}-label-bg`, cssRgb(bg));
-    this.style.setProperty(`--protvista-${surface}-label-color`, cssRgb(text));
-    this.style.setProperty(
+    this.setThemeToken(`--protvista-${surface}-label-bg`, cssRgb(bg));
+    this.setThemeToken(`--protvista-${surface}-label-color`, cssRgb(text));
+    this.setThemeToken(
       `--protvista-${surface}-label-color-muted`,
       cssRgb(muted)
     );
     if (surface !== 'group') return;
 
-    this.style.setProperty('--protvista-caret-color', cssRgb(muted));
+    this.setThemeToken('--protvista-caret-color', cssRgb(muted));
     // A small step *toward* the text colour — darkening a light cell,
     // lightening a dark one. That is the conventional hover cue, and
     // because the step is small the surface never crosses the light/dark
     // line the text colour was chosen for.
-    this.style.setProperty(
+    this.setThemeToken(
       '--protvista-group-label-hover-bg',
       cssRgb(mix(bg, text, 1 - GROUP_LABEL_HOVER_SHIFT))
     );
