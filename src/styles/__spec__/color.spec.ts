@@ -43,7 +43,9 @@ describe('resolveColor', () => {
     // written.
     expect(resolveColor('')).toBeNull();
     expect(resolveColor('not-a-colour')).toBeNull();
-    expect(resolveColor('red; background: url(https://example.org/x)')).toBeNull();
+    expect(
+      resolveColor('red; background: url(https://example.org/x)')
+    ).toBeNull();
     expect(resolveColor('white), url(https://example.org/x')).toBeNull();
   });
 
@@ -70,10 +72,36 @@ describe('resolveColor', () => {
       'revert',
       'revert-layer',
       'INHERIT',
+      'currentcolor',
       'var(--some-page-token)',
     ]) {
       expect(resolveColor(value), value).toBeNull();
     }
+  });
+
+  it('probes the browser once per colour, then reuses the answer', () => {
+    // The probe costs a DOM append and a forced style recalculation, and
+    // `applyTheme` resolves up to four colours on every config apply —
+    // usually the same ones. Spying on `createElement` is what pins the
+    // memoisation: the second resolve must not build a probe at all.
+    const createElement = vi.spyOn(document, 'createElement');
+    // A value no other case in this file resolves, so the assertion holds
+    // whatever ran before it.
+    const value = 'rgb(3, 5, 7)';
+    const first = resolveColor(value);
+
+    expect(first).toEqual({ r: 3, g: 5, b: 7 });
+    expect(createElement).toHaveBeenCalledTimes(1);
+    expect(resolveColor(value)).toEqual(first);
+    expect(createElement).toHaveBeenCalledTimes(1);
+    createElement.mockRestore();
+  });
+
+  it('hands back a copy, so one caller cannot poison the cache', () => {
+    const value = 'rgb(9, 11, 13)';
+    const first = resolveColor(value)!;
+    first.r = 200;
+    expect(resolveColor(value)).toEqual({ r: 9, g: 11, b: 13 });
   });
 });
 
@@ -169,9 +197,9 @@ describe('alpha', () => {
       b: 0,
       a: 0.5,
     });
-    expect(resolveColorWithAlpha('oklch(0.62796 0.25768 29.234 / 40%)')).toEqual(
-      { r: 255, g: 0, b: 0, a: 0.4 }
-    );
+    expect(
+      resolveColorWithAlpha('oklch(0.62796 0.25768 29.234 / 40%)')
+    ).toEqual({ r: 255, g: 0, b: 0, a: 0.4 });
     // The opaque form is what contrast is measured against.
     expect(resolveColor('rgba(0, 0, 0, 0.5)')).toEqual({
       r: 128,

@@ -31,7 +31,9 @@
  *      handed to the browser via a throwaway probe element, so authors
  *      get their engine's full syntax range instead of a subset we
  *      happened to implement. It also means an unparseable value is
- *      rejected rather than passed through to the stylesheet.
+ *      rejected rather than passed through to the stylesheet. That route
+ *      forces a style recalculation, so its results are memoised per
+ *      document (see {@link probeCache}).
  *
  * Both routes land in sRGB. A colour outside the sRGB gamut is *clamped*
  * per channel, not gamut-mapped: the result is the nearest representable
@@ -76,10 +78,34 @@ const RGB_FUNC = /^rgba?\(([^)]+)\)$/;
  * colour of their own — they would resolve to whatever the probe happened
  * to inherit, which is not the author's colour by any reading. Same for a
  * `var()` reference, which resolves against the probe's custom properties
- * rather than the viewer's.
+ * rather than the viewer's, and for `currentcolor`, which is the same
+ * inherited value under another name (and, being page state rather than a
+ * fixed colour, is the one value a memoised probe result could go stale
+ * on — see {@link probeCache}).
  */
-const CSS_WIDE = /^(inherit|initial|unset|revert|revert-layer)$/i;
+const CSS_WIDE = /^(inherit|initial|unset|revert|revert-layer|currentcolor)$/i;
 const VAR_REF = /\bvar\s*\(/i;
+
+/**
+ * Probe results, memoised per document.
+ *
+ * Resolution via the browser costs a DOM append and a `getComputedStyle`,
+ * i.e. a forced style recalculation, and `applyTheme` resolves up to four
+ * colours every time a config is applied — the same handful of strings
+ * each time, since a re-init usually carries the same `theme` block. The
+ * answer is a pure function of (value, document), so it is remembered.
+ *
+ * Keyed by document, and held in a `WeakMap` so an iframe's document (a
+ * viewer adopted into one) neither pins the cache nor shares another
+ * document's answers. Values whose meaning depends on page state never
+ * reach here: `currentcolor` and `var()` are rejected by
+ * {@link resolveColorWithAlpha} before the probe, so nothing cached can
+ * go stale.
+ */
+const probeCache = new WeakMap<Document, Map<string, Rgba | null>>();
+
+/** Entries kept per document before the cache is dropped and refilled. */
+const PROBE_CACHE_LIMIT = 64;
 
 /** A CIE / Oklab function: `oklch(…)`, `oklab(…)`, `lab(…)`, `lch(…)`. */
 const CIE_FUNC = /^(oklch|oklab|lab|lch)\(([^)]*)\)$/i;
@@ -125,7 +151,10 @@ function angle(token: string): number | null {
 function splitArgs(args: string): { parts: string[]; alpha: number } | null {
   const [body, alphaToken, ...rest] = args.split('/');
   if (rest.length) return null;
-  const parts = body.trim().split(/[\s,]+/).filter(Boolean);
+  const parts = body
+    .trim()
+    .split(/[\s,]+/)
+    .filter(Boolean);
   if (alphaToken === undefined) return { parts, alpha: 1 };
   const alpha = component(alphaToken.trim(), 1);
   if (alpha === null) return null;
@@ -341,6 +370,32 @@ export function resolveColorWithAlpha(
 
   if (!doc?.documentElement) return null;
 
+  let cache = probeCache.get(doc);
+  if (!cache) probeCache.set(doc, (cache = new Map()));
+  if (!cache.has(text)) {
+    // A bounded cache, cleared wholesale rather than evicted one entry at
+    // a time: the working set is the handful of colours one config wrote,
+    // so the limit is a runaway guard for a caller that resolves colours
+    // in a loop, not a tuned policy.
+    if (cache.size >= PROBE_CACHE_LIMIT) cache.clear();
+    cache.set(text, probeColor(text, doc));
+  }
+  const cached = cache.get(text) ?? null;
+  // Hand back a copy: every other route out of this module returns a
+  // fresh object, and a caller that mutated its result would otherwise
+  // poison the entry for everyone after it.
+  return cached && { ...cached };
+}
+
+/**
+ * Ask the browser to parse a colour, by setting it on a throwaway element
+ * and reading the value back.
+ *
+ * This is the expensive half of resolution — an element append plus a
+ * `getComputedStyle`, which forces a style recalculation — which is why
+ * {@link probeCache} sits in front of it.
+ */
+function probeColor(text: string, doc: Document): Rgba | null {
   const probe = doc.createElement('span');
   // `display: none` keeps the probe out of layout; `color` still resolves.
   probe.style.display = 'none';
