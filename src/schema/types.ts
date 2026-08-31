@@ -233,10 +233,25 @@ export interface ConfigDefaults {
  */
 export interface ThemeConfig {
   /**
-   * Background of the row-label side panel (group + track labels).
+   * One-colour tint for the row-label side panel. Group labels get the
+   * colour itself; track labels get a light tint of it (25% over
+   * white), preserving the default grey/white group-vs-track
+   * hierarchy in the author's hue. Label text, the group caret and the
+   * group hover state are derived to stay legible on whatever is
+   * chosen, so a dark colour is as safe as a pale one.
    * → `--protvista-group-label-bg` / `--protvista-track-label-bg`.
    */
   labelColor?: string;
+  /**
+   * Exact background of collapsible group labels; overrides what
+   * `labelColor` would set. → `--protvista-group-label-bg`.
+   */
+  groupLabelColor?: string;
+  /**
+   * Exact background of individual track labels; overrides the tint
+   * derived from `labelColor`. → `--protvista-track-label-bg`.
+   */
+  trackLabelColor?: string;
   /**
    * Primary accent — focus rings and the datatable active-row marker.
    * → `--protvista-color-accent`.

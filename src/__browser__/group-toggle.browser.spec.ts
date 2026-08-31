@@ -13,7 +13,7 @@ import { userEvent } from 'vitest/browser';
 
 import '../protvista-uniprot.js';
 import { CSS_PREFIX } from '../styles/css-prefix.js';
-import { mount } from './mount.js';
+import { mount, unmountAll } from './mount.js';
 import { expectNoA11yViolations } from './axe.js';
 
 const TOGGLE = `.${CSS_PREFIX}-group-label[data-group-toggle="g"]`;
@@ -67,6 +67,10 @@ async function mountWithGroup(): Promise<{ el: El; toggle: HTMLElement }> {
 }
 
 afterEach(() => {
+  // Unmount before restoring `fetch`: hooks run last-registered-first,
+  // so mount.js's own teardown would otherwise leave live components
+  // able to reach the real network.
+  unmountAll();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });

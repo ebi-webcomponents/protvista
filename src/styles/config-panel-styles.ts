@@ -1,5 +1,6 @@
 import { css, unsafeCSS } from 'lit';
 import { CSS_PREFIX } from './css-prefix.js';
+import { tokenRef } from './tokens.js';
 
 /**
  * Light-DOM styles for "Customize layout": the toggle that enters the mode,
@@ -20,6 +21,14 @@ import { CSS_PREFIX } from './css-prefix.js';
  * literal fallback, so the controls restyle with the rest of the viewer.
  */
 const p = unsafeCSS(CSS_PREFIX);
+
+/**
+ * Read a token whose default is another token, carrying the whole
+ * default chain down to the literal — see `tokenRef` in tokens.ts. The
+ * literal fallbacks written out by hand below are the same idea for
+ * tokens that default to a literal directly.
+ */
+const ref = (name: string) => unsafeCSS(tokenRef(name));
 
 export default css`
   /* The label column doubles as the customize toolbar: the toggle sits in the
@@ -394,11 +403,23 @@ export default css`
 
   /* A hidden or dataless row still shows in customize mode so it can be
      restored — muted and italic, never colour alone (WCAG 1.4.1); the
-     control beside it reads "Show" in words. */
+     control beside it reads "Show" in words. The muted colour is the
+     *label* one, not the global one: on a dark themed label cell the
+     global muted grey is as unreadable as the body text it replaces, so a
+     themed viewer derives this from the label colour (see applyTheme).
+     Group and track are split because a theme can leave them at different
+     lightnesses — one muted colour cannot read on both. */
   protvista-uniprot .${p}-row--hidden .${p}-track-label,
   protvista-uniprot .${p}-row--hidden .${p}-group-label {
     font-style: italic;
-    color: var(--protvista-color-text-muted, #4a5056);
+  }
+
+  protvista-uniprot .${p}-row--hidden .${p}-track-label {
+    color: ${ref('--protvista-track-label-color-muted')};
+  }
+
+  protvista-uniprot .${p}-row--hidden .${p}-group-label {
+    color: ${ref('--protvista-group-label-color-muted')};
   }
 
   /* A hidden row keeps drawing its features while customizing, desaturated

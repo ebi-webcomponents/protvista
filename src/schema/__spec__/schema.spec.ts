@@ -564,7 +564,12 @@ describe('JSON Schema — rejection cases', () => {
   it('accepts a top-level `theme` of colour strings', () => {
     expectValid({
       rows: [{ id: 't', kind: 'features', data: 'x' }],
-      theme: { labelColor: '#e8f5e9', accentColor: 'green' },
+      theme: {
+        labelColor: '#e8f5e9',
+        groupLabelColor: '#c8e6c9',
+        trackLabelColor: '#ffffff',
+        accentColor: 'green',
+      },
     });
   });
 

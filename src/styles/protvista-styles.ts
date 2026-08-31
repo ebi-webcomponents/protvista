@@ -1,5 +1,6 @@
 import { css, unsafeCSS } from 'lit';
 import { CSS_PREFIX } from './css-prefix.js';
+import { tokenRef } from './tokens.js';
 
 /**
  * Our internal class names carry a collision-proof hash prefix
@@ -24,9 +25,9 @@ import { CSS_PREFIX } from './css-prefix.js';
  *
  * Colours, sizes, and other themable values are read from the
  * `--protvista-*` design tokens (see `src/styles/tokens.ts`); their
- * defaults are injected on the `protvista-uniprot` host at render time
- * and inherit here, so consumers retheme by overriding a token rather
- * than by targeting these (private, hash-prefixed) class names.
+ * defaults are injected on the document root at render time and inherit
+ * here, so consumers retheme by overriding a token rather than by
+ * targeting these (private, hash-prefixed) class names.
  *
  * The single exception is `.feature` (below): it is deliberately left
  * unprefixed because the component never *applies* that class itself —
@@ -34,6 +35,16 @@ import { CSS_PREFIX } from './css-prefix.js';
  * components. Prefixing it would simply stop it matching anything.
  */
 const p = unsafeCSS(CSS_PREFIX);
+
+/**
+ * Read a token whose default is another token (`--protvista-tooltip-bg`
+ * from `--protvista-color-surface`, say). Such a token is absent from
+ * the `:root` default block on purpose, and carries its default chain
+ * here at the point of use — see `tokenRef` in tokens.ts for why. Tokens
+ * with a literal default are read as a plain `var(…)` below.
+ */
+const ref = (name: string) => unsafeCSS(tokenRef(name));
+
 export default css`
   protvista-uniprot .${p}-track-content {
     width: var(--protvista-track-content-width);
@@ -77,7 +88,32 @@ export default css`
     max-width: var(--protvista-label-width);
     padding: 0.5em;
     line-height: normal;
+  }
+
+  /* Only the data-row labels carry the label *background* tokens. The
+     navigation label cell and the credits cell are neutral chrome, not
+     rows — painting them with the track-label colour made a theme tint
+     bleed above and below the rows it describes, so they sit on their own
+     neutral pair of tokens, which default to the global surface and text.
+
+     The split is backgrounds only. Text comes from a token in all four
+     cells: leaving these two to inherit the page's colour while their
+     neighbours resolved a token put two text colours in one column.
+
+     The chrome cells carry their own pair of tokens rather than reading
+     the global surface and text directly, so a consumer who wants the
+     whole column one colour can retint these two without repainting
+     every popover, tooltip and panel on the page. They default from the
+     global tier, so an untouched viewer is unchanged. */
+  protvista-uniprot .${p}-track-label {
     background-color: var(--protvista-track-label-bg);
+    color: ${ref('--protvista-track-label-color')};
+  }
+
+  protvista-uniprot .${p}-nav-track-label,
+  protvista-uniprot .${p}-credits {
+    background-color: ${ref('--protvista-chrome-cell-bg')};
+    color: ${ref('--protvista-chrome-cell-color')};
   }
 
   /* The one vertical rule in the viewer: it marks where the label column ends
@@ -107,12 +143,18 @@ export default css`
      can mean data. */
   protvista-uniprot .${p}-group-label {
     background-color: var(--protvista-group-label-bg);
+    color: ${ref('--protvista-group-label-color')};
     font-weight: 600;
     cursor: pointer;
   }
 
+  /* Hover is its own token rather than the global hover blue, because a
+     config theme may have made this cell dark: swapping in a near-white
+     background under text that was flipped to white for that dark fill
+     would erase the label on hover. A themed viewer derives this from the
+     label colour (see applyTheme); unthemed, it is the global hover. */
   protvista-uniprot .${p}-group-label:hover {
-    background-color: var(--protvista-color-bg-hover);
+    background-color: ${ref('--protvista-group-label-hover-bg')};
   }
 
   protvista-uniprot .${p}-group-label::before {
@@ -182,9 +224,9 @@ export default css`
    * compact definition-list look.
    * ------------------------------------------------------------------------- */
   protvista-uniprot .protvista-tooltip {
-    background: var(--protvista-tooltip-bg);
-    color: var(--protvista-tooltip-color);
-    border: 1px solid var(--protvista-tooltip-border);
+    background: ${ref('--protvista-tooltip-bg')};
+    color: ${ref('--protvista-tooltip-color')};
+    border: 1px solid ${ref('--protvista-tooltip-border')};
     border-radius: var(--protvista-radius);
     box-shadow: var(--protvista-shadow-popover);
     padding: 0.5em 0.75em;
@@ -240,22 +282,22 @@ export default css`
      selector matches plain sides plus the -start / -end variants
      flip() can produce. */
   protvista-uniprot .protvista-tooltip .arrow {
-    background: var(--protvista-tooltip-bg);
+    background: ${ref('--protvista-tooltip-bg')};
   }
   protvista-uniprot .protvista-tooltip[data-placement^='top'] .arrow {
-    border-right: 1px solid var(--protvista-tooltip-border);
-    border-bottom: 1px solid var(--protvista-tooltip-border);
+    border-right: 1px solid ${ref('--protvista-tooltip-border')};
+    border-bottom: 1px solid ${ref('--protvista-tooltip-border')};
   }
   protvista-uniprot .protvista-tooltip[data-placement^='bottom'] .arrow {
-    border-left: 1px solid var(--protvista-tooltip-border);
-    border-top: 1px solid var(--protvista-tooltip-border);
+    border-left: 1px solid ${ref('--protvista-tooltip-border')};
+    border-top: 1px solid ${ref('--protvista-tooltip-border')};
   }
   protvista-uniprot .protvista-tooltip[data-placement^='left'] .arrow {
-    border-top: 1px solid var(--protvista-tooltip-border);
-    border-right: 1px solid var(--protvista-tooltip-border);
+    border-top: 1px solid ${ref('--protvista-tooltip-border')};
+    border-right: 1px solid ${ref('--protvista-tooltip-border')};
   }
   protvista-uniprot .protvista-tooltip[data-placement^='right'] .arrow {
-    border-bottom: 1px solid var(--protvista-tooltip-border);
-    border-left: 1px solid var(--protvista-tooltip-border);
+    border-bottom: 1px solid ${ref('--protvista-tooltip-border')};
+    border-left: 1px solid ${ref('--protvista-tooltip-border')};
   }
 `;
