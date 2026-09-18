@@ -14,8 +14,10 @@ All repository interactions and project events are expected to follow our [Code 
 
 ### Prerequisites
 
-- Node.js (version specified in `.nvmrc` or `package.json`)
-- Yarn v1
+- Node.js — version in `.nvmrc` (24, matching CI)
+- pnpm — version pinned by the `packageManager` field in `package.json`.
+  `corepack enable pnpm` installs exactly that version; you do not need to
+  install pnpm yourself.
 
 ### Development Setup
 
@@ -29,19 +31,19 @@ All repository interactions and project events are expected to follow our [Code 
 2. Install dependencies:
 
    ```bash
-   yarn install
+   pnpm install
    ```
 
 3. Run the development server (serves the demo at a local URL):
 
    ```bash
-   yarn start
+   pnpm start
    ```
 
 4. Run the tests:
 
    ```bash
-   yarn test
+   pnpm test
    ```
 
 ## Architecture Overview
@@ -136,7 +138,7 @@ error messages (adopters grep their logs for strings like `"Unknown adapter"`).
 1. Create a new branch from `main`.
 2. Make your changes.
 3. Write/update tests as needed.
-4. Ensure all tests pass: `yarn test`.
+4. Ensure all tests pass: `pnpm test`.
 5. Update documentation if applicable.
 6. Commit your changes with clear, descriptive messages.
 
@@ -171,7 +173,7 @@ Runtime `dependencies` use caret ranges (`^1.2.3`); `devDependencies` are
 pinned to exact versions. The asymmetry is deliberate: caret ranges let a
 consumer's package manager dedupe our runtime deps (`lit`, `ajv`, the
 `@nightingale-elements/*` packages) against their own copy instead of
-bundling a duplicate, while exact devDeps plus the committed `yarn.lock`
+bundling a duplicate, while exact devDeps plus the committed `pnpm-lock.yaml`
 keep CI and local builds reproducible. Don't "fix" the inconsistency by
 pinning runtime deps exact — that reintroduces duplicate copies in consumer
 bundles. The lockfile is the source of truth for the exact versions.
@@ -211,11 +213,11 @@ component tests). Vitest globals are off — import `describe`, `it`, `expect`,
 ### Running Tests
 
 ```bash
-yarn test          # Full pipeline: lint + types + unit + browser
-yarn test:unit     # Unit tests only (CI-friendly, jsdom)
-yarn test:browser  # Browser component tests only
-yarn test:watch    # Watch mode
-yarn test:coverage # Run both test projects and write coverage to ./coverage/
+pnpm test          # Full pipeline: lint + types + unit + browser
+pnpm test:unit     # Unit tests only (CI-friendly, jsdom)
+pnpm test:browser  # Browser component tests only
+pnpm test:watch    # Watch mode
+pnpm test:coverage # Run both test projects and write coverage to ./coverage/
 ```
 
 ### Writing Tests
@@ -228,7 +230,7 @@ yarn test:coverage # Run both test projects and write coverage to ./coverage/
   messages, which adopters depend on.
 - Aim to maintain or improve code coverage. CI enforces a coverage floor (a
   ratchet, #162) via `test.coverage.thresholds` in `vite.config.mjs`; the
-  `yarn test:coverage` step fails any PR that drops below it. When your change
+  `pnpm test:coverage` step fails any PR that drops below it. When your change
   raises coverage, bump the thresholds up in the same PR so the floor ratchets
   upward. Only lower them with a justification.
 

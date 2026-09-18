@@ -5,9 +5,9 @@
  * Normal run: asserts the checked-in `docs/adapter-reference.md` and
  * `public/schema/v1/feature-record.schema.json` are byte-identical to what
  * the renderer produces from `ADAPTER_REFERENCE`. A drift fails with a
- * "run `yarn adapters:sync`" message.
+ * "run `pnpm adapters:sync`" message.
  *
- * With `UPDATE_ADAPTER_REFERENCE=1` (the `yarn adapters:sync` script), it
+ * With `UPDATE_ADAPTER_REFERENCE=1` (the `pnpm adapters:sync` script), it
  * writes those files instead of asserting — this is the generator. Using
  * the TS-capable test runner sidesteps the need for a TS loader in a
  * plain-Node script.
@@ -45,7 +45,7 @@ describe('adapter reference — generated outputs', () => {
     const onDisk = readFileSync(mdPath, 'utf8');
     expect(
       onDisk,
-      'docs/adapter-reference.md drifted from the source table — run `yarn adapters:sync`'
+      'docs/adapter-reference.md drifted from the source table — run `pnpm adapters:sync`'
     ).toBe(markdown);
   });
 
@@ -53,7 +53,7 @@ describe('adapter reference — generated outputs', () => {
     const onDisk = readFileSync(schemaPath, 'utf8');
     expect(
       onDisk,
-      'public/schema/v1/feature-record.schema.json drifted — run `yarn adapters:sync`'
+      'public/schema/v1/feature-record.schema.json drifted — run `pnpm adapters:sync`'
     ).toBe(schemaJson);
   });
 

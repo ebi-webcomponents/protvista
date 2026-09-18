@@ -5,7 +5,7 @@ viewer configurations. Every subdirectory here is a self-contained
 example — its own `config.yaml` plus any sample data it needs — and is
 automatically schema-validated and smoke-rendered on every push and
 pull request by [`src/__spec__/examples.spec.ts`](../src/__spec__/examples.spec.ts)
-(run via `yarn test:unit`, wired into
+(run via `pnpm test:unit`, wired into
 [`.github/workflows/test-and-deploy.yml`](../.github/workflows/test-and-deploy.yml)).
 Adding a new `examples/<name>/config.yaml` directory picks it up
 automatically — no separate list to update.
@@ -82,7 +82,7 @@ Point the `config-src` attribute at any example's config file:
 ```
 
 or paste the config into the [playground](https://ebi-webcomponents.github.io/protvista/playground/)
-to see it render live (run `yarn docs:dev` and open `/protvista/playground` locally).
+to see it render live (run `pnpm docs:dev` and open `/protvista/playground` locally).
 
 **Path-resolution caveat.** `<protvista-uniprot>` fetches `config-src`
 itself relative to the hosting page, but everything *inside* the

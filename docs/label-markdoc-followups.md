@@ -75,7 +75,7 @@ Each fix landed with a test in `src/tooltips/__spec__/label.spec.ts` (or
 
 ## Verification (for any further change)
 
-- `npx tsc --noEmit` — clean
-- `npx vitest run` — green (add a test for the change)
-- `npx eslint 'src/**/*.ts'` — clean
+- `pnpm exec tsc --noEmit` — clean
+- `pnpm exec vitest run` — green (add a test for the change)
+- `pnpm exec eslint 'src/**/*.ts'` — clean
 - Label behavior is pinned in `src/tooltips/__spec__/label.spec.ts`.

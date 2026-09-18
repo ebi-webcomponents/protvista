@@ -1,20 +1,20 @@
 /**
  * Regenerates the documentation screenshots.
  *
- *   yarn screenshots                     capture everything
- *   yarn screenshots --only=id,id        capture a subset
- *   yarn screenshots --check             report drift, write nothing
- *   yarn screenshots --assert-clean      capture twice, fail if unstable
- *   yarn screenshots --refresh-fixtures  re-record the pinned network payloads
- *   yarn screenshots --record-missing    pin whatever a run found unpinned
- *   yarn screenshots --no-build          reuse the existing site/ build
+ *   pnpm screenshots                     capture everything
+ *   pnpm screenshots --only=id,id        capture a subset
+ *   pnpm screenshots --check             report drift, write nothing
+ *   pnpm screenshots --assert-clean      capture twice, fail if unstable
+ *   pnpm screenshots --refresh-fixtures  re-record the pinned network payloads
+ *   pnpm screenshots --record-missing    pin whatever a run found unpinned
+ *   pnpm screenshots --no-build          reuse the existing site/ build
  *
  * See README.md for how the pieces fit together and how to add a shot.
  */
 import { chromium } from 'playwright';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { startServer } from './server.mjs';
+import { startServer, astroCommand } from './server.mjs';
 import { installRoutes, createLedger } from './router.mjs';
 import {
   watchConsole,
@@ -61,11 +61,10 @@ if (has('--refresh-fixtures')) {
 if (!has('--no-build')) {
   console.log('building site/ …');
   try {
-    execFileSync(
-      'node',
-      ['node_modules/.bin/astro', 'build', '--root', 'docs'],
-      { stdio: 'inherit' }
-    );
+    const [node, astro] = astroCommand();
+    execFileSync(node, [astro, 'build', '--root', 'docs'], {
+      stdio: 'inherit',
+    });
   } catch (e) {
     // Judge the build by its output, not its exit code. Starlight's Pagefind
     // step runs after the pages are written and fails in some environments for
@@ -382,7 +381,7 @@ if (unpinnedAcrossRun.size) {
       `\n${urls.length} url(s) were requested and are not pinned:\n` +
         urls.map((u) => `  ${u}`).join('\n') +
         `\nIf the viewer is meant to ask for these, pin them:\n\n` +
-        `  yarn screenshots --record-missing --no-build${ONLY ? ` --only=${ONLY.join(',')}` : ''}\n\n` +
+        `  pnpm screenshots --record-missing --no-build${ONLY ? ` --only=${ONLY.join(',')}` : ''}\n\n` +
         `If the fixtures did not change, the *code* changed what the viewer\n` +
         `fetches — a different structure, source or endpoint. Check that the\n` +
         `figure still shows what its caption claims before recording.`
@@ -409,7 +408,7 @@ if (CHECK && drifted) {
       `  ${DRIFT_DIR}/<id>.fresh.png     the new bytes, if the change is wanted\n` +
       `The tolerance already absorbs cross-machine text rasterisation, so this ` +
       `moved further than that. Look before regenerating with ` +
-      `\`yarn screenshots\`.`
+      `\`pnpm screenshots\`.`
   );
   process.exit(2);
 }

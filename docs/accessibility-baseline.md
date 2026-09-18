@@ -23,11 +23,11 @@ driven with real keyboard/pointer events via `vitest/browser`'s
 `userEvent`. Run them with:
 
 ```sh
-yarn test:browser      # browser project only
-yarn test:coverage     # both projects + coverage thresholds (issue #162)
+pnpm test:browser      # browser project only
+pnpm test:coverage     # both projects + coverage thresholds (issue #162)
 ```
 
-CI installs Chromium (`npx playwright install --with-deps chromium`) and
+CI installs Chromium (`pnpm exec playwright install --with-deps chromium`) and
 runs `test:browser` and `test:coverage` on every push/PR.
 
 ## What is covered and verified

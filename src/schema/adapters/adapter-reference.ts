@@ -18,7 +18,7 @@
  * format lives in `specs/generic-format-adapters.md`; the Intent vs
  * Representation split in `specs/config-approach.md`. Do not restate those
  * here — this table is the input to the generated `docs/adapter-reference.md`
- * and `public/schema/v1/feature-record.schema.json` (run `yarn adapters:sync`).
+ * and `public/schema/v1/feature-record.schema.json` (run `pnpm adapters:sync`).
  *
  * Kept in sync with the code by `src/schema/__spec__/adapter-reference.spec.ts`:
  * every entry name must match `BUILTIN_ADAPTERS`, every domain `kind` must

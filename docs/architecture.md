@@ -142,7 +142,7 @@ The config-as-data engine. Module-by-module:
 
 `types.ts` and `schema.json` must stay in lockstep — change one, change the other. The compile-time test in `src/schema/__spec__/types.spec.ts` and the schema-shape tests in `src/schema/__spec__/schema.spec.ts` are what catch drift.
 
-**Stability.** `schema.json` is published to `https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json` by the GitHub Pages deploy on `next` (see `.github/workflows/test-and-deploy.yml`), served from a committed copy at `public/schema/v1/config.schema.json` that `src/schema/__spec__/schema-publishing.spec.ts` keeps byte-identical to the source. Editors resolve the URL for autocomplete/inline validation once that deploy has run. Regenerate the copy after editing the source with `yarn schema:sync`. The `v1` path can still change while v5 is in development and **must be frozen (no further edits to `public/schema/v1/`) once v5.0.0 ships** — a breaking schema change after that point requires a new `public/schema/v2/` path, never an edit to `v1`.
+**Stability.** `schema.json` is published to `https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json` by the GitHub Pages deploy on `next` (see `.github/workflows/test-and-deploy.yml`), served from a committed copy at `public/schema/v1/config.schema.json` that `src/schema/__spec__/schema-publishing.spec.ts` keeps byte-identical to the source. Editors resolve the URL for autocomplete/inline validation once that deploy has run. Regenerate the copy after editing the source with `pnpm schema:sync`. The `v1` path can still change while v5 is in development and **must be frozen (no further edits to `public/schema/v1/`) once v5.0.0 ships** — a breaking schema change after that point requires a new `public/schema/v2/` path, never an edit to `v1`.
 
 ### `src/tooltips/`
 
@@ -288,7 +288,7 @@ The JSON Schema (`src/schema/schema.json`) is for shape. The semantic validator 
 
 ## Testing
 
-`yarn test` runs lint + types + unit. `yarn test:unit` is the CI-friendly subset. `yarn test:coverage` writes v8 coverage to `./coverage/`. See the README's Testing section for the full list.
+`pnpm test` runs lint + types + unit. `pnpm test:unit` is the CI-friendly subset. `pnpm test:coverage` writes v8 coverage to `./coverage/`. See the README's Testing section for the full list.
 
 Spec files live next to the code they test in `__spec__/` directories, except `src/adapters/__tests__/` (legacy naming, not worth churning). Tests import from `'vitest'` explicitly — `globals: false` is set so `describe` / `it` / `expect` are not module-globals.
 

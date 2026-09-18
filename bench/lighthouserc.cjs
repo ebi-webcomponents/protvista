@@ -17,7 +17,7 @@ module.exports = {
       // harness). --strictPort makes startup fail loudly if 4173 is busy
       // instead of silently moving to a port the URLs below won't match.
       startServerCommand:
-        'npx vite preview --config vite.bench.config.mjs --port 4173 --strictPort',
+        'pnpm exec vite preview --config vite.bench.config.mjs --port 4173 --strictPort',
       startServerReadyPattern: 'Local:',
       // The component emits `protvista:*` performance marks/measures
       // unconditionally; Lighthouse captures them via its user-timings

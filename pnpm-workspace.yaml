@@ -1,0 +1,24 @@
+# pnpm settings file. Not a monorepo — pnpm ≥11 reads its configuration from
+# here rather than from a "pnpm" field in package.json, so this file exists
+# even though there is only one package.
+
+# pnpm blocks dependency install/postinstall scripts unless they are allowed
+# here. Each entry is a deliberate decision, not a formality: a build script
+# runs third-party code at install time.
+allowBuilds:
+  # Required. esbuild's postinstall places the platform binary; without it
+  # every vite and vitest run fails to start. Two majors are in the tree
+  # (vite's current one and an old one pulled in transitively).
+  esbuild: true
+
+  # Optional native canvas for jsdom. jsdom works without it (nothing in the
+  # suite rasterises through the jsdom canvas path) and building it needs
+  # node-gyp plus system libs, so leave it unbuilt.
+  canvas: false
+
+  # Headless WebGL bindings reached through the structure viewer's dependency
+  # tree. Same reasoning as canvas: native build, unused by the test suite.
+  gl: false
+
+  # Install-time telemetry ping. Nothing depends on it running.
+  '@scarf/scarf': false
