@@ -69,6 +69,7 @@ const fg = (el: Element) => getComputedStyle(el).color;
  * on the host element — one of the places docs/theming.md tells a
  * consumer they may declare a token, and the one that catches a token
  * whose default was substituted at the document root instead of here.
+ * A plain property such as `color` can go in too.
  */
 async function mountViewer(config: unknown, vars: Record<string, string> = {}) {
   stubFetch();
@@ -111,23 +112,6 @@ describe('theme.labelColor — which chrome it tints', () => {
     expect(bg(q('credits')!)).toBe('rgb(255, 255, 255)');
   });
 
-  it('keeps one text colour down the label column', async () => {
-    // The split between row labels and neutral chrome is backgrounds
-    // only. The label text tokens are always declared, so if these two
-    // cells inherited the page's colour instead the column would show
-    // two text colours side by side.
-    const q = await mountViewer(CONFIG);
-    const shipped = 'rgb(34, 34, 34)';
-    for (const cls of [
-      'group-label',
-      'track-label',
-      'nav-track-label',
-      'credits',
-    ]) {
-      expect(fg(q(cls)!), cls).toBe(shipped);
-    }
-  });
-
   it('lands the derived text colour on the cell, so a dark theme stays readable', async () => {
     const q = await mountViewer(DARK_CONFIG);
 
@@ -148,29 +132,30 @@ describe('theme.labelColor — which chrome it tints', () => {
 const UNTHEMED = () => ({ rows: rows() });
 const GREEN = 'rgb(0, 128, 0)';
 
-describe('a global token overridden below the document root', () => {
-  it('reaches the component tokens that default from it', async () => {
-    // The regression this guards: `--protvista-track-label-color`
-    // defaults to `var(--protvista-color-text)`. Declared in the root
-    // default block, that reference is substituted *at the root*, and
-    // the override below — on the host, which docs/theming.md advertises
-    // and the per-instance Quick-start recipe relies on — can never
-    // reach the cell. The rules carry the default chain instead, so
-    // substitution happens here.
-    const q = await mountViewer(UNTHEMED(), {
-      '--protvista-color-text': GREEN,
-    });
-    for (const cls of ['group-label', 'track-label', 'credits']) {
+describe('label text with no theme', () => {
+  it("takes the page's text colour in every cell of the label column", async () => {
+    // The label text tokens are unset by default, so the cells inherit
+    // like any unstyled element: one text colour down the column, and
+    // it is the page's, as it was before these tokens existed.
+    const q = await mountViewer(UNTHEMED(), { color: GREEN });
+    for (const cls of [
+      'group-label',
+      'track-label',
+      'nav-track-label',
+      'credits',
+    ]) {
       expect(fg(q(cls)!), cls).toBe(GREEN);
     }
   });
 
-  it('still loses to the component token when both are set', async () => {
+  it('gives way to a label token set below the document root', async () => {
     const q = await mountViewer(UNTHEMED(), {
-      '--protvista-color-text': GREEN,
+      color: GREEN,
       '--protvista-track-label-color': 'rgb(0, 0, 255)',
+      '--protvista-chrome-cell-color': 'rgb(0, 0, 128)',
     });
     expect(fg(q('track-label')!)).toBe('rgb(0, 0, 255)');
+    expect(fg(q('credits')!)).toBe('rgb(0, 0, 128)');
     expect(fg(q('group-label')!)).toBe(GREEN);
   });
 });

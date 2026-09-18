@@ -94,17 +94,19 @@ export default css`
      navigation label cell and the credits cell are neutral chrome, not
      rows — painting them with the track-label colour made a theme tint
      bleed above and below the rows it describes, so they sit on their own
-     neutral pair of tokens, which default to the global surface and text.
+     neutral pair of tokens.
 
-     The split is backgrounds only. Text comes from a token in all four
-     cells: leaving these two to inherit the page's colour while their
-     neighbours resolved a token put two text colours in one column.
+     Text is the same in all four cells: each reads its own token, and
+     every one of those is unset by default, so an unthemed viewer takes
+     the page's text colour, as it always has. A config theme sets the
+     row-label text to whatever reads on the colour it painted; a
+     consumer can set any of the four directly.
 
      The chrome cells carry their own pair of tokens rather than reading
-     the global surface and text directly, so a consumer who wants the
-     whole column one colour can retint these two without repainting
-     every popover, tooltip and panel on the page. They default from the
-     global tier, so an untouched viewer is unchanged. */
+     the global surface directly, so a consumer who wants the whole
+     column one colour can retint these two without repainting every
+     popover, tooltip and panel on the page. The background defaults
+     from the global surface, so an untouched viewer is unchanged. */
   protvista-uniprot .${p}-track-label {
     background-color: var(--protvista-track-label-bg);
     color: ${ref('--protvista-track-label-color')};

@@ -85,12 +85,16 @@ describe('light-DOM token defaults', () => {
     // The point of the chain: `var()` substitution happens at the element
     // that uses the value, so both the component token and the global it
     // defaults from are picked up wherever the consumer declared them.
-    expect(tokenRef('--protvista-track-label-color')).toBe(
-      'var(--protvista-track-label-color, var(--protvista-color-text, #222222))'
+    expect(tokenRef('--protvista-track-label-color-muted')).toBe(
+      'var(--protvista-track-label-color-muted, var(--protvista-color-text-muted, #4a5056))'
     );
     // A literal-default token is just itself plus that literal.
     expect(tokenRef('--protvista-color-text')).toBe(
       'var(--protvista-color-text, #222222)'
+    );
+    // Label text is unset by default, so the cell keeps the page's colour.
+    expect(tokenRef('--protvista-track-label-color')).toBe(
+      'var(--protvista-track-label-color, inherit)'
     );
     expect(() => tokenRef('--protvista-not-a-token')).toThrow();
   });

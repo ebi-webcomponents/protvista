@@ -45,6 +45,11 @@ export interface TokenDef {
    * a bare `var(--other-token)` reference means "inherit from the global
    * tier", and is *not* emitted — see {@link tokenRef} for where such a
    * default is applied instead, and why.
+   *
+   * `inherit` means the token has no value of its own: the property it
+   * drives takes whatever the page gives it, as an unstyled element
+   * would. The label text tokens use this so an unthemed viewer keeps
+   * the page's text colour.
    */
   default: string;
   /** One-line description for the docs table / control label. */
@@ -185,15 +190,17 @@ const VIEWER_TOKENS: TokenDef[] = [
     name: '--protvista-group-label-color',
     group: 'viewer',
     type: 'color',
-    default: 'var(--protvista-color-text)',
-    description: 'Text colour of collapsible group labels.',
+    default: 'inherit',
+    description:
+      "Text colour of collapsible group labels. Unset by default, so the label takes the page's text colour.",
   },
   {
     name: '--protvista-track-label-color',
     group: 'viewer',
     type: 'color',
-    default: 'var(--protvista-color-text)',
-    description: 'Text colour of individual track labels.',
+    default: 'inherit',
+    description:
+      "Text colour of individual track labels. Unset by default, so the label takes the page's text colour.",
   },
   {
     name: '--protvista-group-label-color-muted',
@@ -223,8 +230,9 @@ const VIEWER_TOKENS: TokenDef[] = [
     name: '--protvista-chrome-cell-color',
     group: 'viewer',
     type: 'color',
-    default: 'var(--protvista-color-text)',
-    description: 'Text colour of the neutral chrome cells in the label column.',
+    default: 'inherit',
+    description:
+      "Text colour of the neutral chrome cells in the label column. Unset by default, so the cells take the page's text colour.",
   },
   {
     name: '--protvista-track-border-color',
