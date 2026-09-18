@@ -336,4 +336,14 @@ export const ADAPTER_REFERENCE: readonly AdapterDoc[] = [
     inputs: 2,
     fetchesSecondaryUrl: true,
   },
+  {
+    name: 'linegraph',
+    tier: 'domain',
+    kind: 'linegraph',
+    component: 'nightingale-linegraph-track',
+    inputSummary:
+      'Generic bring-your-own-data: a JSON array of `{ position, value }` records (both numbers), validated and emitted as one line-graph series. Not UniProt-specific — for the UniProt variation API keep `variant-counts`.',
+    inputs: 1,
+    fetchesSecondaryUrl: false,
+  },
 ];

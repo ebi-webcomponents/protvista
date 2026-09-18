@@ -92,6 +92,7 @@ These adapters back the built-in semantic `kind`s. Their input is a response fro
 | `confidence-score` | `alphafold-prediction-json` | `nightingale-colored-sequence` | 2 (+ fetches a further URL) | AlphaFold prediction list (matched to the protein sequence) plus the UniProt entry. The adapter then fetches the per-residue confidence JSON and returns pLDDT categories. |
 | `pathogenicity-score` | `alphamissense-average-csv` | `nightingale-colored-sequence` | 2 (+ fetches a further URL) | AlphaFold prediction list (with an AlphaMissense annotations URL) plus the UniProt entry. The adapter fetches the annotations CSV and returns per-position average pathogenicity codes. |
 | `pathogenicity-heatmap` | `alphamissense-full-csv` | `nightingale-sequence-heatmap` | 2 (+ fetches a further URL) | Same AlphaMissense annotations as `alphamissense-average-csv`, but returns the full per-mutation `{ xValue, yValue, score }` matrix for the heatmap. |
+| `linegraph` | `linegraph` | `nightingale-linegraph-track` | 1 | Generic bring-your-own-data: a JSON array of `{ position, value }` records (both numbers), validated and emitted as one line-graph series. Not UniProt-specific — for the UniProt variation API keep `variant-counts`. |
 
 ## Related
 

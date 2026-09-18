@@ -29,6 +29,7 @@ import { featuresCsv } from './features-csv.js';
 import { featuresTsv } from './features-tsv.js';
 import { featuresJson } from './features-json.js';
 import { bed } from './bed.js';
+import { linegraph } from './linegraph.js';
 import { featureAdapter } from './feature-adapter.js';
 import { interproAdapter } from './interpro-adapter.js';
 import { proteomicsAdapter } from './proteomics-adapter.js';
@@ -50,6 +51,7 @@ export const BUILTIN_ADAPTERS: ReadonlyArray<
   ['features-tsv', featuresTsv],
   ['features-json', featuresJson],
   ['bed', bed],
+  ['linegraph', linegraph],
   // UniProt/EBI domain adapters (referenced by the built-in semantic kinds).
   ['uniprot-features-json', featureAdapter],
   ['interpro-entries-json', interproAdapter],

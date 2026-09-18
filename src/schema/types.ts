@@ -596,7 +596,9 @@ export type KnownSemanticKind =
   /** AlphaMissense per-residue pathogenicity. Includes default colour ramp. */
   | 'pathogenicity-score'
   /** AlphaMissense per-position × amino-acid heatmap. */
-  | 'pathogenicity-heatmap';
+  | 'pathogenicity-heatmap'
+  /** Generic line graph of author-supplied `{ position, value }` records. Not tied to any UniProt API. */
+  | 'linegraph';
 
 /**
  * Open-ended `SemanticKind`. Kinds registered at runtime via
@@ -666,7 +668,9 @@ export type KnownAdapterName =
   /** JSON array of feature-shaped records with the same fields as `features-csv`. */
   | 'features-json'
   /** Standard BED (tab-separated). 0-based half-open → shifted to 1-based inclusive. */
-  | 'bed';
+  | 'bed'
+  /** Generic bring-your-own-data line graph: JSON array of `{ position, value }`. Not inferred from a file extension. */
+  | 'linegraph';
 
 /** Open-ended `AdapterName`. Adapters registered via `registerAdapter()` also type-check. */
 export type AdapterName = KnownAdapterName | (string & {});

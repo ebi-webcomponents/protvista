@@ -24,7 +24,7 @@ import type {
 // ─────────────────────────────────────────────────────────────
 
 describe('Registry — built-in seeding', () => {
-  it('seeds exactly the 12 documented semantic kinds', () => {
+  it('seeds exactly the 13 documented semantic kinds', () => {
     const r = createRegistry();
     // Keep this list in lockstep with `KnownSemanticKind` in
     // types.ts — that union is the type-level source of truth.
@@ -32,6 +32,7 @@ describe('Registry — built-in seeding', () => {
       'confidence-score',
       'features',
       'features-interpro',
+      'linegraph',
       'pathogenicity-heatmap',
       'pathogenicity-score',
       'peptides',
