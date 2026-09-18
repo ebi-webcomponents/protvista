@@ -93,7 +93,7 @@ theme:
   trackLabelColor: '#ffffff' # exact track-label background
 ```
 
-`theme.accentColor` maps to `--protvista-color-accent`. For anything beyond
+`theme.accentColor` maps to `--protvista-color-accent`, as written. For anything beyond
 these — or when the *page* should win over the config — use the CSS tokens
 directly and don't set `theme` in the config.
 
@@ -120,24 +120,34 @@ prefer colours that are decisively light or dark. Set any of these tokens
 in your own CSS with `!important` if you want a different answer — the
 config theme writes them inline (see the precedence note above).
 
-Colour values are resolved to `rgb()` before they reach the stylesheet.
-Hex, keywords, `rgb()`, `hsl()` and `hwb()` are resolved by the browser;
-`oklch()`, `oklab()`, `lab()`, `lch()` and `color()` in the `srgb`,
-`srgb-linear` and `display-p3` spaces are converted by the viewer itself,
-so they work even on browsers in the support matrix that cannot parse
-them. A colour outside the sRGB gamut is clamped per channel rather than
-gamut-mapped.
+Label colours (`labelColor`, `groupLabelColor`, `trackLabelColor`) are
+resolved to `rgb()` before they reach the stylesheet, because the text
+colour is calculated from them. Hex, keywords, `rgb()` and `hsl()` are
+resolved by the browser, as is `hwb()` on browsers that support it
+(Chrome/Edge 101+, Firefox 96+, Safari 15+). `oklch()`, `oklab()`,
+`lab()`, `lch()` and `color()` in the `srgb`, `srgb-linear` and
+`display-p3` spaces are converted by the viewer itself, so they work even
+on browsers in the support matrix that cannot parse them. A colour outside
+the sRGB gamut is clamped per channel rather than gamut-mapped. Values
+that only mean something where they are used, such as `var()`,
+`currentcolor` and `light-dark()`, cannot be turned into a fixed colour
+and are not accepted for labels.
 
-A value that doesn't resolve — a typo, or a colour space not in the list
-above — is ignored with a `console.warn`, leaving the token at its
+A label colour that doesn't resolve (a typo, or a syntax not in the list
+above) is ignored with a `console.warn`, leaving the token at its
 default; an explicit `groupLabelColor` / `trackLabelColor` that doesn't
-resolve falls back to what `labelColor` would have given. `accentColor`
-keeps any alpha you give it, because nothing is derived from it; a label
-colour is composited over the surface first, since its text colour is
-chosen against the result. The derivation always composites over the
+resolve falls back to what `labelColor` would have given. A translucent
+label colour is composited over the surface first, since its text colour
+is chosen against the result. The derivation always composites over the
 shipped white surface, so if your page repaints
 `--protvista-color-surface` to something dark, set the label tokens
 directly rather than theming through the config.
+
+`accentColor` is not resolved, because nothing is derived from it. It is
+handed to CSS exactly as you wrote it, so `var(--your-brand)`,
+`light-dark()`, alpha and any colour space your browser supports all work.
+A value the browser does not accept as a colour is ignored with a
+`console.warn`.
 
 ## Design tokens
 
@@ -147,7 +157,15 @@ default is written as `var(--protvista-…)` inherit from the global tier,
 so overriding one global token (e.g. `--protvista-color-text`) cascades
 everywhere it is used — wherever you declare it, including on the host
 element or an ancestor rather than on `:root`. Setting the component
-token itself always wins over the global it defaults from.
+token itself always wins over the global it defaults from. A default of
+`inherit` means the token is unset: the property it drives takes the
+page's value, as it would on an unstyled element.
+
+Only tokens with a literal default are declared on `:root`. The ones that
+default from another token are left undeclared so that an override of the
+global can reach them from anywhere, and the viewer's own rules carry the
+fallback. If your own CSS or script reads one of them, give it a fallback
+of its own, for example `var(--protvista-tooltip-bg, #ffffff)`.
 
 ### Global
 
@@ -176,20 +194,23 @@ token itself always wins over the global it defaults from.
 > to something dark, also set the matching `--protvista-*-label-color`
 > and `--protvista-*-label-color-muted`, plus `--protvista-caret-color`
 > and `--protvista-group-label-hover-bg` for a group label. Otherwise the
-> text stays at the near-black default and disappears into the fill.
+> text keeps the page's own colour, which may not read on your fill.
 
 The label tokens cover the **data rows only**. The two cells that bracket
 them — the navigation label cell above and the credits cell below — are
 neutral chrome rather than rows, so they stay put when you retint the
 label column; tinting them made a label colour bleed above and below the
 rows it describes. They have their own pair,
-`--protvista-chrome-cell-bg` / `--protvista-chrome-cell-color`, which
-default from the global surface and text so an untouched viewer is
-unchanged. If you want the whole column in one colour, set that pair —
-retinting `--protvista-color-surface` instead would repaint every
-popover, tooltip and panel on the page too. The split is **backgrounds
-only** — all four cells take their text colour from a token, so the
-column never shows two text colours at once.
+`--protvista-chrome-cell-bg` / `--protvista-chrome-cell-color`. If you
+want the whole column in one colour, set that pair; retinting
+`--protvista-color-surface` instead would repaint every popover, tooltip
+and panel on the page too.
+
+Text works the same way in all four cells. Each has its own token, and
+none of them is set by default, so an unthemed viewer takes the page's
+text colour all the way down the column. A config `theme:` sets the row
+labels' text to whatever reads on the colour it painted, and leaves the
+two chrome cells alone.
 
 | Token | Type | Default | Purpose |
 | --- | --- | --- | --- |
@@ -198,12 +219,12 @@ column never shows two text colours at once.
 | `--protvista-group-label-bg` | color | `#f1f3f5` | Background of collapsible group labels. |
 | `--protvista-group-label-hover-bg` | color | `var(--protvista-color-bg-hover)` | Background of a hovered collapsible group label. |
 | `--protvista-track-label-bg` | color | `#ffffff` | Background of individual track labels. |
-| `--protvista-group-label-color` | color | `var(--protvista-color-text)` | Text colour of collapsible group labels. |
-| `--protvista-track-label-color` | color | `var(--protvista-color-text)` | Text colour of individual track labels. |
+| `--protvista-group-label-color` | color | `inherit` | Text colour of collapsible group labels. Unset by default, so the label takes the page's text colour. |
+| `--protvista-track-label-color` | color | `inherit` | Text colour of individual track labels. Unset by default, so the label takes the page's text colour. |
 | `--protvista-group-label-color-muted` | color | `var(--protvista-color-text-muted)` | Recessive text on a group label — a hidden/dataless group in customize mode. |
 | `--protvista-track-label-color-muted` | color | `var(--protvista-color-text-muted)` | Recessive text on a track label — a hidden/dataless track in customize mode. |
 | `--protvista-chrome-cell-bg` | color | `var(--protvista-color-surface)` | Background of the neutral chrome cells in the label column (navigation label, credits) — the cells that bracket the data rows without being one. |
-| `--protvista-chrome-cell-color` | color | `var(--protvista-color-text)` | Text colour of the neutral chrome cells in the label column. |
+| `--protvista-chrome-cell-color` | color | `inherit` | Text colour of the neutral chrome cells in the label column. Unset by default, so the cells take the page's text colour. |
 | `--protvista-track-border-color` | color | `#e3e6ea` | Hairline ruling the viewer grid: between rows, and between the label column and the track area. |
 | `--protvista-caret-color` | color | `#5b6169` | Group-label expand/collapse caret. |
 | `--protvista-nav-handle-fill` | color | `darkgrey` | Fill of the navigation zoom handles. |
