@@ -1,0 +1,217 @@
+/**
+ * Real-DOM pin for what a config `theme.labelColor` paints: the data-row
+ * labels only. Group labels take the colour, track labels the derived
+ * light tint, and the neutral chrome cells — the navigation label cell
+ * and the credits cell — keep their own neutral tokens (tinting them
+ * made the theme bleed above and below the rows it describes).
+ *
+ * The unit specs assert the token *values* `applyTheme` writes; this one
+ * exists because jsdom cannot resolve `var()` through the cascade, so
+ * only a real engine can confirm those tokens actually reach the cells —
+ * the derived text colour that keeps a dark theme readable, and the
+ * default chains that let a consumer override a global token anywhere
+ * below the document root (see `tokenRef` in styles/tokens.ts).
+ */
+import { describe, it, expect, vi, afterEach } from 'vitest';
+
+import '../protvista-uniprot.js';
+import { CSS_PREFIX } from '../styles/css-prefix.js';
+import { mount, unmountAll } from './mount.js';
+
+/** A standalone track row (renders a `.track-label`) next to a group
+ * (renders a `.group-label`), so both label kinds are on screen. */
+const rows = () => [
+    { id: 'solo', kind: 'features', data: 'https://example.org/a.json' },
+    {
+      id: 'g',
+      label: 'Group',
+      tracks: [
+        { id: 't1', kind: 'features', data: 'https://example.org/b.json' },
+      ],
+    },
+  ];
+
+const CONFIG = { theme: { labelColor: '#e8f5e9' }, rows: rows() };
+/** Indigo: dark enough that the shipped near-black body text would be
+ *  illegible on it, so the derived white must actually reach the cell. */
+const DARK_CONFIG = { theme: { labelColor: '#1a237e' }, rows: rows() };
+
+type El = HTMLElement & { viewerConfig?: unknown; accession?: string };
+
+function stubFetch() {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: unknown) => {
+      const url = String(input);
+      const body = url.includes('/proteins/api/proteins/')
+        ? { sequence: { sequence: 'MSEQENCE' } }
+        : // The default `features-json` adapter expects a top-level array.
+          [{ type: 'DOMAIN', start: 1, end: 5 }];
+      return { ok: true, status: 200, json: async () => body } as unknown as Response;
+    })
+  );
+}
+
+afterEach(() => {
+  // Unmount before restoring `fetch`: hooks run last-registered-first,
+  // so mount.js's own teardown would otherwise leave live components
+  // able to reach the real network.
+  unmountAll();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+const bg = (el: Element) => getComputedStyle(el).backgroundColor;
+const fg = (el: Element) => getComputedStyle(el).color;
+
+/**
+ * Mount a config and wait for every label cell to exist. `vars` are set
+ * on the host element — one of the places docs/theming.md tells a
+ * consumer they may declare a token, and the one that catches a token
+ * whose default was substituted at the document root instead of here.
+ * A plain property such as `color` can go in too.
+ */
+async function mountViewer(config: unknown, vars: Record<string, string> = {}) {
+  stubFetch();
+  const el = mount<El>('protvista-uniprot', {
+    viewerConfig: config,
+    accession: 'P05067',
+  });
+  for (const [name, value] of Object.entries(vars)) {
+    el.style.setProperty(name, value);
+  }
+  const q = (cls: string) =>
+    el.querySelector<HTMLElement>(`.${CSS_PREFIX}-${cls}`);
+  await vi.waitFor(() => {
+    for (const cls of [
+      'group-label',
+      'track-label',
+      'nav-track-label',
+      'credits',
+    ]) {
+      if (!q(cls)) throw new Error(`${cls} not ready`);
+    }
+  });
+  return q;
+}
+
+describe('theme.labelColor — which chrome it tints', () => {
+  it('tints row labels but leaves the nav label and credits on the surface colour', async () => {
+    const q = await mountViewer(CONFIG);
+
+    // Group labels take the theme colour.
+    expect(bg(q('group-label')!)).toBe('rgb(232, 245, 233)');
+    // Track labels take the derived tint: neither the group colour nor
+    // plain white — the hierarchy the default grey/white pair draws.
+    const track = bg(q('track-label')!);
+    expect(track).not.toBe('rgb(232, 245, 233)');
+    expect(track).not.toBe('rgb(255, 255, 255)');
+    // The navigation label cell and credits are chrome, not rows: they
+    // sit on the (default white) surface colour, untouched by the theme.
+    expect(bg(q('nav-track-label')!)).toBe('rgb(255, 255, 255)');
+    expect(bg(q('credits')!)).toBe('rgb(255, 255, 255)');
+  });
+
+  it('lands the derived text colour on the cell, so a dark theme stays readable', async () => {
+    const q = await mountViewer(DARK_CONFIG);
+
+    // The group cell is the author's dark indigo, and its text is the
+    // white `applyTheme` derived for it — not the near-black body colour
+    // the cell would otherwise inherit.
+    expect(bg(q('group-label')!)).toBe('rgb(26, 35, 126)');
+    expect(fg(q('group-label')!)).toBe('rgb(255, 255, 255)');
+
+    // The track tint is 25% over white, so it stays pale and keeps the
+    // dark text: the two surfaces are resolved independently.
+    expect(fg(q('track-label')!)).toBe('rgb(34, 34, 34)');
+  });
+});
+
+/** No `theme:`, so nothing is written inline on the host and the CSS
+ *  token path is the only thing painting these cells. */
+const UNTHEMED = () => ({ rows: rows() });
+const GREEN = 'rgb(0, 128, 0)';
+
+describe('label text with no theme', () => {
+  it("takes the page's text colour in every cell of the label column", async () => {
+    // The label text tokens are unset by default, so the cells inherit
+    // like any unstyled element: one text colour down the column, and
+    // it is the page's, as it was before these tokens existed.
+    const q = await mountViewer(UNTHEMED(), { color: GREEN });
+    for (const cls of [
+      'group-label',
+      'track-label',
+      'nav-track-label',
+      'credits',
+    ]) {
+      expect(fg(q(cls)!), cls).toBe(GREEN);
+    }
+  });
+
+  it('gives way to a label token set below the document root', async () => {
+    const q = await mountViewer(UNTHEMED(), {
+      color: GREEN,
+      '--protvista-track-label-color': 'rgb(0, 0, 255)',
+      '--protvista-chrome-cell-color': 'rgb(0, 0, 128)',
+    });
+    expect(fg(q('track-label')!)).toBe('rgb(0, 0, 255)');
+    expect(fg(q('credits')!)).toBe('rgb(0, 0, 128)');
+    expect(fg(q('group-label')!)).toBe(GREEN);
+  });
+});
+
+describe('the neutral chrome cells', () => {
+  it('retint on their own token, leaving the rest of the page alone', async () => {
+    // Making the whole column one colour used to mean repainting
+    // --protvista-color-surface, which also repaints popovers, tooltips,
+    // the customize panel and the datatable.
+    const q = await mountViewer(UNTHEMED(), {
+      '--protvista-chrome-cell-bg': GREEN,
+    });
+    expect(bg(q('nav-track-label')!)).toBe(GREEN);
+    expect(bg(q('credits')!)).toBe(GREEN);
+    // The data rows are not chrome and keep their own tokens.
+    expect(bg(q('track-label')!)).toBe('rgb(255, 255, 255)');
+  });
+
+  it('carry the "N hidden" badge in the nav cell with them', async () => {
+    // The badge has no background of its own, so once the nav cell is
+    // retinted it has to follow the cell's text token; until then it
+    // keeps the muted grey.
+    const withHidden = () => ({
+      rows: [
+        ...rows(),
+        {
+          id: 'shh',
+          kind: 'features',
+          data: 'https://example.org/c.json',
+          hidden: true,
+        },
+      ],
+    });
+    const badge = async (q: (cls: string) => HTMLElement | null) =>
+      vi.waitFor(() => {
+        const el = q('hidden-count');
+        if (!el) throw new Error('hidden-count not ready');
+        return el;
+      });
+
+    const plain = await mountViewer(withHidden());
+    expect(fg(await badge(plain))).toBe('rgb(74, 80, 86)');
+
+    unmountAll();
+    const retinted = await mountViewer(withHidden(), {
+      '--protvista-chrome-cell-bg': 'rgb(26, 35, 126)',
+      '--protvista-chrome-cell-color': 'rgb(255, 255, 255)',
+    });
+    expect(fg(await badge(retinted))).toBe('rgb(255, 255, 255)');
+  });
+
+  it('follow the global surface when left alone', async () => {
+    const q = await mountViewer(UNTHEMED(), {
+      '--protvista-color-surface': GREEN,
+    });
+    expect(bg(q('nav-track-label')!)).toBe(GREEN);
+    expect(bg(q('credits')!)).toBe(GREEN);
+  });
+});

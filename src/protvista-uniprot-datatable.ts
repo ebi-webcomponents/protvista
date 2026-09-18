@@ -3,6 +3,7 @@ import {
   html,
   css,
   nothing,
+  unsafeCSS,
   type TemplateResult,
   type PropertyValues,
 } from 'lit';
@@ -10,6 +11,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 
+import { tokenRef, tokenDefaultRef } from './styles/tokens.js';
 import {
   computeFilteredData,
   computeUniqueValuesByKey,
@@ -27,6 +29,51 @@ export interface ColumnConfig<T extends Record<string, unknown>> {
     row: T
   ) => TemplateResult | string | number | undefined | null | typeof nothing;
 }
+
+/**
+ * The pre-token `--protvista-dt-*` override names, still honoured for one
+ * major cycle. Each is tried *after* the current token name and *before*
+ * the registry default, so an old override keeps working while a new one
+ * takes precedence.
+ */
+const LEGACY_ALIASES: Record<string, string> = {
+  '--protvista-datatable-accent': '--protvista-dt-primary',
+  '--protvista-datatable-text-head': '--protvista-dt-text-head',
+  '--protvista-datatable-text-body': '--protvista-dt-text-body',
+  '--protvista-datatable-text-muted': '--protvista-dt-text-muted',
+  '--protvista-datatable-text-input': '--protvista-dt-text-input',
+  '--protvista-datatable-bg-base': '--protvista-dt-bg-base',
+  '--protvista-datatable-bg-header': '--protvista-dt-bg-header',
+  '--protvista-datatable-bg-hover': '--protvista-dt-bg-hover',
+  '--protvista-datatable-bg-active': '--protvista-dt-bg-active',
+  '--protvista-datatable-border': '--protvista-dt-border',
+  '--protvista-datatable-border-input': '--protvista-dt-border-input',
+  '--protvista-datatable-shadow-header': '--protvista-dt-shadow-header',
+};
+
+/**
+ * Read a token, carrying its alias and default chain to the point of use.
+ *
+ * These used to be declared on `:host`, which quietly made them
+ * unoverridable: a declaration *on* an element always beats a value
+ * *inherited* into it, whatever the specificity, so a consumer's
+ * `:root { --protvista-datatable-border: … }` — or even
+ * `protvista-uniprot-datatable { … }`, which loses to `:host` on
+ * specificity as well — never reached the table. Only an inline style or
+ * `!important` got through, contradicting the documented "set it on the
+ * element or any ancestor". Declaring nothing and spelling the chain out
+ * here puts the resolution at the element that uses the value, where an
+ * override from anywhere above wins. See `tokenRef` in styles/tokens.ts;
+ * this is the same fix, plus the alias hop.
+ */
+const t = (name: string) => {
+  const alias = LEGACY_ALIASES[name];
+  return unsafeCSS(
+    alias
+      ? `var(${name}, var(${alias}, ${tokenDefaultRef(name)}))`
+      : tokenRef(name)
+  );
+};
 
 @customElement('protvista-uniprot-datatable')
 export class ProtvistaUniprotDatatable<
@@ -60,68 +107,44 @@ export class ProtvistaUniprotDatatable<
 
   static override styles = css`
     /* Themable via CSS custom properties. Each --protvista-datatable-*
-       token defaults from the shared global tier (--protvista-*, which
-       inherits in from the host) and falls back to its historical
-       literal. The former --protvista-dt-* names are still honoured as
-       aliases for one major cycle, so existing overrides keep working.
-       Consumers can also target structure via ::part(...) — see the
-       part="…" attributes in render(). */
+       token defaults from the shared global tier and falls back to its
+       historical literal; the former --protvista-dt-* names are still
+       honoured as aliases for one major cycle, so existing overrides keep
+       working. None of them is *declared* here — see \`t()\` above for why
+       that would make them unoverridable — so every read below carries
+       the chain. Consumers can also target structure via ::part(...) —
+       see the part="…" attributes in render(). */
     :host {
       display: block;
       width: 100%;
-      font-family: var(--protvista-font-family, inherit);
-
-      --protvista-datatable-accent: var(
-        --protvista-dt-primary,
-        var(--protvista-color-accent, #0053d6)
-      );
-      --protvista-datatable-text-head: var(--protvista-dt-text-head, #1a1a1a);
-      --protvista-datatable-text-body: var(--protvista-dt-text-body, #2c2c2c);
-      --protvista-datatable-text-muted: var(--protvista-dt-text-muted, #444444);
-      --protvista-datatable-text-input: var(--protvista-dt-text-input, #333333);
-      --protvista-datatable-bg-base: var(
-        --protvista-dt-bg-base,
-        var(--protvista-color-surface, #ffffff)
-      );
-      --protvista-datatable-bg-header: var(--protvista-dt-bg-header, #f8f8f8);
-      --protvista-datatable-bg-hover: var(--protvista-dt-bg-hover, #f1f7ff);
-      --protvista-datatable-bg-active: var(--protvista-dt-bg-active, #e6f3ff);
-      --protvista-datatable-border: var(--protvista-dt-border, #e0e0e0);
-      --protvista-datatable-border-input: var(
-        --protvista-dt-border-input,
-        #767676
-      );
-      --protvista-datatable-shadow-header: var(
-        --protvista-dt-shadow-header,
-        #cccccc
-      );
+      font-family: ${t('--protvista-font-family')};
     }
 
     .scroll-container {
-      max-height: var(--protvista-datatable-max-height, 400px);
+      max-height: ${t('--protvista-datatable-max-height')};
       overflow-y: auto;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
-      border: 1px solid var(--protvista-datatable-border);
-      background: var(--protvista-datatable-bg-base);
+      border: 1px solid ${t('--protvista-datatable-border')};
+      background: ${t('--protvista-datatable-bg-base')};
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 0.9rem;
-      color: var(--protvista-datatable-text-body);
+      color: ${t('--protvista-datatable-text-body')};
     }
 
     thead th {
       position: sticky;
       top: 0;
       z-index: 2;
-      background: var(--protvista-datatable-bg-header);
+      background: ${t('--protvista-datatable-bg-header')};
       text-transform: uppercase;
       font-size: 0.75rem;
       letter-spacing: 0.05em;
-      box-shadow: 0 1px 0 var(--protvista-datatable-shadow-header);
+      box-shadow: 0 1px 0 ${t('--protvista-datatable-shadow-header')};
     }
 
     th {
@@ -130,12 +153,12 @@ export class ProtvistaUniprotDatatable<
       white-space: nowrap;
       vertical-align: top;
       font-weight: 700;
-      color: var(--protvista-datatable-text-head);
+      color: ${t('--protvista-datatable-text-head')};
     }
 
     td {
       padding: 0.75rem 0.5rem;
-      border-bottom: 1px solid var(--protvista-datatable-border);
+      border-bottom: 1px solid ${t('--protvista-datatable-border')};
       vertical-align: middle;
     }
 
@@ -146,20 +169,20 @@ export class ProtvistaUniprotDatatable<
     }
 
     tbody tr:hover {
-      background-color: var(--protvista-datatable-bg-hover);
+      background-color: ${t('--protvista-datatable-bg-hover')};
     }
 
     tbody tr:focus-visible {
-      background-color: var(--protvista-datatable-bg-hover);
-      outline: 2px solid var(--protvista-datatable-accent);
+      background-color: ${t('--protvista-datatable-bg-hover')};
+      outline: 2px solid ${t('--protvista-datatable-accent')};
       outline-offset: -2px;
       position: relative;
       z-index: 1;
     }
 
     tbody tr.active {
-      background-color: var(--protvista-datatable-bg-active);
-      box-shadow: inset 4px 0 0 var(--protvista-datatable-accent);
+      background-color: ${t('--protvista-datatable-bg-active')};
+      box-shadow: inset 4px 0 0 ${t('--protvista-datatable-accent')};
     }
 
     .header-content {
@@ -173,21 +196,21 @@ export class ProtvistaUniprotDatatable<
       padding: 0.4rem;
       font-size: 0.85rem;
       width: 100%;
-      border: 1px solid var(--protvista-datatable-border-input);
-      border-radius: var(--protvista-radius, 4px);
-      background-color: var(--protvista-datatable-bg-base);
-      color: var(--protvista-datatable-text-input);
+      border: 1px solid ${t('--protvista-datatable-border-input')};
+      border-radius: ${t('--protvista-radius')};
+      background-color: ${t('--protvista-datatable-bg-base')};
+      color: ${t('--protvista-datatable-text-input')};
     }
 
     select:focus {
-      outline: 2px solid var(--protvista-datatable-accent);
-      border-color: var(--protvista-datatable-accent);
+      outline: 2px solid ${t('--protvista-datatable-accent')};
+      border-color: ${t('--protvista-datatable-accent')};
     }
 
     .no-results {
       text-align: center;
       padding: 3rem;
-      color: var(--protvista-datatable-text-muted);
+      color: ${t('--protvista-datatable-text-muted')};
       font-style: italic;
     }
 

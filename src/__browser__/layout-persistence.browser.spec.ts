@@ -15,7 +15,7 @@ import {
   encodeLayout,
 } from '../layout-persistence';
 import { CSS_PREFIX } from '../styles/css-prefix';
-import { mount } from './mount';
+import { mount, unmountAll } from './mount';
 
 const CONFIG = {
   rows: [
@@ -95,6 +95,10 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Unmount before restoring `fetch`: hooks run last-registered-first,
+  // so mount.js's own teardown would otherwise leave live components
+  // able to reach the real network.
+  unmountAll();
   window.history.replaceState(window.history.state, '', originalHref);
   clearLayoutStorage();
   vi.unstubAllGlobals();

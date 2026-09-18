@@ -1,5 +1,86 @@
 # Changelog
 
+## Unreleased
+
+### Changed: `theme.labelColor` now keeps the group/track hierarchy
+
+A config `theme.labelColor` used to paint group and track labels the same
+colour, flattening the distinction the default palette draws (grey group
+headers over white track labels). It now applies the colour to group labels
+and derives the track-label background as a light tint of it (25% over
+white): the shipped hierarchy, in the author's hue. Existing configs using
+`labelColor` render with the new two-tone pair automatically.
+
+The navigation label cell and the credits cell no longer take the
+track-label background at all. They are neutral chrome, not rows, so a
+theme tint no longer bleeds above and below the rows it describes. They
+now sit on their own tokens, `--protvista-chrome-cell-bg` (defaulting to
+`--protvista-color-surface`, white) and `--protvista-chrome-cell-color`.
+This also affects consumers who set `--protvista-track-label-bg` in their
+own CSS: to keep the whole label column one colour, set
+`--protvista-chrome-cell-bg` (and `--protvista-chrome-cell-color` if the
+text needs to change) to match.
+
+### Added: explicit `theme.groupLabelColor` / `theme.trackLabelColor`
+
+For authors who want to pin either surface exactly, the `theme:` block
+accepts `groupLabelColor` and `trackLabelColor`, which override the pair
+`labelColor` would derive and map one-to-one onto
+`--protvista-group-label-bg` / `--protvista-track-label-bg`.
+
+### Fixed: a themed label now brings a text colour that reads on it
+
+Label text kept the page's own colour whatever `theme.labelColor` painted
+behind it, so a dark label colour on an ordinary light page gave
+near-black text on a near-black fill. The collapse caret and the
+near-white hover background failed the same way. For each label surface
+the theme paints, the viewer now derives text, muted text, caret and hover
+colours from the background, picking whichever of the default body colour
+(`#222222`) and white contrasts better. New tokens expose the results:
+`--protvista-group-label-color`, `--protvista-track-label-color`, their
+`-muted` variants, and `--protvista-group-label-hover-bg`.
+
+Without a theme nothing changes: the label text tokens are unset by
+default, so label text still takes the page's colour. The derivation runs
+only for the config `theme:`. If you set a label background in your own
+CSS, set the matching text tokens too (see the theming guide).
+
+Label colours (`labelColor`, `groupLabelColor`, `trackLabelColor`) are now
+resolved to `rgb()` before they reach the stylesheet, since the text colour
+is calculated from them. Hex, keywords, `rgb()`, `hsl()`, `oklch()`,
+`oklab()`, `lab()`, `lch()` and `color()` in the `srgb`, `srgb-linear` and
+`display-p3` spaces all work across the documented support matrix
+(Chrome/Edge 92+, Firefox 90+, Safari 15+). **Breaking:** `var()`,
+`currentcolor` and `light-dark()` are no longer accepted for these three
+fields, because they can't be turned into a fixed colour. A label colour
+that can't be resolved is ignored with a `console.warn` instead of being
+passed through.
+
+`accentColor` is still handed to CSS as written, so `var()`,
+`light-dark()`, alpha and any colour space the browser supports keep
+working. A value the browser doesn't accept as a colour is now ignored with
+a `console.warn`.
+
+### Changed: tokens that default from another token are no longer declared on `:root`
+
+Component tokens whose default is another token (for example
+`--protvista-tooltip-bg`, which defaults to `--protvista-color-surface`)
+used to be declared in the viewer's `:root` default block. That resolved
+the global token at the root, so overriding it on the host or an ancestor
+never reached them. They are now left undeclared, and the viewer's own
+rules carry the fallback chain, so a global override works wherever you
+declare it. **Breaking** for CSS or scripts that read one of these tokens
+directly, such as `var(--protvista-tooltip-bg)` or
+`getComputedStyle(el).getPropertyValue('--protvista-tooltip-bg')`: it now
+has no value unless you set it, so give it a fallback or read the global
+token instead.
+
+The datatable works the same way: its tokens are no longer declared on its
+`:host`, so they can now be set on any ancestor like every other token
+(previously only an inline style or `!important` reached them). If both a
+`--protvista-datatable-*` token and its older `--protvista-dt-*` alias are
+set, the `--protvista-datatable-*` one now wins.
+
 ## 5.0.0-beta.2 — 2026-07-31
 
 The second v5 beta, still on the `beta` dist-tag: `npm install
