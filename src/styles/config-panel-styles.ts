@@ -128,7 +128,13 @@ export default css`
     background: none;
     font-family: var(--protvista-font-family, inherit);
     font-size: var(--protvista-font-size, 0.8rem);
-    color: var(--protvista-color-text-muted, #4a5056);
+    /* The badge has no background of its own, so it sits on the nav
+       cell's. Once a consumer retints that cell they set its text token
+       too, and the badge follows it; until then it keeps the muted grey. */
+    color: var(
+      --protvista-chrome-cell-color,
+      var(--protvista-color-text-muted, #4a5056)
+    );
     text-decoration: underline dotted;
     cursor: pointer;
   }

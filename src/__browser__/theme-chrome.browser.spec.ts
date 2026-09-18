@@ -174,6 +174,39 @@ describe('the neutral chrome cells', () => {
     expect(bg(q('track-label')!)).toBe('rgb(255, 255, 255)');
   });
 
+  it('carry the "N hidden" badge in the nav cell with them', async () => {
+    // The badge has no background of its own, so once the nav cell is
+    // retinted it has to follow the cell's text token; until then it
+    // keeps the muted grey.
+    const withHidden = () => ({
+      rows: [
+        ...rows(),
+        {
+          id: 'shh',
+          kind: 'features',
+          data: 'https://example.org/c.json',
+          hidden: true,
+        },
+      ],
+    });
+    const badge = async (q: (cls: string) => HTMLElement | null) =>
+      vi.waitFor(() => {
+        const el = q('hidden-count');
+        if (!el) throw new Error('hidden-count not ready');
+        return el;
+      });
+
+    const plain = await mountViewer(withHidden());
+    expect(fg(await badge(plain))).toBe('rgb(74, 80, 86)');
+
+    unmountAll();
+    const retinted = await mountViewer(withHidden(), {
+      '--protvista-chrome-cell-bg': 'rgb(26, 35, 126)',
+      '--protvista-chrome-cell-color': 'rgb(255, 255, 255)',
+    });
+    expect(fg(await badge(retinted))).toBe('rgb(255, 255, 255)');
+  });
+
   it('follow the global surface when left alone', async () => {
     const q = await mountViewer(UNTHEMED(), {
       '--protvista-color-surface': GREEN,
