@@ -21,6 +21,7 @@ your config controls and what the data must provide, see
 | `variant-counts` | A line graph of variant frequency along the sequence. | UniProt variation counts. |
 | `rna-editing` | RNA-editing sites, drawn like variants. | UniProt RNA-editing API. |
 | `rna-editing-counts` | A line graph of RNA-editing frequency. | UniProt RNA-editing counts. |
+| `linegraph` | A line graph of numeric values you supply, one per position. | Your own `{ position, value }` records from a URL. |
 | `peptides` | Mass-spectrometry-detected peptides. | UniProt proteomics API. |
 | `peptides-ptm` | Post-translational modifications detected by MS. | UniProt proteomics PTM API. |
 | `structure-coverage` | Which stretches of the sequence are covered by known 3D structures. | UniProt/PDBe coverage. |

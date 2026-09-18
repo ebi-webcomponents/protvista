@@ -148,6 +148,36 @@ rows:
           shape: diamond
 ```
 
+## A line graph of your own values
+
+The `kind: linegraph` setting draws a line graph from a JSON array of `{ position, value }` records (both numbers).
+
+```yaml
+accession: P05067
+rows:
+  - id: depth
+    label: Read depth
+    kind: linegraph
+    data: https://my-lab.example/api/depth/{accession}
+    description: Per-residue read depth from our pipeline
+```
+
+```json
+[
+  { "position": 1, "value": 12 },
+  { "position": 2, "value": 15 },
+  { "position": 3, "value": 9 }
+]
+```
+
+Malformed rows fail with an error naming the row index and field. A `.json` file path needs the adapter named explicitly so it is not parsed as generic features:
+
+```yaml
+data:
+  url: ./depth.json
+  adapter: linegraph
+```
+
 ## Add to the default UniProt viewer
 
 To layer your track on top of the full canonical viewer instead of building from
