@@ -170,6 +170,8 @@ rows:
 ]
 ```
 
+Points are drawn in the order you supply them, so sort your records by `position` before serving them — the adapter neither sorts them nor rejects duplicates.
+
 Malformed rows fail with an error naming the row index and field. A `.json` file path needs the adapter named explicitly so it is not parsed as generic features:
 
 ```yaml

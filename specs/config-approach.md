@@ -622,9 +622,8 @@ type ComponentName = KnownComponentName | (string & {});
  * custom one at runtime.
  *
  * Generic-format adapters for bring-your-own-data files ship today for
- * CSV / TSV / JSON (`features-csv` / `features-tsv` / `features-json`);
- * BED is a planned addition — see `specs/generic-format-adapters.md`
- * for the design.
+ * CSV / TSV / JSON / BED — see `specs/generic-format-adapters.md` for the
+ * design.
  */
 type KnownAdapterName =
   // ── Source-specific (coupled to a particular API output) ──
@@ -641,6 +640,10 @@ type KnownAdapterName =
   | 'alphamissense-average-csv'
   | 'alphamissense-full-csv'
   // ── Generic (bring-your-own-data; shape-validating) ──
+  | 'features-csv'
+  | 'features-tsv'
+  | 'features-json'
+  | 'bed'
   | 'linegraph';
 
 /** Open string — adapters registered via `registerAdapter()` are also valid. */
