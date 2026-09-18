@@ -61,6 +61,16 @@ export default defineConfig({
   vite: {
     plugins: [inlineLibIcons()],
     server: { fs: { allow: ['..'] } },
+    // Bundle `js-yaml` into the prerender build instead of leaving it as an
+    // external import. Two majors are installed: the library depends on 5.x
+    // (named exports only) and Starlight on 4.x (`import yaml from
+    // 'js-yaml'`). Externalised, Starlight's bare `js-yaml` import is resolved
+    // by Node from `site/.prerender/`, which walks up to the root copy — 5.x —
+    // and `astro build` dies with "does not provide an export named
+    // 'default'". Bundling resolves it at build time relative to the importer,
+    // so Starlight gets its own 4.x. Same failure class as Astro's built-in
+    // `neotraverse` entry (withastro/astro#17508).
+    resolve: { noExternal: ['js-yaml'] },
     // Pre-bundle the playground page's heavy client-side deps at server start.
     // Otherwise Vite discovers them mid-load on the first open of /playground
     // (its script pulls the whole component graph), re-optimizes, and 504s the

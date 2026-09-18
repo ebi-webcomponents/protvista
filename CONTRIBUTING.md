@@ -34,13 +34,20 @@ All repository interactions and project events are expected to follow our [Code 
    pnpm install
    ```
 
-3. Run the development server (serves the demo at a local URL):
+3. Install the Playwright browser used by the `browser` test project (see
+   [Browser tests need a Playwright browser](#browser-tests-need-a-playwright-browser)):
+
+   ```bash
+   pnpm exec playwright install chromium
+   ```
+
+4. Run the development server (serves the demo at a local URL):
 
    ```bash
    pnpm start
    ```
 
-4. Run the tests:
+5. Run the tests:
 
    ```bash
    pnpm test
@@ -219,6 +226,33 @@ pnpm test:browser  # Browser component tests only
 pnpm test:watch    # Watch mode
 pnpm test:coverage # Run both test projects and write coverage to ./coverage/
 ```
+
+### Browser tests need a Playwright browser
+
+The `browser` project (`pnpm test:browser`, and therefore `pnpm test` and
+`pnpm test:coverage`) runs in a real headless Chromium driven by
+[Playwright](https://playwright.dev/). `pnpm install` fetches the Playwright
+*library* but not the browser binary, so run this once after cloning:
+
+```bash
+pnpm exec playwright install chromium
+```
+
+Every Playwright release pins a new Chromium build, so **re-run it whenever the
+`playwright` version in `package.json` changes** (e.g. after pulling a
+dependency bump). The symptom of a missing or stale binary is
+`pnpm test:browser` failing at startup with:
+
+```
+Error: browserType.launch: Executable doesn't exist at …/ms-playwright/chromium_headless_shell-NNNN/…
+Looks like Playwright was just installed or updated.
+```
+
+`chromium` is sufficient — the tests only use Chromium's headless shell. Plain
+`pnpm exec playwright install` also works but downloads Firefox and WebKit too.
+CI does this itself (`.github/workflows/test-and-deploy.yml`, with
+`--with-deps` to pull in the Linux system libraries), so no `postinstall` hook
+is needed and none is configured.
 
 ### Writing Tests
 
