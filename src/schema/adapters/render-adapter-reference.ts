@@ -15,6 +15,8 @@ import {
   type AdapterDoc,
   type GenericAdapterDoc,
   type DomainAdapterDoc,
+  type ByodKindAdapterDoc,
+  type KindAdapterDoc,
   type FieldDoc,
 } from './adapter-reference.js';
 
@@ -34,6 +36,8 @@ export const ADAPTER_REFERENCE_MD_PATH =
 
 const isGeneric = (d: AdapterDoc): d is GenericAdapterDoc => d.tier === 'generic';
 const isDomain = (d: AdapterDoc): d is DomainAdapterDoc => d.tier === 'domain';
+const isByodKind = (d: AdapterDoc): d is ByodKindAdapterDoc =>
+  d.tier === 'byod-kind';
 
 /** Escape a value for use inside a Markdown table cell. */
 function cell(value: string): string {
@@ -73,7 +77,7 @@ function genericSection(d: GenericAdapterDoc): string {
   return parts.join('\n');
 }
 
-function domainTable(docs: readonly DomainAdapterDoc[]): string {
+function domainTable(docs: readonly KindAdapterDoc[]): string {
   const header =
     '| Semantic kind | Adapter | Renders with | Inputs | Input shape |\n|---|---|---|---|---|';
   const rows = docs.map((d) => {
@@ -92,6 +96,7 @@ export function renderReferenceMarkdown(
 ): string {
   const generic = reference.filter(isGeneric);
   const domain = reference.filter(isDomain);
+  const byodKind = reference.filter(isByodKind);
 
   const lines: string[] = [];
   lines.push('---');
@@ -145,6 +150,22 @@ export function renderReferenceMarkdown(
   lines.push('');
   lines.push(domainTable(domain));
   lines.push('');
+
+  if (byodKind.length > 0) {
+    lines.push('## Bring-your-own-data track kinds');
+    lines.push('');
+    lines.push(
+      'These adapters also back a semantic `kind`, but the payload is one **you** author ' +
+        'rather than a provider response — point the track at any URL that serves the shape ' +
+        'below. No file extension selects them, so a track whose `data:` is a file path must ' +
+        'name the adapter explicitly (`adapter: linegraph`). Unlike the provider-supplied ' +
+        'adapters above, these shapes *are* a contract you must produce: a malformed record ' +
+        'fails with an error naming the row index and field.'
+    );
+    lines.push('');
+    lines.push(domainTable(byodKind));
+    lines.push('');
+  }
 
   lines.push('## Related');
   lines.push('');

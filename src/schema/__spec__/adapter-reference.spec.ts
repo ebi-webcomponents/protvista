@@ -21,7 +21,7 @@ import {
   ADAPTER_REFERENCE,
   FEATURE_RECORD_FIELDS,
   type GenericAdapterDoc,
-  type DomainAdapterDoc,
+  type KindAdapterDoc,
 } from '../adapters/adapter-reference.js';
 import { BUILTIN_ADAPTERS } from '../adapters/index.js';
 import { REQUIRED_COLUMNS } from '../adapters/dsv.js';
@@ -32,8 +32,12 @@ import { createRegistry } from '../registry.js';
 const generic = ADAPTER_REFERENCE.filter(
   (d): d is GenericAdapterDoc => d.tier === 'generic'
 );
-const domain = ADAPTER_REFERENCE.filter(
-  (d): d is DomainAdapterDoc => d.tier === 'domain'
+// Both kind-addressed tiers. `byod-kind` entries carry the same kind /
+// adapter / component columns as `domain` ones — they differ only in who
+// authors the payload — so the registry invariants below must cover both,
+// or moving an entry between tiers would silently drop its linkage check.
+const kindEntries = ADAPTER_REFERENCE.filter(
+  (d): d is KindAdapterDoc => d.tier === 'domain' || d.tier === 'byod-kind'
 );
 
 describe('adapter reference — coverage', () => {
@@ -49,16 +53,16 @@ describe('adapter reference — coverage', () => {
   });
 });
 
-describe('adapter reference — domain kind linkage', () => {
+describe('adapter reference — kind linkage', () => {
   const registry = createRegistry();
 
   it('covers every built-in semantic kind exactly once', () => {
-    const documentedKinds = domain.map((d) => d.kind).sort();
+    const documentedKinds = kindEntries.map((d) => d.kind).sort();
     expect(documentedKinds).toEqual(registry.listSemanticKinds());
   });
 
-  it('each domain entry matches the registry adapter + component for its kind', () => {
-    for (const d of domain) {
+  it('each kind entry matches the registry adapter + component for its kind', () => {
+    for (const d of kindEntries) {
       const def = registry.getSemanticKind(d.kind);
       expect(def, `kind '${d.kind}' is not a built-in`).toBeDefined();
       expect(def && def.adapter).toBe(d.name);

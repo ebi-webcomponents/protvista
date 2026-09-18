@@ -4,7 +4,7 @@
  * ProtVista's JSON Schema (`schema.json`) validates viewer *configuration*
  * but deliberately omits *payload* schemas — the shapes adapters consume.
  * This table fills that gap for documentation: one entry per built-in
- * adapter, split into two tiers.
+ * adapter, split into three tiers.
  *
  *   - `generic` — the bring-your-own-data file adapters (`features-csv`,
  *     `features-tsv`, `features-json`, `bed`). These are the shapes an
@@ -13,6 +13,11 @@
  *     `alphafold-*`, `alphamissense-*`). These consume responses a data
  *     *provider* (an EBI API) supplies, not shapes the user writes, so
  *     each carries only a short informational summary.
+ *   - `byod-kind` — adapters that back a semantic `kind` (so they look like
+ *     `domain` entries) but consume a shape the *author* supplies rather
+ *     than a provider response (`linegraph`). No file extension selects
+ *     them, so they cannot be `generic`; and calling them provider-supplied
+ *     would be false, so they cannot be `domain`.
  *
  * This is NOT a normative schema. The normative contract for the generic
  * format lives in `specs/generic-format-adapters.md`; the Intent vs
@@ -79,7 +84,34 @@ export interface DomainAdapterDoc {
   fetchesSecondaryUrl: boolean;
 }
 
-export type AdapterDoc = GenericAdapterDoc | DomainAdapterDoc;
+/**
+ * A bring-your-own-data adapter reached through a semantic `kind` rather than
+ * a file extension. Same columns as {@link DomainAdapterDoc} — the difference
+ * is provenance: the author writes this payload, so the reference must not
+ * file it under "provider-supplied".
+ */
+export interface ByodKindAdapterDoc {
+  name: KnownAdapterName;
+  tier: 'byod-kind';
+  /** The built-in semantic kind that resolves to this adapter. */
+  kind: KnownSemanticKind;
+  /** The component that kind renders with. */
+  component: KnownComponentName;
+  /** One-line description of the shape the author supplies. */
+  inputSummary: string;
+  /** Number of source bodies the adapter receives (see the track's `source:`). */
+  inputs: 1 | 2;
+  /** Whether the adapter fetches a further URL discovered in its input. */
+  fetchesSecondaryUrl: boolean;
+}
+
+export type AdapterDoc =
+  | GenericAdapterDoc
+  | DomainAdapterDoc
+  | ByodKindAdapterDoc;
+
+/** Every tier whose entries are addressed by a semantic `kind`. */
+export type KindAdapterDoc = DomainAdapterDoc | ByodKindAdapterDoc;
 
 /**
  * The canonical output shape shared by the generic feature adapters —
@@ -338,7 +370,7 @@ export const ADAPTER_REFERENCE: readonly AdapterDoc[] = [
   },
   {
     name: 'linegraph',
-    tier: 'domain',
+    tier: 'byod-kind',
     kind: 'linegraph',
     component: 'nightingale-linegraph-track',
     inputSummary:

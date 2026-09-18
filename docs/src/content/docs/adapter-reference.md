@@ -92,6 +92,13 @@ These adapters back the built-in semantic `kind`s. Their input is a response fro
 | `confidence-score` | `alphafold-prediction-json` | `nightingale-colored-sequence` | 2 (+ fetches a further URL) | AlphaFold prediction list (matched to the protein sequence) plus the UniProt entry. The adapter then fetches the per-residue confidence JSON and returns pLDDT categories. |
 | `pathogenicity-score` | `alphamissense-average-csv` | `nightingale-colored-sequence` | 2 (+ fetches a further URL) | AlphaFold prediction list (with an AlphaMissense annotations URL) plus the UniProt entry. The adapter fetches the annotations CSV and returns per-position average pathogenicity codes. |
 | `pathogenicity-heatmap` | `alphamissense-full-csv` | `nightingale-sequence-heatmap` | 2 (+ fetches a further URL) | Same AlphaMissense annotations as `alphamissense-average-csv`, but returns the full per-mutation `{ xValue, yValue, score }` matrix for the heatmap. |
+
+## Bring-your-own-data track kinds
+
+These adapters also back a semantic `kind`, but the payload is one **you** author rather than a provider response — point the track at any URL that serves the shape below. No file extension selects them, so a track whose `data:` is a file path must name the adapter explicitly (`adapter: linegraph`). Unlike the provider-supplied adapters above, these shapes *are* a contract you must produce: a malformed record fails with an error naming the row index and field.
+
+| Semantic kind | Adapter | Renders with | Inputs | Input shape |
+|---|---|---|---|---|
 | `linegraph` | `linegraph` | `nightingale-linegraph-track` | 1 | Generic bring-your-own-data: a JSON array of `{ position, value }` records (both numbers), validated and emitted as one line-graph series. Not UniProt-specific — for the UniProt variation API keep `variant-counts`. |
 
 ## Related
