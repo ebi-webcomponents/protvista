@@ -189,17 +189,16 @@ describe('config theme → chrome tokens on the host', () => {
       rows: [inlineTrack],
     });
     await el._init();
+    // A token a theme *can* write, but this one did not: clearing every
+    // theme token on re-apply would take it with the rest.
     el.style.setProperty('--protvista-color-accent', 'rgb(1, 2, 3)');
-    el.style.setProperty('--protvista-track-border-color', 'rgb(4, 5, 6)');
 
     el.applyTheme({ labelColor: '#1a237e' });
 
     // The label surface was re-derived...
     expect(token(el, '--protvista-group-label-bg')).toBe('rgb(26, 35, 126)');
-    // ...and the hand-set tokens survived, including one inside
-    // THEME_TOKENS that this theme never wrote.
+    // ...and the hand-set token survived.
     expect(token(el, '--protvista-color-accent')).toBe('rgb(1, 2, 3)');
-    expect(token(el, '--protvista-track-border-color')).toBe('rgb(4, 5, 6)');
   });
 
   it('keeps the alpha of a translucent accentColor', async () => {

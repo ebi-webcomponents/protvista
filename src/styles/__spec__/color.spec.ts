@@ -5,7 +5,7 @@
  * quietly wrong — rejecting an unparseable value rather than passing it
  * through, and compositing a translucent colour before measuring it.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   resolveColor,
   resolveColorWithAlpha,
@@ -23,6 +23,10 @@ import {
 
 const WHITE = { r: 255, g: 255, b: 255 };
 const BLACK = { r: 0, g: 0, b: 0 };
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('resolveColor', () => {
   it('accepts the CSS colour syntaxes an author is likely to write', () => {
@@ -84,6 +88,8 @@ describe('resolveColor', () => {
     // `applyTheme` resolves up to four colours on every config apply —
     // usually the same ones. Spying on `createElement` is what pins the
     // memoisation: the second resolve must not build a probe at all.
+    // Restored by the file's `afterEach`, so a failed assertion cannot
+    // leave it spying on later cases.
     const createElement = vi.spyOn(document, 'createElement');
     // A value no other case in this file resolves, so the assertion holds
     // whatever ran before it.
@@ -94,7 +100,6 @@ describe('resolveColor', () => {
     expect(createElement).toHaveBeenCalledTimes(1);
     expect(resolveColor(value)).toEqual(first);
     expect(createElement).toHaveBeenCalledTimes(1);
-    createElement.mockRestore();
   });
 
   it('hands back a copy, so one caller cannot poison the cache', () => {
@@ -347,24 +352,29 @@ describe('defaultTextColor', () => {
         },
       ],
     }));
-    const realDocument = globalThis.document;
-    let fresh: typeof import('../color.js');
-    Reflect.deleteProperty(globalThis, 'document');
+    // Put back exactly as found, and in a `finally`, so a failed
+    // assertion cannot leave later cases without a document or with the
+    // stubbed registry.
+    const documentDescriptor = Object.getOwnPropertyDescriptor(
+      globalThis,
+      'document'
+    )!;
+    const restoreDocument = () =>
+      Object.defineProperty(globalThis, 'document', documentDescriptor);
     try {
-      fresh = await import('../color.js');
+      Reflect.deleteProperty(globalThis, 'document');
+      const fresh = await import('../color.js');
       // Nothing to resolve against: the hardcoded fallback.
       expect(fresh.defaultTextColor()).toEqual({ r: 0x22, g: 0x22, b: 0x22 });
+
+      restoreDocument();
+      // With a DOM the registry is consulted again rather than the
+      // earlier fallback being handed back.
+      expect(fresh.defaultTextColor()).toEqual({ r: 255, g: 0, b: 0 });
     } finally {
-      Object.defineProperty(globalThis, 'document', {
-        value: realDocument,
-        configurable: true,
-        writable: true,
-      });
+      restoreDocument();
+      vi.doUnmock('../tokens.js');
+      vi.resetModules();
     }
-    // With a DOM the registry is consulted again rather than the earlier
-    // fallback being handed back.
-    expect(fresh.defaultTextColor()).toEqual({ r: 255, g: 0, b: 0 });
-    vi.doUnmock('../tokens.js');
-    vi.resetModules();
   });
 });
