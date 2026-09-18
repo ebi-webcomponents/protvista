@@ -8,10 +8,6 @@
 
 import type { AdapterFunction } from '../types.js';
 
-function isFiniteNumber(x: unknown): x is number {
-  return typeof x === 'number' && Number.isFinite(x);
-}
-
 function describe(x: unknown): string {
   if (x === null) return 'null';
   if (Array.isArray(x)) return 'array';
@@ -58,7 +54,13 @@ export const linegraph: AdapterFunction = (raw) => {
       keys.length === 0 ? '{}' : `{ ${keys.map((k) => `${k}: ${repr(rec[k])}`).join(', ')} }`;
 
     for (const f of ['position', 'value'] as const) {
-      const v = rec[f];
+      // Own properties only: the row rendering above is built from
+      // `Object.keys`, so reading through the prototype chain here would let
+      // an inherited field pass validation while the error message for a
+      // sibling failure printed `{}`.
+      const v = Object.prototype.hasOwnProperty.call(rec, f)
+        ? rec[f]
+        : undefined;
       if (v === undefined) {
         throw new Error(
           `[linegraph] row ${i}: expected 'position' and 'value' (both numbers); got ${rowRendering} — '${f}' is missing.`
@@ -69,7 +71,7 @@ export const linegraph: AdapterFunction = (raw) => {
           `[linegraph] row ${i}: expected 'position' and 'value' (both numbers); got ${rowRendering} — '${f}' is ${kindOf(v)}, not a number.`
         );
       }
-      if (!isFiniteNumber(v)) {
+      if (!Number.isFinite(v)) {
         throw new Error(
           `[linegraph] row ${i}: expected 'position' and 'value' (both numbers); got ${rowRendering} — '${f}' is not a finite number.`
         );

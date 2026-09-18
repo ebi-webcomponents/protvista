@@ -112,6 +112,40 @@ describe('linegraph adapter', () => {
     );
   });
 
+  it('throws for a non-finite value other than NaN', () => {
+    expect(() => linegraph([{ position: 1, value: Infinity }])).toThrow(
+      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got { position: 1, value: Infinity } — 'value' is not a finite number."
+    );
+  });
+
+  it('ignores inherited fields — validation reads own properties only', () => {
+    // Otherwise a prototype-borne `position`/`value` would pass validation
+    // while the error rendering (built from `Object.keys`) printed `{}`.
+    expect(() =>
+      linegraph([Object.create({ position: 1, value: 2 }) as never])
+    ).toThrow(
+      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got {} — 'position' is missing."
+    );
+  });
+
+  it('preserves input order for out-of-order positions (it does not sort)', () => {
+    expect(
+      linegraph([
+        { position: 2, value: 1 },
+        { position: 1, value: 5 },
+      ])
+    ).toEqual([
+      {
+        name: 'value',
+        range: [0, 5],
+        values: [
+          { position: 2, value: 1 },
+          { position: 1, value: 5 },
+        ],
+      },
+    ]);
+  });
+
   it('throws when a row is an empty object', () => {
     expect(() => linegraph([{} as any])).toThrow(
       "[linegraph] row 0: expected 'position' and 'value' (both numbers); got {} — 'position' is missing."
