@@ -50,7 +50,7 @@ describe('JSON Schema — hosting invariants', () => {
     );
     expect(
       publicCopy,
-      'public/schema/v1/config.schema.json drifted from src/schema/schema.json — run `yarn schema:sync` to regenerate it'
+      'public/schema/v1/config.schema.json drifted from src/schema/schema.json — run `pnpm schema:sync` to regenerate it'
     ).toBe(source);
   });
 

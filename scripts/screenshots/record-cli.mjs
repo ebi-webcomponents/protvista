@@ -1,5 +1,5 @@
 /**
- * Records the fixture set. Usually reached via `yarn screenshots
+ * Records the fixture set. Usually reached via `pnpm screenshots
  * --refresh-fixtures`; run directly to pin extra URLs a capture reported.
  *
  *   node scripts/screenshots/record-cli.mjs

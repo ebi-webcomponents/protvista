@@ -6,11 +6,11 @@ This document maps the GitHub Pages site and the set of interconnected "Document
 
 The site is built by **Astro + Starlight** (the docs, including the playground) plus a small vite build (the `bench.html` harness), all writing into one `site/` directory:
 
-- **Docs** (`yarn docs:build` → `astro build --root docs`, config `docs/astro.config.mjs`) render the Starlight user guide into `site/` at the **root**, base `/protvista/`. The home — `docs/src/content/docs/index.md`, a Starlight splash — is the site's landing page; there is no separate hub. Guide pages live under `docs/src/content/docs/` (each needs `title:` frontmatter). Internal engineering docs (this file, `architecture.md`, …) stay at `docs/` root, outside `src/`, so Astro ignores them.
+- **Docs** (`pnpm docs:build` → `astro build --root docs`, config `docs/astro.config.mjs`) render the Starlight user guide into `site/` at the **root**, base `/protvista/`. The home — `docs/src/content/docs/index.md`, a Starlight splash — is the site's landing page; there is no separate hub. Guide pages live under `docs/src/content/docs/` (each needs `title:` frontmatter). Internal engineering docs (this file, `architecture.md`, …) stay at `docs/` root, outside `src/`, so Astro ignores them.
 - **The playground** is a native Astro page (`docs/src/pages/playground.astro`) at `/protvista/playground`, built by `astro build`. Its markup lives in the `.astro`; the heavy client (the `<protvista-uniprot>` component + the `src/playground/` controller) loads client-side only. Astro's `vite.server.fs.allow` lets it import the library source from the repo root. The csv/json presets fetch `/protvista/sample-data/hotspots.*`, served from `docs/public/sample-data/` (copies of `examples/csv|json/hotspots.*`).
-- **`bench.html`** is a separate, minimal vite build (`vite.bench.config.mjs` → `yarn bench:build`), merged into `site/` with `emptyOutDir: false`, so its Lighthouse baselines stay isolated from the richer playground. It also copies the repo-root `public/` (the published JSON Schema) into `site/`.
+- **`bench.html`** is a separate, minimal vite build (`vite.bench.config.mjs` → `pnpm bench:build`), merged into `site/` with `emptyOutDir: false`, so its Lighthouse baselines stay isolated from the richer playground. It also copies the repo-root `public/` (the published JSON Schema) into `site/`.
 
-`yarn site:build` runs `docs:build` (Astro — owns `index.html` + the native playground, and empties `site/`) then `bench:build` (vite — adds `bench.html`, merged with `emptyOutDir: false`). `yarn site:preview` (`astro preview`) serves the merged `site/` at `/protvista/`. `yarn start` (= `yarn docs:dev`) is the Astro dev server, with HMR for the docs **and** the playground page. `Test and Deploy` uploads `site/` to GitHub Pages on a push to `next` only; PRs build the library but do not publish.
+`pnpm site:build` runs `docs:build` (Astro — owns `index.html` + the native playground, and empties `site/`) then `bench:build` (vite — adds `bench.html`, merged with `emptyOutDir: false`). `pnpm site:preview` (`astro preview`) serves the merged `site/` at `/protvista/`. `pnpm start` (= `pnpm docs:dev`) is the Astro dev server, with HMR for the docs **and** the playground page. `Test and Deploy` uploads `site/` to GitHub Pages on a push to `next` only; PRs build the library but do not publish.
 
 Adding a **doc page** = one markdown file under `docs/src/content/docs/` (with `title:` frontmatter) + a sidebar entry in `docs/astro.config.mjs`. The playground is a native Astro page under `docs/src/pages/`.
 
@@ -43,7 +43,7 @@ All playground code lives under `src/playground/`. The modules are deliberately 
 
 ### CodeMirror prerequisite
 
-The editor depends on CodeMirror 6, listed in `devDependencies` (`codemirror`, `@codemirror/state`, `@codemirror/lang-yaml`, `@codemirror/lang-json`, `@codemirror/lint`). They are build-time only — the shipped `<protvista-uniprot>` library bundle (`vite.config.mjs`) never imports them, so bundle-size and Lighthouse budgets are unaffected. Run `yarn install` before building the site.
+The editor depends on CodeMirror 6, listed in `devDependencies` (`codemirror`, `@codemirror/state`, `@codemirror/lang-yaml`, `@codemirror/lang-json`, `@codemirror/lint`). They are build-time only — the shipped `<protvista-uniprot>` library bundle (`vite.config.mjs`) never imports them, so bundle-size and Lighthouse budgets are unaffected. Run `pnpm install` before building the site.
 
 ### Presets and the `examples/` directory
 
@@ -66,7 +66,7 @@ Both remaining pieces have shipped; the **user guide (#214)** and the **Starligh
 
 ### Starter Kit (#211) (done)
 
-Authored at **`starter-kit/` in this repo** and published to the standalone template repository `ebi-webcomponents/protvista-starter-kit` by `.github/workflows/publish-starter-kit.yml` on release. Living here rather than being maintained separately is what makes `src/__spec__/starter-kit.spec.ts` possible: the kit's `config.yaml` and recipes get the same load → data-pipeline → smoke-render treatment `examples.spec.ts` gives `examples/`, so breaking the kit fails `yarn test:unit` in the PR that breaks it. There is no cross-repo sync to go stale.
+Authored at **`starter-kit/` in this repo** and published to the standalone template repository `ebi-webcomponents/protvista-starter-kit` by `.github/workflows/publish-starter-kit.yml` on release. Living here rather than being maintained separately is what makes `src/__spec__/starter-kit.spec.ts` possible: the kit's `config.yaml` and recipes get the same load → data-pipeline → smoke-render treatment `examples.spec.ts` gives `examples/`, so breaking the kit fails `pnpm test:unit` in the PR that breaks it. There is no cross-repo sync to go stale.
 
 Resolved shape:
 

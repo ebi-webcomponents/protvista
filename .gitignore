@@ -5,6 +5,7 @@
 build/
 dist/
 node_modules/
+.pnpm-store/
 *.log
 .yalc/
 yalc.lock
@@ -15,14 +16,14 @@ docs/dist/
 bench/results/
 .lighthouseci/
 
-# npm/yarn pack output (produced by `npm pack`, `yarn pack`, publint, attw)
+# npm/pnpm pack output (produced by `npm pack`, `pnpm pack`, publint, attw)
 *.tgz
 
 # Vitest browser-mode artifacts (failure screenshots / attachments)
 .vitest-attachments/
 **/__screenshots__/
 
-# Evidence written by `yarn screenshots:check` when an image has drifted
+# Evidence written by `pnpm screenshots:check` when an image has drifted
 screenshot-drift/
 
 # Python bytecode caches (scripts/)

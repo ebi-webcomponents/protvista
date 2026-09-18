@@ -8,16 +8,16 @@
 # non-zero if anything failed, so it is safe to wire into a pre-publish hook.
 #
 # Usage (from anywhere in the repo):
-#   yarn validate                 # full run (installs, builds, checks)
-#   SKIP_INSTALL=1 yarn validate  # reuse existing node_modules
-#   RUN_BROWSER=1  yarn validate  # also run the Playwright browser suite
+#   pnpm validate                 # full run (installs, builds, checks)
+#   SKIP_INSTALL=1 pnpm validate  # reuse existing node_modules
+#   RUN_BROWSER=1  pnpm validate  # also run the Playwright browser suite
 #
 # Or invoke directly: ./scripts/validate-package.sh
 
 set -uo pipefail
 
 # Resolve to the repo root so the relative paths below work no matter where
-# the script is invoked from (yarn, a subdirectory, an absolute path).
+# the script is invoked from (pnpm, a subdirectory, an absolute path).
 cd "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)" || exit 2
 
 # ---- pretty output + result tracking -------------------------------------
@@ -39,15 +39,15 @@ skip() { RESULTS+=("${DIM}SKIP  $1${OFF}"); printf '%s(skipped: %s)%s\n' "$DIM" 
 # ---- 0. environment sanity ----------------------------------------------
 banner "Environment"
 command -v node >/dev/null || { echo "node not found"; exit 2; }
-command -v yarn >/dev/null || { echo "yarn not found"; exit 2; }
-node -v; yarn -v
+command -v pnpm >/dev/null || { echo "pnpm not found"; exit 2; }
+node -v; pnpm -v
 [ -f package.json ] || { echo "no package.json at the resolved root"; exit 2; }
 
 # ---- 1. install (frozen lockfile — reproducibility gate) -----------------
 if [ "${SKIP_INSTALL:-0}" = 1 ]; then
   skip "Install (SKIP_INSTALL=1)"
 else
-  run "Install (frozen lockfile)" yarn install --frozen-lockfile
+  run "Install (frozen lockfile)" pnpm install --frozen-lockfile
 fi
 
 # ---- 2. static checks ----------------------------------------------------
@@ -61,12 +61,12 @@ fi
 # local run match CI and leaves the build below as the single source of `dist/`.
 rm -rf dist
 
-run "Lint"               yarn test:lint
-run "Type-check (tsc)"   yarn test:types      # compiles the .js-extension churn
-run "Unit tests"         yarn test:unit       # incl. package-contract source + purity checks
+run "Lint"               pnpm test:lint
+run "Type-check (tsc)"   pnpm test:types      # compiles the .js-extension churn
+run "Unit tests"         pnpm test:unit       # incl. package-contract source + purity checks
 
 # ---- 3. build (prerequisite for every dist/-based check below) -----------
-run "Build (vite)"       yarn build
+run "Build (vite)"       pnpm build
 
 BUILT=1
 if [ ! -f dist/protvista-uniprot.mjs ]; then
@@ -75,13 +75,15 @@ if [ ! -f dist/protvista-uniprot.mjs ]; then
 fi
 
 # ---- 4. consumer-facing package checks (publint + attw) ------------------
-# Mirrors `yarn test:pack`. Both pack the real tarball a consumer resolves.
-# `--pack npm` is required: publint's default pack agent mishandles Yarn
-# Classic's `yarn pack` (it writes to the project root, not the temp dir
-# publint expects), so auto-detection fails on a yarn.lock repo.
+# Mirrors `pnpm test:pack`. Both pack the real tarball a consumer resolves.
+# `--pack npm` is passed explicitly rather than left to publint's
+# lockfile-based auto-detection: npm is present on every runner and in every
+# contributor's Node install, so the packing step behaves identically no
+# matter which package manager invoked this script. Keep it in sync with the
+# same flag in package.json's `test:pack`.
 if [ "$BUILT" = 1 ]; then
-  run "publint --strict"        npx --no-install publint --strict --pack npm
-  run "arethetypeswrong (attw)" npx --no-install attw --pack . --ignore-rules cjs-resolves-to-esm
+  run "publint --strict"        pnpm exec publint --strict --pack npm
+  run "arethetypeswrong (attw)" pnpm exec attw --pack . --ignore-rules cjs-resolves-to-esm
 else
   skip "publint --strict"; skip "arethetypeswrong (attw)"
 fi
@@ -91,14 +93,16 @@ fi
 # spec), so the unit run above did not exercise them — run them here.
 if [ "$BUILT" = 1 ]; then
   run "Contract spec vs dist/" \
-    yarn vitest run --project unit src/__spec__/package-contract.spec.ts
+    pnpm exec vitest run --project unit src/__spec__/package-contract.spec.ts
 else
   skip "Contract spec vs dist/"
 fi
 
 # ---- 6. tarball contents -------------------------------------------------
 # What `npm publish` would actually ship. Reads the current dist/ without a
-# rebuild (--ignore-scripts). Asserts files:["dist"] holds in practice: no
+# rebuild (--ignore-scripts). Deliberately `npm pack`, not `pnpm pack`: only
+# npm's has `--json`, and the parser below is written against its shape.
+# npm ships with Node, so this costs nothing. Asserts files:["dist"] holds in practice: no
 # src, one declaration tree, no test declarations, real entry + types.
 check_tarball() {
   npm pack --dry-run --json --ignore-scripts 2>/dev/null | node -e '
@@ -173,7 +177,7 @@ check_jsyaml_major() {
   '
 }
 run "No dead-dep imports (lodash/core-js)" check_no_dead_deps
-if [ "${SKIP_INSTALL:-0}" = 1 ] || [ -d node_modules/js-yaml ]; then
+if [ "${SKIP_INSTALL:-0}" = 1 ] || node -e "require.resolve('js-yaml/package.json')" 2>/dev/null; then
   run "js-yaml major is 4.x" check_jsyaml_major
 else
   skip "js-yaml major is 4.x"
@@ -181,7 +185,7 @@ fi
 
 # ---- 9. browser suite (opt-in — heavy, needs Playwright) -----------------
 if [ "${RUN_BROWSER:-0}" = 1 ]; then
-  run "Browser tests" yarn test:browser
+  run "Browser tests" pnpm test:browser
 else
   skip "Browser tests (set RUN_BROWSER=1 to include)"
 fi

@@ -17,28 +17,33 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      # Before setup-node: its `cache: "pnpm"` resolution shells out to pnpm to
+      # locate the store, so pnpm must already be on PATH. The version comes
+      # from the `packageManager` field in package.json — no `version` input.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24"
-          cache: "yarn"
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: yarn test:lint
+        run: pnpm test:lint
 
       - name: Type check
-        run: yarn test:types
+        run: pnpm test:types
 
       - name: Unit tests
-        run: yarn test:unit
+        run: pnpm test:unit
 
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium chromium-headless-shell
+        run: pnpm exec playwright install --with-deps chromium chromium-headless-shell
 
       - name: Coverage (both unit and browser tests, enforces thresholds)
-        run: yarn test:coverage
+        run: pnpm test:coverage
 
   build:
     name: Build
@@ -47,35 +52,37 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24"
-          cache: "yarn"
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       # `moduleResolution: "bundler"` + `skipLibCheck` means nothing in the
       # test job resolves this package the way a consumer will. publint and
       # attw do, against the real tarball — they are the only guard on the
       # exports map, `type`, and the emitted declarations. `test:pack` builds
-      # first (`yarn build && …`), so it owns the build for the steps below;
+      # first (`pnpm build && …`), so it owns the build for the steps below;
       # a separate Build step would only rebuild the same output.
       - name: Check published package
-        run: yarn test:pack
+        run: pnpm test:pack
 
       # The dist/ assertions in package-contract.spec.ts skip unless a build
       # exists; the test job never builds, so run them here against the dist/
       # that the step above produced.
       - name: Verify packaging contract against dist/
-        run: yarn vitest run --project unit src/__spec__/package-contract.spec.ts
+        run: pnpm exec vitest run --project unit src/__spec__/package-contract.spec.ts
 
       # Builds the Astro + Starlight docs (incl. the playground page) + the bench
       # page into site/. Requires astro, @astrojs/starlight, astro-mermaid,
       # mermaid and sharp in devDependencies.
       - name: Build site
         if: github.ref == 'refs/heads/next' && github.event_name == 'push'
-        run: yarn site:build
+        run: pnpm site:build
 
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/next' && github.event_name == 'push'

@@ -5,7 +5,7 @@ ProtVista ships from two branches, and their release processes are **not** the s
 - **`main`** — the stable 4.x line. Publishes to the npm **`latest`** dist-tag (the default `npm install protvista-uniprot`), so every existing user gets it. Higher stakes; test thoroughly.
 - **`next`** — the v5 line. Publishes to the **`beta`** dist-tag (opt-in via `@beta`); `latest` stays on 4.x.
 
-Publish from a machine with npm auth (`npm login`) — the sandbox/CI GitHub credentials do **not** cover npm. Always use **`npm publish`**, never `yarn publish` (Yarn Classic prompts for a version and mispacks).
+Publish from a machine with npm auth (`npm login`) — the sandbox/CI GitHub credentials do **not** cover npm. Always use **`npm publish`**, never `pnpm publish`: pnpm applies its own git checks and republish rules on top of npm's, and `test:pack` already packs with npm (`--pack npm`), so publishing with npm keeps the tarball that was validated identical to the one that ships.
 
 ## Differences at a glance
 
@@ -13,8 +13,8 @@ Publish from a machine with npm auth (`npm login`) — the sandbox/CI GitHub cre
 | --- | --- | --- |
 | npm dist-tag | `latest` | `beta` (`publishConfig.tag`) |
 | Version | `4.9.x` semver | `5.0.0-beta.N` |
-| Build on publish | **manual** — `yarn build` first (no `prepack`) | automatic (`prepack: yarn build`) |
-| Pre-publish gate | **none** — run `yarn test` yourself | `prepublishOnly: yarn test:pack` |
+| Build on publish | **manual** — `pnpm build` first (no `prepack`) | automatic (`prepack: pnpm build`) |
+| Pre-publish gate | **none** — run `pnpm test` yourself | `prepublishOnly: pnpm test:pack` |
 | Files to bump | `package.json` only | `package.json` **+** the version pins (see below) |
 | GitHub release | optional | cut `vX.Y.Z-beta.N` — fires `publish-starter-kit.yml` |
 | Stakes | high — the default install | low — opt-in testers |
@@ -24,10 +24,10 @@ Publish from a machine with npm auth (`npm login`) — the sandbox/CI GitHub cre
 ```bash
 git checkout main && git pull
 npm login                                   # if not already authed
-rm -rf node_modules dist && yarn install --frozen-lockfile
-yarn test                                   # no publish gate on main — run it yourself
+rm -rf node_modules dist && pnpm install --frozen-lockfile
+pnpm test                                   # no publish gate on main — run it yourself
 npm version patch                           # e.g. 4.9.3 -> 4.9.4; commits + tags v4.9.4
-yarn build                                  # REQUIRED — main has no prepack
+pnpm build                                  # REQUIRED — main has no prepack
 npm publish --dry-run                       # inspect the tarball (safe on main — no re-pack lifecycle)
 npm publish                                 # -> latest (main has no publishConfig.tag)
 npm dist-tag ls protvista-uniprot           # expect latest: 4.9.4
@@ -45,15 +45,15 @@ git checkout next && git pull
 #      starter-kit/recipes/extend-uniprot.yaml,
 #      docs/src/content/docs/{tutorial,embed,configure}.md
 #    and the banner version strings in README.md + starter-kit notices.
-yarn test && yarn validate                  # the pin specs fail loudly on any missed reference
+pnpm test && pnpm validate                  # the pin specs fail loudly on any missed reference
 npm publish                                 # prepack builds; prepublishOnly runs test:pack; -> beta
 npm dist-tag ls protvista-uniprot           # beta: 5.0.0-beta.N, latest: 4.9.x
 gh release create vX.Y.Z-beta.N --prerelease --notes-file RELEASE_NOTES.md
-yarn cdn:clear                              # if jsDelivr cached a 404 for the new pin
+pnpm cdn:clear                              # if jsDelivr cached a 404 for the new pin
 ```
 
 Notes for `next`:
 
-- **Do not use `npm publish --dry-run` here.** It exports `npm_config_dry_run`, which leaks into the `npm pack` that `attw` runs inside `prepublishOnly` and makes it fail on a missing tarball. To rehearse, run `yarn test:pack` (no dry-run wrapper) instead.
-- The jsDelivr CDN pins are enforced by `starter-kit.spec.ts` and `schema-publishing.spec.ts`; a stale pin fails `yarn test`. Leave alone: `src/styles/css-prefix.ts` (keyed to the `5.0.0` base line, not the `-beta.N` suffix) and the bare `@4.9.x` mentions in docs prose (they name the published stable release).
+- **Do not use `npm publish --dry-run` here.** It exports `npm_config_dry_run`, which leaks into the `npm pack` that `attw` runs inside `prepublishOnly` and makes it fail on a missing tarball. To rehearse, run `pnpm test:pack` (no dry-run wrapper) instead.
+- The jsDelivr CDN pins are enforced by `starter-kit.spec.ts` and `schema-publishing.spec.ts`; a stale pin fails `pnpm test`. Leave alone: `src/styles/css-prefix.ts` (keyed to the `5.0.0` base line, not the `-beta.N` suffix) and the bare `@4.9.x` mentions in docs prose (they name the published stable release).
 - Cutting the GitHub release fires `publish-starter-kit.yml`, which mirrors `starter-kit/` to the template repo and strips its "not published yet" banner once the version is live on npm.

@@ -12,7 +12,7 @@
     // "jsx": "preserve",                           /* Specify JSX code generation: 'preserve', 'react-native', 'react', 'react-jsx' or 'react-jsxdev'. */
     // "declarationMap": true,                      /* Generates a sourcemap for each corresponding '.d.ts' file. */
     // "outFile": "./",                             /* Concatenate and emit output to single file. */
-    "noEmit": true /* `yarn test:types` is a check, not a build step. Declarations are emitted solely by `vite-plugin-dts` during `yarn build`; the plugin overrides `noEmit`/`declaration`/`emitDeclarationOnly` with its own values internally, so this does not disable it. tsc used to emit them too — and because the plugin's output directory was misconfigured (`outDir` is not an option it reads), the two wrote to different trees and `dist/` shipped two full copies. */,
+    "noEmit": true /* `pnpm test:types` is a check, not a build step. Declarations are emitted solely by `vite-plugin-dts` during `pnpm build`; the plugin overrides `noEmit`/`declaration`/`emitDeclarationOnly` with its own values internally, so this does not disable it. tsc used to emit them too — and because the plugin's output directory was misconfigured (`outDir` is not an option it reads), the two wrote to different trees and `dist/` shipped two full copies. */,
     "rootDir": "./src" /* Specify the root directory of input files. */,
     // "composite": true,                           /* Enable project compilation */
     // "tsBuildInfoFile": "./",                     /* Specify file to store incremental compilation information */

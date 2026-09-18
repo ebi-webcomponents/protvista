@@ -1,7 +1,7 @@
 # Performance benchmarks
 
-1. **Library bundle size** — raw + gzipped bytes from `yarn build`'s `dist/` output. Catches accidental dependency bloat in shippable code.
-2. **Lighthouse CI** — runs the site build (`yarn site:build`, served by `vite preview`) against a fixed list of UniProt accessions. Captures LCP, TBT, CLS, Speed Index, and the overall Performance score.
+1. **Library bundle size** — raw + gzipped bytes from `pnpm build`'s `dist/` output. Catches accidental dependency bloat in shippable code.
+2. **Lighthouse CI** — runs the site build (`pnpm site:build`, served by `vite preview`) against a fixed list of UniProt accessions. Captures LCP, TBT, CLS, Speed Index, and the overall Performance score.
 3. **Custom milestones** — `<protvista-uniprot>` emits three `performance.mark()` calls at lifecycle transitions (`script-start` in `connectedCallback`, `data-loaded` after fetch resolves, `first-render` after Lit commits the manager to the DOM) plus three `performance.measure()` calls between them. Lighthouse's user-timings audit captures these automatically, so they appear next to the headline metrics in `summary.md`.
 
 `fetch-and-parse` (script-start → data-loaded), `render` (data-loaded → first-render), and `total` (script-start → first-render) are the durations surfaced in the report.
@@ -15,7 +15,7 @@ The marks fire unconditionally (every demo run, every consumer page) — they're
 ## Run
 
 ```bash
-yarn bench
+pnpm bench
 ```
 
 This builds, measures, and writes:
@@ -29,9 +29,9 @@ This builds, measures, and writes:
 You can also run each layer on its own:
 
 ```bash
-yarn bench:bundle      # library only
-yarn bench:lighthouse  # demo only
-yarn bench:summary     # re-render summary.md from existing results
+pnpm bench:bundle      # library only
+pnpm bench:lighthouse  # demo only
+pnpm bench:summary     # re-render summary.md from existing results
 ```
 
 ## Capturing a baseline
@@ -45,7 +45,7 @@ Lighthouse numbers are sensitive to machine state. To make a snapshot worth comm
 To pin a snapshot to a known commit:
 
 ```bash
-yarn bench
+pnpm bench
 SHA=$(git rev-parse --short HEAD)
 cp bench/results/summary.md bench/baselines/summary-${SHA}.md
 cp bench/results/bundle-size.json bench/baselines/bundle-size-${SHA}.json
@@ -58,8 +58,8 @@ To capture a baseline against an **older** commit (e.g., `main` immediately befo
 ```bash
 git worktree add ../protvista-baseline <commit-sha>
 cd ../protvista-baseline
-yarn install --frozen-lockfile
-yarn bench
+pnpm install --frozen-lockfile
+pnpm bench
 # copy the snapshot back into the main checkout's bench/baselines/
 ```
 
@@ -80,7 +80,7 @@ Scenarios are defined in `bench/lighthouserc.cjs` under `ci.collect.url`. Each q
 | `lighthouserc.cjs` | LHCI config: scenarios, run count, throttling preset  |
 | `bundle-size.mjs`  | Walks `dist/`, writes raw + gzip sizes per file       |
 | `summarize.mjs`    | Reads results, writes `summary.md`                    |
-| `run.mjs`          | One-shot driver (`yarn bench`)                        |
+| `run.mjs`          | One-shot driver (`pnpm bench`)                        |
 | `baselines/`       | Committed snapshots — reference points for comparison |
 | `results/`         | Gitignored — output of the latest run                 |
 

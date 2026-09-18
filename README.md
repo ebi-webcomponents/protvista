@@ -119,13 +119,13 @@ A layout persists per-config in localStorage and in a shareable `?layout=` URL p
 Run:
 
 ```bash
-yarn install
-yarn start
+pnpm install
+pnpm start
 ```
 
-to install dependencies and start the Astro dev server (`yarn start` =
-`yarn docs:dev`) — it serves the docs **and** the native playground page (the
-docs are the site home). Use `yarn site:build && yarn site:preview` to preview
+to install dependencies and start the Astro dev server (`pnpm start` =
+`pnpm docs:dev`) — it serves the docs **and** the native playground page (the
+docs are the site home). Use `pnpm site:build && pnpm site:preview` to preview
 the whole site (docs + playground + bench) exactly as GitHub Pages serves it.
 
 ## Testing
@@ -136,29 +136,29 @@ A small setup file at `src/__spec__/setup.ts` filters out jsdom's benign "Could 
 
 ```bash
 # Run the full pipeline (lint + types + unit)
-yarn test
+pnpm test
 
 # Unit tests only (CI-friendly, non-zero exit on failure)
-yarn test:unit
+pnpm test:unit
 
 # Watch mode
-yarn test:watch
+pnpm test:watch
 
 # Coverage (writes text + html + lcov to ./coverage/)
-yarn test:coverage
+pnpm test:coverage
 ```
 
-Coverage output is for local use only and is not committed. Open `coverage/index.html` after `yarn test:coverage` to inspect.
+Coverage output is for local use only and is not committed. Open `coverage/index.html` after `pnpm test:coverage` to inspect.
 
 ### Continuous integration
 
-Every push and pull request runs three steps via [`.github/workflows/test-and-deploy.yml`](./.github/workflows/test-and-deploy.yml): `yarn test:lint`, `yarn test:types`, and `yarn test:coverage`, under Node 24 on `ubuntu-latest`. The coverage step runs the full unit suite and enforces the coverage floor (see below), so a PR that drops coverage below the floor fails CI. A separate `build` job runs `yarn build` (and, on `next`, `yarn site:build`, which builds the Astro + Starlight docs — including the playground page — plus the bench page into `site/`) and deploys that to GitHub Pages.
+Every push and pull request runs three steps via [`.github/workflows/test-and-deploy.yml`](./.github/workflows/test-and-deploy.yml): `pnpm test:lint`, `pnpm test:types`, and `pnpm test:coverage`, under Node 24 on `ubuntu-latest`. The coverage step runs the full unit suite and enforces the coverage floor (see below), so a PR that drops coverage below the floor fails CI. A separate `build` job runs `pnpm build` (and, on `next`, `pnpm site:build`, which builds the Astro + Starlight docs — including the playground page — plus the bench page into `site/`) and deploys that to GitHub Pages.
 
 ### Coverage
 
 Coverage is gated by a fixed floor (a coverage ratchet) configured under `test.coverage.thresholds` in [`vite.config.mjs`](./vite.config.mjs) and enforced by the CI coverage step. The floor is bumped up manually as coverage improves and is never lowered without justification.
 
-Captured 2026-07-24 via `yarn test:coverage` (v8 instrumentation, 727 tests across 53 spec files):
+Captured 2026-07-24 via `pnpm test:coverage` (v8 instrumentation, 727 tests across 53 spec files):
 
 | Metric     | Coverage % | Floor |
 | ---------- | ---------- | ----- |
@@ -169,7 +169,7 @@ Captured 2026-07-24 via `yarn test:coverage` (v8 instrumentation, 727 tests acro
 
 ## Performance benchmarks
 
-A `bench/` workflow captures repeatable performance baselines for the demo across three layers: library bundle size, Lighthouse CI against a fixed set of UniProt scenarios, and DOM-observed custom milestones (`fetch-and-parse`, `render`, `total`). Run `yarn bench` to produce `bench/results/summary.md`. Reference snapshots live under `bench/baselines/` and are committed; per-run output is gitignored.
+A `bench/` workflow captures repeatable performance baselines for the demo across three layers: library bundle size, Lighthouse CI against a fixed set of UniProt scenarios, and DOM-observed custom milestones (`fetch-and-parse`, `render`, `total`). Run `pnpm bench` to produce `bench/results/summary.md`. Reference snapshots live under `bench/baselines/` and are committed; per-run output is gitignored.
 
 See [`bench/README.md`](./bench/README.md) for scenarios, capture procedure, and methodology notes.
 
@@ -253,9 +253,9 @@ See [Customize the layout](https://ebi-webcomponents.github.io/protvista/customi
 ```bash
 npm login
 rm -rf node_modules dist
-yarn
-yarn build
-yarn publish
+pnpm install
+pnpm build
+npm publish
 git push
 ```
 
