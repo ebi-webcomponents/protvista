@@ -15,6 +15,11 @@
  * `protvista-uniprot.ts`. Nothing else here needs to change —
  * `body: 'json'` vs `'text'` already distinguishes a JSON payload
  * (`features-json`) from delimited text (`bed`).
+ *
+ * Not every bring-your-own-data adapter is reached by a file extension: a
+ * semantic `kind` can resolve to one directly (`kind: linegraph`). Those are
+ * listed separately in {@link BYO_DATA_ADAPTERS} rather than given a spurious
+ * extension row here, which would also enrol them in adapter inference.
  */
 
 import type { KnownAdapterName } from './types.js';
@@ -59,6 +64,33 @@ export const TEXT_BODY_ADAPTERS: ReadonlySet<string> = new Set(
 export const GENERIC_FILE_ADAPTERS: ReadonlySet<string> = new Set(
   Object.values(DATA_FILE_FORMATS).map((f) => f.adapter)
 );
+
+/**
+ * Bring-your-own-data adapters that no file extension selects — a `kind:`
+ * resolves to them directly (`kind: linegraph` → `adapter: linegraph`), so
+ * they cannot live in {@link DATA_FILE_FORMATS} above without inventing a
+ * file extension for them.
+ */
+const EXTENSIONLESS_BYO_DATA_ADAPTERS: readonly KnownAdapterName[] = [
+  'linegraph',
+];
+
+/**
+ * Every bring-your-own-data adapter, however it was selected: the
+ * extension-inferred ones in {@link GENERIC_FILE_ADAPTERS} plus the
+ * kind-selected ones above.
+ *
+ * This — not the narrower extension-derived set — is what gates the viewer's
+ * `hasData` empty-state check (see `assignTrackData` in `load-data.ts`). What
+ * that check cares about is provenance, not file type: an author-supplied
+ * payload arrives as a bare array with no UniProt `.features` wrapper, so the
+ * legacy raw-shape heuristic never sees it and a viewer built solely from such
+ * tracks would parse correctly yet blank out.
+ */
+export const BYO_DATA_ADAPTERS: ReadonlySet<string> = new Set([
+  ...GENERIC_FILE_ADAPTERS,
+  ...EXTENSIONLESS_BYO_DATA_ADAPTERS,
+]);
 
 /**
  * If `value` looks like a path to a known data file, return its format

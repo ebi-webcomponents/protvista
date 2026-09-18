@@ -34,7 +34,7 @@
 import type { NormalizedConfig, NormalizedTrack } from './schema/normalize.js';
 import {
   TEXT_BODY_ADAPTERS,
-  GENERIC_FILE_ADAPTERS,
+  BYO_DATA_ADAPTERS,
 } from './schema/file-formats.js';
 import { resolveTooltip } from './tooltips/resolve.js';
 import { tooltipDefaults } from './tooltips/defaults.js';
@@ -300,10 +300,11 @@ export async function loadProtvistaData(
   // is invisible to a bring-your-own file track: its adapted output is a
   // bare feature array with no `.features` wrapper. So a viewer built
   // solely from `./x.csv` / `./x.json` tracks would parse correctly yet
-  // blank out. We additionally set the flag when a generic-format file
-  // track yields a non-empty feature array (see `assignTrackData`) —
-  // additive, so the existing raw-shape semantics (and the tests that pin
-  // them) are unchanged.
+  // blank out. The same is true of a kind-selected bring-your-own-data
+  // adapter (`kind: linegraph`), whose output is a bare series array. So we
+  // additionally set the flag when any bring-your-own-data track yields a
+  // non-empty array (see `assignTrackData`) — additive, so the existing
+  // raw-shape semantics (and the tests that pin them) are unchanged.
   let hasData = Object.values(rawData).some(
     (d) => !!(d as { features?: unknown[] } | null)?.features?.length
   );
@@ -324,12 +325,11 @@ export async function loadProtvistaData(
       data[`${key}${UNFILTERED_SUFFIX}`] = payload;
     }
     const source = track.data[0];
-    const isGenericFileAdapter =
-      source?.adapter !== undefined &&
-      GENERIC_FILE_ADAPTERS.has(source.adapter);
+    const isByoDataAdapter =
+      source?.adapter !== undefined && BYO_DATA_ADAPTERS.has(source.adapter);
     const isInline = source?.from === 'inline';
     if (
-      (isGenericFileAdapter || isInline) &&
+      (isByoDataAdapter || isInline) &&
       Array.isArray(payload) &&
       payload.length > 0
     ) {
