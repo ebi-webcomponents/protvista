@@ -120,26 +120,33 @@ Run:
 
 ```bash
 pnpm install
+pnpm exec playwright install chromium   # once, and again after any `playwright` bump
 pnpm start
 ```
 
-to install dependencies and start the Astro dev server (`pnpm start` =
+to install dependencies, fetch the headless Chromium that the browser tests run
+in (see [Testing](#testing)), and start the Astro dev server (`pnpm start` =
 `pnpm docs:dev`) — it serves the docs **and** the native playground page (the
 docs are the site home). Use `pnpm site:build && pnpm site:preview` to preview
 the whole site (docs + playground + bench) exactly as GitHub Pages serves it.
 
 ## Testing
 
-Tests run under [Vitest](https://vitest.dev/) with a `jsdom` DOM environment. All APIs (`describe`, `it`, `expect`, `vi`, …) must be imported explicitly from `'vitest'` — `globals` is off.
+Tests run under [Vitest](https://vitest.dev/), split into two projects: `unit` (a `jsdom` DOM environment) and `browser` (real headless Chromium via [Playwright](https://playwright.dev/)). All APIs (`describe`, `it`, `expect`, `vi`, …) must be imported explicitly from `'vitest'` — `globals` is off.
+
+The `browser` project needs the Playwright Chromium binary, which `pnpm install` does not download. Run `pnpm exec playwright install chromium` once after cloning, and again whenever the `playwright` version in `package.json` changes — otherwise `pnpm test:browser` fails at startup with `browserType.launch: Executable doesn't exist at …`. See [CONTRIBUTING.md](./CONTRIBUTING.md#browser-tests-need-a-playwright-browser) for details.
 
 A small setup file at `src/__spec__/setup.ts` filters out jsdom's benign "Could not parse CSS stylesheet" warnings; jsdom's CSS parser is CSS2-era and chokes on the nested-selector syntax used in `src/protvista-styles.ts`. The stylesheet still attaches correctly — it's log noise only. Every other `console.error` passes through untouched. Remove the filter if we ever migrate to happy-dom (which parses modern CSS natively) or jsdom gains native-nesting support.
 
 ```bash
-# Run the full pipeline (lint + types + unit)
+# Run the full pipeline (lint + types + unit + browser)
 pnpm test
 
-# Unit tests only (CI-friendly, non-zero exit on failure)
+# Unit tests only (jsdom; no Playwright browser needed)
 pnpm test:unit
+
+# Browser component tests only (needs the Playwright browser, see above)
+pnpm test:browser
 
 # Watch mode
 pnpm test:watch
@@ -152,7 +159,7 @@ Coverage output is for local use only and is not committed. Open `coverage/index
 
 ### Continuous integration
 
-Every push and pull request runs three steps via [`.github/workflows/test-and-deploy.yml`](./.github/workflows/test-and-deploy.yml): `pnpm test:lint`, `pnpm test:types`, and `pnpm test:coverage`, under Node 24 on `ubuntu-latest`. The coverage step runs the full unit suite and enforces the coverage floor (see below), so a PR that drops coverage below the floor fails CI. A separate `build` job runs `pnpm build` (and, on `next`, `pnpm site:build`, which builds the Astro + Starlight docs — including the playground page — plus the bench page into `site/`) and deploys that to GitHub Pages.
+Every push and pull request runs four steps via [`.github/workflows/test-and-deploy.yml`](./.github/workflows/test-and-deploy.yml): `pnpm test:lint`, `pnpm test:types`, `pnpm test:unit`, and — after `pnpm exec playwright install --with-deps chromium chromium-headless-shell` — `pnpm test:coverage`, under Node 24 on `ubuntu-latest`. The coverage step runs both the unit and browser suites and enforces the coverage floor (see below), so a PR that drops coverage below the floor fails CI. A separate `build` job runs `pnpm build` (and, on `next`, `pnpm site:build`, which builds the Astro + Starlight docs — including the playground page — plus the bench page into `site/`) and deploys that to GitHub Pages.
 
 ### Coverage
 
