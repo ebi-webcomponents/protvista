@@ -183,8 +183,40 @@ describe('resolveColor — CIE and Oklab syntaxes', () => {
       'oklch(0.5 0.1 nonsense)',
       'lab(fifty 0 0)',
       'color(srgb 1 0)',
+      // `Number()` reads each of these as a number; CSS does not.
+      'oklch(0.5 0.1 20 /)',
+      'oklch(0.5 0.1 20 / )',
+      'oklab(% % %)',
+      'lab(0x32 0 0)',
+      'color(srgb 0x1 0 0)',
     ]) {
       expect(resolveColor(value), value).toBeNull();
+    }
+  });
+
+  it('clamps lightness to its range, as the browser does', () => {
+    expect(resolveColor('oklch(120% 0.2 30)')).toEqual(
+      resolveColor('oklch(1 0.2 30)')
+    );
+    expect(resolveColor('oklch(-0.2 0.2 30)')).toEqual(
+      resolveColor('oklch(0 0.2 30)')
+    );
+    expect(resolveColor('lab(150 50 0)')).toEqual(resolveColor('lab(100 50 0)'));
+  });
+
+  it('never hands back NaN when a huge component overflows the maths', () => {
+    // Infinity minus Infinity is NaN part-way through the matrices. The
+    // converter has to give up rather than return rgb(NaN, NaN, NaN);
+    // the value then goes to the browser like any other, which rejects
+    // it (or, under jsdom, reports its placeholder black). A huge
+    // `color(display-p3 …)` belongs here too, but jsdom's own
+    // getComputedStyle throws on one.
+    for (const value of ['oklch(0.5 1e200 0)', 'lch(50 1e200 0)']) {
+      const rgb = resolveColor(value);
+      expect(
+        rgb === null || Object.values(rgb).every(Number.isFinite),
+        value
+      ).toBe(true);
     }
   });
 });

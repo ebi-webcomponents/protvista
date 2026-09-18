@@ -117,8 +117,16 @@ const CIE_FUNC = /^(oklch|oklab|lab|lch)\(([^)]*)\)$/i;
 /** `color(<space> c1 c2 c3[ / a])`. */
 const COLOR_FUNC = /^color\(([^)]*)\)$/i;
 
+/**
+ * A CSS `<number>`. Checked before `Number()` sees a component, because
+ * `Number()` also reads `''` as 0 and accepts JavaScript-only forms such
+ * as `0x1A`, which would let a malformed colour through half-parsed.
+ */
+const NUMBER_SOURCE = String.raw`[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?`;
+const NUMBER = new RegExp(`^${NUMBER_SOURCE}$`, 'i');
+
 /** `<angle>` — a bare number is degrees, per CSS Color 4. */
-const ANGLE = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(deg|rad|grad|turn)?$/i;
+const ANGLE = new RegExp(`^(${NUMBER_SOURCE})(deg|rad|grad|turn)?$`, 'i');
 
 const ANGLE_TO_DEG: Record<string, number> = {
   deg: 1,
@@ -135,7 +143,9 @@ const ANGLE_TO_DEG: Record<string, number> = {
 function component(token: string, basis: number): number | null {
   if (/^none$/i.test(token)) return 0;
   const isPct = token.endsWith('%');
-  const value = Number(isPct ? token.slice(0, -1) : token);
+  const digits = isPct ? token.slice(0, -1) : token;
+  if (!NUMBER.test(digits)) return null;
+  const value = Number(digits);
   if (!Number.isFinite(value)) return null;
   return isPct ? (value / 100) * basis : value;
 }
@@ -191,10 +201,19 @@ function decodeGamma(c: number): number {
   return abs <= 0.04045 ? c / 12.92 : sign * ((abs + 0.055) / 1.055) ** 2.4;
 }
 
-/** Encoded sRGB (0–1 nominal) → 0–255 channels, clamped to the gamut. */
-function toChannels([r, g, b]: number[]): Rgb {
-  const channel = (c: number) => Math.round(Math.min(Math.max(c, 0), 1) * 255);
-  return { r: channel(r), g: channel(g), b: channel(b) };
+/**
+ * Encoded sRGB (0–1 nominal) → 0–255 channels, clamped to the gamut.
+ *
+ * `null` if the maths broke down: a huge component (`oklch(0.5 1e200 0)`)
+ * overflows to Infinity on the way through the matrices, and Infinity
+ * minus Infinity is NaN, which clamping would pass straight through.
+ */
+function toChannels(srgb: number[]): Rgb | null {
+  if (!srgb.every(Number.isFinite)) return null;
+  const [r, g, b] = srgb.map((c) =>
+    Math.round(Math.min(Math.max(c, 0), 1) * 255)
+  );
+  return { r, g, b };
 }
 
 // Björn Ottosson's Oklab → LMS → linear sRGB constants.
@@ -271,8 +290,13 @@ function parseCieFunc(value: string): Rgba | null {
   // each form: lightness is 0–1 for Oklab and 0–100 for Lab, and a
   // chroma of 100% is 0.4 (Oklab) or 150 (Lab).
   const isOk = form.startsWith('ok');
-  const L = component(first, isOk ? 1 : 100);
-  if (L === null) return null;
+  const maxL = isOk ? 1 : 100;
+  const rawL = component(first, maxL);
+  if (rawL === null) return null;
+  // CSS Color 4 clamps lightness to that range at parse time, so
+  // `oklch(120% …)` is `oklch(100% …)`. Without the clamp the conversion
+  // would not match what the browser draws for the same value.
+  const L = Math.min(Math.max(rawL, 0), maxL);
 
   let a: number | null;
   let b: number | null;
@@ -288,8 +312,8 @@ function parseCieFunc(value: string): Rgba | null {
     if (a === null || b === null) return null;
   }
 
-  const srgb = isOk ? oklabToSrgb(L, a, b) : labToSrgb(L, a, b);
-  return { ...toChannels(srgb), a: split.alpha };
+  const rgb = toChannels(isOk ? oklabToSrgb(L, a, b) : labToSrgb(L, a, b));
+  return rgb && { ...rgb, a: split.alpha };
 }
 
 /** The predefined colour spaces this module can bring back to sRGB. */
@@ -316,7 +340,8 @@ function parseColorFunc(value: string): Rgba | null {
   if (!toSrgb) return null;
   const values = channels.map((c) => component(c, 1));
   if (values.some((v) => v === null)) return null;
-  return { ...toChannels(toSrgb(values as number[])), a: split.alpha };
+  const rgb = toChannels(toSrgb(values as number[]));
+  return rgb && { ...rgb, a: split.alpha };
 }
 
 /** `rgb(…)` / `rgba(…)`, in either the legacy or the modern form. */
