@@ -82,8 +82,13 @@ const RGB_FUNC = /^rgba?\(([^)]+)\)$/;
  * inherited value under another name (and, being page state rather than a
  * fixed colour, is the one value a memoised probe result could go stale
  * on — see {@link probeCache}).
+ *
+ * `currentcolor` and `var()` are kept apart from the CSS-wide keywords
+ * because {@link isCssColor} accepts them: a value handed to CSS as
+ * written resolves them where it is used, which is what the author meant.
  */
-const CSS_WIDE = /^(inherit|initial|unset|revert|revert-layer|currentcolor)$/i;
+const CSS_WIDE = /^(inherit|initial|unset|revert|revert-layer)$/i;
+const CURRENT_COLOR = /^currentcolor$/i;
 const VAR_REF = /\bvar\s*\(/i;
 
 /**
@@ -361,7 +366,14 @@ export function resolveColorWithAlpha(
   doc: Document | undefined = globalThis.document
 ): Rgba | null {
   const text = value.trim();
-  if (!text || CSS_WIDE.test(text) || VAR_REF.test(text)) return null;
+  if (
+    !text ||
+    CSS_WIDE.test(text) ||
+    CURRENT_COLOR.test(text) ||
+    VAR_REF.test(text)
+  ) {
+    return null;
+  }
 
   // The syntaxes we convert ourselves, so they work even where the
   // browser cannot parse them.
@@ -442,6 +454,32 @@ export function resolveColor(value: string, doc?: Document): Rgb | null {
   return a >= 1 ? { r, g, b } : mix({ r, g, b }, SURFACE, a);
 }
 
+/**
+ * Whether CSS accepts `value` as a colour, for a value that is handed to
+ * the stylesheet as written rather than resolved (`theme.accentColor`,
+ * from which nothing is derived).
+ *
+ * Only asks the parser, so unlike {@link resolveColor} it accepts what
+ * resolves where the value is *used*: `var()`, `currentcolor`,
+ * `light-dark()`, and any colour space this browser can draw. It still
+ * rejects a typo, and anything carrying extra declarations, so the value
+ * cannot smuggle CSS into the sheet. The CSS-wide keywords are rejected
+ * as well: on a custom property they reset the token rather than naming
+ * a colour.
+ *
+ * No DOM append and no computed style, so no style recalculation.
+ */
+export function isCssColor(
+  value: string,
+  doc: Document | undefined = globalThis.document
+): boolean {
+  const text = value.trim();
+  if (!text || CSS_WIDE.test(text) || !doc) return false;
+  const probe = doc.createElement('span');
+  probe.style.color = text;
+  return probe.style.color !== '';
+}
+
 /** Blend `weight` (0–1) of `color` with `1 - weight` of `onto`. */
 export function mix(color: Rgb, onto: Rgb, weight: number): Rgb {
   const channel = (a: number, b: number) =>
@@ -461,15 +499,6 @@ export function tint(color: Rgb, weight: number): Rgb {
 /** Serialise for a custom property: a literal every browser parses. */
 export function cssRgb({ r, g, b }: Rgb): string {
   return `rgb(${r}, ${g}, ${b})`;
-}
-
-/**
- * Serialise keeping alpha. Emitted only where a translucent value is
- * meaningful — see `applyTheme`'s accent handling; a label surface is
- * flattened first, because its text colour is chosen against it.
- */
-export function cssRgba({ r, g, b, a }: Rgba): string {
-  return a >= 1 ? cssRgb({ r, g, b }) : `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
 /** WCAG 2.x relative luminance (sRGB, 0 = black, 1 = white). */

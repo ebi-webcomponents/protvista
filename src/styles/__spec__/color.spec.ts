@@ -9,10 +9,10 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   resolveColor,
   resolveColorWithAlpha,
+  isCssColor,
   mix,
   tint,
   cssRgb,
-  cssRgba,
   relativeLuminance,
   contrastRatio,
   readableOn,
@@ -208,9 +208,35 @@ describe('alpha', () => {
     });
   });
 
-  it('serialises alpha only when there is any to keep', () => {
-    expect(cssRgba({ r: 1, g: 2, b: 3, a: 1 })).toBe('rgb(1, 2, 3)');
-    expect(cssRgba({ r: 1, g: 2, b: 3, a: 0.5 })).toBe('rgba(1, 2, 3, 0.5)');
+});
+
+describe('isCssColor', () => {
+  it('accepts what resolves where the value is used', () => {
+    // Handed to CSS as written, so these keep working even though
+    // resolveColor rejects them.
+    for (const value of [
+      '#0053d6',
+      'rgba(0, 0, 255, 0.5)',
+      'currentcolor',
+      'var(--brand-primary)',
+    ]) {
+      expect(isCssColor(value), value).toBe(true);
+    }
+  });
+
+  it('rejects a typo, the CSS-wide keywords, and smuggled declarations', () => {
+    for (const value of [
+      '',
+      'not-a-colour',
+      'inherit',
+      'initial',
+      'unset',
+      'revert',
+      'revert-layer',
+      'red; background: url(https://example.org/x)',
+    ]) {
+      expect(isCssColor(value), value).toBe(false);
+    }
   });
 });
 

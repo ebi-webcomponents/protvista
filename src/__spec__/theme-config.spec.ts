@@ -66,10 +66,11 @@ describe('config theme → chrome tokens on the host', () => {
     // tint, so the group-vs-track hierarchy survives one-knob theming.
     // Both are emitted as resolved rgb() rather than the authored string:
     // the derived text/hover/caret values come from the same numbers, and
-    // a plain rgb() literal parses in every supported browser.
+    // a plain rgb() literal parses in every supported browser. Nothing is
+    // derived from the accent, so it goes through as written.
     expect(token(el, '--protvista-group-label-bg')).toBe('rgb(232, 245, 233)');
     expect(token(el, '--protvista-track-label-bg')).toBe('rgb(249, 253, 250)');
-    expect(token(el, '--protvista-color-accent')).toBe('rgb(0, 128, 0)');
+    expect(token(el, '--protvista-color-accent')).toBe('#008000');
   });
 
   it('lets groupLabelColor/trackLabelColor override the labelColor pair', async () => {
@@ -107,7 +108,7 @@ describe('config theme → chrome tokens on the host', () => {
       rows: [inlineTrack],
     });
     await el._init();
-    expect(token(el, '--protvista-color-accent')).toBe('rgb(0, 128, 0)');
+    expect(token(el, '--protvista-color-accent')).toBe('#008000');
     expect(token(el, '--protvista-group-label-bg')).toBe('');
   });
 
@@ -170,7 +171,7 @@ describe('config theme → chrome tokens on the host', () => {
     ]) {
       expect(token(el, name), name).toBe('');
     }
-    expect(token(el, '--protvista-color-accent')).toBe('rgb(18, 52, 86)');
+    expect(token(el, '--protvista-color-accent')).toBe('#123456');
 
     // Remove the theme entirely: all managed tokens clear.
     el.applyTheme(undefined);
@@ -212,6 +213,21 @@ describe('config theme → chrome tokens on the host', () => {
     });
     await el._init();
     expect(token(el, '--protvista-color-accent')).toBe('rgba(0, 0, 255, 0.5)');
+  });
+
+  it('hands accentColor to CSS as written, so var() keeps working', async () => {
+    // A label colour has to be resolved to numbers for its text colour to
+    // be derived; the accent does not, so it keeps what resolves at the
+    // point of use: a page token, `currentcolor`, `light-dark()`.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const el = mount({
+      accession: 'P05067',
+      theme: { accentColor: ' var(--brand-primary) ' },
+      rows: [inlineTrack],
+    });
+    await el._init();
+    expect(token(el, '--protvista-color-accent')).toBe('var(--brand-primary)');
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it('warns rather than silently dropping a colour it cannot resolve', async () => {

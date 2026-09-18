@@ -98,11 +98,10 @@ import { injectStyleOnce, installTokenDefaults } from './styles/inject.js';
 import {
   type Rgb,
   resolveColor,
-  resolveColorWithAlpha,
+  isCssColor,
   mix,
   tint,
   cssRgb,
-  cssRgba,
   readableOn,
   defaultTextColor,
   TEXT_ON_DARK,
@@ -805,8 +804,8 @@ class ProtvistaUniprot extends LitElement {
     // distinction. `groupLabelColor` / `trackLabelColor` pin either
     // surface exactly, overriding the derived pair.
     //
-    // Every value is resolved to `rgb()` here rather than handed to CSS
-    // as written, because a background is only half a surface: the text,
+    // Every label colour is resolved to `rgb()` here rather than handed to
+    // CSS as written, because a background is only half a surface: the text,
     // caret and hover state on top of it have to be derived from the same
     // numbers (see `applyLabelSurface`). Resolving also means an
     // unparseable colour is dropped instead of reaching the stylesheet.
@@ -846,21 +845,21 @@ class ProtvistaUniprot extends LitElement {
     if (group) this.applyLabelSurface('group', group);
     if (track) this.applyLabelSurface('track', track);
 
-    // Nothing is derived from the accent, so — unlike a label surface,
-    // whose text colour is chosen against an opaque fill — it keeps any
-    // alpha the author wrote. It still goes through the same resolution,
-    // so every field of `theme` has one syntax range and one answer to an
-    // unparseable value.
+    // Nothing is derived from the accent, so, unlike a label surface, it
+    // does not need resolving to numbers and is handed to CSS as written.
+    // That keeps everything the stylesheet itself accepts: `var(--brand)`,
+    // `light-dark()`, a translucent value, any colour space this browser
+    // draws. It is still checked, so a typo is dropped with the same
+    // warning as a label colour rather than reaching the stylesheet.
     if (theme.accentColor) {
-      const accent = resolveColorWithAlpha(
-        theme.accentColor,
-        this.ownerDocument
-      );
-      if (accent) {
-        this.setThemeToken('--protvista-color-accent', cssRgba(accent));
+      if (isCssColor(theme.accentColor, this.ownerDocument)) {
+        this.setThemeToken(
+          '--protvista-color-accent',
+          theme.accentColor.trim()
+        );
       } else {
         console.warn(
-          `Ignoring theme.accentColor: "${theme.accentColor}" is not a colour that resolves in this browser.`
+          `Ignoring theme.accentColor: "${theme.accentColor}" is not a colour this browser accepts.`
         );
       }
     }
