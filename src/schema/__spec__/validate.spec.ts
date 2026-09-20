@@ -529,7 +529,7 @@ describe('validateConfig — kind vs file format', () => {
     // The message has to name the offending kind, the format, and a way
     // forward — it is the author's only signal that the pairing is wrong.
     expect(issue?.message).toContain("'alphamissense-pathogenicity'");
-    expect(issue?.message).toContain("'.csv'");
+    expect(issue?.message).toContain("reads its provider's feed");
     expect(issue?.message).toContain("'features'");
     expect(issue?.message).toContain("adapter:");
   });
@@ -556,24 +556,75 @@ describe('validateConfig — kind vs file format', () => {
     }
   });
 
-  it('accepts a provider-only kind pointed at a matching-body file', () => {
-    // `alphafold-confidence` has no `.json` family member, so its own adapter
-    // would read the file — same body type, so the *format* check has
-    // nothing to flag.
-    //
-    // NOTE: this check is about the format. It does not — and cannot — catch
-    // a kind whose adapter needs more inputs than the track supplies
-    // (`alphafold-confidence` takes the AlphaFold prediction list *and* the
-    // UniProt entry, then fetches a third URL, so this config cannot load).
-    // Adapter arity is not declared anywhere the validator can read; see the
-    // `inputs` column in `adapter-reference.ts`.
+  it('flags a provider-only kind pointed at a file of any format', () => {
+    // Previously only a *text* file was flagged: a `.json` matched the
+    // adapter's body type, so the check passed and the track failed at load
+    // instead. That was never right — all three shapeless kinds read two API
+    // responses plus a further fetch, which no single file can provide,
+    // whatever its encoding. Declaring a shape is what makes a kind readable
+    // from a file, so its absence is the whole answer.
     const result = validateConfig(
       withData('alphafold-confidence', './plddt.json'),
       freshRegistry()
     );
-    expect(
-      result.issues.filter((i) => i.code === 'kind-format-mismatch')
-    ).toEqual([]);
+    const issue = result.issues.find((i) => i.code === 'kind-format-mismatch');
+    expect(issue?.message).toContain("reads its provider's feed");
+  });
+
+  it('names both shapes when a format cannot carry the kind’s records', () => {
+    // The diagnostic the redesign exists for: no adapter name, no body type,
+    // just the file and the track.
+    const result = validateConfig(
+      withData('variants', './regions.bed'),
+      freshRegistry()
+    );
+    const issue = result.issues.find((i) => i.code === 'kind-format-mismatch');
+    expect(issue?.message).toBe(
+      "BED files carry feature records (type, start, end); kind 'variants' in " +
+        'track X/y draws variation records (position, variant). Use a kind that ' +
+        'draws feature records (type, start, end) (\'features\', ' +
+        "'interpro-features', 'peptides', 'peptides-ptm', 'structure-coverage'), " +
+        'or convert the file.'
+    );
+  });
+
+  it('warns, without failing, when an explicit format overrides the extension', () => {
+    const result = validateConfig(
+      withData('features', { from: 'file', url: './hits.txt', format: 'csv' }),
+      freshRegistry()
+    );
+    const issue = result.issues.find(
+      (i) => i.code === 'format-overrides-extension'
+    );
+    expect(issue).toBeUndefined(); // `.txt` is not a known format — nothing to override
+    expect(result.valid).toBe(true);
+  });
+
+  it('warns when the declared format and a known extension disagree', () => {
+    const result = validateConfig(
+      withData('features', { from: 'file', url: './hits.csv', format: 'tsv' }),
+      freshRegistry()
+    );
+    const issue = result.issues.find(
+      (i) => i.code === 'format-overrides-extension'
+    );
+    expect(issue?.severity).toBe('warning');
+    expect(issue?.message).toContain('read as TSV');
+    // A warning names something legal: the config still loads.
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects inline text with no format to read it by', () => {
+    const result = validateConfig(
+      withData('linegraph', {
+        from: 'inline',
+        inlineData: 'position,value\n1,412\n',
+      }),
+      freshRegistry()
+    );
+    const issue = result.issues.find((i) => i.code === 'missing-format');
+    expect(issue?.message).toContain("no 'format' says how to read it");
+    expect(result.valid).toBe(false);
   });
 
   it('accepts a mismatch the author resolved with an explicit adapter', () => {

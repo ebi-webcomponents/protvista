@@ -45,16 +45,19 @@ import type {
   TrackConfig,
   DataSourceDescriptor,
   ColorScaleConfig,
+  ShapeName,
 } from './types.js';
 import { isGroupConfig } from './discriminate.js';
 import type { Registry } from './registry.js';
 import { RENDERABLE_COMPONENT_NAMES } from './components.js';
 import { isPlainObject, isSet } from './shape.js';
 import {
-  adapterBodyType,
-  dataFileFormatForPath,
-  kindAdapterForFormat,
+  DATA_FORMATS,
+  DATA_FORMAT_NAMES,
+  formatForPath,
 } from './file-formats.js';
+import { formatCanProduce } from './adapters/pipeline.js';
+import { shapeLabel } from './shapes.js';
 import {
   isError,
   type ValidationIssue,
@@ -580,38 +583,94 @@ function checkKindReadsFileFormat(
 ): void {
   const kind = track.kind;
   if (kind === undefined) return;
-  const kindAdapter = registry.getSemanticKind(kind)?.adapter;
-  if (kindAdapter === undefined) return;
+  const def = registry.getSemanticKind(kind);
+  if (def === undefined) return;
+  const shape = def.shape;
 
   for (const d of collectDescriptors(track)) {
+    // An explicit `adapter:` overrides shape/format resolution entirely —
+    // the author has said what reads this source.
     if (!isShorthand(d) && d.adapter !== undefined) continue;
-    const value = descriptorPath(d, sources);
-    if (value === undefined) continue;
-    const format = dataFileFormatForPath(value);
-    if (format === undefined) continue;
-    // A family member for this format parses exactly it — by construction it
-    // can never disagree with the file it was chosen for.
-    if (kindAdapterForFormat(kindAdapter, format) !== kindAdapter) continue;
-    const kindBody = adapterBodyType(kindAdapter);
-    if (kindBody === format.body) continue;
 
-    const readableKinds = registry.listSemanticKinds().filter((k) => {
-      const a = registry.getSemanticKind(k)?.adapter;
-      return a !== undefined && kindAdapterForFormat(a, format) !== a;
-    });
-    const alternatives =
-      readableKinds.length > 0
-        ? ` Kinds that read ${format.ext} files: ${listQuoted(new Set(readableKinds))}.`
-        : '';
-    issues.push({
-      path: trackPath,
-      message:
-        `Semantic kind '${kind}' in track ${trackPath} cannot read '${format.ext}' files: ` +
-        `it resolves to adapter '${kindAdapter}', which expects a ${kindBody} body, ` +
-        `and has no ${format.ext} adapter of its own.${alternatives} ` +
-        `Otherwise set an explicit 'adapter:' on the data descriptor.`,
-      code: 'kind-format-mismatch',
-    });
+    const declared = isShorthand(d) ? undefined : d.format;
+    const value = descriptorPath(d, sources);
+    const fromExt = value === undefined ? undefined : formatForPath(value);
+
+    // Inline text needs a `format:`; there is no content-sniffing, so this
+    // cannot be resolved by guessing.
+    if (
+      !isShorthand(d) &&
+      d.from === 'inline' &&
+      typeof d.inlineData === 'string' &&
+      declared === undefined
+    ) {
+      issues.push({
+        path: trackPath,
+        message:
+          `Inline data in track ${trackPath} is text, but no 'format' says how to read it. ` +
+          `Add format: ${DATA_FORMAT_NAMES.join(' | ')}, or write the records as a list instead.`,
+        code: 'missing-format',
+      });
+      continue;
+    }
+
+    // An explicit `format:` overriding the file's own extension is legal —
+    // a misnamed file is exactly why `format:` exists — but say so, since
+    // the author may not have intended it.
+    if (
+      declared !== undefined &&
+      fromExt !== undefined &&
+      fromExt.name !== declared
+    ) {
+      issues.push({
+        path: trackPath,
+        severity: 'warning',
+        message:
+          `Track ${trackPath} declares format: ${declared} for '${value}', whose ` +
+          `extension says ${fromExt.name}. The explicit format wins and the file ` +
+          `is read as ${declared.toUpperCase()}.`,
+        code: 'format-overrides-extension',
+      });
+    }
+
+    const format = declared ?? fromExt?.name;
+    if (format === undefined) continue;
+
+    // A kind with no shape has no bring-your-own-data path at all: its
+    // adapter takes a provider response, and in the AlphaFold/AlphaMissense
+    // cases two of them plus a further fetch, which no single file provides.
+    if (shape === undefined) {
+      const byod = registry
+        .listSemanticKinds()
+        .filter((k) => registry.getSemanticKind(k)?.shape !== undefined);
+      issues.push({
+        path: trackPath,
+        message:
+          `Semantic kind '${kind}' in track ${trackPath} reads its provider's feed and ` +
+          `cannot read a file. Kinds that accept your own data: ${listQuoted(new Set(byod))}. ` +
+          `To use this source anyway, set an explicit 'adapter:' on the data descriptor.`,
+        code: 'kind-format-mismatch',
+      });
+      continue;
+    }
+
+    // Most formats are containers and carry whatever records the track asks
+    // for. BED is not: it encodes feature semantics, so it can only produce
+    // feature records.
+    if (!formatCanProduce(format, shape)) {
+      const emits = DATA_FORMATS[format].emitsShape as ShapeName;
+      const alternatives = registry
+        .listSemanticKinds()
+        .filter((k) => registry.getSemanticKind(k)?.shape === emits);
+      issues.push({
+        path: trackPath,
+        message:
+          `${format.toUpperCase()} files carry ${shapeLabel(emits)}; kind '${kind}' in ` +
+          `track ${trackPath} draws ${shapeLabel(shape)}. Use a kind that draws ` +
+          `${shapeLabel(emits)} (${listQuoted(new Set(alternatives))}), or convert the file.`,
+        code: 'kind-format-mismatch',
+      });
+    }
   }
 }
 
@@ -737,9 +796,9 @@ function checkStringShorthand(
   if (/^https?:\/\//i.test(value)) return;
 
   // Rule 3: a path to a known data file (`./hits.csv`, `../x.tsv`) is OK
-  // — normalize.ts resolves it to `from: file` with the extension's
-  // built-in adapter, so it will load without an "Unknown adapter" error.
-  if (dataFileFormatForPath(value)) return;
+  // — normalize.ts resolves it to `from: file` and reads the format off the
+  // extension, so it loads without an "Unknown source key" error.
+  if (formatForPath(value)) return;
 
   // Rule 4 fell through: treat as sources-key reference, surface
   // "Unknown source key" with the registered keys list.
