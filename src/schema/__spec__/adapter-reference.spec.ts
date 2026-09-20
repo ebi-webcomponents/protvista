@@ -22,10 +22,15 @@ import {
   FEATURE_RECORD_FIELDS,
   type GenericAdapterDoc,
   type KindAdapterDoc,
+  type ByodFormatAdapterDoc,
 } from '../adapters/adapter-reference.js';
 import { BUILTIN_ADAPTERS } from '../adapters/index.js';
-import { REQUIRED_COLUMNS } from '../adapters/dsv.js';
-import { DATA_FILE_FORMATS } from '../file-formats.js';
+import { REQUIRED_COLUMNS, POINT_COLUMNS } from '../adapters/dsv.js';
+import {
+  DATA_FILE_FORMATS,
+  BYO_ADAPTER_VARIANTS,
+  TEXT_BODY_ADAPTERS,
+} from '../file-formats.js';
 import { featuresCsv } from '../adapters/features-csv.js';
 import { createRegistry } from '../registry.js';
 
@@ -67,6 +72,50 @@ describe('adapter reference — kind linkage', () => {
       expect(def, `kind '${d.kind}' is not a built-in`).toBeDefined();
       expect(def && def.adapter).toBe(d.name);
       expect(def && def.component).toBe(d.component);
+    }
+  });
+});
+
+const byodFormat = ADAPTER_REFERENCE.filter(
+  (d): d is ByodFormatAdapterDoc => d.tier === 'byod-format'
+);
+
+describe('adapter reference — delimited kind variants', () => {
+  it('documents exactly the variants the resolver can select', () => {
+    const documented = byodFormat.map((d) => `${d.of}${d.ext}:${d.name}`).sort();
+    const wired = Object.entries(BYO_ADAPTER_VARIANTS)
+      .flatMap(([base, byExt]) =>
+        Object.entries(byExt).map(([ext, name]) => `${base}${ext}:${name}`)
+      )
+      .sort();
+    expect(documented).toEqual(wired);
+  });
+
+  it('each variant ext/body matches DATA_FILE_FORMATS and the fetch decision', () => {
+    for (const d of byodFormat) {
+      const fmt = DATA_FILE_FORMATS[d.ext];
+      expect(fmt, `no DATA_FILE_FORMATS entry for '${d.ext}'`).toBeDefined();
+      // The variant takes its body type from the extension it parses, and the
+      // loader must agree — a text body fetched as JSON never reaches the
+      // parser at all.
+      expect(d.body).toBe(fmt.body);
+      expect(TEXT_BODY_ADAPTERS.has(d.name)).toBe(d.body === 'text');
+    }
+  });
+
+  it('documented header columns match the parser POINT_COLUMNS', () => {
+    expect(byodFormat.length).toBeGreaterThan(0);
+    for (const d of byodFormat) {
+      expect(d.headerColumns).toEqual([...POINT_COLUMNS]);
+    }
+  });
+
+  it('every variant names a documented byod-kind base adapter', () => {
+    const byodKindNames = ADAPTER_REFERENCE.filter(
+      (d) => d.tier === 'byod-kind'
+    ).map((d) => d.name);
+    for (const d of byodFormat) {
+      expect(byodKindNames).toContain(d.of);
     }
   });
 });

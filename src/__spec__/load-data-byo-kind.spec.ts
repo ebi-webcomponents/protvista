@@ -17,8 +17,14 @@ import { describe, it, expect, vi } from 'vitest';
 import { loadConfig } from '../schema/load.js';
 import { loadProtvistaData, type AdapterMap } from '../load-data.js';
 import { linegraph } from '../schema/adapters/linegraph.js';
+import { linegraphCsv } from '../schema/adapters/linegraph-csv.js';
+import { linegraphTsv } from '../schema/adapters/linegraph-tsv.js';
 
-const adapters: AdapterMap = { linegraph };
+const adapters: AdapterMap = {
+  linegraph,
+  'linegraph-csv': linegraphCsv,
+  'linegraph-tsv': linegraphTsv,
+};
 const resolveAdapter = (name: string) => adapters[name];
 
 const urlTrack = () =>
@@ -60,7 +66,7 @@ describe('loadProtvistaData — kind: linegraph', () => {
     expect(track).toHaveLength(1);
     expect(track[0]).toMatchObject({
       name: 'value',
-      range: [0, 7],
+      range: [3, 7],
       values: [
         { position: 1, value: 3 },
         { position: 2, value: 7 },
@@ -80,6 +86,128 @@ describe('loadProtvistaData — kind: linegraph', () => {
       resolveAdapter
     );
     expect(result.hasData).toBe(false);
+  });
+
+  it.each([
+    ['./depth.csv', 'linegraph-csv', 'position,value\n1,412\n2,688\n'],
+    ['./depth.tsv', 'linegraph-tsv', 'position\tvalue\n1\t412\n2\t688\n'],
+  ])(
+    'fetches %s as text and lands the %s series',
+    async (url, _adapter, body) => {
+      // The delimited variants are only reachable if the loader also asks for
+      // a *text* body — a CSV fetched as JSON never reaches the parser.
+      const config = await loadConfig({
+        accession: 'P05067',
+        rows: [{ id: 'depth', label: 'Read depth', kind: 'linegraph', data: url }],
+      });
+      const fetchOne = vi.fn(async () => body);
+
+      const result = await loadProtvistaData(
+        'P05067',
+        config,
+        fetchOne,
+        resolveAdapter
+      );
+
+      expect(fetchOne).toHaveBeenCalledWith(url, 'text');
+      const track = result.data['depth-depth'] as Array<
+        Record<string, unknown>
+      >;
+      expect(track[0]).toMatchObject({
+        name: 'value',
+        range: [412, 688],
+        values: [
+          { position: 1, value: 412 },
+          { position: 2, value: 688 },
+        ],
+      });
+      expect(result.hasData).toBe(true);
+    }
+  );
+
+  it('runs the adapter on from: inline data, not just fetched data', async () => {
+    // Inline data normally skips the adapter because it is already written in
+    // the component's representation. A kind-selected bring-your-own-data
+    // adapter is the exception: `{ position, value }` records are the
+    // published contract for `kind: linegraph` whatever the transport, and
+    // handing them to the track unadapted draws an empty graph — the track
+    // reads `.range`/`.values` off each series and these records have neither.
+    const config = await loadConfig({
+      accession: 'P05067',
+      rows: [
+        {
+          id: 'depth',
+          label: 'Read depth',
+          kind: 'linegraph',
+          data: {
+            from: 'inline',
+            inlineData: [
+              { position: 1, value: 412 },
+              { position: 2, value: 688 },
+            ],
+          },
+        },
+      ],
+    });
+    const fetchOne = vi.fn(async () => {
+      throw new Error('inline data must not trigger a fetch');
+    });
+
+    const result = await loadProtvistaData(
+      'P05067',
+      config,
+      fetchOne,
+      resolveAdapter
+    );
+
+    expect(fetchOne).not.toHaveBeenCalled();
+    const track = result.data['depth-depth'] as Array<Record<string, unknown>>;
+    expect(track).toHaveLength(1);
+    expect(track[0]).toMatchObject({
+      name: 'value',
+      range: [412, 688],
+      values: [
+        { position: 1, value: 412 },
+        { position: 2, value: 688 },
+      ],
+    });
+    expect(result.hasData).toBe(true);
+  });
+
+  it('leaves other inline tracks unadapted', async () => {
+    // The narrowness matters: `kind: features` inline data is already in the
+    // renderer's shape, and running its adapter over it would break it.
+    const config = await loadConfig({
+      accession: 'P05067',
+      rows: [
+        {
+          id: 'ann',
+          label: 'Annotations',
+          tracks: [
+            {
+              id: 'sites',
+              label: 'Sites',
+              kind: 'features',
+              data: {
+                from: 'inline',
+                inlineData: [{ type: 'BINDING', start: 45, end: 52 }],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const result = await loadProtvistaData(
+      'P05067',
+      config,
+      vi.fn(async () => []),
+      resolveAdapter
+    );
+
+    expect(result.data['ann-sites']).toMatchObject([
+      { type: 'BINDING', start: 45, end: 52 },
+    ]);
   });
 
   it('reports hasData for a .json file path that names the adapter explicitly', async () => {

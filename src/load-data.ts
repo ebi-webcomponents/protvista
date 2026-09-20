@@ -35,6 +35,7 @@ import type { NormalizedConfig, NormalizedTrack } from './schema/normalize.js';
 import {
   TEXT_BODY_ADAPTERS,
   BYO_DATA_ADAPTERS,
+  KIND_SELECTED_BYO_DATA_ADAPTERS,
 } from './schema/file-formats.js';
 import { resolveTooltip } from './tooltips/resolve.js';
 import { tooltipDefaults } from './tooltips/defaults.js';
@@ -311,6 +312,22 @@ export async function loadProtvistaData(
 
   const data: Record<string, unknown> = {};
 
+  // Resolve an adapter by name through the injected registry resolver — the
+  // loader itself holds no adapter map and knows no adapter names. A
+  // configured adapter that resolves to nothing is a registration gap:
+  // surface it as a per-track failure (caught by the per-track try/catch)
+  // rather than a silent no-op.
+  const resolveAdapterFn = (name: string): AdapterFn => {
+    const fn = getAdapter(name);
+    if (!fn) {
+      throw new Error(
+        `No adapter registered for '${name}'. ` +
+          `Register it with registerAdapter().`
+      );
+    }
+    return fn;
+  };
+
   // Write a track's adapted payload to its primary key, plus a pristine
   // `__unfiltered` baseline when the track opts into a filter UI. Both
   // assignment sites (`from: custom` and url/inline) route through here
@@ -423,34 +440,35 @@ export async function loadProtvistaData(
           }
 
           // `from: inline` — the payload lives on the descriptor itself
-          // (`inlineData`, populated by the normalizer); no fetch, no
-          // adapter. Filter + tooltip resolution still apply, mirroring
-          // `from: custom` above.
+          // (`inlineData`, populated by the normalizer); no fetch. Filter +
+          // tooltip resolution still apply, mirroring `from: custom` above.
+          //
+          // Inline data is normally written in the shape the component
+          // renders, so no adapter runs. The kind-selected bring-your-own-data
+          // adapters are the exception: what they accept is the author-facing
+          // contract published for the kind (`{ position, value }` records for
+          // `kind: linegraph`), not the component's own representation
+          // (`[{ name, range, values }]`). That contract is the same shape
+          // whether the payload arrives over the network or inline, so the
+          // adapter runs here too — otherwise `from: inline` would silently
+          // hand the track a shape it cannot draw.
           if (first.from === 'inline') {
-            return filterResolveAndAssign(first.inlineData, trackKey, track);
+            const inlineData =
+              adapter && KIND_SELECTED_BYO_DATA_ADAPTERS.has(adapter)
+                ? await resolveAdapterFn(adapter)(first.inlineData)
+                : first.inlineData;
+            return filterResolveAndAssign(inlineData, trackKey, track);
           }
 
           const trackData = (Array.isArray(url) ? url : [url ?? '']).map(
             (u) => rawData[u as string] || []
           );
 
-          // 1. Convert data. The adapter function is resolved by name
-          //    through the injected registry resolver — the loader itself
-          //    holds no adapter map and knows no adapter names. Empty-body
-          //    guards and any post-processing now live inside the adapters.
-          //    A configured adapter that resolves to nothing is a
-          //    registration gap: surface it as a per-track failure (caught
-          //    below) rather than a silent no-op.
+          // 1. Convert data. Empty-body guards and any post-processing live
+          //    inside the adapters themselves.
           let transformedData: any = trackData;
           if (adapter) {
-            const adapterFn = getAdapter(adapter);
-            if (!adapterFn) {
-              throw new Error(
-                `No adapter registered for '${adapter}'. ` +
-                  `Register it with registerAdapter().`
-              );
-            }
-            transformedData = await adapterFn(...trackData);
+            transformedData = await resolveAdapterFn(adapter)(...trackData);
           }
 
           // 2. Filter raw data if filter is specified

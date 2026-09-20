@@ -14,6 +14,11 @@
  *   - `rowsToFeatureRecords()` layers the ProtVista feature convention
  *     on top: a required `type,start,end,description[,score]` header,
  *     numeric coercion, and strict, row/column-named error reporting.
+ *   - `rowsToPointRecords()` is its sibling for the graph kinds: the same
+ *     header/ragged/number discipline over a `position,value` header,
+ *     emitting the `{ position, value }` records `linegraph` consumes.
+ *     A second layer rather than an option on the first, because the two
+ *     share no columns and nothing but the validation grammar.
  *   - `parseDecimal()` is the shared strict-number validator, reused by
  *     `bed` for its `score` column so the number grammars can't drift.
  *
@@ -238,6 +243,99 @@ export function rowsToFeatureRecords(
     }
 
     records.push(record);
+  }
+
+  return records;
+}
+
+/** One parsed graph point, matching the shape `linegraph` series carry. */
+export interface PointRecord {
+  position: number;
+  value: number;
+}
+
+/**
+ * Header columns a delimited (CSV/TSV) line-graph file must declare.
+ * Exported so the generated adapter reference can be pinned to the
+ * parser's actual requirement by a drift test, exactly as
+ * {@link REQUIRED_COLUMNS} is for the feature formats.
+ */
+export const POINT_COLUMNS = ['position', 'value'] as const;
+
+/**
+ * Turn tokenized rows (header + data) into `PointRecord`s.
+ *
+ * The sibling of {@link rowsToFeatureRecords} for the graph kinds, with
+ * the same discipline: the header must contain `position` and `value` (in
+ * any order, no duplicates), every data row must have exactly as many
+ * fields as the header, and both cells are coerced through
+ * {@link parseDecimal} so the number grammar cannot drift between the
+ * feature and graph formats. Extra columns are permitted and ignored,
+ * matching the feature layer's treatment of unknown headers.
+ *
+ * Rows are returned in file order — `linegraph` draws points in the order
+ * it receives them and neither sorts nor de-duplicates, so the file's
+ * order is the rendered order.
+ *
+ * Errors name the offending row by 1-based line number (header = line 1)
+ * and the column, e.g.
+ * `linegraph-csv: row 3, column "value": expected a number, got "abc"`.
+ */
+export function rowsToPointRecords(
+  rows: string[][],
+  opts: { formatLabel: string }
+): PointRecord[] {
+  const { formatLabel } = opts;
+
+  if (rows.length === 0) return [];
+
+  const header = rows[0];
+  const index: Record<string, number> = {};
+  header.forEach((name, i) => {
+    const key = name.trim();
+    if (key in index) {
+      throw new Error(
+        `${formatLabel}: duplicate header column "${key}". ` +
+          `Each column name must be unique.`
+      );
+    }
+    index[key] = i;
+  });
+
+  for (const col of POINT_COLUMNS) {
+    if (!(col in index)) {
+      throw new Error(
+        `${formatLabel}: missing required header column "${col}". ` +
+          `Header must contain position, value.`
+      );
+    }
+  }
+
+  const records: PointRecord[] = [];
+  for (let r = 1; r < rows.length; r++) {
+    const cells = rows[r];
+    const line = r + 1; // header is line 1
+
+    if (cells.length !== header.length) {
+      throw new Error(
+        `${formatLabel}: row ${line} is ragged — expected ${header.length} ` +
+          `columns, got ${cells.length}.`
+      );
+    }
+
+    const num = (col: string): number => {
+      const raw = cells[index[col]];
+      const n = parseDecimal(raw);
+      if (n === null) {
+        throw new Error(
+          `${formatLabel}: row ${line}, column "${col}": expected a number, ` +
+            `got "${raw}".`
+        );
+      }
+      return n;
+    };
+
+    records.push({ position: num('position'), value: num('value') });
   }
 
   return records;

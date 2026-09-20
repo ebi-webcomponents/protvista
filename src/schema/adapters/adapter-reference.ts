@@ -16,8 +16,11 @@
  *   - `byod-kind` — adapters that back a semantic `kind` (so they look like
  *     `domain` entries) but consume a shape the *author* supplies rather
  *     than a provider response (`linegraph`). No file extension selects
- *     them, so they cannot be `generic`; and calling them provider-supplied
- *     would be false, so they cannot be `domain`.
+ *     them on its own, so they cannot be `generic`; and calling them
+ *     provider-supplied would be false, so they cannot be `domain`.
+ *   - `byod-format` — the delimited siblings of a `byod-kind` adapter
+ *     (`linegraph-csv`, `linegraph-tsv`): the same records out of CSV/TSV,
+ *     reached only by a file extension on a track already using that kind.
  *
  * This is NOT a normative schema. The normative contract for the generic
  * format lives in `specs/generic-format-adapters.md`; the Intent vs
@@ -36,6 +39,7 @@ import type {
   KnownSemanticKind,
   KnownComponentName,
 } from '../types.js';
+import { POINT_COLUMNS } from './dsv.js';
 
 /** One documented field of a generic bring-your-own-data payload. */
 export interface FieldDoc {
@@ -105,8 +109,33 @@ export interface ByodKindAdapterDoc {
   fetchesSecondaryUrl: boolean;
 }
 
+/**
+ * A delimited sibling of a `byod-kind` adapter — same records, different
+ * file format (`linegraph-csv` parses `position,value` out of CSV into the
+ * series `linegraph` builds from JSON).
+ *
+ * Its own tier because it is neither `generic` (a bare `./x.csv` still means
+ * `features-csv`; only a kind-addressed track reaches these) nor `byod-kind`
+ * (it is not the kind's canonical adapter, and each kind must map to exactly
+ * one of those).
+ */
+export interface ByodFormatAdapterDoc {
+  name: KnownAdapterName;
+  tier: 'byod-format';
+  /** The `byod-kind` adapter whose records this parses. */
+  of: KnownAdapterName;
+  /** File extension that selects it on a track using `of`'s kind. */
+  ext: string;
+  /** How the loader fetches the body before handing it to the adapter. */
+  body: 'text' | 'json';
+  /** The columns the header row must contain. Mirrors `POINT_COLUMNS` in `./dsv`. */
+  headerColumns: readonly string[];
+  summary: string;
+}
+
 export type AdapterDoc =
   | GenericAdapterDoc
+  | ByodFormatAdapterDoc
   | DomainAdapterDoc
   | ByodKindAdapterDoc;
 
@@ -377,5 +406,25 @@ export const ADAPTER_REFERENCE: readonly AdapterDoc[] = [
       'Generic bring-your-own-data: a JSON array of `{ position, value }` records (both numbers), validated and emitted as one line-graph series. Not UniProt-specific — for the UniProt variation API keep `variant-counts`.',
     inputs: 1,
     fetchesSecondaryUrl: false,
+  },
+  {
+    name: 'linegraph-csv',
+    tier: 'byod-format',
+    of: 'linegraph',
+    ext: '.csv',
+    body: 'text',
+    headerColumns: [...POINT_COLUMNS],
+    summary:
+      'The same `{ position, value }` records as `linegraph`, read from a CSV body with a `position,value` header row.',
+  },
+  {
+    name: 'linegraph-tsv',
+    tier: 'byod-format',
+    of: 'linegraph',
+    ext: '.tsv',
+    body: 'text',
+    headerColumns: [...POINT_COLUMNS],
+    summary:
+      'The tab-separated form of `linegraph-csv` — identical columns, `\\t` delimiter.',
   },
 ];

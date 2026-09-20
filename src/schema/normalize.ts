@@ -72,7 +72,11 @@ import type {
 } from './types.js';
 import { isGroupConfig } from './discriminate.js';
 import type { Registry } from './registry.js';
-import { dataFileFormatForPath } from './file-formats.js';
+import {
+  dataFileFormatForPath,
+  KIND_SELECTED_BYO_DATA_ADAPTERS,
+  BYO_ADAPTER_VARIANTS,
+} from './file-formats.js';
 
 // ─────────────────────────────────────────────────────────────
 // Output types — the canonical shape the loader consumes
@@ -530,11 +534,26 @@ function expandDescriptor(
   // `features-csv`); otherwise the kind's canonical adapter (e.g. a
   // `kind: confidence-score` track pointed at a raw API URL gets
   // `alphafold-prediction-json`).
-  const inferredFromExt =
-    typeof d.url === 'string'
-      ? dataFileFormatForPath(d.url)?.adapter
-      : undefined;
-  const adapter = d.adapter ?? inferredFromExt ?? kindAdapter;
+  //
+  // The one exception: a kind that selects a bring-your-own-data adapter no
+  // extension names (`kind: linegraph`) outranks extension inference, so
+  // `data: ./depth.json` stays on `linegraph` instead of silently becoming
+  // `features-json` and throwing on the author's `{ position, value }` rows.
+  // Such a kind may still offer per-extension siblings parsing the identical
+  // columns out of delimited text (`./depth.csv` → `linegraph-csv`), so the
+  // extension chooses *within* the kind's family rather than away from it.
+  const format =
+    typeof d.url === 'string' ? dataFileFormatForPath(d.url) : undefined;
+  const kindOutranksExt =
+    kindAdapter !== undefined &&
+    KIND_SELECTED_BYO_DATA_ADAPTERS.has(kindAdapter);
+  const fromKind =
+    kindAdapter !== undefined && format !== undefined
+      ? (BYO_ADAPTER_VARIANTS[kindAdapter]?.[format.ext] ?? kindAdapter)
+      : kindAdapter;
+  const adapter =
+    d.adapter ??
+    (kindOutranksExt ? fromKind : (format?.adapter ?? kindAdapter));
 
   // Resolve `source:` to concrete URL(s) via the sources map. Both
   // fields stay on the descriptor so the validator can still produce

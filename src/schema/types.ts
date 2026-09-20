@@ -669,8 +669,12 @@ export type KnownAdapterName =
   | 'features-json'
   /** Standard BED (tab-separated). 0-based half-open → shifted to 1-based inclusive. */
   | 'bed'
-  /** Generic bring-your-own-data line graph: JSON array of `{ position, value }`. Not inferred from a file extension. */
-  | 'linegraph';
+  /** Generic bring-your-own-data line graph: JSON array of `{ position, value }`. Selected by `kind: linegraph`, never inferred from a file extension. */
+  | 'linegraph'
+  /** The CSV form of `linegraph`: header `position,value`. Selected by a `.csv` path on a `kind: linegraph` track. */
+  | 'linegraph-csv'
+  /** The TSV form of `linegraph`: header `position<TAB>value`. Selected by a `.tsv` path on a `kind: linegraph` track. */
+  | 'linegraph-tsv';
 
 /** Open-ended `AdapterName`. Adapters registered via `registerAdapter()` also type-check. */
 export type AdapterName = KnownAdapterName | (string & {});

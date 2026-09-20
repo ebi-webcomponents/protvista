@@ -409,6 +409,34 @@ describe('full render — shell + per-group DOM with frozen fixtures', () => {
     });
   }
 
+  it('keeps show-label-name on a domain count line graph but drops it for a bring-your-own one', () => {
+    // The track pluralises the series name into its hover readout ("12
+    // variants"), which only reads correctly when the name is a unit noun.
+    // `linegraph`'s series name is a placeholder, so "12 values" must not
+    // appear for an author-supplied metric.
+    const byo = structuredClone(testConfig) as typeof testConfig;
+    const group = byo.rows.find((r) => r.id === 'GROUP_LINEGRAPH')!;
+    group.tracks[0].data[0].adapter = 'linegraph';
+    const byoEl = buildInstance({
+      config: byo,
+      data: testData,
+      openGroups: byo.rows.map((r) => r.id),
+    });
+    const byoTarget = document.createElement('div');
+    render(byoEl.render(), byoTarget);
+
+    const attrFor = (root: Element, groupId: string) =>
+      root
+        .querySelector(
+          `nightingale-linegraph-track[id="${CSS_PREFIX}-track-${groupId}"]`
+        )
+        ?.hasAttribute('show-label-name');
+
+    expect(attrFor(byoTarget, 'GROUP_LINEGRAPH')).toBe(false);
+    expect(attrFor(byoTarget, 'GROUP_VARIATION')).toBe(true);
+    expect(attrFor(target, 'GROUP_LINEGRAPH')).toBe(true);
+  });
+
   it('does not render expanded tracks for closed groups', () => {
     // Rebuild with no open groups; the expanded `${CSS_PREFIX}-group__track`
     // divs must disappear while `${CSS_PREFIX}-group` blocks remain.

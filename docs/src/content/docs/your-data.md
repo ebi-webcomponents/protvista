@@ -172,13 +172,35 @@ rows:
 
 Points are drawn in the order you supply them, so sort your records by `position` before serving them — the adapter neither sorts them nor rejects duplicates.
 
-Malformed rows fail with an error naming the row index and field. A `.json` file path needs the adapter named explicitly so it is not parsed as generic features:
+Malformed rows fail with an error naming the row index and field.
+
+The same record shape works inline — `from: inline` with `inlineData:` — so a graph can render with no fetch at all. See [`examples/linegraph/`](https://github.com/ebi-webcomponents/protvista/tree/next/examples/linegraph), or open **Your own line graph (inline values)** in the [playground](/protvista/playground/).
+
+`kind: linegraph` also wins over the usual extension inference, so a `.json` file path works without naming the adapter — `data: ./depth.json` is read as line-graph records, not generic features. Name the adapter explicitly only on a track that has no `kind`:
 
 ```yaml
 data:
   url: ./depth.json
   adapter: linegraph
 ```
+
+The same records work as delimited text, which is usually what falls out of a spreadsheet or an analysis script. On a `kind: linegraph` track the extension picks the parser — `.csv` and `.tsv` read a `position,value` header row and produce exactly the graph the JSON form does:
+
+```yaml
+- id: depth
+  label: Read depth
+  kind: linegraph
+  data: ./depth.csv
+```
+
+```csv
+position,value
+1,412
+30,688
+60,905
+```
+
+Columns may be in either order, extra columns are ignored, and a malformed cell fails with the row and column named (`linegraph-csv: row 3, column "value": expected a number, got "abc"`). Note this only applies to a track that declares the `kind` — a bare `data: ./x.csv` with no `kind` still means generic features.
 
 ## Add to the default UniProt viewer
 

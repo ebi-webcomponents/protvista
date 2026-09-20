@@ -95,11 +95,18 @@ These adapters back the built-in semantic `kind`s. Their input is a response fro
 
 ## Bring-your-own-data track kinds
 
-These adapters also back a semantic `kind`, but the payload is one **you** author rather than a provider response — point the track at any URL that serves the shape below. No file extension selects them, so a track whose `data:` is a file path must name the adapter explicitly (`adapter: linegraph`). Unlike the provider-supplied adapters above, these shapes *are* a contract you must produce: a malformed record fails with an error naming the row index and field.
+These adapters also back a semantic `kind`, but the payload is one **you** author rather than a provider response — point the track at any URL or file path serving the JSON shape below, or write it inline with `from: inline`. The `kind` outranks extension inference, so `data: ./depth.json` on a `kind: linegraph` track stays on `linegraph` rather than being read as generic features. Unlike the provider-supplied adapters above, these shapes *are* a contract you must produce: a malformed record fails with an error naming the row index and field.
 
 | Semantic kind | Adapter | Renders with | Inputs | Input shape |
 |---|---|---|---|---|
 | `linegraph` | `linegraph` | `nightingale-linegraph-track` | 1 | Generic bring-your-own-data: a JSON array of `{ position, value }` records (both numbers), validated and emitted as one line-graph series. Not UniProt-specific — for the UniProt variation API keep `variant-counts`. |
+
+The same records can arrive as delimited text. On a track already using one of these kinds, the file extension picks the matching parser — `data: ./depth.csv` on a `kind: linegraph` track parses a `position,value` header, it does not fall back to the feature adapters. (A bare `./x.csv` on a track with no `kind` still means `features-csv`.)
+
+| Extension | Adapter | Same records as | Fetched as | Header row |
+|---|---|---|---|---|
+| `.csv` | `linegraph-csv` | `linegraph` | text | `position,value` |
+| `.tsv` | `linegraph-tsv` | `linegraph` | text | `position,value` |
 
 ## Related
 

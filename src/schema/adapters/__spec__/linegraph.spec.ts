@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { render } from 'lit';
-import { linegraph } from '../linegraph.js';
+import { linegraph, LINE_COLOR } from '../linegraph.js';
 import { createRegistry } from '../../registry.js';
 import { normalizeConfig } from '../../normalize.js';
 import { validateConfig } from '../../validate.js';
 import '../../../protvista-uniprot.js';
 
 describe('linegraph adapter', () => {
-  it('wraps an array of { position, value } records into a single series with range spanning zero', () => {
+  it('wraps an array of { position, value } records into a single series fitted to the data', () => {
     expect(
       linegraph([
         { position: 1, value: 2 },
@@ -17,6 +17,7 @@ describe('linegraph adapter', () => {
     ).toEqual([
       {
         name: 'value',
+        color: LINE_COLOR,
         range: [0, 5],
         values: [
           { position: 1, value: 2 },
@@ -27,17 +28,20 @@ describe('linegraph adapter', () => {
     ]);
   });
 
-  it('drops extra keys from records', () => {
+  // A constant series has no extent of its own; the adapter pads it so d3's
+  // zero-width domain does not pin the line to the track floor.
+  it('drops extra keys from records, padding the single-value range', () => {
     expect(linegraph([{ position: 10, value: 1.5, label: 'x' }])).toEqual([
       {
         name: 'value',
-        range: [0, 1.5],
+        color: LINE_COLOR,
+        range: [0, 3],
         values: [{ position: 10, value: 1.5 }],
       },
     ]);
   });
 
-  it('handles negative values with range spanning zero and preserves input order', () => {
+  it('handles negative values and preserves input order', () => {
     expect(
       linegraph([
         { position: 1, value: -2 },
@@ -46,7 +50,8 @@ describe('linegraph adapter', () => {
     ).toEqual([
       {
         name: 'value',
-        range: [-2, 0],
+        color: LINE_COLOR,
+        range: [-2, -1],
         values: [
           { position: 1, value: -2 },
           { position: 2, value: -1 },
@@ -137,7 +142,8 @@ describe('linegraph adapter', () => {
     ).toEqual([
       {
         name: 'value',
-        range: [0, 5],
+        color: LINE_COLOR,
+        range: [1, 5],
         values: [
           { position: 2, value: 1 },
           { position: 1, value: 5 },
@@ -202,6 +208,42 @@ describe('kind: linegraph end to end', () => {
       url: 'https://example.invalid/api/{accession}/depth',
       adapter: 'linegraph',
     });
+  });
+
+  // Extension inference would otherwise turn `./depth.json` into
+  // `features-json`, which throws on `{ position, value }` rows — the loader
+  // swallows that as a warning, so the track would silently render empty.
+  it.each([
+    ['./depth.json', 'linegraph'],
+    ['https://example.invalid/api/depth.json', 'linegraph'],
+    // A delimited path stays inside the kind's family rather than falling
+    // back to the feature adapters: same records, different file format.
+    ['/data/depth.csv', 'linegraph-csv'],
+    ['./depth.tsv', 'linegraph-tsv'],
+    ['https://example.invalid/api/depth.csv?v=2', 'linegraph-csv'],
+    ['./depth.bed', 'linegraph'],
+  ])('resolves %s to the %s adapter', (url, expected) => {
+    const n = normalizeConfig(
+      { ...config, rows: [{ ...config.rows[0], data: url }] } as any,
+      { registry }
+    );
+    expect(n.rows[0].tracks[0].data[0].adapter).toBe(expected);
+  });
+
+  it('still lets an explicit adapter: override the kind', () => {
+    const n = normalizeConfig(
+      {
+        ...config,
+        rows: [
+          {
+            ...config.rows[0],
+            data: { url: './depth.json', adapter: 'features-json' },
+          },
+        ],
+      } as any,
+      { registry }
+    );
+    expect(n.rows[0].tracks[0].data[0].adapter).toBe('features-json');
   });
 
   it('mounts kind: linegraph data into nightingale-linegraph-track element in the DOM', () => {
