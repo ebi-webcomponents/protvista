@@ -156,7 +156,11 @@ export async function computeDiagnostics(
   const result = validateConfig(parsed, createRegistry());
   return result.issues.map((issue) => ({
     ...locate(text, issue.path),
-    severity: 'error' as const,
+    // An issue's own severity, not a blanket 'error': a warning names
+    // something legal (an explicit `format:` overriding an extension) and
+    // marking it an error in the gutter says the config won't load, which is
+    // false.
+    severity: issue.severity ?? 'error',
     code: issue.code,
     path: issue.path,
     message: issue.path ? `${issue.message} (${issue.path})` : issue.message,

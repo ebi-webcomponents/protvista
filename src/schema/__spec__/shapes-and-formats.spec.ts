@@ -27,7 +27,6 @@ import {
   DATA_FORMAT_NAMES,
   isDataFormat,
   formatForPath,
-  DATA_FILE_FORMATS,
 } from '../file-formats.js';
 import { createRegistry, InvalidSemanticKindError } from '../registry.js';
 import { validateConfig } from '../validate.js';
@@ -77,16 +76,28 @@ describe('shapes', () => {
 });
 
 describe('formats', () => {
-  it('covers exactly the extensions the resolver recognises', () => {
-    const fromFormats = DATA_FORMAT_NAMES.map((n) => DATA_FORMATS[n].ext).sort();
-    expect(fromFormats).toEqual(Object.keys(DATA_FILE_FORMATS).sort());
+  it('claims each extension exactly once', () => {
+    // The resolver looks a path's extension up in this table and nowhere
+    // else, so two formats claiming one extension would make `./x.csv`
+    // resolve by table order.
+    const exts = DATA_FORMAT_NAMES.map((n) => DATA_FORMATS[n].ext);
+    expect(new Set(exts).size).toBe(exts.length);
   });
 
-  it('body type agrees with the extension table', () => {
+  it('resolves every format from its own extension', () => {
     for (const name of DATA_FORMAT_NAMES) {
       const fmt = DATA_FORMATS[name];
-      expect(DATA_FILE_FORMATS[fmt.ext].body, `${name} body`).toBe(fmt.body);
+      expect(formatForPath(`./x${fmt.ext}`), `${name} by extension`).toEqual(
+        fmt
+      );
     }
+  });
+
+  it('refuses to guess a format for an extension no format claims', () => {
+    // An unmapped extension used to fall back to JSON, so a `.gff` file would
+    // be fetched and parsed as JSON instead of being rejected.
+    expect(formatForPath('./x.gff')).toBeUndefined();
+    expect(formatForPath('./x.csv.gz')).toBeUndefined();
   });
 
   it('only BED declares the records it can produce', () => {

@@ -340,35 +340,48 @@ export interface TrackConfig {
    *   - path to a known data file        → { from: file, url: <value> }
    *     (`./x.csv`, `./x.tsv`, `./x.json`, `./x.bed`)
    *
-   * Adapter selection:
+   * How a source is read:
    *
-   *   - an explicit `adapter:` always wins;
-   *   - otherwise the track's `kind` decides — its family member for
-   *     this source's file format (`kind: features` + `./hits.csv` →
-   *     `features-csv`), or its own canonical adapter when the family
-   *     has no member for that format (`kind: alphafold-confidence` +
-   *     `./plddt.json` → `alphafold-prediction-json`). A hosted file
-   *     resolves exactly as the local one does, so a track keeps
-   *     working when you move the file to a server;
-   *   - only on a track with no `kind` at all does the extension alone
-   *     decide: `./x.csv` → `features-csv`, `./x.tsv` →
-   *     `features-tsv`, `./x.json` → `features-json`, `./x.bed` →
-   *     `bed`.
+   * The track's `kind` says what the records *mean* (`kind: variants`
+   * draws variation records); the source says how its bytes are
+   * *encoded*. Nothing has to reconcile the two, because neither names
+   * a parser — the pair selects one:
    *
-   * So the extension picks *within* a kind's family, never away from
-   * it — `kind:` and a file path can't name conflicting adapters, and
-   * a `kind` pointed at a format its family cannot read is a config
-   * validation error (`kind-format-mismatch`) rather than a track that
-   * silently renders empty.
+   *   kind: variants
+   *   data: ./my-variants.csv     # records from the kind, CSV from the path
    *
-   * Generic-format file adapters: CSV, TSV, JSON, and BED all ship today
-   * (`features-csv` / `features-tsv` / `features-json` / `bed`,
-   * pre-registered). For a format not yet covered, register a
-   * custom adapter via `registerAdapter()` and pin it with
-   * `adapter: <name>` on the descriptor.
+   * The encoding is resolved in this order:
+   *
+   *   1. an explicit `adapter:` — a named transform; nothing else is
+   *      consulted;
+   *   2. an explicit `format:` — `csv` | `tsv` | `json` | `bed`;
+   *   3. the resolved URL's extension (`./x.csv`, and equally
+   *      `https://host/x.csv`, so a track keeps working when you move
+   *      the file to a server);
+   *   4. the kind's provider adapter, if it has one — this is what
+   *      reads a formatless UniProt URL;
+   *   5. the kind's own records as JSON, for a kind with no provider
+   *      feed (`linegraph`);
+   *   6. nothing resolves — a config validation error saying so.
+   *
+   * Write `format:` where nothing can infer the encoding: inline text,
+   * a URL with no extension, or a misnamed file (the override is
+   * reported as a warning, not silently obeyed).
+   *
+   * A format that cannot produce the records a kind draws is a config
+   * validation error naming both sides (`kind-format-mismatch`) — BED
+   * carries feature records, so `kind: variants` at a `./x.bed` is
+   * rejected at config time rather than rendering empty. A kind that
+   * reads only its provider's feed (`kind: alphafold-confidence`)
+   * accepts no file at all, and says which kinds do.
+   *
+   * On a track with no `kind`, a stated encoding means feature records
+   * — the one thing `./x.csv` has always meant there.
    *
    * The array form is normalized internally; runtime code always sees
-   * `DataSourceDescriptor[]`.
+   * `DataSourceDescriptor[]`. Several sources feed a multi-input
+   * provider adapter; a descriptor that reads its records through a
+   * format names one source, since a format reads one file at a time.
    */
   data: string | DataSourceDescriptor | DataSourceDescriptor[];
 
@@ -671,20 +684,12 @@ export type ComponentName = KnownComponentName | (string & {});
  * Most authors never name an adapter directly — the semantic `kind`
  * field resolves to one automatically.
  *
- * Generic-format adapters for bring-your-own-data files use the
- * `features-<format>` naming (except `bed`, which keeps its well-known
- * format name). `features-csv`, `features-tsv`, `features-json`, and
- * `bed` all ship today (point a track at `./x.csv` / `./x.tsv` /
- * `./x.json` / `./x.bed`). Authors with a bespoke format still register a
- * custom adapter via `registerAdapter()` and pin it with
+ * Every name below is a *provider* transform: it takes one API's
+ * response shape and nothing else. Bring-your-own-data files need no
+ * adapter at all — a `kind` and an encoding select the reading between
+ * them (see `TrackConfig.data`). Authors with a bespoke format register
+ * a custom adapter via `registerAdapter()` and pin it with
  * `adapter: <name>` on the descriptor.
- *
- * Adapters are grouped into per-kind *families*: a kind's canonical
- * adapter plus the sibling that reads each file format that kind also
- * accepts (`uniprot-features-json` ← `kind: features` → `features-csv`
- * for a `.csv` path; `linegraph` → `linegraph-csv`). `KIND_ADAPTER_VARIANTS`
- * in `./file-formats.ts` holds the mapping, and `TrackConfig.data`
- * documents how a source resolves to one member.
  */
 export type KnownAdapterName =
   | 'uniprot-features-json'

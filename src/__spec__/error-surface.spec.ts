@@ -194,6 +194,50 @@ describe('mount-level error panel — config validation', () => {
     expect(cfg!.bubbles).toBe(true);
   });
 
+  it('surfaces a config warning without blocking the mount', async () => {
+    // A warning names something legal, so the viewer loads — but it still has
+    // to reach a user. Dropped on the valid path, it reached nothing: not the
+    // console, not this event, not the ⚠ badge, not CI. That is the whole
+    // reason warnings are issues rather than `console.warn` calls.
+    const warnSpy = vi
+      .spyOn(console, 'warn')
+      .mockImplementation(() => undefined);
+    const events: ErrorEvent[] = [];
+    const el = mountEl({
+      viewerConfig: {
+        rows: [
+          {
+            id: 'g',
+            tracks: [
+              {
+                id: 'y',
+                kind: 'features',
+                data: { from: 'file', url: './hits.tsv', format: 'csv' },
+              },
+            ],
+          },
+        ],
+      },
+      accession: 'P05067',
+    });
+    el.addEventListener('protvista-error', (e) => events.push(e as ErrorEvent));
+
+    await vi.waitFor(() => {
+      if (!events.some((e) => e.detail.phase === 'config')) {
+        throw new Error('no config event yet');
+      }
+    });
+
+    const cfg = events.find((e) => e.detail.phase === 'config')!;
+    expect(cfg.detail.issues.map((i: { code: string }) => i.code)).toEqual([
+      'format-overrides-extension',
+    ]);
+    expect(warnSpy.mock.calls[0]?.[0]).toContain('1 warning');
+    // Not a mount failure: no panel, and the config is in place.
+    expect(el.querySelector(PANEL)).toBeNull();
+    expect(el.config).toBeDefined();
+  });
+
   it('offers no dismiss control for a fatal config error (nothing to reveal)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const el = mountEl({ viewerConfig: INVALID_CONFIG, accession: 'P05067' });

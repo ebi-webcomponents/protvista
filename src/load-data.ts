@@ -65,10 +65,9 @@ export type AdapterResolver = (name: string) => AdapterFn | undefined;
 
 /**
  * Fetch a single URL. `responseType` tells the fetcher how to read the
- * body: `'json'` for API responses (the default for every UniProt/AlphaFold
- * source) and for the JSON-body bring-your-own-data file adapter
- * (`features-json`), `'text'` for delimited bring-your-own-data files
- * (`features-csv` / `features-tsv` / `bed`) whose adapters parse raw text.
+ * body, and comes straight off the source's format: `'text'` for the
+ * delimited formats (CSV / TSV / BED), which the decoder parses itself, and
+ * `'json'` for everything else — JSON files and every provider response.
  */
 type FetchOne = (
   url: string,
@@ -194,19 +193,39 @@ function isRenderedRepresentation(payload: unknown): boolean {
  *
  * A payload already in the renderer's representation is passed through, so the
  * previously-documented `setTrackData()` contract keeps working.
+ *
+ * The descriptor's `format:` is honoured here exactly as it is for a fetched
+ * body. Inline text is the case `format:` was introduced for — there is no
+ * extension to read it off and no content sniffing — so ignoring it here would
+ * make the one remedy the validator recommends a no-op.
  */
 async function adaptAuthoredRecords(
   payload: unknown,
   track: NormalizedTrack
 ): Promise<unknown> {
-  const shape = track.data[0]?.shape;
-  // No shape means no record contract to hold the payload to; a shape that
-  // does not wrap means the records *are* the representation, and running
-  // them through a validator would only strip fields a `dataTooltip` may
-  // reference.
-  if (shape === undefined || !SHAPES[shape].wraps) return payload;
+  const source = track.data[0];
+  const shape = source?.shape;
+  // No shape means no record contract to hold the payload to.
+  if (shape === undefined) return payload;
+
+  // A delimited format needs a string to decode. A payload that is already
+  // structured (a `setTrackData()` record array on a descriptor that also
+  // carries a `format:`) is read as what it is rather than warned away to an
+  // empty track.
+  const declared = source?.format ?? 'json';
+  const format =
+    DATA_FORMATS[declared].body === 'text' && typeof payload !== 'string'
+      ? 'json'
+      : declared;
+
+  // A shape that does not wrap means JSON records *are* the representation,
+  // and running them through a validator would only strip fields a
+  // `dataTooltip` may reference. Encoded text still has to be decoded — the
+  // raw string is no one's representation.
+  if (format === 'json' && !SHAPES[shape].wraps) return payload;
   if (isRenderedRepresentation(payload)) return payload;
-  return runPipeline(shape, 'json', payload);
+  // No `source`, so a parse error reads "inline data (parsed as CSV): …".
+  return runPipeline(shape, format, payload);
 }
 
 /**

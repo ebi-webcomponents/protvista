@@ -12,17 +12,14 @@
  * bytes ──decode(format)──▶ records ──build(shape)──▶ what the component renders
  * ```
  *
- * Phase 2 of the refactor (see "Shape and format (normative)" in
- * `specs/config-approach.md`): this module exists and is proven to agree with
- * the grid adapter for every (shape, format) pair, but nothing resolves
- * through it yet. `pipeline-agreement.spec.ts` is that proof, and it is what
- * makes the switch-over in phase 3 a change of mechanism rather than of
- * behaviour.
+ * Every source resolves through here — a fetched body, an inline block, a
+ * `setTrackData()` payload — so one file read one way cannot come out two
+ * different ways depending on where it entered. See "Shape and format
+ * (normative)" in `specs/config-approach.md`.
  *
- * `formatLabel` is threaded through rather than derived so the error text can
- * stay byte-identical to the grid's during the transition — the agreement
- * tests compare thrown messages, not just happy-path output. Choosing the
- * post-deletion wording is a phase-3 decision.
+ * `formatLabel` is threaded through rather than derived so a caller can name
+ * the input in the author's own terms: the file path they wrote, or "inline
+ * data" when there is no path to name.
  */
 
 import type { DataFormat, ShapeName } from '../types.js';

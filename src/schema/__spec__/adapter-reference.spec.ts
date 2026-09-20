@@ -8,7 +8,7 @@
  *   - domain linkage: every entry's kind resolves (via the registry) to
  *     that entry's own adapter + component;
  *   - generic accuracy: documented header columns match the parser's
- *     `REQUIRED_COLUMNS`, and ext/body match `DATA_FILE_FORMATS`;
+ *     `REQUIRED_COLUMNS`, and ext/body match `DATA_FORMATS`;
  *   - fixture drift: the shipped `examples/csv` payload matches the doc,
  *     and the real adapter emits only documented fields.
  */
@@ -28,9 +28,9 @@ import {
   VARIATION_COLUMNS,
 } from '../adapters/dsv.js';
 import {
-  DATA_FILE_FORMATS,
   DATA_FORMATS,
   DATA_FORMAT_NAMES,
+  formatForPath,
 } from '../file-formats.js';
 import { SHAPES, SHAPE_NAMES } from '../shapes.js';
 import { createRegistry } from '../registry.js';
@@ -143,8 +143,9 @@ describe('the reference documents the vocabulary authors actually write', () => 
   it('every format maps to an extension the resolver recognises', () => {
     for (const name of DATA_FORMAT_NAMES) {
       const fmt = DATA_FORMATS[name];
-      expect(DATA_FILE_FORMATS[fmt.ext], `${name} has no extension row`).toBeDefined();
-      expect(DATA_FILE_FORMATS[fmt.ext].body).toBe(fmt.body);
+      const resolved = formatForPath(`./x${fmt.ext}`);
+      expect(resolved, `${name} has no extension the resolver reads`).toBeDefined();
+      expect(resolved?.body).toBe(fmt.body);
     }
   });
 

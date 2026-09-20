@@ -556,16 +556,28 @@ function resolveStringShorthand(
   return { from: 'url', source: value };
 }
 
+/**
+ * The `from` a descriptor resolves to, including the spec's default:
+ * `"inline"` when `inlineData` is set, otherwise `"url"` (the common case).
+ *
+ * Exported because the validator needs the same answer. Checks written against
+ * the literal `d.from` silently skip the shorthand form — `missing-format` did
+ * exactly that, letting `{ inlineData: "<text>" }` through config time and
+ * failing it at load time instead.
+ */
+export function descriptorFrom(
+  d: DataSourceDescriptor
+): NormalizedDataSource['from'] {
+  return d.from ?? (d.inlineData !== undefined ? 'inline' : 'url');
+}
+
 function expandDescriptor(
   d: DataSourceDescriptor,
   kindAdapter: AdapterName | undefined,
   kindShape: ShapeName | undefined,
   sources: Record<string, string>
 ): NormalizedDataSource {
-  // Default `from` per the spec: `"inline"` if `inlineData` is set,
-  // otherwise `"url"` (the most common case).
-  const from: NormalizedDataSource['from'] =
-    d.from ?? (d.inlineData !== undefined ? 'inline' : 'url');
+  const from = descriptorFrom(d);
 
   // Resolve `source:` to concrete URL(s) via the sources map. Both
   // fields stay on the descriptor so the validator can still produce
@@ -597,8 +609,12 @@ function expandDescriptor(
   const extFormat =
     typeof resolvedUrl === 'string' ? formatForPath(resolvedUrl) : undefined;
   // A track with no `kind` at all has no shape to validate against, so a
-  // known extension means the feature record — the one thing `./x.csv` has
-  // always meant on a kindless track.
+  // stated encoding — a known extension, or an explicit `format:` on an
+  // extensionless URL — means the feature record, the one thing `./x.csv` has
+  // always meant on a kindless track. Both spellings resolve the same way:
+  // `format:` exists to stand in for an extension that isn't there, so a
+  // kindless track that honoured one and dropped the other would disagree
+  // with itself about the same file.
   //
   // Deliberately *not* extended to a kind that declares no shape: a
   // provider-only kind pointed at a file must stay on its own adapter and be
@@ -607,8 +623,9 @@ function expandDescriptor(
   // removed (`kind: alphafold-confidence` + `./plddt.json` reading as
   // feature records).
   const hasKind = kindAdapter !== undefined || kindShape !== undefined;
+  const statesEncoding = d.format !== undefined || extFormat !== undefined;
   const effectiveShape: ShapeName | undefined =
-    shape ?? (!hasKind && extFormat !== undefined ? 'feature' : undefined);
+    shape ?? (!hasKind && statesEncoding ? 'feature' : undefined);
 
   let format: DataFormat | undefined;
   let adapter: AdapterName | undefined;

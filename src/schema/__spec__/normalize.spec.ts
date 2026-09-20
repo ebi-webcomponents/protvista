@@ -673,6 +673,20 @@ describe('normalizeConfig — shape and format', () => {
     ).toBe('feature/csv');
   });
 
+  it('reads an explicit format on a kindless track the same way', () => {
+    // `format:` stands in for an extension that isn't there, so a kindless
+    // track that honoured `./x.csv` and dropped `format: csv` would disagree
+    // with itself about the same file — and the second spelling was silently
+    // fetched as JSON.
+    expect(
+      resolve({
+        id: 't',
+        component: 'nightingale-track-canvas',
+        data: { from: 'url', url: 'https://lab.test/api/feats', format: 'csv' },
+      })
+    ).toBe('feature/csv');
+  });
+
   it('lets an explicit adapter override the kind family', () => {
     expect(
       resolve({

@@ -2,13 +2,14 @@
  * `loadProtvistaData` — bring-your-own-file (`from: file`) loading path.
  *
  * A `data: "./x.csv"` shorthand normalises to `{ from: 'file', url:
- * './x.csv', adapter: 'features-csv' }`. This pins the two things that
- * make it render end-to-end:
+ * './x.csv', format: 'csv' }` — the extension states the encoding, and the
+ * track's `kind` states the records. This pins the two things that make it
+ * render end-to-end:
  *
  *   • the loader fetches the file's URL with `responseType: 'text'` (so
- *     the delimited body reaches the adapter as raw text, not parsed
+ *     the delimited body reaches the decoder as raw text, not parsed
  *     JSON), while ordinary API tracks still fetch as `'json'`;
- *   • the adapter's feature records land on the track's data slot.
+ *   • the decoded feature records land on the track's data slot.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -37,7 +38,7 @@ const adapters: AdapterMap = {
 };
 const resolveAdapter = (name: string) => adapters[name];
 
-describe('loadProtvistaData — from: file (features-csv)', () => {
+describe('loadProtvistaData — from: file (CSV)', () => {
   it('fetches the file as text and lands the adapter output on the track slot', async () => {
     const config = await loadConfig({
       rows: [

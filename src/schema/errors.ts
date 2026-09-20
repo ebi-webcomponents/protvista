@@ -97,6 +97,13 @@ export type ValidationIssueCode =
    * resolved by guessing.
    */
   | 'missing-format'
+  /**
+   * One data descriptor lists several sources but reads them through a
+   * format (`url: ['./a.csv', './b.csv']`). A format decodes one body, so
+   * only the first would be read. Several sources belong to a multi-input
+   * provider adapter, named with an explicit `adapter:`.
+   */
+  | 'multi-source-format'
   // ── Extends resolution ─────────────────────────────────
   /** The `extends` chain forms a cycle (a → b → a). */
   | 'circular-extends'

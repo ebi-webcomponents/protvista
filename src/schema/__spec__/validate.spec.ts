@@ -241,6 +241,32 @@ describe('validateConfig — unknown adapter / kind / component', () => {
     expect(issue!.message).toContain('registerSemanticKind()');
   });
 
+  it.each([
+    ['confidence-score', 'alphafold-confidence'],
+    ['pathogenicity-score', 'alphamissense-pathogenicity'],
+    ['pathogenicity-heatmap', 'alphamissense-heatmap'],
+    ['features-interpro', 'interpro-features'],
+  ])('points %s at its new name', (written, renamed) => {
+    // Kinds are the author-facing vocabulary this rename touched, so a config
+    // written against the old names deserves the same pointed hint a removed
+    // adapter name gets — not just an alphabetical list to search.
+    const cfg = {
+      rows: [
+        {
+          id: 'X',
+          tracks: [
+            { id: 'y', kind: written, data: { url: 'https://example.org/x' } },
+          ],
+        },
+      ],
+    } as ProtvistaViewerConfig;
+    const issue = issueByCode(
+      validateConfig(cfg, freshRegistry()).issues,
+      'unknown-semantic-kind'
+    );
+    expect(issue!.message).toContain(`Renamed to '${renamed}'`);
+  });
+
   it('flags an unknown `component` on a track', () => {
     const cfg: ProtvistaViewerConfig = {
       rows: [
@@ -625,6 +651,99 @@ describe('validateConfig — kind vs file format', () => {
     const issue = result.issues.find((i) => i.code === 'missing-format');
     expect(issue?.message).toContain("no 'format' says how to read it");
     expect(result.valid).toBe(false);
+  });
+
+  it('rejects inline text written in the shorthand form too', () => {
+    // `from:` defaults to `inline` whenever `inlineData` is set, and that is
+    // the form most authors write. Keying the check on the literal `from:`
+    // let this config through validation and failed it at load time — the
+    // one place the diagnostic exists to pre-empt.
+    const result = validateConfig(
+      withData('linegraph', { inlineData: 'position,value\n1,412\n' }),
+      freshRegistry()
+    );
+    const issue = result.issues.find((i) => i.code === 'missing-format');
+    expect(issue?.message).toContain("no 'format' says how to read it");
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects inline text on a track with no kind at all', () => {
+    const result = validateConfig(
+      {
+        rows: [
+          {
+            id: 'X',
+            tracks: [
+              {
+                id: 'y',
+                component: 'nightingale-track-canvas',
+                data: { inlineData: 'type,start,end,description\nA,1,2,x\n' },
+              },
+            ],
+          },
+        ],
+      } as ProtvistaViewerConfig,
+      freshRegistry()
+    );
+    expect(
+      result.issues.some((i) => i.code === 'missing-format')
+    ).toBe(true);
+  });
+
+  it('accepts inline records written as a list', () => {
+    // Only *text* needs a format; a list is already decoded.
+    const result = validateConfig(
+      withData('linegraph', { inlineData: [{ position: 1, value: 412 }] }),
+      freshRegistry()
+    );
+    expect(result.issues.filter((i) => i.code === 'missing-format')).toEqual([]);
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects several sources read through a format', () => {
+    // A format decodes one body: `runPipeline` takes one and the loader drops
+    // the rest. This used to resolve to the kind's provider adapter and fetch
+    // both files as JSON, with nothing said about it.
+    const result = validateConfig(
+      withData('features', { from: 'file', url: ['./a.csv', './b.csv'] }),
+      freshRegistry()
+    );
+    const issue = result.issues.find((i) => i.code === 'multi-source-format');
+    expect(issue?.message).toBe(
+      'Track X/y lists 2 sources, but reads them as CSV records. A format ' +
+        'reads one file at a time. Use one source per track, or set an ' +
+        "explicit 'adapter:' that takes several responses."
+    );
+    expect(result.valid).toBe(false);
+  });
+
+  it('leaves a multi-input provider adapter alone', () => {
+    // The three shipped AlphaFold/AlphaMissense tracks name two sources on
+    // purpose — their adapters take two responses.
+    const result = validateConfig(
+      withData('alphafold-confidence', { source: ['af', 'proteins'] }, {
+        af: 'https://af.test/{accession}',
+        proteins: 'https://ebi.test/{accession}',
+      }),
+      freshRegistry()
+    );
+    expect(
+      result.issues.filter((i) => i.code === 'multi-source-format')
+    ).toEqual([]);
+  });
+
+  it('accepts several sources behind an explicit adapter', () => {
+    const result = validateConfig(
+      withData('features', {
+        from: 'file',
+        url: ['./a.csv', './b.csv'],
+        adapter: 'uniprot-features-json',
+      }),
+      freshRegistry()
+    );
+    expect(
+      result.issues.filter((i) => i.code === 'multi-source-format')
+    ).toEqual([]);
   });
 
   it('accepts a mismatch the author resolved with an explicit adapter', () => {

@@ -1,41 +1,31 @@
 /**
- * Single source of truth mapping a data file's extension to the built-in
- * adapter that parses it and how its HTTP body must be read.
+ * Single source of truth for the formats a source's bytes can be in: the
+ * extension that implies each one, and how its HTTP body must be read.
  *
  * Three consumers share this table so they can never disagree about what
  * `./x.csv` means:
- *   - `normalize.ts` — infers the adapter for a file-path `data:` shorthand.
+ *   - `normalize.ts` — reads the format off a file-path `data:` shorthand.
  *   - `validate.ts`  — recognises a file-path shorthand as valid (rather
- *     than reporting "Unknown source key").
+ *     than reporting "Unknown source key"), and checks a declared `format:`
+ *     against the records the track's `kind` draws.
  *   - `load-data.ts` — decides whether to read a track's response as text
  *     (delimited formats) or JSON.
  *
- * To add a format: add one row below and register the adapter in
- * `adapters/index.ts` and the runtime `adapters` map in
- * `protvista-uniprot.ts`. Nothing else here needs to change —
- * `body: 'json'` vs `'text'` already distinguishes a JSON payload
- * (`features-json`) from delimited text (`bed`).
+ * A format is half of the pair that replaced the `<shape>-<format>` adapter
+ * grid: it says how the bytes are encoded, while the track's `kind` says what
+ * the records mean. Neither can override the other, so a `kind:` and a file
+ * extension need no precedence rule between them — see "Shape and format
+ * (normative)" in `specs/config-approach.md`.
  *
- * This table is consulted only for a track with no `kind:`. A kind-addressed
- * track resolves its adapter through the kind's own family — see
- * {@link KIND_ADAPTER_VARIANTS} — so a `kind:` and a file extension can never
- * name two different adapters and need no precedence rule between them.
+ * To add a format: add one row below and a decoder branch in
+ * `adapters/pipeline.ts`. Nothing else needs to change.
  */
 
 import type { DataFormat } from './types.js';
 import type { ShapeName } from './shapes.js';
 
-export interface DataFileFormat {
-  /** The lower-cased extension including the dot, e.g. `.csv`. */
-  ext: string;
-  /** How the fetched response body must be read before decoding. */
-  body: 'text' | 'json';
-}
-
 /**
- * Formats — *how* a source's bytes are encoded. The other half of the pair
- * that replaces the `<shape>-<format>` adapter grid (see "Shape and format
- * (normative)" in `specs/config-approach.md`).
+ * One format — *how* a source's bytes are encoded.
  *
  * A format says nothing about what the records mean. `bed` is the exception,
  * and declares it: the format carries feature semantics (0-based half-open,
@@ -72,34 +62,23 @@ export function isDataFormat(value: string): value is DataFormat {
   return Object.prototype.hasOwnProperty.call(DATA_FORMATS, value);
 }
 
-/** The format a path's extension implies, or `undefined`. */
-export function formatForPath(value: string): FormatDefinition | undefined {
-  const fmt = dataFileFormatForPath(value);
-  return fmt === undefined ? undefined : DATA_FORMATS[extFormatName(fmt.ext)];
-}
-
-function extFormatName(ext: string): DataFormat {
-  return (DATA_FORMAT_NAMES.find((n) => DATA_FORMATS[n].ext === ext) ??
-    'json') as DataFormat;
-}
-
-/** Extension → format descriptor. Keys are lower-case, dot-prefixed. */
-export const DATA_FILE_FORMATS: Record<string, DataFileFormat> = {
-  '.csv': { ext: '.csv', body: 'text' },
-  '.tsv': { ext: '.tsv', body: 'text' },
-  '.json': { ext: '.json', body: 'json' },
-  '.bed': { ext: '.bed', body: 'text' },
-};
+/** Extension → format, derived from the table above so the two cannot drift. */
+const BY_EXTENSION: ReadonlyMap<string, FormatDefinition> = new Map(
+  DATA_FORMAT_NAMES.map((n) => [DATA_FORMATS[n].ext, DATA_FORMATS[n]])
+);
 
 /**
- * If `value` looks like a path to a known data file, return its format
- * descriptor; otherwise `undefined`. Query string and hash fragment are
- * stripped and the extension is matched case-insensitively, so
- * `./hits.CSV` and `https://host/x.csv?v=2` both resolve.
+ * The format a path's extension implies, or `undefined`.
+ *
+ * Query string and hash fragment are stripped and the extension is matched
+ * case-insensitively, so `./hits.CSV` and `https://host/x.csv?v=2` both
+ * resolve. An extension no format claims returns `undefined` rather than a
+ * default — a guessed format is a file read the wrong way with nothing to
+ * point at.
  */
-export function dataFileFormatForPath(value: string): DataFileFormat | undefined {
+export function formatForPath(value: string): FormatDefinition | undefined {
   const path = value.split(/[?#]/, 1)[0];
   const dot = path.lastIndexOf('.');
   if (dot === -1) return undefined;
-  return DATA_FILE_FORMATS[path.slice(dot).toLowerCase()];
+  return BY_EXTENSION.get(path.slice(dot).toLowerCase());
 }

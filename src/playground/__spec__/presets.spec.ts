@@ -25,21 +25,26 @@ const docPages = (): [string, string][] =>
     .map((f) => [join(DOCS_DIR, f), readFileSync(join(DOCS_DIR, f), 'utf8')]);
 
 /**
- * The `extend-uniprot` preset's `extends:` is a jsDelivr URL, which is not
- * fetched in CI. Mirror `starter-kit.spec.ts`: substitute this repo's
- * `src/default-config.yaml` — the same text the build copies verbatim to the
- * `dist/` file jsDelivr serves — so the seed loads offline. Presets without an
- * `extends:` never invoke this fetcher.
+ * The `extend-uniprot` preset's `extends:` is a URL the docs site serves and
+ * the element fetches at render time, which CI does not do. Serve it here from
+ * `src/default-config.yaml` — the one file
+ * `docs/src/pages/default-config.yaml.ts` generates that endpoint from, so the
+ * substitution is the same bytes rather than an assumption about them.
+ *
+ * That assumption is what this fetcher used to make: it substituted this
+ * config for a *jsDelivr* URL on the grounds that the published copy was "the
+ * same text". After the kind vocabulary was renamed it no longer was, so the
+ * preset passed here and failed in the browser with four unknown-kind errors.
+ * Hence `SERVED_BASE_CONFIG` below, which pins the target to something this
+ * repo actually controls.
+ *
+ * Presets without an `extends:` never invoke this fetcher.
  */
+const SERVED_BASE_CONFIG = '/protvista/default-config.yaml';
+
 const extendsFetcher = async (ref: string): Promise<string> => {
-  if (/^https?:\/\//i.test(ref)) {
-    expect(
-      ref.endsWith('/dist/default-config.yaml'),
-      `unexpected remote extends target: ${ref}`
-    ).toBe(true);
-    return defaultConfigYaml;
-  }
-  throw new Error(`unexpected local extends target: ${ref}`);
+  if (ref === SERVED_BASE_CONFIG) return defaultConfigYaml;
+  throw new Error(`unexpected extends target: ${ref}`);
 };
 
 describe('presets', () => {
@@ -80,21 +85,54 @@ describe('presets', () => {
     }
   });
 
-  it('the extend-uniprot preset extends a tag, not an exact version', () => {
-    // The recipe ships pinned to this package's version, which is bumped in
-    // the release commit and published minutes-to-days later. The docs site
-    // deploys from `next` on every push, so a pinned playground preset spends
-    // that window fetching a release npm does not have yet. See
-    // `withPublishedExtends` in presets.ts.
+  it('the extend-uniprot preset extends the config this commit ships', () => {
+    // The recipe ships pinned to this package's version, published
+    // minutes-to-days after the release commit; the docs site deploys from
+    // `next` on every push. So any *published* base config is one from another
+    // commit — fine while that only meant drift, fatal once a vocabulary
+    // rename made the published copy invalid against this build. The preset
+    // therefore extends what this site serves. See `withServedExtends`.
     const config = getPreset('extend-uniprot')!.config;
-    expect(config).toContain(
-      'extends: https://cdn.jsdelivr.net/npm/protvista-uniprot@beta/dist/default-config.yaml'
-    );
-    expect(config).not.toMatch(/protvista-uniprot@\d/);
+    expect(config).toContain(`extends: ${SERVED_BASE_CONFIG}`);
+    // No published artefact is named: neither an exact pin nor a dist-tag.
+    expect(config).not.toMatch(/protvista-uniprot@/);
+    expect(config).not.toMatch(/extends:[^\n]*cdn\./);
     // And it repoints a requoted recipe cleanly: an unbalanced quote would
     // leave `extends: https://...yaml"`, a plain scalar whose trailing quote
     // is fetched as `.yaml%22`.
     expect(config).not.toMatch(/extends:[^\n]*["']/);
+  });
+
+  it('the served base config is generated from the shipped one', () => {
+    // The endpoint the preset extends must serve this repo's own config, not
+    // a copy of it. A copy is what the jsDelivr arrangement amounted to and it
+    // went stale silently; a file under `docs/public/` would do the same.
+    //
+    // Asserted on the endpoint's source because it lives outside this
+    // package's `rootDir` and so cannot be imported here: what matters is
+    // that it re-exports the canonical YAML rather than restating it.
+    const endpoint = readFileSync(
+      join('docs', 'src', 'pages', 'default-config.yaml.ts'),
+      'utf8'
+    );
+    expect(endpoint).toMatch(
+      /import\s+\w+\s+from\s+['"][^'"]*\/src\/default-config\.yaml\?raw['"]/
+    );
+    expect(endpoint).toMatch(/new Response\(\s*\w+/);
+  });
+
+  it('every kind the served base config uses is registered', async () => {
+    // The invariant that actually broke: the base config the playground
+    // extends has to speak this build's vocabulary. Asserted against the
+    // registry rather than a name list so a future rename fails here first.
+    const registry = createRegistry();
+    const kinds = [
+      ...defaultConfigYaml.matchAll(/^\s*kind:\s*([\w-]+)/gm),
+    ].map(([, k]) => k);
+    expect(kinds.length).toBeGreaterThan(5);
+    expect(
+      [...new Set(kinds)].filter((k) => !registry.hasSemanticKind(k))
+    ).toEqual([]);
   });
 
   it('every playground link in the docs names a preset that exists', () => {

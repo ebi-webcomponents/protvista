@@ -49,7 +49,7 @@ import type { ProtvistaViewerConfig } from './types.js';
 import { type Registry, createRegistry } from './registry.js';
 import { validateConfig } from './validate.js';
 import { normalizeConfig, type NormalizedConfig } from './normalize.js';
-import { ConfigValidationError } from './errors.js';
+import { ConfigValidationError, type ValidationIssue } from './errors.js';
 import { parseConfigText, type ParseFormat } from './parse.js';
 import {
   mergeExtends,
@@ -129,6 +129,9 @@ export interface LoadConfigOptions {
  *   - A **JSON string** — parsed via `JSON.parse`.
  *   - A **YAML string** — parsed via `js-yaml` (lazy-loaded).
  *
+ * Warnings — issues on a config that still validates — are dropped by this
+ * entry point. Use `loadConfigWithSource` to see them.
+ *
  * @throws `SyntaxError` if the string cannot be parsed.
  * @throws `ConfigValidationError` if the parsed object does not
  *   validate. The error carries a full `issues[]` array.
@@ -157,6 +160,16 @@ export interface LoadedConfig {
    * rather than ballooning into a fully-explicit dump.
    */
   authored: ProtvistaViewerConfig;
+  /**
+   * Issues the validator raised on a config it nonetheless accepted — the
+   * warnings, since an error would have thrown.
+   *
+   * Returned rather than logged because a warning that only reaches the
+   * console reaches nothing that matters: not the `protvista-error` event,
+   * not the ⚠ badge, not CI. The caller decides which of those to feed; the
+   * element feeds all three through its own reporter.
+   */
+  issues: ValidationIssue[];
 }
 
 /**
@@ -198,7 +211,11 @@ export async function loadConfigWithSource(
   // schema, so the cast below is sound. TypeScript's inability to
   // narrow from `ValidationResult` to the config type is expected.
   const authored = withAccession as ProtvistaViewerConfig;
-  return { config: normalizeConfig(authored, { registry }), authored };
+  return {
+    config: normalizeConfig(authored, { registry }),
+    authored,
+    issues: result.issues,
+  };
 }
 
 /**

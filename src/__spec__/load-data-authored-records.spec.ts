@@ -20,7 +20,7 @@ import { loadProtvistaData } from '../load-data.js';
 import { createRegistry } from '../schema/registry.js';
 import { normalizeConfig } from '../schema/normalize.js';
 import { SHAPES, SHAPE_NAMES } from '../schema/shapes.js';
-import type { ProtvistaViewerConfig } from '../schema/types.js';
+import type { DataFormat, ProtvistaViewerConfig } from '../schema/types.js';
 import '../protvista-uniprot.js';
 
 const registry = () => createRegistry();
@@ -181,6 +181,112 @@ describe('payloads that need no adapting are left alone', () => {
     const payload = [{ anything: true }];
     const { data } = await loadCustom('alphafold-confidence', payload);
     expect(data['G-t']).toMatchObject([{ anything: true }]);
+  });
+});
+
+describe('inline text is read the way its format says', () => {
+  // Inline text is the case `format:` exists for — there is no extension to
+  // read an encoding off and no content sniffing. Ignoring it here made the
+  // remedy the validator recommends a no-op: a wrapping shape failed with
+  // "expected an array of records; got string", and a non-wrapping shape
+  // handed the raw CSV *string* to the component with no error at all.
+  const inlineText = (
+    kind: string,
+    inlineData: string,
+    format: DataFormat
+  ): ProtvistaViewerConfig => ({
+    accession: 'P05067',
+    rows: [
+      {
+        id: 'G',
+        tracks: [
+          { id: 't', kind, data: { from: 'inline', inlineData, format } },
+        ],
+      },
+    ],
+  });
+
+  it('decodes inline CSV into the series a wrapping kind draws', async () => {
+    const { data, hasData } = await load(
+      inlineText('linegraph', 'position,value\n1,5\n2,7\n', 'csv')
+    );
+    const series = (data['G-t'] as Array<{ values: unknown[] }>)[0];
+    expect(series.values).toEqual([
+      { position: 1, value: 5 },
+      { position: 2, value: 7 },
+    ]);
+    expect(hasData).toBe(true);
+  });
+
+  it('decodes inline CSV into records for a non-wrapping kind', async () => {
+    const { data } = await load(
+      inlineText(
+        'features',
+        'type,start,end,description\nDOMAIN,1,9,kinase\n',
+        'csv'
+      )
+    );
+    expect(data['G-t']).toMatchObject([
+      { type: 'DOMAIN', start: 1, end: 9, description: 'kinase' },
+    ]);
+  });
+
+  it('decodes inline TSV and inline BED the same way', async () => {
+    const { data: tsv } = await load(
+      inlineText('variants', 'position\tvariant\n42\tK\n', 'tsv')
+    );
+    expect((tsv['G-t'] as { variants: unknown[] }).variants).toHaveLength(1);
+
+    const { data: bed } = await load(
+      inlineText('features', 'chr1\t100\t200\tregion\n', 'bed')
+    );
+    expect(bed['G-t']).toMatchObject([{ start: 101, end: 200 }]);
+  });
+
+  it('names the inline body and its reading in a parse error', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { data } = await load(
+      inlineText('linegraph', 'position,value\n1,abc\n', 'csv')
+    );
+    expect(data['G-t']).toBeUndefined();
+    expect(warn.mock.calls.flat().join(' ')).toMatch(
+      /inline data \(parsed as CSV\)/
+    );
+    vi.restoreAllMocks();
+  });
+
+  it('reads a structured payload as records even under a text format', async () => {
+    // `setTrackData()` with the published record contract keeps working on a
+    // descriptor that also declares a text format — the payload is already
+    // decoded, so there is nothing to parse.
+    const r = registry();
+    const { data } = await loadProtvistaData(
+      'P05067',
+      normalizeConfig(
+        {
+          accession: 'P05067',
+          rows: [
+            {
+              id: 'G',
+              tracks: [
+                {
+                  id: 't',
+                  kind: 'linegraph',
+                  data: { from: 'custom', format: 'csv' },
+                },
+              ],
+            },
+          ],
+        },
+        { registry: r }
+      ),
+      noFetch,
+      (name) => r.getAdapter(name),
+      { 'G-t': [{ position: 1, value: 412 }] }
+    );
+    expect(
+      (data['G-t'] as Array<{ values: unknown[] }>)[0].values
+    ).toEqual([{ position: 1, value: 412 }]);
   });
 });
 

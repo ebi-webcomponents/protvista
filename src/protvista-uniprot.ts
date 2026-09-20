@@ -888,11 +888,10 @@ class ProtvistaUniprot extends LitElement {
           fetchErrors.set(url, { url, kind: 'http', status: response.status });
           return null;
         }
-        // Delimited generic-format bodies (features-csv / features-tsv / bed)
-        // are handed to their adapter as raw text; everything else — including
-        // the JSON-body generic-format adapter (features-json) — is parsed
-        // as JSON. `response.text()` does not reject on content, so the
-        // parse-failure branch below only guards the JSON path.
+        // Delimited bodies (CSV / TSV / BED) reach their decoder as raw text;
+        // everything else — JSON files included — is parsed as JSON.
+        // `response.text()` does not reject on content, so the parse-failure
+        // branch below only guards the JSON path.
         if (responseType === 'text') {
           try {
             return await response.text();
@@ -1346,7 +1345,23 @@ class ProtvistaUniprot extends LitElement {
   async _init() {
     if (!this.config) {
       try {
-        this._applyConfig(await this.resolveViewerConfig());
+        const loaded = await this.resolveViewerConfig();
+        this._applyConfig(loaded);
+        // Issues on a config that still validated — warnings. Reported
+        // through the same seam as a failure so they reach the
+        // `protvista-error` event and, under `strict`, the panel. A
+        // console-only warning would reach neither, which is the whole
+        // reason warnings are issues and not `console.warn` calls.
+        if (loaded.issues.length > 0) {
+          const n = loaded.issues.length;
+          this.reportError('config', {
+            consoleLevel: 'warn',
+            message: `[protvista-uniprot] Config loaded with ${n} warning${n === 1 ? '' : 's'}.`,
+            consoleArgs: [loaded.issues.map((i) => `${i.path}: ${i.message}`)],
+            issues: loaded.issues,
+            panelSummary: `Config loaded with ${n} warning${n === 1 ? '' : 's'}`,
+          });
+        }
       } catch (err) {
         // Validation / parse errors are surfaced on the console so
         // authors see the full `ConfigValidationError.issues[]` list

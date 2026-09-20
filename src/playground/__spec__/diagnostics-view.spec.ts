@@ -32,6 +32,32 @@ describe('createDiagnosticsView', () => {
     );
   });
 
+  it('showConfig: a warning is listed but leaves the config valid', () => {
+    // A warning must not hold the preview back — `valid` gates whether Run
+    // mounts `<protvista-uniprot>`, and a config with only warnings loads.
+    const view = createDiagnosticsView(summary, list);
+    const valid = view.showConfig([
+      {
+        message: 'read as CSV',
+        code: 'format-overrides-extension',
+        severity: 'warning',
+      },
+    ]);
+    expect(valid).toBe(true);
+    expect(summary.textContent).toBe('1 warning — config is valid.');
+    expect((list.children[0] as HTMLElement).dataset.severity).toBe('warning');
+  });
+
+  it('showConfig: one error among warnings still invalidates', () => {
+    const view = createDiagnosticsView(summary, list);
+    const valid = view.showConfig([
+      { message: 'read as CSV', code: 'x', severity: 'warning' },
+      { message: 'bad kind', code: 'unknown-semantic-kind' },
+    ]);
+    expect(valid).toBe(false);
+    expect(summary.textContent).toBe('2 problems found:');
+  });
+
   it('appendRuntime: appends issues with a phase prefix and updates the count', () => {
     const view = createDiagnosticsView(summary, list);
     view.showConfig([]);

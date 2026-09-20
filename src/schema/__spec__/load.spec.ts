@@ -18,7 +18,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { loadConfig } from '../load.js';
+import { loadConfig, loadConfigWithSource } from '../load.js';
 import { ConfigValidationError } from '../errors.js';
 import { createRegistry } from '../registry.js';
 
@@ -223,5 +223,42 @@ describe('loadConfig — invalid input type', () => {
 
   it('throws TypeError on null input', async () => {
     await expect(loadConfig(null as unknown)).rejects.toThrow(TypeError);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Warnings on a config that still loads
+// ─────────────────────────────────────────────────────────────
+
+describe('loadConfigWithSource — warnings', () => {
+  const overridingConfig = {
+    accession: 'P05067',
+    rows: [
+      {
+        id: 'X',
+        tracks: [
+          {
+            id: 'y',
+            kind: 'features',
+            data: { from: 'file', url: './hits.tsv', format: 'csv' },
+          },
+        ],
+      },
+    ],
+  };
+
+  it('returns the issues a valid config still raised', async () => {
+    // Warnings used to be dropped here, so nothing downstream could reach
+    // them: not the console, not `protvista-error`, not the ⚠ badge, not CI.
+    const loaded = await loadConfigWithSource(overridingConfig);
+    expect(loaded.issues.map((i) => i.code)).toEqual([
+      'format-overrides-extension',
+    ]);
+    expect(loaded.issues[0].severity).toBe('warning');
+  });
+
+  it('returns no issues for a clean config', async () => {
+    const loaded = await loadConfigWithSource(minimalValidObject());
+    expect(loaded.issues).toEqual([]);
   });
 });

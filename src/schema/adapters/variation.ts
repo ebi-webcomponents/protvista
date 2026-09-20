@@ -12,7 +12,7 @@
  * residue and indexes variants by `start - 1`. An author's file has no
  * sequence in it, so the adapter emits the wrapper without one and the
  * viewer fills it in from the entry it already fetched (see
- * `withSequenceForVariation` in `protvista-uniprot.ts`). A variation payload
+ * `_fillVariationSequence` in `protvista-uniprot.ts`). A variation payload
  * that reached the component with no sequence would render nothing at all,
  * silently, which is why that injection is not optional.
  */
