@@ -31,12 +31,17 @@
  * `__unfiltered` keys as inert baselines, not live renderer payload.
  */
 
-import type { NormalizedConfig, NormalizedTrack } from './schema/normalize.js';
+import {
+  isAuthoredSource,
+  type NormalizedConfig,
+  type NormalizedTrack,
+} from './schema/normalize.js';
 import {
   TEXT_BODY_ADAPTERS,
-  BYO_DATA_ADAPTERS,
-  recordAdapterForKind,
+  DATA_FORMATS,
 } from './schema/file-formats.js';
+import { runPipeline } from './schema/adapters/pipeline.js';
+import { SHAPES } from './schema/shapes.js';
 import { resolveTooltip } from './tooltips/resolve.js';
 import { tooltipDefaults } from './tooltips/defaults.js';
 import type { TooltipContext, TooltipSpec } from './tooltips/types.js';
@@ -195,13 +200,16 @@ function isRenderedRepresentation(payload: unknown): boolean {
  */
 async function adaptAuthoredRecords(
   payload: unknown,
-  track: NormalizedTrack,
-  resolveAdapterFn: (name: string) => AdapterFn
+  track: NormalizedTrack
 ): Promise<unknown> {
-  const recordAdapter = recordAdapterForKind(track.data[0]?.adapter);
-  if (recordAdapter === undefined) return payload;
+  const shape = track.data[0]?.shape;
+  // No shape means no record contract to hold the payload to; a shape that
+  // does not wrap means the records *are* the representation, and running
+  // them through a validator would only strip fields a `dataTooltip` may
+  // reference.
+  if (shape === undefined || !SHAPES[shape].wraps) return payload;
   if (isRenderedRepresentation(payload)) return payload;
-  return resolveAdapterFn(recordAdapter)(payload);
+  return runPipeline(shape, 'json', payload);
 }
 
 /**
@@ -351,9 +359,12 @@ export async function loadProtvistaData(
       if (!isReloading(key)) continue;
       const raw = trackUrl(track.data);
       const list = (Array.isArray(raw) ? raw : [raw]).filter((u) => u !== '');
-      const adapter = track.data[0]?.adapter;
+      const source = track.data[0];
       const wantsText =
-        adapter !== undefined && TEXT_BODY_ADAPTERS.has(adapter);
+        source?.format !== undefined
+          ? DATA_FORMATS[source.format].body === 'text'
+          : source?.adapter !== undefined &&
+            TEXT_BODY_ADAPTERS.has(source.adapter);
       for (const t of list) {
         templates.add(t);
         if (wantsText) bodyType.set(t, 'text');
@@ -424,10 +435,8 @@ export async function loadProtvistaData(
       data[`${key}${UNFILTERED_SUFFIX}`] = payload;
     }
     const source = track.data[0];
-    const isByoDataAdapter =
-      source?.adapter !== undefined && BYO_DATA_ADAPTERS.has(source.adapter);
     const isInline = source?.from === 'inline';
-    if ((isByoDataAdapter || isInline) && hasRenderableRows(payload)) {
+    if ((isAuthoredSource(source) || isInline) && hasRenderableRows(payload)) {
       hasData = true;
     }
   };
@@ -511,11 +520,7 @@ export async function loadProtvistaData(
               return;
             }
             return filterResolveAndAssign(
-              await adaptAuthoredRecords(
-                customTrackData[trackKey],
-                track,
-                resolveAdapterFn
-              ),
+              await adaptAuthoredRecords(customTrackData[trackKey], track),
               trackKey,
               track
             );
@@ -526,11 +531,7 @@ export async function loadProtvistaData(
           // tooltip resolution still apply, mirroring `from: custom` above.
           if (first.from === 'inline') {
             return filterResolveAndAssign(
-              await adaptAuthoredRecords(
-                first.inlineData,
-                track,
-                resolveAdapterFn
-              ),
+              await adaptAuthoredRecords(first.inlineData, track),
               trackKey,
               track
             );
@@ -540,10 +541,21 @@ export async function loadProtvistaData(
             (u) => rawData[u as string] || []
           );
 
-          // 1. Convert data. Empty-body guards and any post-processing live
-          //    inside the adapters themselves.
+          // 1. Convert data. Two ways a body becomes a payload, and a
+          //    descriptor carries exactly one of them: a `format` (decode it,
+          //    validate against the track's shape) or a named `adapter` (a
+          //    provider transform, or one the author pinned). Empty-body
+          //    guards and post-processing live inside each.
           let transformedData: any = trackData;
-          if (adapter) {
+          if (first.format !== undefined) {
+            transformedData = await runPipeline(
+              first.shape ?? 'feature',
+              first.format,
+              trackData[0],
+              // The author's own path, so a parse error names their file.
+              { source: substituteAccession(String(url ?? ''), accession) }
+            );
+          } else if (adapter) {
             transformedData = await resolveAdapterFn(adapter)(...trackData);
           }
 

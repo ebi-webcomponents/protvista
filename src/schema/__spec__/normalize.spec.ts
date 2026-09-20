@@ -233,7 +233,7 @@ describe('normalizeConfig — data shorthand expansion', () => {
     expect(d.url).toBeUndefined();
   });
 
-  it('resolves a ./x.csv file path to {from: file, url, adapter: features-csv}', () => {
+  it('resolves a ./x.csv file path to {from: file, url, feature records read as CSV}', () => {
     const out = normalizeConfig(
       cfg({
         rows: [
@@ -244,10 +244,12 @@ describe('normalizeConfig — data shorthand expansion', () => {
     const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('file');
     expect(d.url).toBe('./features.csv');
-    expect(d.adapter).toBe('features-csv');
+    expect(d.shape).toBe('feature');
+    expect(d.format).toBe('csv');
+    expect(d.adapter).toBeUndefined();
   });
 
-  it('resolves a ./x.tsv file path to {from: file, url, adapter: features-tsv}', () => {
+  it('resolves a ./x.tsv file path to {from: file, url, feature records read as TSV}', () => {
     const out = normalizeConfig(
       cfg({
         rows: [
@@ -258,10 +260,12 @@ describe('normalizeConfig — data shorthand expansion', () => {
     const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('file');
     expect(d.url).toBe('../data/hits.tsv');
-    expect(d.adapter).toBe('features-tsv');
+    expect(d.shape).toBe('feature');
+    expect(d.format).toBe('tsv');
+    expect(d.adapter).toBeUndefined();
   });
 
-  it('resolves a ./x.json file path to {from: file, url, adapter: features-json}', () => {
+  it('resolves a ./x.json file path to {from: file, url, feature records read as JSON}', () => {
     const out = normalizeConfig(
       cfg({
         rows: [
@@ -272,10 +276,12 @@ describe('normalizeConfig — data shorthand expansion', () => {
     const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('file');
     expect(d.url).toBe('./features.json');
-    expect(d.adapter).toBe('features-json');
+    expect(d.shape).toBe('feature');
+    expect(d.format).toBe('json');
+    expect(d.adapter).toBeUndefined();
   });
 
-  it('resolves a ./x.bed file path to {from: file, url, adapter: bed}', () => {
+  it('resolves a ./x.bed file path to {from: file, url, feature records read as BED}', () => {
     const out = normalizeConfig(
       cfg({
         rows: [
@@ -286,7 +292,9 @@ describe('normalizeConfig — data shorthand expansion', () => {
     const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('file');
     expect(d.url).toBe('./regions.bed');
-    expect(d.adapter).toBe('bed');
+    expect(d.shape).toBe('feature');
+    expect(d.format).toBe('bed');
+    expect(d.adapter).toBeUndefined();
   });
 
   it('lets an explicit adapter win over file-extension inference', () => {
@@ -309,10 +317,11 @@ describe('normalizeConfig — data shorthand expansion', () => {
     expect(d.adapter).toBe('my-csv');
   });
 
-  it('infers the extension adapter over the kind adapter (ext beats kind)', () => {
-    // With a registry present, `kind: features` resolves to a canonical
-    // adapter; a `.csv` url must still win, so the file is parsed as CSV
-    // rather than fed to the kind's JSON adapter.
+  it('reads a .csv on a kinded track as that kind’s records', () => {
+    // With a registry present, `kind: features` declares the `feature`
+    // shape; the `.csv` says how those records are encoded. The file is
+    // parsed as CSV rather than fed to the kind's provider adapter, and no
+    // adapter name is involved.
     const out = normalizeConfig(
       cfg({
         rows: [
@@ -328,7 +337,9 @@ describe('normalizeConfig — data shorthand expansion', () => {
     );
     const d = out.rows[0].tracks[0].data[0];
     expect(d.from).toBe('file');
-    expect(d.adapter).toBe('features-csv');
+    expect(d.shape).toBe('feature');
+    expect(d.format).toBe('csv');
+    expect(d.adapter).toBeUndefined();
   });
 
   it('leaves an unrecognised extension (./x.gff) as a best-effort source key', () => {
@@ -582,7 +593,12 @@ describe('normalizeConfig — adapter inference precedence', () => {
  * cases are the whole contract — if one of them flips, an author's payload
  * is being handed to an adapter that cannot parse it.
  */
-describe('normalizeConfig — per-kind adapter families', () => {
+describe('normalizeConfig — shape and format', () => {
+  /**
+   * How a source resolved, in one string: `shape/format` when the computed
+   * pipeline reads it, or the adapter name when a named transform does.
+   * A descriptor carries one mechanism or the other, never both.
+   */
   const resolve = (
     track_: Partial<TrackConfig> & { id: string },
     sources: Record<string, string> = {}
@@ -591,36 +607,35 @@ describe('normalizeConfig — per-kind adapter families', () => {
       cfg({ sources, rows: [{ id: 'C', tracks: [track(track_)] }] }),
       { registry: createRegistry() }
     );
-    return out.rows[0].tracks[0].data[0].adapter;
+    const d = out.rows[0].tracks[0].data[0];
+    return d.format !== undefined ? `${d.shape}/${d.format}` : d.adapter;
   };
 
   it.each([
-    // kind + local file → the kind's family member for that extension.
-    ['features', './hits.csv', 'features-csv'],
-    ['features', './hits.tsv', 'features-tsv'],
-    ['features', './hits.json', 'features-json'],
-    ['features', './regions.bed', 'bed'],
-    ['linegraph', './depth.csv', 'linegraph-csv'],
-    ['linegraph', './depth.tsv', 'linegraph-tsv'],
-    // No family member for the extension → the kind's own adapter.
-    //
-    // Selecting the kind's adapter is the right *resolution* even where the
-    // pairing cannot load: `kind: alphafold-confidence` needs two inputs and a
-    // secondary fetch, so no single file satisfies it whatever adapter it
-    // resolves to. Resolving to `features-json` there (the old behaviour)
-    // only hid that behind a second, wrong failure.
+    // The kind fixes the records; the extension says how they are encoded.
+    ['features', './hits.csv', 'feature/csv'],
+    ['features', './hits.tsv', 'feature/tsv'],
+    ['features', './hits.json', 'feature/json'],
+    ['features', './regions.bed', 'feature/bed'],
+    ['linegraph', './depth.csv', 'point/csv'],
+    ['linegraph', './depth.tsv', 'point/tsv'],
+    ['linegraph', './depth.json', 'point/json'],
+    ['variants', './calls.csv', 'variation/csv'],
+    // A kind that declares no shape has no bring-your-own-data path at all,
+    // so a file leaves it on its provider adapter — and the validator
+    // rejects the pairing. Reinterpreting it as generic features (the old
+    // behaviour) hid that behind a second, wrong failure.
     ['alphafold-confidence', './plddt.json', 'alphafold-prediction-json'],
-    ['linegraph', './depth.json', 'linegraph'],
   ])('kind %s + %s → %s', (kind, data, expected) => {
     expect(resolve({ id: 't', kind, data })).toBe(expected);
   });
 
   it.each([
-    ['https://lab.test/hits.csv', 'features-csv'],
-    ['https://lab.test/hits.json', 'features-json'],
+    ['https://lab.test/hits.csv', 'feature/csv'],
+    ['https://lab.test/hits.json', 'feature/json'],
   ])('reads a hosted file %s like a local one → %s', (data, expected) => {
     // The URL/file swap the docs promise: same file, different transport,
-    // same adapter. A provider endpoint whose URL ends in a known extension
+    // same reading. A provider endpoint whose URL ends in a known extension
     // is the one thing this misreads — pin `adapter:` there.
     expect(resolve({ id: 't', kind: 'features', data })).toBe(expected);
   });
@@ -643,17 +658,19 @@ describe('normalizeConfig — per-kind adapter families', () => {
         { id: 't', kind: 'linegraph', data: 'depth' },
         { depth: 'https://lab.test/depth.csv' }
       )
-    ).toBe('linegraph-csv');
+    ).toBe('point/csv');
   });
 
-  it('falls back to extension inference only when there is no kind', () => {
+  it('falls back to the feature record only when there is no kind', () => {
+    // A kindless track has no shape of its own, and `./x.csv` has always
+    // meant the feature record there.
     expect(
       resolve({
         id: 't',
         component: 'nightingale-track-canvas',
         data: './hits.csv',
       })
-    ).toBe('features-csv');
+    ).toBe('feature/csv');
   });
 
   it('lets an explicit adapter override the kind family', () => {

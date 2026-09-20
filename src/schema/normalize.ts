@@ -69,12 +69,14 @@ import type {
   AdapterName,
   AuthoredTooltipSpec,
   ThemeConfig,
+  ShapeName,
+  DataFormat,
 } from './types.js';
 import { isGroupConfig } from './discriminate.js';
 import type { Registry } from './registry.js';
 import {
-  dataFileFormatForPath,
-  kindAdapterForFormat,
+  formatForPath,
+  KIND_SELECTED_BYO_DATA_ADAPTERS,
 } from './file-formats.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -187,7 +189,47 @@ export interface NormalizedDataSource {
   source?: string | string[];
   url?: string | string[];
   inlineData?: unknown;
+  /**
+   * Which records this source must contain, from the track's `kind`. Set
+   * whenever the kind declares a shape, including for inline and custom
+   * payloads — it is what tells the loader whether those records need
+   * wrapping for the component.
+   */
+  shape?: ShapeName;
+  /**
+   * How this source's bytes are encoded, from an explicit `format:` or the
+   * path's extension. Present with `shape` means the loader runs the
+   * computed pipeline rather than a named adapter.
+   */
+  format?: DataFormat;
+  /**
+   * A named transform: an explicit `adapter:`, or the kind's provider
+   * adapter for a source with no format of its own. Mutually exclusive with
+   * `format` — the two are the two ways a body becomes a payload.
+   */
   adapter?: AdapterName;
+}
+
+/**
+ * Whether a source's payload was supplied by the *author* rather than by a
+ * provider API.
+ *
+ * A descriptor carrying a `format` was encoded by the author — that is what
+ * declaring a format means. The remaining case is a kind that is
+ * bring-your-own-data by nature (`linegraph`), whose canonical adapter reads
+ * author records with no format of its own to declare.
+ *
+ * Two viewer behaviours hang off this: the `hasData` empty-state gate, and
+ * whether a line graph names its series in the hover readout.
+ */
+export function isAuthoredSource(
+  d: NormalizedDataSource | undefined
+): boolean {
+  if (d === undefined) return false;
+  if (d.format !== undefined) return true;
+  return (
+    d.adapter !== undefined && KIND_SELECTED_BYO_DATA_ADAPTERS.has(d.adapter)
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -406,7 +448,7 @@ function normalizeTrack(
     parent?.component ??
     'nightingale-track-canvas';
 
-  const data = expandData(t, kindDef?.adapter, sources);
+  const data = expandData(t, kindDef?.adapter, kindDef?.shape, sources);
 
   return {
     id: t.id,
@@ -453,6 +495,7 @@ function expandDataTooltip(
 function expandData(
   t: TrackConfig,
   kindAdapter: AdapterName | undefined,
+  kindShape: ShapeName | undefined,
   sources: Record<string, string>
 ): NormalizedDataSource[] {
   const raw = t.data;
@@ -476,7 +519,9 @@ function expandData(
 
   // Step 2: expand each descriptor (adapter inference, `from`
   // default, source → url resolution).
-  return descriptors.map((d) => expandDescriptor(d, kindAdapter, sources));
+  return descriptors.map((d) =>
+    expandDescriptor(d, kindAdapter, kindShape, sources)
+  );
 }
 
 /**
@@ -504,10 +549,10 @@ function resolveStringShorthand(
     return { from: 'url', url: value };
   }
   // 3. A path to a known data file (`./hits.csv`, `../x.tsv`, `/data.csv`)
-  //    → from: file. The adapter is inferred from the extension in
+  //    → from: file. The format is read off the extension in
   //    `expandDescriptor`. The value is kept on `url` so the loader
   //    fetches it through the same path as a URL source.
-  if (dataFileFormatForPath(value)) {
+  if (formatForPath(value)) {
     return { from: 'file', url: value };
   }
   // 4. Fell off the end. Best-effort: assume the author intended a
@@ -521,6 +566,7 @@ function resolveStringShorthand(
 function expandDescriptor(
   d: DataSourceDescriptor,
   kindAdapter: AdapterName | undefined,
+  kindShape: ShapeName | undefined,
   sources: Record<string, string>
 ): NormalizedDataSource {
   // Default `from` per the spec: `"inline"` if `inlineData` is set,
@@ -541,39 +587,59 @@ function expandDescriptor(
     resolvedUrl = resolveSource(d.source, sources);
   }
 
-  // Adapter selection. There are two independent ways to name an adapter and
-  // exactly one rule for combining them, so they can never conflict:
+  // Resolution, in the order the spec fixes (see "Shape and format"):
   //
-  //   1. An explicit `adapter:` always wins.
-  //   2. A `kind:` owns selection for the rest of the track — its family
-  //      member for this source's format (`kind: features` + `./hits.csv`
-  //      → `features-csv`), or its own canonical adapter when the family
-  //      has no member for it (a `kind: alphafold-confidence` track pointed at
-  //      an API URL *or* at `./plddt.json` both get
-  //      `alphafold-prediction-json`). A hosted file resolves exactly as the
-  //      local one does — same file, different transport.
-  //   3. Only with no `kind` at all does the extension alone decide, via
-  //      `DATA_FILE_FORMATS` — a bare `./hits.csv` means `features-csv`.
+  //   1. an explicit `adapter:` — a named transform, nothing else consulted;
+  //   2. an explicit `format:`  — decode that way, validate against the
+  //      kind's shape;
+  //   3. a recognised extension on the resolved URL — same, by its format;
+  //   4. the kind's provider adapter, if it has one;
+  //   5. the kind's shape read as JSON, if it declares one;
+  //   6. nothing — the validator explains why.
   //
-  // The extension therefore chooses *within* a kind's family, never away
-  // from it: there is no precedence between `kind:` and the extension to
-  // document, and no combination that silently routes an author's payload
-  // to an adapter that cannot parse it. `validateConfig` rejects, at config
-  // time, a kind pointed at a file format its family cannot read.
-  const format =
-    typeof resolvedUrl === 'string'
-      ? dataFileFormatForPath(resolvedUrl)
-      : undefined;
-  const adapter =
-    d.adapter ??
-    (kindAdapter !== undefined
-      ? kindAdapterForFormat(kindAdapter, format)
-      : format?.adapter);
+  // 4 before 5 is what keeps a formatless UniProt URL on the provider
+  // adapter while a bring-your-own-data-native kind (`linegraph`) still
+  // works against an extensionless URL serving its records.
+  const shape = kindShape;
+  const extFormat =
+    typeof resolvedUrl === 'string' ? formatForPath(resolvedUrl) : undefined;
+  // A track with no `kind` at all has no shape to validate against, so a
+  // known extension means the feature record — the one thing `./x.csv` has
+  // always meant on a kindless track.
+  //
+  // Deliberately *not* extended to a kind that declares no shape: a
+  // provider-only kind pointed at a file must stay on its own adapter and be
+  // rejected by the validator, not quietly reinterpreted as generic
+  // features. That reinterpretation is the exact misroute this redesign
+  // removed (`kind: alphafold-confidence` + `./plddt.json` reading as
+  // feature records).
+  const hasKind = kindAdapter !== undefined || kindShape !== undefined;
+  const effectiveShape: ShapeName | undefined =
+    shape ?? (!hasKind && extFormat !== undefined ? 'feature' : undefined);
+
+  let format: DataFormat | undefined;
+  let adapter: AdapterName | undefined;
+
+  if (d.adapter !== undefined) {
+    adapter = d.adapter;
+  } else if (d.format !== undefined && effectiveShape !== undefined) {
+    format = d.format;
+  } else if (extFormat !== undefined && effectiveShape !== undefined) {
+    format = extFormat.name;
+  } else if (kindAdapter !== undefined) {
+    adapter = kindAdapter;
+  } else if (shape !== undefined) {
+    format = 'json';
+  }
 
   const out: NormalizedDataSource = { from };
   if (d.source !== undefined) out.source = d.source;
   if (resolvedUrl !== undefined) out.url = resolvedUrl;
   if (d.inlineData !== undefined) out.inlineData = d.inlineData;
+  // `shape` rides along even when a provider adapter won, so the loader can
+  // tell whether an inline or `setTrackData()` payload needs wrapping.
+  if (effectiveShape !== undefined) out.shape = effectiveShape;
+  if (format !== undefined) out.format = format;
   if (adapter !== undefined) out.adapter = adapter;
   return out;
 }

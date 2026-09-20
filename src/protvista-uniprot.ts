@@ -58,7 +58,7 @@ import type {
   NormalizedTrack,
 } from './schema/normalize.js';
 import { renderingToAttrs } from './renderer/render-helpers.js';
-import { KIND_SELECTED_BYO_DATA_ADAPTERS } from './schema/file-formats.js';
+import { isAuthoredSource } from './schema/normalize.js';
 import {
   type LayoutPatch,
   type DisplayRow,
@@ -208,9 +208,7 @@ const hasRenderableData = (value: unknown): boolean => {
  * into "12 values". Those tracks show the bare number instead.
  */
 const showsSeriesLabel = (tracks: readonly NormalizedTrack[]): boolean =>
-  !tracks.some((t) =>
-    t.data?.some((d) => KIND_SELECTED_BYO_DATA_ADAPTERS.has(d.adapter ?? ''))
-  );
+  !tracks.some((t) => t.data?.some((d) => isAuthoredSource(d)));
 
 /**
  * How long a just-moved row stays highlighted. Long enough to find the row

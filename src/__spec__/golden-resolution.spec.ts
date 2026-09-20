@@ -180,6 +180,11 @@ function resolutionOf(config: NormalizedConfig) {
         component: track.component ?? null,
         sources: track.data.map((d) => ({
           from: d.from,
+          // The pair that replaces the adapter grid, alongside the adapter
+          // itself: a descriptor carries a `format` (decode + validate
+          // against `shape`) or a named `adapter`, never both.
+          shape: d.shape ?? null,
+          format: d.format ?? null,
           adapter: d.adapter ?? null,
           url: typeof d.url === 'string' ? d.url : (d.url ?? null),
           inline: d.inlineData !== undefined,
@@ -271,10 +276,16 @@ describe('golden: kind × source resolution matrix', () => {
           },
           registry
         ).issues.map((i) => i.code);
-        const adapter =
-          normalized.rows[0].tracks[0].data[0].adapter ?? '(none)';
+        // Report whichever mechanism resolved: the computed pair, or a
+        // named adapter. Reading only `.adapter` would render every
+        // pipeline-resolved cell as "(none)" and hide the rewiring.
+        const d = normalized.rows[0].tracks[0].data[0];
+        const how =
+          d.format !== undefined
+            ? `${d.shape}/${d.format}`
+            : (d.adapter ?? '(none)');
         matrix[kind][label] =
-          issues.length > 0 ? `${adapter} [${issues.join(',')}]` : adapter;
+          issues.length > 0 ? `${how} [${issues.join(',')}]` : how;
       }
       // Inline and explicit-adapter forms don't vary by kind's extension
       // handling, but they do vary by whether the kind's records need
@@ -294,8 +305,11 @@ describe('golden: kind × source resolution matrix', () => {
         },
         { registry }
       );
+      const inlineSource = inline.rows[0].tracks[0].data[0];
       matrix[kind]['inline'] =
-        inline.rows[0].tracks[0].data[0].adapter ?? '(none)';
+        inlineSource.format !== undefined
+          ? `${inlineSource.shape}/${inlineSource.format}`
+          : (inlineSource.adapter ?? '(none)');
     }
     expect(matrix).toMatchSnapshot();
   });

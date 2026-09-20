@@ -36,8 +36,10 @@ exports[`golden: examples/basic > resolution (expected to change with the refact
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -112,9 +114,11 @@ exports[`golden: examples/bed > resolution (expected to change with the refactor
     "kind": "features",
     "sources": [
       {
-        "adapter": "bed",
+        "adapter": null,
+        "format": "bed",
         "from": "file",
         "inline": false,
+        "shape": "feature",
         "url": "./regions.bed",
       },
     ],
@@ -205,9 +209,11 @@ exports[`golden: examples/csv > resolution (expected to change with the refactor
     "kind": "features",
     "sources": [
       {
-        "adapter": "features-csv",
+        "adapter": null,
+        "format": "csv",
         "from": "file",
         "inline": false,
+        "shape": "feature",
         "url": "./hotspots.csv",
       },
     ],
@@ -493,8 +499,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "alphafold-prediction-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": null,
         "url": [
           "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
           "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
@@ -508,8 +516,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "alphamissense-average-csv",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": null,
         "url": [
           "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
           "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
@@ -523,8 +533,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "alphamissense-full-csv",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": null,
         "url": [
           "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
           "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
@@ -538,8 +550,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/antigen/{accession}",
       },
     ],
@@ -550,8 +564,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "interpro-entries-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/{accession}?type=domain&page_size=100",
       },
     ],
@@ -562,8 +578,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -574,8 +592,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -586,8 +606,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -598,8 +620,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -610,8 +634,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -622,8 +648,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/epitope/{accession}",
       },
     ],
@@ -634,8 +662,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -646,8 +676,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -658,8 +690,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -670,8 +704,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -682,8 +718,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -694,8 +732,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -706,8 +746,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -718,8 +760,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/mutagenesis/{accession}",
       },
     ],
@@ -729,9 +773,11 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "kind": "features",
     "sources": [
       {
-        "adapter": "features-csv",
+        "adapter": null,
+        "format": "csv",
         "from": "file",
         "inline": false,
+        "shape": "feature",
         "url": "./hotspots.csv",
       },
     ],
@@ -742,8 +788,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-proteomics-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteomics/hpp/{accession}",
       },
     ],
@@ -754,8 +802,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-proteomics-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/{accession}",
       },
     ],
@@ -766,8 +816,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-proteomics-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/{accession}",
       },
     ],
@@ -778,8 +830,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-proteomics-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/{accession}",
       },
     ],
@@ -790,8 +844,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -802,8 +858,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -814,8 +872,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -826,8 +886,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -838,8 +900,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -850,8 +914,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-proteomics-ptm-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/{accession}",
       },
     ],
@@ -862,8 +928,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-rna-editing-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "variation",
         "url": "https://www.ebi.ac.uk/proteins/api/rna-editing/{accession}",
       },
     ],
@@ -874,8 +942,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-rna-editing-counts-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "point",
         "url": "https://www.ebi.ac.uk/proteins/api/rna-editing/{accession}",
       },
     ],
@@ -886,8 +956,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -898,8 +970,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -910,8 +984,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -922,8 +998,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -934,8 +1012,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -946,8 +1026,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -958,8 +1040,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -970,8 +1054,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -982,8 +1068,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -994,8 +1082,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -1006,8 +1096,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -1018,8 +1110,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -1030,8 +1124,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -1042,8 +1138,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-proteins-pdb-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
       },
     ],
@@ -1054,8 +1152,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -1066,8 +1166,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -1078,8 +1180,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -1090,8 +1194,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-variation-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "variation",
         "url": "https://www.ebi.ac.uk/proteins/api/variation/{accession}",
       },
     ],
@@ -1102,8 +1208,10 @@ exports[`golden: examples/extend-default > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-variation-counts-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "point",
         "url": "https://www.ebi.ac.uk/proteins/api/variation/{accession}",
       },
     ],
@@ -1159,8 +1267,10 @@ exports[`golden: examples/inline-data > resolution (expected to change with the 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "inline",
         "inline": true,
+        "shape": "feature",
         "url": null,
       },
     ],
@@ -1237,9 +1347,11 @@ exports[`golden: examples/json > resolution (expected to change with the refacto
     "kind": "features",
     "sources": [
       {
-        "adapter": "features-json",
+        "adapter": null,
+        "format": "json",
         "from": "file",
         "inline": false,
+        "shape": "feature",
         "url": "./hotspots.json",
       },
     ],
@@ -1250,8 +1362,10 @@ exports[`golden: examples/json > resolution (expected to change with the refacto
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -1517,8 +1631,10 @@ exports[`golden: examples/linegraph > resolution (expected to change with the re
     "sources": [
       {
         "adapter": "linegraph",
+        "format": null,
         "from": "inline",
         "inline": true,
+        "shape": "point",
         "url": null,
       },
     ],
@@ -1783,9 +1899,11 @@ exports[`golden: examples/linegraph-csv > resolution (expected to change with th
     "kind": "linegraph",
     "sources": [
       {
-        "adapter": "linegraph-csv",
+        "adapter": null,
+        "format": "csv",
         "from": "file",
         "inline": false,
+        "shape": "point",
         "url": "./depth.csv",
       },
     ],
@@ -1860,9 +1978,11 @@ exports[`golden: examples/tsv > resolution (expected to change with the refactor
     "kind": "features",
     "sources": [
       {
-        "adapter": "features-tsv",
+        "adapter": null,
+        "format": "tsv",
         "from": "file",
         "inline": false,
+        "shape": "feature",
         "url": "./hotspots.tsv",
       },
     ],
@@ -2051,9 +2171,11 @@ exports[`golden: examples/variation-csv > resolution (expected to change with th
     "kind": "variants",
     "sources": [
       {
-        "adapter": "variation-csv",
+        "adapter": null,
+        "format": "csv",
         "from": "file",
         "inline": false,
+        "shape": "variation",
         "url": "./my-variants.csv",
       },
     ],
@@ -2095,102 +2217,102 @@ exports[`golden: kind × source resolution matrix > resolves every kind against 
   },
   "features": {
     "extensionless URL": "uniprot-features-json",
-    "file .bed": "bed",
-    "file .csv": "features-csv",
-    "file .json": "features-json",
-    "file .tsv": "features-tsv",
-    "hosted .csv": "features-csv",
-    "hosted .json": "features-json",
+    "file .bed": "feature/bed",
+    "file .csv": "feature/csv",
+    "file .json": "feature/json",
+    "file .tsv": "feature/tsv",
+    "hosted .csv": "feature/csv",
+    "hosted .json": "feature/json",
     "inline": "uniprot-features-json",
   },
   "interpro-features": {
     "extensionless URL": "interpro-entries-json",
-    "file .bed": "bed",
-    "file .csv": "features-csv",
-    "file .json": "features-json",
-    "file .tsv": "features-tsv",
-    "hosted .csv": "features-csv",
-    "hosted .json": "features-json",
+    "file .bed": "feature/bed",
+    "file .csv": "feature/csv",
+    "file .json": "feature/json",
+    "file .tsv": "feature/tsv",
+    "hosted .csv": "feature/csv",
+    "hosted .json": "feature/json",
     "inline": "interpro-entries-json",
   },
   "linegraph": {
     "extensionless URL": "linegraph",
-    "file .bed": "linegraph [kind-format-mismatch]",
-    "file .csv": "linegraph-csv",
-    "file .json": "linegraph",
-    "file .tsv": "linegraph-tsv",
-    "hosted .csv": "linegraph-csv",
-    "hosted .json": "linegraph",
+    "file .bed": "point/bed [kind-format-mismatch]",
+    "file .csv": "point/csv",
+    "file .json": "point/json",
+    "file .tsv": "point/tsv",
+    "hosted .csv": "point/csv",
+    "hosted .json": "point/json",
     "inline": "linegraph",
   },
   "peptides": {
     "extensionless URL": "uniprot-proteomics-json",
-    "file .bed": "bed",
-    "file .csv": "features-csv",
-    "file .json": "features-json",
-    "file .tsv": "features-tsv",
-    "hosted .csv": "features-csv",
-    "hosted .json": "features-json",
+    "file .bed": "feature/bed",
+    "file .csv": "feature/csv",
+    "file .json": "feature/json",
+    "file .tsv": "feature/tsv",
+    "hosted .csv": "feature/csv",
+    "hosted .json": "feature/json",
     "inline": "uniprot-proteomics-json",
   },
   "peptides-ptm": {
     "extensionless URL": "uniprot-proteomics-ptm-json",
-    "file .bed": "bed",
-    "file .csv": "features-csv",
-    "file .json": "features-json",
-    "file .tsv": "features-tsv",
-    "hosted .csv": "features-csv",
-    "hosted .json": "features-json",
+    "file .bed": "feature/bed",
+    "file .csv": "feature/csv",
+    "file .json": "feature/json",
+    "file .tsv": "feature/tsv",
+    "hosted .csv": "feature/csv",
+    "hosted .json": "feature/json",
     "inline": "uniprot-proteomics-ptm-json",
   },
   "rna-editing": {
     "extensionless URL": "uniprot-rna-editing-json",
-    "file .bed": "uniprot-rna-editing-json [kind-format-mismatch]",
-    "file .csv": "variation-csv",
-    "file .json": "variation",
-    "file .tsv": "variation-tsv",
-    "hosted .csv": "variation-csv",
-    "hosted .json": "variation",
+    "file .bed": "variation/bed [kind-format-mismatch]",
+    "file .csv": "variation/csv",
+    "file .json": "variation/json",
+    "file .tsv": "variation/tsv",
+    "hosted .csv": "variation/csv",
+    "hosted .json": "variation/json",
     "inline": "uniprot-rna-editing-json",
   },
   "rna-editing-counts": {
     "extensionless URL": "uniprot-rna-editing-counts-json",
-    "file .bed": "uniprot-rna-editing-counts-json [kind-format-mismatch]",
-    "file .csv": "linegraph-csv",
-    "file .json": "linegraph",
-    "file .tsv": "linegraph-tsv",
-    "hosted .csv": "linegraph-csv",
-    "hosted .json": "linegraph",
+    "file .bed": "point/bed [kind-format-mismatch]",
+    "file .csv": "point/csv",
+    "file .json": "point/json",
+    "file .tsv": "point/tsv",
+    "hosted .csv": "point/csv",
+    "hosted .json": "point/json",
     "inline": "uniprot-rna-editing-counts-json",
   },
   "structure-coverage": {
     "extensionless URL": "uniprot-proteins-pdb-json",
-    "file .bed": "bed",
-    "file .csv": "features-csv",
-    "file .json": "features-json",
-    "file .tsv": "features-tsv",
-    "hosted .csv": "features-csv",
-    "hosted .json": "features-json",
+    "file .bed": "feature/bed",
+    "file .csv": "feature/csv",
+    "file .json": "feature/json",
+    "file .tsv": "feature/tsv",
+    "hosted .csv": "feature/csv",
+    "hosted .json": "feature/json",
     "inline": "uniprot-proteins-pdb-json",
   },
   "variant-counts": {
     "extensionless URL": "uniprot-variation-counts-json",
-    "file .bed": "uniprot-variation-counts-json [kind-format-mismatch]",
-    "file .csv": "linegraph-csv",
-    "file .json": "linegraph",
-    "file .tsv": "linegraph-tsv",
-    "hosted .csv": "linegraph-csv",
-    "hosted .json": "linegraph",
+    "file .bed": "point/bed [kind-format-mismatch]",
+    "file .csv": "point/csv",
+    "file .json": "point/json",
+    "file .tsv": "point/tsv",
+    "hosted .csv": "point/csv",
+    "hosted .json": "point/json",
     "inline": "uniprot-variation-counts-json",
   },
   "variants": {
     "extensionless URL": "uniprot-variation-json",
-    "file .bed": "uniprot-variation-json [kind-format-mismatch]",
-    "file .csv": "variation-csv",
-    "file .json": "variation",
-    "file .tsv": "variation-tsv",
-    "hosted .csv": "variation-csv",
-    "hosted .json": "variation",
+    "file .bed": "variation/bed [kind-format-mismatch]",
+    "file .csv": "variation/csv",
+    "file .json": "variation/json",
+    "file .tsv": "variation/tsv",
+    "hosted .csv": "variation/csv",
+    "hosted .json": "variation/json",
     "inline": "uniprot-variation-json",
   },
 }
@@ -2436,8 +2558,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "alphafold-prediction-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": null,
         "url": [
           "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
           "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
@@ -2451,8 +2575,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "alphamissense-average-csv",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": null,
         "url": [
           "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
           "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
@@ -2466,8 +2592,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "alphamissense-full-csv",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": null,
         "url": [
           "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
           "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
@@ -2481,8 +2609,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/antigen/{accession}",
       },
     ],
@@ -2493,8 +2623,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "interpro-entries-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/{accession}?type=domain&page_size=100",
       },
     ],
@@ -2505,8 +2637,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2517,8 +2651,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2529,8 +2665,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2541,8 +2679,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2553,8 +2693,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2565,8 +2707,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/epitope/{accession}",
       },
     ],
@@ -2577,8 +2721,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2589,8 +2735,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2601,8 +2749,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2613,8 +2763,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2625,8 +2777,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2637,8 +2791,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2649,8 +2805,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2661,8 +2819,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/mutagenesis/{accession}",
       },
     ],
@@ -2673,8 +2833,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-proteomics-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteomics/hpp/{accession}",
       },
     ],
@@ -2685,8 +2847,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-proteomics-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/{accession}",
       },
     ],
@@ -2697,8 +2861,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-proteomics-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/{accession}",
       },
     ],
@@ -2709,8 +2875,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-proteomics-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/{accession}",
       },
     ],
@@ -2721,8 +2889,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2733,8 +2903,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2745,8 +2917,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2757,8 +2931,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2769,8 +2945,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2781,8 +2959,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-proteomics-ptm-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/{accession}",
       },
     ],
@@ -2793,8 +2973,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-rna-editing-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "variation",
         "url": "https://www.ebi.ac.uk/proteins/api/rna-editing/{accession}",
       },
     ],
@@ -2805,8 +2987,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-rna-editing-counts-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "point",
         "url": "https://www.ebi.ac.uk/proteins/api/rna-editing/{accession}",
       },
     ],
@@ -2817,8 +3001,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2829,8 +3015,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2841,8 +3029,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2853,8 +3043,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2865,8 +3057,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2877,8 +3071,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2889,8 +3085,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2901,8 +3099,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2913,8 +3113,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2925,8 +3127,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2937,8 +3141,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2949,8 +3155,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2961,8 +3169,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2973,8 +3183,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-proteins-pdb-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
       },
     ],
@@ -2985,8 +3197,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -2997,8 +3211,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3009,8 +3225,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3021,8 +3239,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-variation-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "variation",
         "url": "https://www.ebi.ac.uk/proteins/api/variation/{accession}",
       },
     ],
@@ -3033,8 +3253,10 @@ exports[`golden: src/default-config.yaml > resolution (expected to change with t
     "sources": [
       {
         "adapter": "uniprot-variation-counts-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "point",
         "url": "https://www.ebi.ac.uk/proteins/api/variation/{accession}",
       },
     ],
@@ -3125,9 +3347,11 @@ exports[`golden: starter-kit/config.yaml > resolution (expected to change with t
     "kind": "features",
     "sources": [
       {
-        "adapter": "features-csv",
+        "adapter": null,
+        "format": "csv",
         "from": "file",
         "inline": false,
+        "shape": "feature",
         "url": "./data/hotspots.csv",
       },
     ],
@@ -3411,8 +3635,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "alphafold-prediction-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": null,
         "url": [
           "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
           "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
@@ -3426,8 +3652,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "alphamissense-average-csv",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": null,
         "url": [
           "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
           "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
@@ -3441,8 +3669,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "alphamissense-full-csv",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": null,
         "url": [
           "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
           "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
@@ -3456,8 +3686,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/antigen/{accession}",
       },
     ],
@@ -3468,8 +3700,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "interpro-entries-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/{accession}?type=domain&page_size=100",
       },
     ],
@@ -3480,8 +3714,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3492,8 +3728,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3504,8 +3742,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3516,8 +3756,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3528,8 +3770,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3540,8 +3784,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/epitope/{accession}",
       },
     ],
@@ -3552,8 +3798,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3564,8 +3812,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3576,8 +3826,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3588,8 +3840,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3600,8 +3854,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3612,8 +3868,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3624,8 +3882,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3636,8 +3896,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/mutagenesis/{accession}",
       },
     ],
@@ -3647,9 +3909,11 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "kind": "features",
     "sources": [
       {
-        "adapter": "features-csv",
+        "adapter": null,
+        "format": "csv",
         "from": "file",
         "inline": false,
+        "shape": "feature",
         "url": "./data/hotspots-extends.csv",
       },
     ],
@@ -3660,8 +3924,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-proteomics-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteomics/hpp/{accession}",
       },
     ],
@@ -3672,8 +3938,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-proteomics-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/{accession}",
       },
     ],
@@ -3684,8 +3952,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-proteomics-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/{accession}",
       },
     ],
@@ -3696,8 +3966,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-proteomics-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/{accession}",
       },
     ],
@@ -3708,8 +3980,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3720,8 +3994,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3732,8 +4008,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3744,8 +4022,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3756,8 +4036,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3768,8 +4050,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-proteomics-ptm-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/{accession}",
       },
     ],
@@ -3780,8 +4064,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-rna-editing-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "variation",
         "url": "https://www.ebi.ac.uk/proteins/api/rna-editing/{accession}",
       },
     ],
@@ -3792,8 +4078,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-rna-editing-counts-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "point",
         "url": "https://www.ebi.ac.uk/proteins/api/rna-editing/{accession}",
       },
     ],
@@ -3804,8 +4092,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3816,8 +4106,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3828,8 +4120,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3840,8 +4134,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3852,8 +4148,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3864,8 +4162,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3876,8 +4176,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3888,8 +4190,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3900,8 +4204,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3912,8 +4218,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3924,8 +4232,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3936,8 +4246,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3948,8 +4260,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3960,8 +4274,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-proteins-pdb-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
       },
     ],
@@ -3972,8 +4288,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3984,8 +4302,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -3996,8 +4316,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-features-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "feature",
         "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
       },
     ],
@@ -4008,8 +4330,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-variation-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "variation",
         "url": "https://www.ebi.ac.uk/proteins/api/variation/{accession}",
       },
     ],
@@ -4020,8 +4344,10 @@ exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected 
     "sources": [
       {
         "adapter": "uniprot-variation-counts-json",
+        "format": null,
         "from": "url",
         "inline": false,
+        "shape": "point",
         "url": "https://www.ebi.ac.uk/proteins/api/variation/{accession}",
       },
     ],
@@ -4096,9 +4422,11 @@ exports[`golden: starter-kit/recipes/tsv.yaml > resolution (expected to change w
     "kind": "features",
     "sources": [
       {
-        "adapter": "features-tsv",
+        "adapter": null,
+        "format": "tsv",
         "from": "file",
         "inline": false,
+        "shape": "feature",
         "url": "./data/hotspots.tsv",
       },
     ],

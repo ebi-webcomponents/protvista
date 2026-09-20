@@ -17,7 +17,6 @@ import { variationTsv } from '../variation-tsv.js';
 import { createRegistry } from '../../registry.js';
 import { normalizeConfig } from '../../normalize.js';
 import { validateConfig } from '../../validate.js';
-import { KIND_ADAPTER_VARIANTS } from '../../file-formats.js';
 import type { ProtvistaViewerConfig } from '../../types.js';
 import '../../../protvista-uniprot.js';
 
@@ -191,26 +190,27 @@ describe('the variation family on the kinds that use it', () => {
     ],
   });
 
-  it('is wired to both kinds that draw residue changes', () => {
+  it('is the shape both kinds that draw residue changes declare', () => {
     const r = registry();
     for (const kind of ['variants', 'rna-editing']) {
-      const base = r.getSemanticKind(kind)?.adapter as string;
-      expect(KIND_ADAPTER_VARIANTS[base], `${kind} has no family`).toEqual({
-        '.csv': 'variation-csv',
-        '.tsv': 'variation-tsv',
-        '.json': 'variation',
-      });
+      expect(r.getSemanticKind(kind)?.shape, `${kind}'s shape`).toBe(
+        'variation'
+      );
     }
   });
 
   it.each([
-    ['./my-variants.csv', 'variation-csv'],
-    ['./my-variants.tsv', 'variation-tsv'],
-    ['./my-variants.json', 'variation'],
-  ])('resolves kind: variants + %s to %s', (data, expected) => {
+    ['./my-variants.csv', 'csv'],
+    ['./my-variants.tsv', 'tsv'],
+    ['./my-variants.json', 'json'],
+  ])('resolves kind: variants + %s to variation records read as %s', (data, format) => {
     const out = normalizeConfig(cfg(data), { registry: registry() });
-    expect(out.rows[0].tracks[0].data[0].adapter).toBe(expected);
-    // The kind still owns the component — only the parser changed.
+    const source = out.rows[0].tracks[0].data[0];
+    // The kind fixes the records; the extension only says how they are
+    // encoded. No adapter name is involved on either side.
+    expect(source.shape).toBe('variation');
+    expect(source.format).toBe(format);
+    expect(source.adapter).toBeUndefined();
     expect(out.rows[0].tracks[0].component).toBe(
       'nightingale-variation-canvas'
     );
