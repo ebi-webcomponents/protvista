@@ -74,7 +74,10 @@ const NON_NEGATIVE_INT = /^\d+$/;
 /** Lines the BED spec allows as non-data: comments and browser/track headers. */
 const HEADER_LINE = /^(?:track|browser|#)/i;
 
-export const bed: AdapterFunction = (raw) => {
+export const bed: AdapterFunction = (raw, labelArg) => {
+  // Default prefix for direct calls; the pipeline passes the author's own
+  // source instead, so an error names their file rather than the format.
+  const label = typeof labelArg === 'string' ? labelArg : 'bed';
   if (typeof raw !== 'string') {
     console.warn(
       '[protvista] bed adapter: expected a text body; got ' +
@@ -100,20 +103,20 @@ export const bed: AdapterFunction = (raw) => {
     const cols = line.split('\t');
     if (cols.length < 3) {
       throw new Error(
-        `bed: line ${lineNo}: expected at least 3 tab-separated columns ` +
+        `${label}: line ${lineNo}: expected at least 3 tab-separated columns ` +
           `(chrom, start, end), got ${cols.length}.`
       );
     }
 
-    const start0 = parseCoord(cols[1], lineNo, 'start', 2);
-    const end0 = parseCoord(cols[2], lineNo, 'end', 3);
+    const start0 = parseCoord(cols[1], lineNo, 'start', 2, label);
+    const end0 = parseCoord(cols[2], lineNo, 'end', 3, label);
 
     // A genuinely inverted interval is corrupt BED — surface it like any
     // other malformed row. (chromEnd === chromStart is *not* inverted; it
     // is a legal zero-length feature, handled below.)
     if (end0 < start0) {
       throw new Error(
-        `bed: line ${lineNo}: end (${end0}) is before start (${start0}) ` +
+        `${label}: line ${lineNo}: end (${end0}) is before start (${start0}) ` +
           `(BED columns 2–3).`
       );
     }
@@ -142,7 +145,7 @@ export const bed: AdapterFunction = (raw) => {
       const s = parseDecimal(cols[4]);
       if (s === null) {
         throw new Error(
-          `bed: line ${lineNo}: non-numeric score "${cols[4]}" (BED column 5).`
+          `${label}: line ${lineNo}: non-numeric score "${cols[4]}" (BED column 5).`
         );
       }
       record.score = s;
@@ -165,12 +168,13 @@ function parseCoord(
   raw: string,
   lineNo: number,
   columnName: 'start' | 'end',
-  columnNo: number
+  columnNo: number,
+  label: string
 ): number {
   const t = raw.trim();
   if (!NON_NEGATIVE_INT.test(t)) {
     throw new Error(
-      `bed: line ${lineNo}: non-numeric ${columnName} coordinate "${raw}" ` +
+      `${label}: line ${lineNo}: non-numeric ${columnName} coordinate "${raw}" ` +
         `(BED column ${columnNo}).`
     );
   }

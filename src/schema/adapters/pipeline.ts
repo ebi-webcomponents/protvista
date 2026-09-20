@@ -116,24 +116,55 @@ function fromDelimited(
  * resolves to today), so this returns their output directly rather than
  * re-wrapping it.
  */
-function fromJson(shape: ShapeName, body: unknown): unknown {
+function fromJson(
+  shape: ShapeName,
+  body: unknown,
+  formatLabel: string
+): unknown {
   switch (shape) {
     case 'feature':
-      return featuresJson(body);
+      return featuresJson(body, formatLabel);
     case 'point':
-      return linegraph(body);
+      return linegraph(body, formatLabel);
     case 'variation':
-      return variation(body);
+      return variation(body, formatLabel);
   }
+}
+
+/**
+ * How an error should name the input it rejected.
+ *
+ * The grid labelled parser errors with the adapter's own name —
+ * `features-csv: row 3, column "start": …` — which told the author *nothing*
+ * about which of their files was wrong. A config with four CSV tracks
+ * reported the same prefix for all four.
+ *
+ * So the label names the source and how it was read:
+ *
+ *   ./depth.csv (parsed as CSV): row 3, column "value": …
+ *   inline data (parsed as CSV): row 2, column "position": …
+ *
+ * The "(parsed as …)" half earns its place when the two disagree — a
+ * `./readings.txt` with `format: csv`, or a `.tsv` the author overrode. It
+ * states the reading the viewer chose, which is exactly what an author
+ * debugging an unexpected parse error needs to see.
+ */
+export function sourceLabel(
+  source: string | undefined,
+  format: DataFormat
+): string {
+  const what = source === undefined || source === '' ? 'inline data' : source;
+  return `${what} (parsed as ${format.toUpperCase()})`;
 }
 
 export interface PipelineOptions {
   /**
-   * Prefix for row/column error messages. Defaults to the format name; the
-   * transition passes the grid adapter's name so messages stay identical
-   * while both paths are live.
+   * Prefix for row/column error messages. Defaults to {@link sourceLabel} of
+   * `source` and the format.
    */
   formatLabel?: string;
+  /** The file path or URL this body came from; omitted for inline data. */
+  source?: string;
 }
 
 /**
@@ -152,12 +183,12 @@ export function runPipeline(
   if (!formatCanProduce(format, shape)) {
     throw new ShapeFormatMismatchError(shape, format);
   }
-  const formatLabel = opts.formatLabel ?? format;
+  const formatLabel = opts.formatLabel ?? sourceLabel(opts.source, format);
 
   if (format === 'bed') {
     // BED decodes straight to feature records — its coordinate conversion is
     // part of reading the format, not of shaping it.
-    return bed(body);
+    return bed(body, formatLabel);
   }
 
   const delimiter = DELIMITERS[format];
@@ -172,5 +203,5 @@ export function runPipeline(
     return wrap(shape, fromDelimited(shape, body, delimiter, formatLabel));
   }
 
-  return fromJson(shape, body);
+  return fromJson(shape, body, formatLabel);
 }

@@ -33,6 +33,12 @@
 import type { AdapterFunction } from '../types.js';
 import type { FeatureRecord } from './dsv.js';
 
+/**
+ * Default error prefix, used when this validator is called directly rather
+ * than through the pipeline. The pipeline passes the author's own source
+ * instead — `./hits.json (parsed as JSON)` — so an error names the file the
+ * author has to go and fix rather than the machinery that read it.
+ */
 const FORMAT_LABEL = 'features-json';
 
 /** A parsed, finite JSON number (rejects `NaN`; strings never qualify). */
@@ -53,7 +59,8 @@ function describe(x: unknown): string {
   return typeof x;
 }
 
-export const featuresJson: AdapterFunction = (raw) => {
+export const featuresJson: AdapterFunction = (raw, labelArg) => {
+  const label = typeof labelArg === 'string' ? labelArg : FORMAT_LABEL;
   if (!Array.isArray(raw)) {
     console.warn(
       '[protvista] features-json adapter: expected an array; got ' +
@@ -69,14 +76,14 @@ export const featuresJson: AdapterFunction = (raw) => {
 
     if (item === null || typeof item !== 'object' || Array.isArray(item)) {
       throw new Error(
-        `${FORMAT_LABEL}: record ${i} is not an object (got ${describe(item)}).`
+        `${label}: record ${i} is not an object (got ${describe(item)}).`
       );
     }
     const r = item as Record<string, unknown>;
 
     if (typeof r.type !== 'string') {
       throw new Error(
-        `${FORMAT_LABEL}: record ${i}, field "type": expected a string, ` +
+        `${label}: record ${i}, field "type": expected a string, ` +
           `got ${describe(r.type)}.`
       );
     }
@@ -88,13 +95,13 @@ export const featuresJson: AdapterFunction = (raw) => {
     const rawStart = r.start != null ? r.start : r.begin;
     if (!isFiniteNumber(rawStart)) {
       throw new Error(
-        `${FORMAT_LABEL}: record ${i}, field "start": expected a number, ` +
+        `${label}: record ${i}, field "start": expected a number, ` +
           `got ${describe(rawStart)}.`
       );
     }
     if (!isFiniteNumber(r.end)) {
       throw new Error(
-        `${FORMAT_LABEL}: record ${i}, field "end": expected a number, ` +
+        `${label}: record ${i}, field "end": expected a number, ` +
           `got ${describe(r.end)}.`
       );
     }
@@ -108,7 +115,7 @@ export const featuresJson: AdapterFunction = (raw) => {
     if (r.description !== undefined && r.description !== null) {
       if (typeof r.description !== 'string') {
         throw new Error(
-          `${FORMAT_LABEL}: record ${i}, field "description": expected a ` +
+          `${label}: record ${i}, field "description": expected a ` +
             `string, got ${describe(r.description)}.`
         );
       }
@@ -120,7 +127,7 @@ export const featuresJson: AdapterFunction = (raw) => {
     if (r.score !== undefined && r.score !== null) {
       if (!isFiniteNumber(r.score)) {
         throw new Error(
-          `${FORMAT_LABEL}: record ${i}, field "score": expected a number, ` +
+          `${label}: record ${i}, field "score": expected a number, ` +
             `got ${describe(r.score)}.`
         );
       }

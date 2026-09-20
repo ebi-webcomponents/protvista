@@ -79,10 +79,15 @@ export function toVariants(records: readonly VariationRecord[]): {
   };
 }
 
-export const variation: AdapterFunction = (raw) => {
+export const variation: AdapterFunction = (raw, labelArg) => {
+  // Every parser prefixes its errors the same way — `<label>: …` — so an
+  // author reading two failures side by side sees one shape. The pipeline
+  // passes their own source; a direct call falls back to this record family's
+  // name.
+  const label = typeof labelArg === 'string' ? labelArg : 'variation';
   if (!Array.isArray(raw)) {
     throw new Error(
-      `[variation] expected an array of { position, variant } records; got ${describe(raw)}.`
+      `${label}: expected an array of { position, variant } records; got ${describe(raw)}.`
     );
   }
   if (raw.length === 0) return { variants: [] };
@@ -93,7 +98,7 @@ export const variation: AdapterFunction = (raw) => {
     const row = raw[i];
     if (row === null || typeof row !== 'object' || Array.isArray(row)) {
       throw new Error(
-        `[variation] row ${i}: expected 'position' (a number) and 'variant' (a string); got ${repr(row)} — row is ${kindOf(row)}, not an object.`
+        `${label}: row ${i}: expected 'position' (a number) and 'variant' (a string); got ${repr(row)} — row is ${kindOf(row)}, not an object.`
       );
     }
     const rec = row as Record<string, unknown>;
@@ -114,12 +119,12 @@ export const variation: AdapterFunction = (raw) => {
     const position = own('position');
     if (position === undefined) {
       throw new Error(
-        `[variation] row ${i}: expected 'position' (a number) and 'variant' (a string); got ${rowRendering()} — 'position' is missing.`
+        `${label}: row ${i}: expected 'position' (a number) and 'variant' (a string); got ${rowRendering()} — 'position' is missing.`
       );
     }
     if (typeof position !== 'number' || !Number.isFinite(position)) {
       throw new Error(
-        `[variation] row ${i}: expected 'position' (a number) and 'variant' (a string); got ${rowRendering()} — 'position' is ${
+        `${label}: row ${i}: expected 'position' (a number) and 'variant' (a string); got ${rowRendering()} — 'position' is ${
           typeof position === 'number' ? 'not a finite number' : `${kindOf(position)}, not a number`
         }.`
       );
@@ -128,12 +133,12 @@ export const variation: AdapterFunction = (raw) => {
     const variant = own('variant');
     if (variant === undefined) {
       throw new Error(
-        `[variation] row ${i}: expected 'position' (a number) and 'variant' (a string); got ${rowRendering()} — 'variant' is missing.`
+        `${label}: row ${i}: expected 'position' (a number) and 'variant' (a string); got ${rowRendering()} — 'variant' is missing.`
       );
     }
     if (typeof variant !== 'string' || variant === '') {
       throw new Error(
-        `[variation] row ${i}: expected 'variant' to be the residue the position changes to (e.g. 'K', '*' for a stop, '-' for a deletion); got ${rowRendering()} — 'variant' is ${
+        `${label}: row ${i}: expected 'variant' to be the residue the position changes to (e.g. 'K', '*' for a stop, '-' for a deletion); got ${rowRendering()} — 'variant' is ${
           variant === '' ? 'an empty string' : `${kindOf(variant)}, not a string`
         }.`
       );
@@ -145,7 +150,7 @@ export const variation: AdapterFunction = (raw) => {
       if (v === undefined) continue;
       if (typeof v !== 'string') {
         throw new Error(
-          `[variation] row ${i}: expected '${f}' to be a string; got ${rowRendering()} — '${f}' is ${kindOf(v)}.`
+          `${label}: row ${i}: expected '${f}' to be a string; got ${rowRendering()} — '${f}' is ${kindOf(v)}.`
         );
       }
       record[f] = v;

@@ -66,16 +66,16 @@ describe('linegraph adapter', () => {
 
   it('throws for non-array inputs', () => {
     expect(() => linegraph({ position: 1, value: 2 } as any)).toThrow(
-      '[linegraph] expected an array of { position, value } records; got object.'
+      'linegraph: expected an array of { position, value } records; got object.'
     );
     expect(() => linegraph('1,2' as any)).toThrow(
-      '[linegraph] expected an array of { position, value } records; got string.'
+      'linegraph: expected an array of { position, value } records; got string.'
     );
     expect(() => linegraph(null as any)).toThrow(
-      '[linegraph] expected an array of { position, value } records; got null.'
+      'linegraph: expected an array of { position, value } records; got null.'
     );
     expect(() => linegraph(undefined as any)).toThrow(
-      '[linegraph] expected an array of { position, value } records; got undefined.'
+      'linegraph: expected an array of { position, value } records; got undefined.'
     );
   });
 
@@ -83,43 +83,43 @@ describe('linegraph adapter', () => {
     expect(() =>
       linegraph([{ position: 1, value: 2 }, { position: 2 } as any])
     ).toThrow(
-      "[linegraph] row 1: expected 'position' and 'value' (both numbers); got { position: 2 } — 'value' is missing."
+      "linegraph: row 1: expected 'position' and 'value' (both numbers); got { position: 2 } — 'value' is missing."
     );
   });
 
   it('throws when a field is the wrong type', () => {
     expect(() => linegraph([{ position: '47' as any, value: 0.9 }])).toThrow(
-      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got { position: '47', value: 0.9 } — 'position' is a string, not a number."
+      "linegraph: row 0: expected 'position' and 'value' (both numbers); got { position: '47', value: 0.9 } — 'position' is a string, not a number."
     );
   });
 
   it('throws when a field is null', () => {
     expect(() => linegraph([{ position: 3, value: null as any }])).toThrow(
-      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got { position: 3, value: null } — 'value' is null, not a number."
+      "linegraph: row 0: expected 'position' and 'value' (both numbers); got { position: 3, value: null } — 'value' is null, not a number."
     );
   });
 
   it('throws when a field is non-finite', () => {
     expect(() => linegraph([{ position: 3, value: NaN }])).toThrow(
-      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got { position: 3, value: NaN } — 'value' is not a finite number."
+      "linegraph: row 0: expected 'position' and 'value' (both numbers); got { position: 3, value: NaN } — 'value' is not a finite number."
     );
   });
 
   it('throws when a row is not an object', () => {
     expect(() => linegraph([{ position: 1, value: 1 }, 42 as any])).toThrow(
-      "[linegraph] row 1: expected 'position' and 'value' (both numbers); got 42 — row is a number, not an object."
+      "linegraph: row 1: expected 'position' and 'value' (both numbers); got 42 — row is a number, not an object."
     );
     expect(() => linegraph([null as any])).toThrow(
-      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got null — row is null, not an object."
+      "linegraph: row 0: expected 'position' and 'value' (both numbers); got null — row is null, not an object."
     );
     expect(() => linegraph([[1, 2] as any])).toThrow(
-      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got [array] — row is an array, not an object."
+      "linegraph: row 0: expected 'position' and 'value' (both numbers); got [array] — row is an array, not an object."
     );
   });
 
   it('throws for a non-finite value other than NaN', () => {
     expect(() => linegraph([{ position: 1, value: Infinity }])).toThrow(
-      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got { position: 1, value: Infinity } — 'value' is not a finite number."
+      "linegraph: row 0: expected 'position' and 'value' (both numbers); got { position: 1, value: Infinity } — 'value' is not a finite number."
     );
   });
 
@@ -129,7 +129,7 @@ describe('linegraph adapter', () => {
     expect(() =>
       linegraph([Object.create({ position: 1, value: 2 }) as never])
     ).toThrow(
-      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got {} — 'position' is missing."
+      "linegraph: row 0: expected 'position' and 'value' (both numbers); got {} — 'position' is missing."
     );
   });
 
@@ -154,7 +154,7 @@ describe('linegraph adapter', () => {
 
   it('throws when a row is an empty object', () => {
     expect(() => linegraph([{} as any])).toThrow(
-      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got {} — 'position' is missing."
+      "linegraph: row 0: expected 'position' and 'value' (both numbers); got {} — 'position' is missing."
     );
   });
 });

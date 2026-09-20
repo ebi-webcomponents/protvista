@@ -86,7 +86,7 @@ describe('variation adapter', () => {
 
   it('throws for non-array input, naming what it got', () => {
     expect(() => variation({ variants: [] })).toThrow(
-      /\[variation\] expected an array of \{ position, variant \} records; got object\./
+      /variation: expected an array of \{ position, variant \} records; got object\./
     );
     expect(() => variation(null)).toThrow(/got null\./);
   });
