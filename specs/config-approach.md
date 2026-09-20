@@ -670,7 +670,11 @@ type AdapterName = KnownAdapterName | (string & {});
 **Naming rule: a plain domain word means your data is welcome.** A kind's name is the author's only clue about whether their own file will work on it, so the vocabulary encodes the answer:
 
 - A kind named with a **plain domain word** (`features`, `variants`, `peptides`, `linegraph`) accepts an author-supplied file. Each declares the *record shape* it draws, so every format that can carry those records feeds it — `kind: variants` draws variants whether they come from the UniProt API or from `./my-variants.csv`.
-- A kind whose adapter cannot be fed by any single file is named for **the provider it reads** (`alphafold-confidence`, `alphamissense-pathogenicity`, `alphamissense-heatmap`, `interpro-features`). Those three AlphaFold/AlphaMissense adapters take two inputs and then fetch a further URL, so no file can stand in; the name says whose feed it is rather than implying a generic capability. `alphafold-confidence` was `confidence-score` until the rule was applied — a name that read as "any confidence score" when it meant one product's pLDDT.
+- A kind named for **the provider it reads** (`alphafold-confidence`, `alphamissense-pathogenicity`, `alphamissense-heatmap`, `interpro-features`) says whose feed it draws by default, rather than implying a generic capability. `alphafold-confidence` was `confidence-score` until the rule was applied — a name that read as "any confidence score" when it meant one product's pLDDT.
+
+  The prefix is not the same claim as "no file works here". The three AlphaFold/AlphaMissense kinds take two API responses and then fetch a further URL, so nothing an author can supply stands in, and they declare no record shape. `interpro-features` is the other case: it draws ordinary feature records, so `kind: interpro-features` with a `./domains.csv` reads that file like any other feature source — the prefix is there because the default feed is InterPro's and the plain word `features` already means UniProt's.
+
+The two halves are independent, and only one is a promise about your data: **a declared record shape is what means your file will work**, whatever the kind is called.
 
 The rule is enforced by a drift test (`adapter-reference.spec.ts`): a built-in kind that declares no record shape must start with a provider prefix. A kind that later gains a shape — and with it a bring-your-own-data path — should shed the prefix; a name change is the honest signal that the capability changed.
 

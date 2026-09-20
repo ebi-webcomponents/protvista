@@ -34,6 +34,7 @@ import {
 } from '../file-formats.js';
 import { SHAPES, SHAPE_NAMES } from '../shapes.js';
 import { createRegistry } from '../registry.js';
+import { validateConfig } from '../validate.js';
 import { runPipeline } from '../adapters/pipeline.js';
 
 /** The reading a `kind: features` track gives `examples/csv/hotspots.csv`. */
@@ -153,6 +154,13 @@ describe('the reference documents the vocabulary authors actually write', () => 
     // The vocabulary rule, enforced: a kind may keep a plain domain word
     // (`features`, `variants`) only if an author can bring their own data to
     // it. A kind with no shape must say whose feed it is.
+    //
+    // Only this direction is asserted. The converse — a shaped kind must have
+    // a plain name — is not the rule: `interpro-features` draws ordinary
+    // feature records *and* carries a provider prefix, because its default
+    // feed is InterPro's and the plain word `features` already means
+    // UniProt's. A prefix names the default feed; a shape is the promise
+    // about your data, and they are independent.
     const PROVIDERS = ['alphafold-', 'alphamissense-', 'interpro-', 'uniprot-'];
     for (const kind of registry.listSemanticKinds()) {
       if (registry.getSemanticKind(kind)?.shape !== undefined) continue;
@@ -160,6 +168,33 @@ describe('the reference documents the vocabulary authors actually write', () => 
         PROVIDERS.some((prefix) => kind.startsWith(prefix)),
         `kind '${kind}' accepts no author data, so its name must carry its provider`
       ).toBe(true);
+    }
+  });
+
+  it('every kind that declares a shape actually reads an author file', () => {
+    // The half the naming rule promises and nothing checked: a shape is what
+    // tells an author their file will work, so a kind that declares one must
+    // resolve a plain `./x.csv` end to end. CSV is a container format and can
+    // carry all three shapes, so it is the one source every shaped kind must
+    // accept. A kind given a shape whose resolution path does not reach it
+    // would otherwise read as bring-your-own-data and fail at load time.
+    const shaped = registry
+      .listSemanticKinds()
+      .filter((k) => registry.getSemanticKind(k)?.shape !== undefined);
+    expect(shaped.length).toBeGreaterThan(5);
+
+    for (const kind of shaped) {
+      const result = validateConfig(
+        {
+          accession: 'P05067',
+          rows: [{ id: 'G', tracks: [{ id: 't', kind, data: './mine.csv' }] }],
+        },
+        createRegistry()
+      );
+      expect(
+        result.issues.map((i) => i.code),
+        `kind '${kind}' declares a shape but rejects './mine.csv'`
+      ).toEqual([]);
     }
   });
 });
