@@ -165,6 +165,10 @@ describe('linegraph kind registration', () => {
   it('resolves semantic kind linegraph to nightingale-linegraph-track and linegraph adapter', () => {
     expect(r.getSemanticKind('linegraph')).toEqual({
       component: 'nightingale-linegraph-track',
+      // `shape` is what lets an author bring point records to this kind by
+      // file, inline, or setTrackData; `adapter` is the transform for its
+      // JSON form. See "Shape and format" in specs/config-approach.md.
+      shape: 'point',
       adapter: 'linegraph',
     });
   });
@@ -177,6 +181,7 @@ describe('linegraph kind registration', () => {
     expect(r.listSemanticKinds()).toContain('linegraph');
     expect(r.getSemanticKind('variant-counts')).toEqual({
       component: 'nightingale-linegraph-track',
+      shape: 'point',
       adapter: 'uniprot-variation-counts-json',
     });
   });

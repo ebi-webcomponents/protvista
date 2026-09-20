@@ -38,12 +38,20 @@ What the feature adds:
   `.csv → features-csv`, `.tsv → features-tsv`, `.json → features-json`,
   `.bed → bed` — applied when an author writes `data: ./hits.csv` and
   doesn't pin an `adapter:` explicitly.
-- A `cannot-infer-adapter` validation issue code (in
-  `src/schema/errors.ts`) for the case where the shorthand lands on an
-  unknown extension. Helper functions `hasKnownExtension` and
-  `extensionOf` in `src/schema/validate.ts` to back the check.
-- The matching extension-shorthand bullets in the spec's
-  `TrackConfig.data` JSDoc.
+
+  These four are also the `features` kind's file formats.
+
+  **Superseded, pre-hackathon.** The per-kind *family* table this describes is
+  being replaced by the shape/format split — see "Shape and format
+  (normative)" in [`config-approach.md`](./config-approach.md) and the decision
+  record in [`adapter-model-decision.md`](./adapter-model-decision.md). The
+  author-facing behaviour below is unchanged (`kind: features` +
+  `./hits.csv` still reads a feature CSV); what changes is that
+  `features-csv` and the other nine `<shape>-<format>` adapter names are
+  deleted rather than resolved through a family table. `format: csv` becomes
+  the way to state an encoding no extension implies, and the `bed` decoder
+  declares that it emits feature records, so `kind: variants` at a `.bed` file
+  is rejected by shape rather than by body type.
 
 What stays out of scope:
 

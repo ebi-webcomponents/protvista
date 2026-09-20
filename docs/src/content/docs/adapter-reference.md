@@ -10,7 +10,7 @@ This reference is generated from the adapter code and kept in sync by drift test
 
 ## Bring-your-own-data formats
 
-These four adapters parse a file **you** supply and emit the canonical *feature record* (`type`, `start`, `end`, optional `description`/`score`). Point a track at a local file whose extension selects the adapter (e.g. `data: ./hotspots.csv`), or set `adapter:` explicitly. A machine-readable schema for this record is served at [`feature-record.schema.json`](https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json) (published at `https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json`).
+These four adapters parse a file **you** supply and emit the canonical *feature record* (`type`, `start`, `end`, optional `description`/`score`). Point a track at a local file whose extension selects the adapter (e.g. `data: ./hotspots.csv`), or set `adapter:` explicitly. They are also the `features` kind's file formats: on a `kind: features` track the same extensions select the same adapters, so a hosted UniProt URL and an exported file are the same track with a different `data:`. A machine-readable schema for this record is served at [`feature-record.schema.json`](https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json) (published at `https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json`).
 
 ### `features-csv` — CSV (comma-separated)
 
@@ -81,7 +81,7 @@ These adapters back the built-in semantic `kind`s. Their input is a response fro
 | Semantic kind | Adapter | Renders with | Inputs | Input shape |
 |---|---|---|---|---|
 | `features` | `uniprot-features-json` | `nightingale-track-canvas` | 1 | UniProt Proteins API features response — `{ features: [...] }`, each feature carrying `type`, `begin`, `end`, and evidence. |
-| `features-interpro` | `interpro-entries-json` | `nightingale-track-canvas` | 1 | InterPro protein-entries response — `{ results: [{ metadata, proteins: [{ entry_protein_locations }] }] }`. Representative-domain fragments are flattened into features. |
+| `interpro-features` | `interpro-entries-json` | `nightingale-track-canvas` | 1 | InterPro protein-entries response — `{ results: [{ metadata, proteins: [{ entry_protein_locations }] }] }`. Representative-domain fragments are flattened into features. |
 | `variants` | `uniprot-variation-json` | `nightingale-variation-canvas` | 1 | UniProt Proteins API variation response — `{ sequence, features: [...] }` with per-variant genomic location, alternative sequence and predictions. |
 | `variant-counts` | `uniprot-variation-counts-json` | `nightingale-linegraph-track` | 1 | Same variation response as `uniprot-variation-json`; aggregated into per-position total and disease-causing variant counts for the line graph. |
 | `rna-editing` | `uniprot-rna-editing-json` | `nightingale-variation-canvas` | 1 | UniProt Proteins API RNA-editing response — `{ sequence, features: [{ locationType, variantType }] }`. |
@@ -89,24 +89,27 @@ These adapters back the built-in semantic `kind`s. Their input is a response fro
 | `peptides` | `uniprot-proteomics-json` | `nightingale-track-canvas` | 1 | UniProt Proteomics API response — `{ features: [{ unique, ptms }] }`; PTMs are lifted onto each peptide as residues to highlight. |
 | `peptides-ptm` | `uniprot-proteomics-ptm-json` | `nightingale-track-canvas` | 1 | PTMeXchange proteomics-PTM response — `{ features: [{ begin, peptide, ptms: [{ name, position, dbReferences }] }] }`; emitted as per-residue MOD_RES markers coloured by confidence. |
 | `structure-coverage` | `uniprot-proteins-pdb-json` | `nightingale-track-canvas` | 1 | UniProt Proteins API entry — `{ dbReferences: [{ type: "PDB", properties: { chains } }] }`; PDB chain ranges are parsed and overlapping intervals merged. |
-| `confidence-score` | `alphafold-prediction-json` | `nightingale-colored-sequence` | 2 (+ fetches a further URL) | AlphaFold prediction list (matched to the protein sequence) plus the UniProt entry. The adapter then fetches the per-residue confidence JSON and returns pLDDT categories. |
-| `pathogenicity-score` | `alphamissense-average-csv` | `nightingale-colored-sequence` | 2 (+ fetches a further URL) | AlphaFold prediction list (with an AlphaMissense annotations URL) plus the UniProt entry. The adapter fetches the annotations CSV and returns per-position average pathogenicity codes. |
-| `pathogenicity-heatmap` | `alphamissense-full-csv` | `nightingale-sequence-heatmap` | 2 (+ fetches a further URL) | Same AlphaMissense annotations as `alphamissense-average-csv`, but returns the full per-mutation `{ xValue, yValue, score }` matrix for the heatmap. |
+| `alphafold-confidence` | `alphafold-prediction-json` | `nightingale-colored-sequence` | 2 (+ fetches a further URL) | AlphaFold prediction list (matched to the protein sequence) plus the UniProt entry. The adapter then fetches the per-residue confidence JSON and returns pLDDT categories. |
+| `alphamissense-pathogenicity` | `alphamissense-average-csv` | `nightingale-colored-sequence` | 2 (+ fetches a further URL) | AlphaFold prediction list (with an AlphaMissense annotations URL) plus the UniProt entry. The adapter fetches the annotations CSV and returns per-position average pathogenicity codes. |
+| `alphamissense-heatmap` | `alphamissense-full-csv` | `nightingale-sequence-heatmap` | 2 (+ fetches a further URL) | Same AlphaMissense annotations as `alphamissense-average-csv`, but returns the full per-mutation `{ xValue, yValue, score }` matrix for the heatmap. |
 
 ## Bring-your-own-data track kinds
 
-These adapters also back a semantic `kind`, but the payload is one **you** author rather than a provider response — point the track at any URL or file path serving the JSON shape below, or write it inline with `from: inline`. The `kind` outranks extension inference, so `data: ./depth.json` on a `kind: linegraph` track stays on `linegraph` rather than being read as generic features. Unlike the provider-supplied adapters above, these shapes *are* a contract you must produce: a malformed record fails with an error naming the row index and field.
+These adapters also back a semantic `kind`, but the payload is one **you** author rather than a provider response — point the track at any URL or file path serving the JSON shape below, or write it inline with `from: inline`. The `kind` selects the adapter, so `data: ./depth.json` on a `kind: linegraph` track is read as line-graph records rather than generic features. Unlike the provider-supplied adapters above, these shapes *are* a contract you must produce: a malformed record fails with an error naming the row index and field.
 
 | Semantic kind | Adapter | Renders with | Inputs | Input shape |
 |---|---|---|---|---|
 | `linegraph` | `linegraph` | `nightingale-linegraph-track` | 1 | Generic bring-your-own-data: a JSON array of `{ position, value }` records (both numbers), validated and emitted as one line-graph series. Not UniProt-specific — for the UniProt variation API keep `variant-counts`. |
 
-The same records can arrive as delimited text. On a track already using one of these kinds, the file extension picks the matching parser — `data: ./depth.csv` on a `kind: linegraph` track parses a `position,value` header, it does not fall back to the feature adapters. (A bare `./x.csv` on a track with no `kind` still means `features-csv`.)
+The same records can arrive as delimited text. On a track already using one of these kinds, the file extension picks the matching parser — `data: ./depth.csv` on a `kind: linegraph` track parses a `position,value` header, it does not fall back to the feature adapters. The extension chooses *within* the kind, never away from it. (A bare `./x.csv` on a track with no `kind` still means `features-csv`.)
 
-| Extension | Adapter | Same records as | Fetched as | Header row |
-|---|---|---|---|---|
-| `.csv` | `linegraph-csv` | `linegraph` | text | `position,value` |
-| `.tsv` | `linegraph-tsv` | `linegraph` | text | `position,value` |
+| Extension | Adapter | Records | Fetched as | Header row | Kinds that read it |
+|---|---|---|---|---|---|
+| `.csv` | `linegraph-csv` | `linegraph` | text | `position,value` | `linegraph`, `rna-editing-counts`, `variant-counts` |
+| `.tsv` | `linegraph-tsv` | `linegraph` | text | `position,value` | `linegraph`, `rna-editing-counts`, `variant-counts` |
+| `.json` | `variation` | `variation` | json | — (JSON records) | `rna-editing`, `variants` |
+| `.csv` | `variation-csv` | `variation` | text | `position,variant` | `rna-editing`, `variants` |
+| `.tsv` | `variation-tsv` | `variation` | text | `position,variant` | `rna-editing`, `variants` |
 
 ## Related
 

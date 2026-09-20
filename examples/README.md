@@ -44,6 +44,7 @@ here surfaces immediately rather than silently:
 | [`tsv/`](./tsv) | Bring-your-own TSV file — `features-tsv` adapter, inferred from the `.tsv` extension |
 | [`json/`](./json) | A live **UniProt** API track next to a bring-your-own JSON file — `features-json` adapter, inferred from the `.json` extension |
 | [`bed/`](./bed) | Bring-your-own BED file — `bed` adapter, inferred from the `.bed` extension |
+| [`variation-csv/`](./variation-csv) | Your own variants on `kind: variants` — the same kind the UniProt viewer uses, reading a `position,variant` CSV instead of the variation API |
 | [`extend-default/`](./extend-default) | `extends:` the shipped canonical UniProt config and layers one custom CSV-backed track on top |
 
 Column/shape conventions for the four generic-format adapters (CSV,

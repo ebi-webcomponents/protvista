@@ -50,11 +50,16 @@ import { isGroupConfig } from './discriminate.js';
 import type { Registry } from './registry.js';
 import { RENDERABLE_COMPONENT_NAMES } from './components.js';
 import { isPlainObject, isSet } from './shape.js';
-import { dataFileFormatForPath } from './file-formats.js';
-import type {
-  ValidationIssue,
-  ValidationResult,
-  ValidationIssueCode,
+import {
+  adapterBodyType,
+  dataFileFormatForPath,
+  kindAdapterForFormat,
+} from './file-formats.js';
+import {
+  isError,
+  type ValidationIssue,
+  type ValidationResult,
+  type ValidationIssueCode,
 } from './errors.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -144,7 +149,10 @@ export function validateConfig(
   checkAccessionPlaceholders(c, issues);
   checkRows(c, registry, issues);
 
-  return { valid: issues.length === 0, issues };
+  // `valid` tracks error-severity issues only: a warning names something
+  // legal (an explicit `format:` overriding an extension) and must not make
+  // the config unloadable.
+  return { valid: !issues.some(isError), issues };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -420,13 +428,14 @@ function checkRows(
   registry: Registry,
   issues: ValidationIssue[]
 ): void {
-  const sourceKeys = new Set(Object.keys(c.sources ?? {}));
+  const sources = c.sources ?? {};
+  const sourceKeys = new Set(Object.keys(sources));
   // Each row is either a group (its child tracks are checked under the
   // group's component) or a standalone track (checked with no parent
   // group — it must carry its own rendering path).
   for (const entry of c.rows) {
     if (!isGroupConfig(entry)) {
-      checkTrack(undefined, entry, sourceKeys, registry, issues);
+      checkTrack(undefined, entry, sourceKeys, sources, registry, issues);
       continue;
     }
     const group = entry;
@@ -438,7 +447,7 @@ function checkRows(
       });
     }
     for (const track of group.tracks) {
-      checkTrack(group, track, sourceKeys, registry, issues);
+      checkTrack(group, track, sourceKeys, sources, registry, issues);
     }
   }
 }
@@ -447,6 +456,7 @@ function checkTrack(
   group: GroupConfig | undefined,
   track: TrackConfig,
   sourceKeys: Set<string>,
+  sources: Record<string, string>,
   registry: Registry,
   issues: ValidationIssue[]
 ): void {
@@ -515,6 +525,7 @@ function checkTrack(
         code: 'unknown-adapter',
       });
     }
+    checkKindReadsFileFormat(trackPath, track, sources, registry, issues);
   }
 
   // Track has no rendering path: no `kind`, no track-level
@@ -543,6 +554,91 @@ function checkTrack(
   for (const descriptor of collectDescriptors(track)) {
     checkDescriptor(trackPath, descriptor, sourceKeys, registry, issues);
   }
+}
+
+/**
+ * A `kind:` owns adapter selection for its track (see `expandDescriptor`):
+ * the kind's family member for the file's extension, or the kind's own
+ * canonical adapter when the family has no member for it. That second case is
+ * right for a domain kind pointed at its API's JSON dump (`kind:
+ * alphafold-confidence` + `./plddt.json` → `alphafold-prediction-json`) but wrong
+ * when the file is a format that adapter cannot read at all: the body would be
+ * fetched as text and handed to a JSON parser, or vice versa, and the track
+ * would come up empty with nothing to point at.
+ *
+ * Reject that pairing here, naming the kinds that *do* read the format, so the
+ * author gets the answer at config time instead of an empty track at runtime.
+ * An explicit `adapter:` opts out — it overrides the kind's selection, so the
+ * author has already said what parses this file.
+ */
+function checkKindReadsFileFormat(
+  trackPath: string,
+  track: TrackConfig,
+  sources: Record<string, string>,
+  registry: Registry,
+  issues: ValidationIssue[]
+): void {
+  const kind = track.kind;
+  if (kind === undefined) return;
+  const kindAdapter = registry.getSemanticKind(kind)?.adapter;
+  if (kindAdapter === undefined) return;
+
+  for (const d of collectDescriptors(track)) {
+    if (!isShorthand(d) && d.adapter !== undefined) continue;
+    const value = descriptorPath(d, sources);
+    if (value === undefined) continue;
+    const format = dataFileFormatForPath(value);
+    if (format === undefined) continue;
+    // A family member for this format parses exactly it — by construction it
+    // can never disagree with the file it was chosen for.
+    if (kindAdapterForFormat(kindAdapter, format) !== kindAdapter) continue;
+    const kindBody = adapterBodyType(kindAdapter);
+    if (kindBody === format.body) continue;
+
+    const readableKinds = registry.listSemanticKinds().filter((k) => {
+      const a = registry.getSemanticKind(k)?.adapter;
+      return a !== undefined && kindAdapterForFormat(a, format) !== a;
+    });
+    const alternatives =
+      readableKinds.length > 0
+        ? ` Kinds that read ${format.ext} files: ${listQuoted(new Set(readableKinds))}.`
+        : '';
+    issues.push({
+      path: trackPath,
+      message:
+        `Semantic kind '${kind}' in track ${trackPath} cannot read '${format.ext}' files: ` +
+        `it resolves to adapter '${kindAdapter}', which expects a ${kindBody} body, ` +
+        `and has no ${format.ext} adapter of its own.${alternatives} ` +
+        `Otherwise set an explicit 'adapter:' on the data descriptor.`,
+      code: 'kind-format-mismatch',
+    });
+  }
+}
+
+/**
+ * The file path or URL a descriptor points at, with a `source:` key resolved
+ * through the sources map — the same value `expandDescriptor` reads the
+ * format off, so the validator and the resolver can't read one config two
+ * ways. `undefined` for inline / custom / multi-source descriptors.
+ */
+function descriptorPath(
+  d: DataSourceDescriptor | { __shorthand: string },
+  sources: Record<string, string>
+): string | undefined {
+  if (isShorthand(d)) {
+    const raw = d.__shorthand;
+    return Object.prototype.hasOwnProperty.call(sources, raw)
+      ? sources[raw]
+      : raw;
+  }
+  if (typeof d.url === 'string') return d.url;
+  if (
+    typeof d.source === 'string' &&
+    Object.prototype.hasOwnProperty.call(sources, d.source)
+  ) {
+    return sources[d.source];
+  }
+  return undefined;
 }
 
 function collectDescriptors(

@@ -35,7 +35,7 @@ import type { NormalizedConfig, NormalizedTrack } from './schema/normalize.js';
 import {
   TEXT_BODY_ADAPTERS,
   BYO_DATA_ADAPTERS,
-  KIND_SELECTED_BYO_DATA_ADAPTERS,
+  recordAdapterForKind,
 } from './schema/file-formats.js';
 import { resolveTooltip } from './tooltips/resolve.js';
 import { tooltipDefaults } from './tooltips/defaults.js';
@@ -121,6 +121,88 @@ type LoadResult = {
    */
   trackUrls: Record<string, string[]>;
 };
+
+/**
+ * Whether an adapted payload actually carries something to draw.
+ *
+ * Gates the `hasData` empty-state flag for bring-your-own-data tracks, so it
+ * has to recognise every wrapper an adapter may emit — not just the bare
+ * array most produce. A variation payload is `{ variants: [...] }`, and a
+ * viewer built solely from a BYO variants file would otherwise parse
+ * correctly and still show "no data for this entry".
+ *
+ * Exported so `examples.spec.ts` asserts example payloads with the same
+ * predicate the gate uses: a test recognising fewer shapes than the gate
+ * would pass an example the viewer blanks out.
+ */
+export function hasRenderableRows(payload: unknown): boolean {
+  if (Array.isArray(payload)) return payload.length > 0;
+  if (payload && typeof payload === 'object') {
+    const variants = (payload as { variants?: unknown }).variants;
+    return Array.isArray(variants) && variants.length > 0;
+  }
+  return false;
+}
+
+/**
+ * Whether a payload is already in the representation the component renders,
+ * rather than the author-facing records it is built from.
+ *
+ * The two shapes are structurally disjoint for every wrapping family, so this
+ * distinguishes them without guessing: a rendered line graph is an array of
+ * series objects carrying `values`, a rendered variation payload is an object
+ * carrying `variants`. An author's records are neither — they are flat
+ * `{ position, … }` objects.
+ *
+ * Exists so `from: custom` keeps honouring its documented contract (inject
+ * what the renderer wants) while also accepting the record contract every
+ * other part of the docs publishes. A consumer who reads `your-data.md` and
+ * calls `setTrackData(key, [{ position: 1, value: 412 }])` should get a line
+ * graph, not `TypeError: undefined is not iterable`.
+ */
+function isRenderedRepresentation(payload: unknown): boolean {
+  if (Array.isArray(payload)) {
+    return payload.some(
+      (item) =>
+        !!item &&
+        typeof item === 'object' &&
+        Array.isArray((item as { values?: unknown }).values)
+    );
+  }
+  return (
+    !!payload &&
+    typeof payload === 'object' &&
+    Array.isArray((payload as { variants?: unknown }).variants)
+  );
+}
+
+/**
+ * Run a track's record adapter over an author-supplied payload — the shared
+ * tail of `from: inline` and `from: custom`.
+ *
+ * Both carry data the *author* wrote, against the record contract published
+ * for the track's `kind` (`{ position, value }` for a line graph,
+ * `{ position, variant }` for variants). That contract is the same whether the
+ * records arrive over the network, inline in the config, or through
+ * `setTrackData()`, so the adapter that validates and wraps them runs for all
+ * three. Kinds whose records need no wrapping (the feature family) and
+ * provider-only kinds have no record adapter and pass through untouched —
+ * running `features-json` here would strip every field outside its five
+ * documented ones, including any a `dataTooltip` path references.
+ *
+ * A payload already in the renderer's representation is passed through, so the
+ * previously-documented `setTrackData()` contract keeps working.
+ */
+async function adaptAuthoredRecords(
+  payload: unknown,
+  track: NormalizedTrack,
+  resolveAdapterFn: (name: string) => AdapterFn
+): Promise<unknown> {
+  const recordAdapter = recordAdapterForKind(track.data[0]?.adapter);
+  if (recordAdapter === undefined) return payload;
+  if (isRenderedRepresentation(payload)) return payload;
+  return resolveAdapterFn(recordAdapter)(payload);
+}
 
 /**
  * Resolve per-item `tooltipContent` strings and return an annotated
@@ -345,11 +427,7 @@ export async function loadProtvistaData(
     const isByoDataAdapter =
       source?.adapter !== undefined && BYO_DATA_ADAPTERS.has(source.adapter);
     const isInline = source?.from === 'inline';
-    if (
-      (isByoDataAdapter || isInline) &&
-      Array.isArray(payload) &&
-      payload.length > 0
-    ) {
+    if ((isByoDataAdapter || isInline) && hasRenderableRows(payload)) {
       hasData = true;
     }
   };
@@ -419,12 +497,12 @@ export async function loadProtvistaData(
         // here would abort the entire load, skipping the caller's
         // error-correlation pass so no failure gets surfaced at all.
         try {
-          // `from: custom` — consumer-supplied data bypasses fetch + adapter
-          // entirely. If the descriptor declares `custom` but no data
-          // was injected via `setTrackData()`, emit a `console.info`
-          // and leave the slot empty. Injected data still flows through
-          // the downstream `filter:` sugar and tooltip resolver so behaviour
-          // is symmetric with URL-sourced tracks.
+          // `from: custom` — consumer-supplied data bypasses the fetch. If the
+          // descriptor declares `custom` but no data was injected via
+          // `setTrackData()`, emit a `console.info` and leave the slot empty.
+          // Injected data still flows through the downstream `filter:` sugar
+          // and tooltip resolver so behaviour is symmetric with URL-sourced
+          // tracks.
           if (first.from === 'custom') {
             if (!(trackKey in customTrackData)) {
               console.info(
@@ -433,7 +511,11 @@ export async function loadProtvistaData(
               return;
             }
             return filterResolveAndAssign(
-              customTrackData[trackKey],
+              await adaptAuthoredRecords(
+                customTrackData[trackKey],
+                track,
+                resolveAdapterFn
+              ),
               trackKey,
               track
             );
@@ -442,22 +524,16 @@ export async function loadProtvistaData(
           // `from: inline` — the payload lives on the descriptor itself
           // (`inlineData`, populated by the normalizer); no fetch. Filter +
           // tooltip resolution still apply, mirroring `from: custom` above.
-          //
-          // Inline data is normally written in the shape the component
-          // renders, so no adapter runs. The kind-selected bring-your-own-data
-          // adapters are the exception: what they accept is the author-facing
-          // contract published for the kind (`{ position, value }` records for
-          // `kind: linegraph`), not the component's own representation
-          // (`[{ name, range, values }]`). That contract is the same shape
-          // whether the payload arrives over the network or inline, so the
-          // adapter runs here too — otherwise `from: inline` would silently
-          // hand the track a shape it cannot draw.
           if (first.from === 'inline') {
-            const inlineData =
-              adapter && KIND_SELECTED_BYO_DATA_ADAPTERS.has(adapter)
-                ? await resolveAdapterFn(adapter)(first.inlineData)
-                : first.inlineData;
-            return filterResolveAndAssign(inlineData, trackKey, track);
+            return filterResolveAndAssign(
+              await adaptAuthoredRecords(
+                first.inlineData,
+                track,
+                resolveAdapterFn
+              ),
+              trackKey,
+              track
+            );
           }
 
           const trackData = (Array.isArray(url) ? url : [url ?? '']).map(

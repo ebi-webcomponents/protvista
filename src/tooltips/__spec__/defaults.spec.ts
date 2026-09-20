@@ -49,7 +49,7 @@ describe('tooltipDefaults — declarative field specs', () => {
     );
   });
 
-  it('features-interpro emits name / accession / source_database / start / end', () => {
+  it('interpro-features emits name / accession / source_database / start / end', () => {
     const got = resolveTooltip(
       {
         start: 20,
@@ -58,7 +58,7 @@ describe('tooltipDefaults — declarative field specs', () => {
         name: 'Serpentine receptor',
         source_database: 'pfam',
       },
-      tooltipDefaults['features-interpro'],
+      tooltipDefaults['interpro-features'],
       ctx
     );
     expect(got).toBe(
@@ -150,9 +150,9 @@ describe('tooltipDefaults — graph kinds have no entry', () => {
   it.each([
     'variant-counts',
     'rna-editing-counts',
-    'confidence-score',
-    'pathogenicity-score',
-    'pathogenicity-heatmap',
+    'alphafold-confidence',
+    'alphamissense-pathogenicity',
+    'alphamissense-heatmap',
   ])('%s is unregistered', (kind) => {
     expect(tooltipDefaults[kind]).toBeUndefined();
   });

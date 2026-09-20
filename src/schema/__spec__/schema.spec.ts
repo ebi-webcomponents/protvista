@@ -171,7 +171,7 @@ describe('JSON Schema — accepts representative authored configs', () => {
               id: 'alphafold_confidence',
               label:
                 '[AlphaFold Confidence](https://alphafold.ebi.ac.uk/entry/{accession})',
-              kind: 'confidence-score',
+              kind: 'alphafold-confidence',
               data: { source: ['alphafoldPrediction', 'proteins'] },
               description: 'AlphaFold prediction confidence',
               dataTooltip:
@@ -638,7 +638,7 @@ describe('JSON Schema — top-level standalone tracks', () => {
           id: 'DOMAINS',
           tracks: [{ id: 'domain', kind: 'features', filter: 'DOMAIN', data: 'features' }],
         },
-        { id: 'confidence', kind: 'confidence-score', data: 'features' },
+        { id: 'confidence', kind: 'alphafold-confidence', data: 'features' },
       ],
       sources: { features: 'https://example.org/features' },
     });

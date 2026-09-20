@@ -5,7 +5,7 @@
  * row `position<TAB>value`. All parsing, validation, error reporting, and
  * series construction is shared via `./dsv` and `./linegraph` so the two
  * adapters can never drift. Selected by the `.tsv` extension on a
- * kind-addressed track (see `BYO_ADAPTER_VARIANTS` in `../file-formats.ts`).
+ * kind-addressed track (see `KIND_ADAPTER_VARIANTS` in `../file-formats.ts`).
  */
 
 import type { AdapterFunction } from '../types.js';

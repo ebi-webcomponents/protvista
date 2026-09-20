@@ -39,7 +39,7 @@ import type {
   KnownSemanticKind,
   KnownComponentName,
 } from '../types.js';
-import { POINT_COLUMNS } from './dsv.js';
+import { POINT_COLUMNS, VARIATION_COLUMNS } from './dsv.js';
 
 /** One documented field of a generic bring-your-own-data payload. */
 export interface FieldDoc {
@@ -122,14 +122,24 @@ export interface ByodKindAdapterDoc {
 export interface ByodFormatAdapterDoc {
   name: KnownAdapterName;
   tier: 'byod-format';
-  /** The `byod-kind` adapter whose records this parses. */
-  of: KnownAdapterName;
-  /** File extension that selects it on a track using `of`'s kind. */
+  /**
+   * The record family this parses — the author-facing shape, shared by every
+   * file format that carries it (`variation` covers `variation-csv` and
+   * `variation-tsv`). Not an adapter name: several kinds may reach the same
+   * family, and the renderer lists them from the registry rather than the
+   * table pinning one.
+   */
+  family: string;
+  /** File extension that selects it on a track whose kind declares this family. */
   ext: string;
   /** How the loader fetches the body before handing it to the adapter. */
   body: 'text' | 'json';
-  /** The columns the header row must contain. Mirrors `POINT_COLUMNS` in `./dsv`. */
-  headerColumns: readonly string[];
+  /**
+   * The columns the header row must contain, for the delimited formats.
+   * Mirrors `POINT_COLUMNS` / `VARIATION_COLUMNS` in `./dsv`. Undefined for
+   * the JSON member of a family, which has records rather than a header.
+   */
+  headerColumns?: readonly string[];
   summary: string;
 }
 
@@ -290,7 +300,7 @@ export const ADAPTER_REFERENCE: readonly AdapterDoc[] = [
   {
     name: 'interpro-entries-json',
     tier: 'domain',
-    kind: 'features-interpro',
+    kind: 'interpro-features',
     component: 'nightingale-track-canvas',
     inputSummary:
       'InterPro protein-entries response — `{ results: [{ metadata, proteins: [{ entry_protein_locations }] }] }`. Representative-domain fragments are flattened into features.',
@@ -370,7 +380,7 @@ export const ADAPTER_REFERENCE: readonly AdapterDoc[] = [
   {
     name: 'alphafold-prediction-json',
     tier: 'domain',
-    kind: 'confidence-score',
+    kind: 'alphafold-confidence',
     component: 'nightingale-colored-sequence',
     inputSummary:
       'AlphaFold prediction list (matched to the protein sequence) plus the UniProt entry. The adapter then fetches the per-residue confidence JSON and returns pLDDT categories.',
@@ -380,7 +390,7 @@ export const ADAPTER_REFERENCE: readonly AdapterDoc[] = [
   {
     name: 'alphamissense-average-csv',
     tier: 'domain',
-    kind: 'pathogenicity-score',
+    kind: 'alphamissense-pathogenicity',
     component: 'nightingale-colored-sequence',
     inputSummary:
       'AlphaFold prediction list (with an AlphaMissense annotations URL) plus the UniProt entry. The adapter fetches the annotations CSV and returns per-position average pathogenicity codes.',
@@ -390,7 +400,7 @@ export const ADAPTER_REFERENCE: readonly AdapterDoc[] = [
   {
     name: 'alphamissense-full-csv',
     tier: 'domain',
-    kind: 'pathogenicity-heatmap',
+    kind: 'alphamissense-heatmap',
     component: 'nightingale-sequence-heatmap',
     inputSummary:
       'Same AlphaMissense annotations as `alphamissense-average-csv`, but returns the full per-mutation `{ xValue, yValue, score }` matrix for the heatmap.',
@@ -410,7 +420,7 @@ export const ADAPTER_REFERENCE: readonly AdapterDoc[] = [
   {
     name: 'linegraph-csv',
     tier: 'byod-format',
-    of: 'linegraph',
+    family: 'linegraph',
     ext: '.csv',
     body: 'text',
     headerColumns: [...POINT_COLUMNS],
@@ -420,11 +430,40 @@ export const ADAPTER_REFERENCE: readonly AdapterDoc[] = [
   {
     name: 'linegraph-tsv',
     tier: 'byod-format',
-    of: 'linegraph',
+    family: 'linegraph',
     ext: '.tsv',
     body: 'text',
     headerColumns: [...POINT_COLUMNS],
     summary:
       'The tab-separated form of `linegraph-csv` — identical columns, `\\t` delimiter.',
+  },
+  {
+    name: 'variation',
+    tier: 'byod-format',
+    family: 'variation',
+    ext: '.json',
+    body: 'json',
+    summary:
+      'Your own residue changes: a JSON array of `{ position, variant }` records, with optional `wildType`, `description`, and `consequence`. `variant` is the residue the position changes to — `\'*\'` for a stop, `\'-\'` for a deletion. The viewer supplies the protein sequence the track needs.',
+  },
+  {
+    name: 'variation-csv',
+    tier: 'byod-format',
+    family: 'variation',
+    ext: '.csv',
+    body: 'text',
+    headerColumns: [...VARIATION_COLUMNS],
+    summary:
+      'The same records as `variation`, read from a CSV body. The header must contain `position,variant`; `wildType`, `description`, and `consequence` are optional columns.',
+  },
+  {
+    name: 'variation-tsv',
+    tier: 'byod-format',
+    family: 'variation',
+    ext: '.tsv',
+    body: 'text',
+    headerColumns: [...VARIATION_COLUMNS],
+    summary:
+      'The tab-separated form of `variation-csv` — identical columns, `\\t` delimiter.',
   },
 ];

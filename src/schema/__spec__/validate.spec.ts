@@ -13,7 +13,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateConfig } from '../validate.js';
 import { createRegistry } from '../registry.js';
-import type { ProtvistaViewerConfig } from '../types.js';
+import type { ProtvistaViewerConfig, TrackConfig } from '../types.js';
 import type { ValidationIssue } from '../errors.js';
 
 const freshRegistry = () => {
@@ -496,6 +496,102 @@ describe('validateConfig — from: inline without inlineData', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// Semantic: kind vs file format
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * A `kind:` owns adapter selection, so a kind pointed at a file format its
+ * family cannot read would fetch the body and hand it to an adapter expecting
+ * a different one. That used to resolve to a generic feature adapter and draw
+ * an empty track with nothing to point at; it is now a config-time error.
+ */
+describe('validateConfig — kind vs file format', () => {
+  const withData = (
+    kind: string,
+    data: TrackConfig['data'],
+    sources?: Record<string, string>
+  ): ProtvistaViewerConfig => ({
+    rows: [{ id: 'X', tracks: [{ id: 'y', kind, data }] }],
+    ...(sources ? { sources } : {}),
+  });
+
+  it('flags a provider-only kind pointed at a delimited file', () => {
+    // `alphamissense-pathogenicity` has no family: its adapter needs two
+    // inputs and a secondary fetch, so no single file can feed it.
+    const result = validateConfig(
+      withData('alphamissense-pathogenicity', './am.csv'),
+      freshRegistry()
+    );
+    expect(result.valid).toBe(false);
+    const issue = result.issues.find((i) => i.code === 'kind-format-mismatch');
+    expect(issue).toBeDefined();
+    expect(issue?.path).toBe('X/y');
+    // The message has to name the offending kind, the format, and a way
+    // forward — it is the author's only signal that the pairing is wrong.
+    expect(issue?.message).toContain("'alphamissense-pathogenicity'");
+    expect(issue?.message).toContain("'.csv'");
+    expect(issue?.message).toContain("'features'");
+    expect(issue?.message).toContain("adapter:");
+  });
+
+  it('flags the same mismatch behind a sources key', () => {
+    const result = validateConfig(
+      withData('alphamissense-pathogenicity', 'am', {
+        am: 'https://lab.test/am.csv',
+      }),
+      freshRegistry()
+    );
+    expect(
+      result.issues.some((i) => i.code === 'kind-format-mismatch')
+    ).toBe(true);
+  });
+
+  it('accepts a format the kind’s family declares', () => {
+    for (const data of ['./hits.csv', './hits.tsv', './hits.json', './x.bed']) {
+      const result = validateConfig(withData('features', data), freshRegistry());
+      expect(
+        result.issues.filter((i) => i.code === 'kind-format-mismatch'),
+        `unexpected mismatch for ${data}`
+      ).toEqual([]);
+    }
+  });
+
+  it('accepts a provider-only kind pointed at a matching-body file', () => {
+    // `alphafold-confidence` has no `.json` family member, so its own adapter
+    // would read the file — same body type, so the *format* check has
+    // nothing to flag.
+    //
+    // NOTE: this check is about the format. It does not — and cannot — catch
+    // a kind whose adapter needs more inputs than the track supplies
+    // (`alphafold-confidence` takes the AlphaFold prediction list *and* the
+    // UniProt entry, then fetches a third URL, so this config cannot load).
+    // Adapter arity is not declared anywhere the validator can read; see the
+    // `inputs` column in `adapter-reference.ts`.
+    const result = validateConfig(
+      withData('alphafold-confidence', './plddt.json'),
+      freshRegistry()
+    );
+    expect(
+      result.issues.filter((i) => i.code === 'kind-format-mismatch')
+    ).toEqual([]);
+  });
+
+  it('accepts a mismatch the author resolved with an explicit adapter', () => {
+    const result = validateConfig(
+      withData('alphamissense-pathogenicity', {
+        from: 'file',
+        url: './am.csv',
+        adapter: 'uniprot-features-json',
+      }),
+      freshRegistry()
+    );
+    expect(
+      result.issues.filter((i) => i.code === 'kind-format-mismatch')
+    ).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
 // Semantic: colorScale
 // ─────────────────────────────────────────────────────────────
 
@@ -531,7 +627,7 @@ describe('validateConfig — colorScale', () => {
           tracks: [
             {
               id: 'y',
-              kind: 'confidence-score',
+              kind: 'alphafold-confidence',
               data: 'https://example.org/x',
               rendering: { colorScale: { theme: 'alphafold-ramp' } },
             },

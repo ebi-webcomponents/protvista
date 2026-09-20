@@ -532,7 +532,7 @@ describe('normalizeConfig — adapter inference precedence', () => {
     const registry = createRegistry();
     const out = normalizeConfig(
       cfg({
-        sources: { features: 'https://api.example.com/{accession}.json' },
+        sources: { features: 'https://api.example.com/features/{accession}' },
         rows: [
           {
             id: 'C',
@@ -543,7 +543,9 @@ describe('normalizeConfig — adapter inference precedence', () => {
       { registry }
     );
     // The author explicitly said `kind: features`, so they want the
-    // UniProt JSON adapter that the kind resolves to.
+    // UniProt JSON adapter that the kind resolves to. (A sources URL that
+    // names a file format resolves to that format's adapter instead — see
+    // "per-kind adapter families" below.)
     expect(out.rows[0].tracks[0].data[0].adapter).toBe(
       'uniprot-features-json'
     );
@@ -566,6 +568,102 @@ describe('normalizeConfig — adapter inference precedence', () => {
     expect(out.rows[0].tracks[0].data[0].adapter).toBe(
       'uniprot-features-json'
     );
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Per-kind adapter families
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * The resolution table in one place. A `kind:` owns adapter selection: the
+ * extension picks a member *within* the kind's family (never away from it),
+ * and only a track with no `kind` falls back to extension inference. These
+ * cases are the whole contract — if one of them flips, an author's payload
+ * is being handed to an adapter that cannot parse it.
+ */
+describe('normalizeConfig — per-kind adapter families', () => {
+  const resolve = (
+    track_: Partial<TrackConfig> & { id: string },
+    sources: Record<string, string> = {}
+  ): string | undefined => {
+    const out = normalizeConfig(
+      cfg({ sources, rows: [{ id: 'C', tracks: [track(track_)] }] }),
+      { registry: createRegistry() }
+    );
+    return out.rows[0].tracks[0].data[0].adapter;
+  };
+
+  it.each([
+    // kind + local file → the kind's family member for that extension.
+    ['features', './hits.csv', 'features-csv'],
+    ['features', './hits.tsv', 'features-tsv'],
+    ['features', './hits.json', 'features-json'],
+    ['features', './regions.bed', 'bed'],
+    ['linegraph', './depth.csv', 'linegraph-csv'],
+    ['linegraph', './depth.tsv', 'linegraph-tsv'],
+    // No family member for the extension → the kind's own adapter.
+    //
+    // Selecting the kind's adapter is the right *resolution* even where the
+    // pairing cannot load: `kind: alphafold-confidence` needs two inputs and a
+    // secondary fetch, so no single file satisfies it whatever adapter it
+    // resolves to. Resolving to `features-json` there (the old behaviour)
+    // only hid that behind a second, wrong failure.
+    ['alphafold-confidence', './plddt.json', 'alphafold-prediction-json'],
+    ['linegraph', './depth.json', 'linegraph'],
+  ])('kind %s + %s → %s', (kind, data, expected) => {
+    expect(resolve({ id: 't', kind, data })).toBe(expected);
+  });
+
+  it.each([
+    ['https://lab.test/hits.csv', 'features-csv'],
+    ['https://lab.test/hits.json', 'features-json'],
+  ])('reads a hosted file %s like a local one → %s', (data, expected) => {
+    // The URL/file swap the docs promise: same file, different transport,
+    // same adapter. A provider endpoint whose URL ends in a known extension
+    // is the one thing this misreads — pin `adapter:` there.
+    expect(resolve({ id: 't', kind: 'features', data })).toBe(expected);
+  });
+
+  it('uses the kind’s own adapter for an extensionless API URL', () => {
+    expect(
+      resolve({
+        id: 't',
+        kind: 'features',
+        data: 'https://www.ebi.ac.uk/proteins/api/features/{accession}',
+      })
+    ).toBe('uniprot-features-json');
+  });
+
+  it('resolves `source:` before reading the format off the URL', () => {
+    // The extension must participate for a sources-keyed descriptor too —
+    // otherwise the CSV is fetched as JSON and the track silently empties.
+    expect(
+      resolve(
+        { id: 't', kind: 'linegraph', data: 'depth' },
+        { depth: 'https://lab.test/depth.csv' }
+      )
+    ).toBe('linegraph-csv');
+  });
+
+  it('falls back to extension inference only when there is no kind', () => {
+    expect(
+      resolve({
+        id: 't',
+        component: 'nightingale-track-canvas',
+        data: './hits.csv',
+      })
+    ).toBe('features-csv');
+  });
+
+  it('lets an explicit adapter override the kind family', () => {
+    expect(
+      resolve({
+        id: 't',
+        kind: 'linegraph',
+        data: { from: 'file', url: './depth.csv', adapter: 'my-parser' },
+      })
+    ).toBe('my-parser');
   });
 });
 
@@ -687,14 +785,14 @@ describe('normalizeConfig — rendering cascade', () => {
             id: 'C',
             rendering: { color: 'red' }, // would cascade to tracks
             tracks: [
-              track({ id: 't', kind: 'confidence-score', data: 'features' }),
+              track({ id: 't', kind: 'alphafold-confidence', data: 'features' }),
             ],
           },
         ],
       }),
       { registry }
     );
-    // confidence-score kind carries `colorScale.theme: alphafold-ramp`;
+    // alphafold-confidence kind carries `colorScale.theme: alphafold-ramp`;
     // the group's `color: red` is NOT overridden because the kind
     // preset doesn't touch that field. This proves the merge is
     // field-wise, not whole-object.
@@ -714,7 +812,7 @@ describe('normalizeConfig — rendering cascade', () => {
             tracks: [
               track({
                 id: 't',
-                kind: 'confidence-score',
+                kind: 'alphafold-confidence',
                 data: 'features',
                 rendering: { colorScale: { theme: 'my-custom' } },
               }),
@@ -755,7 +853,7 @@ describe('normalizeConfig — component resolution', () => {
           {
             id: 'C',
             tracks: [
-              track({ id: 't', kind: 'confidence-score', data: 'features' }),
+              track({ id: 't', kind: 'alphafold-confidence', data: 'features' }),
             ],
           },
         ],
@@ -778,7 +876,7 @@ describe('normalizeConfig — component resolution', () => {
             tracks: [
               track({
                 id: 't',
-                kind: 'confidence-score',
+                kind: 'alphafold-confidence',
                 component: 'nightingale-track-canvas',
                 data: 'features',
               }),
@@ -1185,14 +1283,14 @@ describe('normalizeConfig — standalone top-level tracks', () => {
         sources: { features: 'https://x' },
         defaults: { rendering: { layout: 'non-overlapping', color: 'red' } },
         rows: [
-          { id: 'confidence', kind: 'confidence-score', data: 'features' },
+          { id: 'confidence', kind: 'alphafold-confidence', data: 'features' },
         ],
       }),
       { registry }
     );
     const r = out.rows[0].tracks[0].rendering;
     // Inherited straight from defaults (no group layer to intercept),
-    // with the confidence-score kind preset layered on top.
+    // with the alphafold-confidence kind preset layered on top.
     expect(r.layout).toBe('non-overlapping');
     expect(r.color).toBe('red');
     expect(r.colorScale?.theme).toBe('alphafold-ramp');

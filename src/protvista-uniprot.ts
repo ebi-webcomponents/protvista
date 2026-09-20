@@ -1045,8 +1045,68 @@ class ProtvistaUniprot extends LitElement {
     return this.querySelector<T>(`#${CSS.escape(id)}`);
   }
 
+  /**
+   * Give every variation payload the protein sequence it needs to render.
+   *
+   * `nightingale-variation-canvas` builds one row per residue and indexes
+   * variants by `start - 1`, so `processVariants` returns `null` — drawing
+   * nothing, silently — unless the payload carries `sequence`. The UniProt
+   * adapters get it from their own API response; an author's
+   * `./my-variants.csv` has no sequence in it, so the viewer supplies the one
+   * it already fetched for the sequence track.
+   *
+   * Runs on every update rather than once at load: the sequence and a track's
+   * data arrive from independent fetches, so a payload can land first. It
+   * mutates the stored payload in place — assigning a fresh object would
+   * defeat the `element.data !== data` guard below and re-run `processData`
+   * on every render.
+   */
+  private _fillVariationSequence() {
+    if (!this.sequence) return;
+    for (const payload of Object.values(this.data)) {
+      if (!payload || typeof payload !== 'object') continue;
+      const p = payload as { variants?: unknown; sequence?: unknown };
+      if (!Array.isArray(p.variants)) continue;
+      if (typeof p.sequence === 'string' && p.sequence !== '') continue;
+      p.sequence = this.sequence;
+    }
+  }
+
+  /**
+   * Hand one payload to one Nightingale element, containing any throw.
+   *
+   * A component's `data` setter runs its own processing synchronously, so a
+   * payload it cannot read throws right here — `nightingale-linegraph-track`
+   * spreads `d.range` and raises `TypeError: undefined is not iterable` on a
+   * shape it did not expect. Without this guard that throw escapes the
+   * `Object.entries(this.data)` walk below, so **one** malformed track leaves
+   * every track after it in the iteration blank, with a stack trace that
+   * names neither.
+   *
+   * Contained per element, the blast radius is the one track that is actually
+   * wrong, and the message names it.
+   */
+  private _assignComponentData(
+    element: NightingaleTrackCanvas,
+    payload: unknown,
+    key: string
+  ) {
+    try {
+      element.data = payload as never;
+    } catch (error) {
+      console.error(
+        `[protvista] track '${key}' could not render the data it was given ` +
+          `(${(error as Error)?.message ?? error}). The other tracks are ` +
+          `unaffected. If this track's data came from setTrackData(), check ` +
+          `it matches the record shape documented for its kind.`,
+        error
+      );
+    }
+  }
+
   async _loadDataInComponents() {
     await frame();
+    this._fillVariationSequence();
     Object.entries(this.data).forEach(([id, data]) => {
       // `__unfiltered` baselines are inert filter state, not renderable
       // track/group payloads — skip them so this walk's "every key maps
@@ -1057,7 +1117,7 @@ class ProtvistaUniprot extends LitElement {
       );
       // set data if it hasn't changed
       if (element && element.data !== data) {
-        element.data = data;
+        this._assignComponentData(element, data, id);
       }
       const currentGroup = this.config?.rows.find((c) => c.id === id);
       if (
@@ -1086,7 +1146,11 @@ class ProtvistaUniprot extends LitElement {
             `${CSS_PREFIX}-track-${id}-${track.id}`
           );
           if (elementTrack) {
-            elementTrack.data = this.data[`${id}-${track.id}`];
+            this._assignComponentData(
+              elementTrack,
+              this.data[`${id}-${track.id}`],
+              `${id}-${track.id}`
+            );
           }
         }
       }

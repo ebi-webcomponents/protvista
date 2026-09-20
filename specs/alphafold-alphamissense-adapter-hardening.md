@@ -38,9 +38,9 @@ their internal fetch/parse failures must be observable.
 
 | File | Role |
 | --- | --- |
-| `src/adapters/alphafold-confidence-adapter.ts` | `confidence-score` kind → `alphafold-prediction-json` |
-| `src/adapters/alphamissense-pathogenicity-adapter.ts` | `pathogenicity-score` kind → `alphamissense-average-csv`; also **exports the shared `rowSplitter` / `cellSplitter`** |
-| `src/adapters/alphamissense-heatmap-adapter.ts` | `pathogenicity-heatmap` kind → `alphamissense-full-csv` |
+| `src/adapters/alphafold-confidence-adapter.ts` | `alphafold-confidence` kind → `alphafold-prediction-json` |
+| `src/adapters/alphamissense-pathogenicity-adapter.ts` | `alphamissense-pathogenicity` kind → `alphamissense-average-csv`; also **exports the shared `rowSplitter` / `cellSplitter`** |
+| `src/adapters/alphamissense-heatmap-adapter.ts` | `alphamissense-heatmap` kind → `alphamissense-full-csv` |
 
 All three are **two-argument** adapters: the config feeds them via
 `data: { source: [alphafoldPrediction, proteins] }` (see `default-config.yaml`

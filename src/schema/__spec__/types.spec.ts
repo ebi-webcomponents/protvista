@@ -130,7 +130,7 @@ describe('ProtvistaViewerConfig — type contract', () => {
               id: 'alphafold_confidence',
               label:
                 '[AlphaFold Confidence](https://alphafold.ebi.ac.uk/entry/{accession})',
-              kind: 'confidence-score',
+              kind: 'alphafold-confidence',
               data: { source: ['alphafoldPrediction', 'proteins'] },
               description: 'AlphaFold prediction confidence',
               dataTooltip:
@@ -255,11 +255,11 @@ describe('Rendering options', () => {
 
 describe('Open-ended vocabularies (IntelliSense + custom names)', () => {
   it('SemanticKind accepts built-ins and registered names', () => {
-    const builtin: SemanticKind = 'confidence-score';
+    const builtin: SemanticKind = 'alphafold-confidence';
     const registered: SemanticKind = 'crispr-guides';
     expectType<SemanticKind>(builtin);
     expectType<SemanticKind>(registered);
-    expect(builtin).toBe('confidence-score');
+    expect(builtin).toBe('alphafold-confidence');
   });
 
   it('ComponentName and AdapterName accept built-ins and custom names', () => {

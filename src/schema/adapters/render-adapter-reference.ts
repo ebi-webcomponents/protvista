@@ -20,6 +20,8 @@ import {
   type KindAdapterDoc,
   type FieldDoc,
 } from './adapter-reference.js';
+import { KIND_ADAPTER_VARIANTS } from '../file-formats.js';
+import { createRegistry } from '../registry.js';
 
 const PAGES_BASE = 'https://ebi-webcomponents.github.io/protvista';
 const GITHUB_BLOB = 'https://github.com/ebi-webcomponents/protvista/blob/next';
@@ -94,15 +96,37 @@ function domainTable(docs: readonly KindAdapterDoc[]): string {
   return [header, ...rows].join('\n');
 }
 
+/**
+ * The kinds that reach a given adapter through their family, in registry
+ * order. Derived rather than declared: several kinds share a family (every
+ * feature kind reads `features-csv`), and a hand-written list would be one
+ * more thing to forget when a kind gains a family.
+ */
+function kindsReaching(adapter: string): string[] {
+  const registry = createRegistry();
+  return registry.listSemanticKinds().filter((kind) => {
+    const base = registry.getSemanticKind(kind)?.adapter;
+    return (
+      base !== undefined &&
+      Object.values(KIND_ADAPTER_VARIANTS[base] ?? {}).includes(
+        adapter as never
+      )
+    );
+  });
+}
+
 function byodFormatTable(docs: readonly ByodFormatAdapterDoc[]): string {
   const header =
-    '| Extension | Adapter | Same records as | Fetched as | Header row |\n|---|---|---|---|---|';
-  const rows = docs.map(
-    (d) =>
-      `| \`${d.ext}\` | \`${d.name}\` | \`${d.of}\` | ${d.body} | \`${d.headerColumns.join(
-        ','
-      )}\` |`
-  );
+    '| Extension | Adapter | Records | Fetched as | Header row | Kinds that read it |\n|---|---|---|---|---|---|';
+  const rows = docs.map((d) => {
+    const columns = d.headerColumns
+      ? `\`${d.headerColumns.join(',')}\``
+      : '— (JSON records)';
+    const kinds = kindsReaching(d.name)
+      .map((k) => `\`${k}\``)
+      .join(', ');
+    return `| \`${d.ext}\` | \`${d.name}\` | \`${d.family}\` | ${d.body} | ${columns} | ${kinds || '—'} |`;
+  });
   return [header, ...rows].join('\n');
 }
 
@@ -144,7 +168,10 @@ export function renderReferenceMarkdown(
     'These four adapters parse a file **you** supply and emit the canonical *feature record* ' +
       '(`type`, `start`, `end`, optional `description`/`score`). Point a track at a local file ' +
       'whose extension selects the adapter (e.g. `data: ./hotspots.csv`), or set `adapter:` ' +
-      'explicitly. A machine-readable schema for this record is served at ' +
+      'explicitly. They are also the `features` kind\'s file formats: on a `kind: features` ' +
+      'track the same extensions select the same adapters, so a hosted UniProt URL and an ' +
+      'exported file are the same track with a different `data:`. ' +
+      'A machine-readable schema for this record is served at ' +
       `[\`feature-record.schema.json\`](${FEATURE_RECORD_SCHEMA_ID}) ` +
       `(published at \`${FEATURE_RECORD_SCHEMA_ID}\`).`
   );
@@ -173,9 +200,9 @@ export function renderReferenceMarkdown(
     lines.push(
       'These adapters also back a semantic `kind`, but the payload is one **you** author ' +
         'rather than a provider response — point the track at any URL or file path serving ' +
-        'the JSON shape below, or write it inline with `from: inline`. The `kind` outranks ' +
-        'extension inference, so `data: ./depth.json` on a `kind: linegraph` track stays on ' +
-        '`linegraph` rather than being read as generic features. Unlike the ' +
+        'the JSON shape below, or write it inline with `from: inline`. The `kind` selects the ' +
+        'adapter, so `data: ./depth.json` on a `kind: linegraph` track is read as line-graph ' +
+        'records rather than generic features. Unlike the ' +
         'provider-supplied adapters above, these shapes *are* a contract you must produce: a ' +
         'malformed record fails with an error naming the row index and field.'
     );
@@ -188,8 +215,9 @@ export function renderReferenceMarkdown(
         'The same records can arrive as delimited text. On a track already using one of ' +
           'these kinds, the file extension picks the matching parser — `data: ./depth.csv` ' +
           'on a `kind: linegraph` track parses a `position,value` header, it does not fall ' +
-          'back to the feature adapters. (A bare `./x.csv` on a track with no `kind` still ' +
-          'means `features-csv`.)'
+          'back to the feature adapters. The extension chooses *within* the kind, never ' +
+          'away from it. (A bare `./x.csv` on a track with no `kind` still means ' +
+          '`features-csv`.)'
       );
       lines.push('');
       lines.push(byodFormatTable(byodFormat));

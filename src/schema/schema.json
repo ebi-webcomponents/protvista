@@ -226,6 +226,10 @@
           ]
         },
         "inlineData": {},
+        "format": {
+          "description": "How this source's bytes are encoded — not what the records mean, which the track's `kind` decides. Needed only when nothing can infer it: inline text, or a URL with no recognised extension. A file path like `./hits.csv` implies its format already.",
+          "enum": ["csv", "tsv", "json", "bed"]
+        },
         "adapter": { "$ref": "#/$defs/AdapterName" }
       },
       "allOf": [

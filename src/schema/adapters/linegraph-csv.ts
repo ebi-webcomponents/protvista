@@ -5,7 +5,7 @@
  * single line-graph series the JSON `linegraph` adapter emits, so an author
  * can point a `kind: linegraph` track at `./depth.csv` with no per-track
  * glue. Selected by the `.csv` extension on a kind-addressed track (see
- * `BYO_ADAPTER_VARIANTS` in `../file-formats.ts`).
+ * `KIND_ADAPTER_VARIANTS` in `../file-formats.ts`).
  *
  * Everything but the delimiter is shared with `linegraph-tsv` via `./dsv`,
  * and the series shape with `linegraph` via `./linegraph`. Malformed input

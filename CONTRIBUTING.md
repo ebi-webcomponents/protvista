@@ -58,7 +58,7 @@ All repository interactions and project events are expected to follow our [Code 
 ProtVista is **config-driven**. The viewer is a single custom element,
 `<protvista-uniprot>`, driven by a declarative configuration document. Authors
 write against a schema of high-level domain concepts (`kind: features`,
-`kind: variants`, `kind: confidence-score`, …) and never name Nightingale
+`kind: variants`, `kind: alphafold-confidence`, …) and never name Nightingale
 components or data adapters directly. The runtime resolves those concepts into
 concrete components and adapters for them.
 

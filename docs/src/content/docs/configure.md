@@ -92,7 +92,7 @@ Each track needs an `id` and a `kind`, and a `data` source. Common fields:
 | Field | Purpose |
 | --- | --- |
 | `id` | Unique within its group. Also the fallback label. |
-| `kind` | The track type — `features`, `variants`, `confidence-score`, … See [Built-in track kinds](/protvista/track-kinds). |
+| `kind` | The track type — `features`, `variants`, `alphafold-confidence`, … See [Built-in track kinds](/protvista/track-kinds). |
 | `data` | Where the data comes from: a `sources` key, a URL, a file path, or inline. See [Load your own data](/protvista/your-data). |
 | `filter` | Keep only records of one `type` (e.g. `DOMAIN`). A convenience shortcut. |
 | `label` | Human-readable track title. Supports rich inline text. |
@@ -103,7 +103,7 @@ Each track needs an `id` and a `kind`, and a `data` source. Common fields:
 
 The `kind` is a **domain concept**, not a component name. `kind: features` draws
 feature regions; `kind: variants` draws single-residue variants;
-`kind: confidence-score` draws an AlphaFold confidence ramp. Each kind knows
+`kind: alphafold-confidence` draws an AlphaFold confidence ramp. Each kind knows
 which internal component and data adapter to use, so you don't. See the full list
 in [Built-in track kinds](/protvista/track-kinds).
 

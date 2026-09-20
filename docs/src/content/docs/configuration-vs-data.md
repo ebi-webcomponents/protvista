@@ -31,7 +31,7 @@ flowchart TB
 **What your configuration controls (Intent)**
 
 - Which rows and tracks appear, their labels and grouping.
-- The semantic `kind` of each track (`features`, `variants`, `confidence-score`, …). This is a domain concept, not a component or adapter name.
+- The semantic `kind` of each track (`features`, `variants`, `alphafold-confidence`, …). This is a domain concept, not a component or adapter name.
 - Where the data comes from: `data:` with `from: url` / `file` / `inline` / `custom`, and named `sources`.
 - Rendering: `color`, `shape`, `height`, `layout`, `colorScale`.
 - Convenience shortcuts, such as a single-type `filter:` and `dataTooltip` templates.

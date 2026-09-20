@@ -74,8 +74,7 @@ import { isGroupConfig } from './discriminate.js';
 import type { Registry } from './registry.js';
 import {
   dataFileFormatForPath,
-  KIND_SELECTED_BYO_DATA_ADAPTERS,
-  BYO_ADAPTER_VARIANTS,
+  kindAdapterForFormat,
 } from './file-formats.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -384,7 +383,7 @@ function normalizeTrack(
   // Rendering cascade: defaults → group → kind preset → track.
   // Kind sits BETWEEN group and track so that (a) a canvas-track
   // group inheriting `color: red` still lets the kind override
-  // that for a `confidence-score` track (kind-canonical ramp wins
+  // that for a `alphafold-confidence` track (kind-canonical ramp wins
   // over group red), while (b) the track author can still put an
   // explicit override on top of a kind preset.
   const rendering: RenderingOptions = {
@@ -529,40 +528,47 @@ function expandDescriptor(
   const from: NormalizedDataSource['from'] =
     d.from ?? (d.inlineData !== undefined ? 'inline' : 'url');
 
-  // Adapter inference, most specific first: an explicit `adapter:` wins;
-  // otherwise a known data-file extension on the URL (`./x.csv` →
-  // `features-csv`); otherwise the kind's canonical adapter (e.g. a
-  // `kind: confidence-score` track pointed at a raw API URL gets
-  // `alphafold-prediction-json`).
-  //
-  // The one exception: a kind that selects a bring-your-own-data adapter no
-  // extension names (`kind: linegraph`) outranks extension inference, so
-  // `data: ./depth.json` stays on `linegraph` instead of silently becoming
-  // `features-json` and throwing on the author's `{ position, value }` rows.
-  // Such a kind may still offer per-extension siblings parsing the identical
-  // columns out of delimited text (`./depth.csv` → `linegraph-csv`), so the
-  // extension chooses *within* the kind's family rather than away from it.
-  const format =
-    typeof d.url === 'string' ? dataFileFormatForPath(d.url) : undefined;
-  const kindOutranksExt =
-    kindAdapter !== undefined &&
-    KIND_SELECTED_BYO_DATA_ADAPTERS.has(kindAdapter);
-  const fromKind =
-    kindAdapter !== undefined && format !== undefined
-      ? (BYO_ADAPTER_VARIANTS[kindAdapter]?.[format.ext] ?? kindAdapter)
-      : kindAdapter;
-  const adapter =
-    d.adapter ??
-    (kindOutranksExt ? fromKind : (format?.adapter ?? kindAdapter));
-
   // Resolve `source:` to concrete URL(s) via the sources map. Both
   // fields stay on the descriptor so the validator can still produce
   // "Unknown source key: 'foo'. Known sources: ..." error messages
   // using the original author-facing name.
+  //
+  // Resolved before the adapter is chosen: a `sources:` entry pointing at
+  // `.../depth.csv` must pick the same adapter the equivalent inline URL
+  // would, and the extension can only be read off the resolved value.
   let resolvedUrl = d.url;
   if (resolvedUrl === undefined && d.source !== undefined && from === 'url') {
     resolvedUrl = resolveSource(d.source, sources);
   }
+
+  // Adapter selection. There are two independent ways to name an adapter and
+  // exactly one rule for combining them, so they can never conflict:
+  //
+  //   1. An explicit `adapter:` always wins.
+  //   2. A `kind:` owns selection for the rest of the track — its family
+  //      member for this source's format (`kind: features` + `./hits.csv`
+  //      → `features-csv`), or its own canonical adapter when the family
+  //      has no member for it (a `kind: alphafold-confidence` track pointed at
+  //      an API URL *or* at `./plddt.json` both get
+  //      `alphafold-prediction-json`). A hosted file resolves exactly as the
+  //      local one does — same file, different transport.
+  //   3. Only with no `kind` at all does the extension alone decide, via
+  //      `DATA_FILE_FORMATS` — a bare `./hits.csv` means `features-csv`.
+  //
+  // The extension therefore chooses *within* a kind's family, never away
+  // from it: there is no precedence between `kind:` and the extension to
+  // document, and no combination that silently routes an author's payload
+  // to an adapter that cannot parse it. `validateConfig` rejects, at config
+  // time, a kind pointed at a file format its family cannot read.
+  const format =
+    typeof resolvedUrl === 'string'
+      ? dataFileFormatForPath(resolvedUrl)
+      : undefined;
+  const adapter =
+    d.adapter ??
+    (kindAdapter !== undefined
+      ? kindAdapterForFormat(kindAdapter, format)
+      : format?.adapter);
 
   const out: NormalizedDataSource = { from };
   if (d.source !== undefined) out.source = d.source;

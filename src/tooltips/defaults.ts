@@ -20,8 +20,8 @@
  * YAML (either `kind: fields` with more rows or `kind: markdown` with
  * a template).
  *
- * Graph tracks (`variant-counts`, `rna-editing-counts`, `confidence-score`,
- * `pathogenicity-score`, `pathogenicity-heatmap`) never had per-item
+ * Graph tracks (`variant-counts`, `rna-editing-counts`, `alphafold-confidence`,
+ * `alphamissense-pathogenicity`, `alphamissense-heatmap`) never had per-item
  * tooltips and have no entry here — the resolver returns `''` for
  * unregistered kinds.
  */
@@ -38,7 +38,7 @@ export const tooltipDefaults: TooltipDefaultsRegistry = {
     ],
   },
 
-  'features-interpro': {
+  'interpro-features': {
     kind: 'fields',
     fields: [
       { path: 'name', label: 'Name' },

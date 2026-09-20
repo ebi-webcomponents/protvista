@@ -7,13 +7,13 @@
 # Authoring conventions followed in this file:
 #
 #   • Every track uses the semantic `kind:` field (`features`,
-#     `variants`, `confidence-score`, …). No `component` + `adapter`
+#     `variants`, `alphafold-confidence`, …). No `component` + `adapter`
 #     pair at track level — those are resolved by the kind registry.
 #   • `filter:` shortcuts replace the legacy per-track filter string.
 #     (`filter: SIGNAL` narrows the track's data to items where
 #     `type === "SIGNAL"`.)
 #   • AlphaFold / AlphaMissense tracks carry no explicit colour scale;
-#     the `confidence-score` / `pathogenicity-score` / `pathogenicity-heatmap`
+#     the `alphafold-confidence` / `alphamissense-pathogenicity` / `alphamissense-heatmap`
 #     kinds apply the canonical `alphafold-ramp` / `alphamissense-ramp`
 #     themes for free.
 #   • URLs live in the `sources:` map. Tracks reference them by key
@@ -200,7 +200,7 @@ rows:
       # migration.
       - id: 'InterPro representative domain'
         label: '{% help slug="InterPro_rep_domain" %}InterPro Representative Domain{% /help %}'
-        kind: features-interpro
+        kind: interpro-features
         data: interproDomains
         description: InterPro representative domains
 
@@ -477,7 +477,7 @@ rows:
 
   # ───────────────────────────────────────────────────────────
   # 14. AlphaFold confidence
-  # The `confidence-score` semantic kind carries the canonical
+  # The `alphafold-confidence` semantic kind carries the canonical
   # AlphaFold pLDDT colour ramp (`alphafold-ramp`) — no explicit
   # `rendering.colorScale` needed.
   # ───────────────────────────────────────────────────────────
@@ -485,7 +485,7 @@ rows:
     label: '{% help slug="structure_section#alphafold-structural-models" %}AlphaFold{% /help %}'
     # Explicit group-level rendering so the collapsed aggregate
     # view uses the same AlphaFold ramp as the per-track coloured
-    # sequence. The child track's `confidence-score` kind already
+    # sequence. The child track's `alphafold-confidence` kind already
     # carries this preset at track level; repeating it here keeps
     # parity with the legacy config, whose group block had
     # `scale:` / `color-range:` attributes inlined.
@@ -495,20 +495,20 @@ rows:
     tracks:
       - id: alphafold_confidence
         label: '[AlphaFold Confidence](https://alphafold.ebi.ac.uk/entry/{accession})'
-        kind: confidence-score
+        kind: alphafold-confidence
         data:
           source: [alphafoldPrediction, proteins]
         description: AlphaFold prediction confidence
 
   # ───────────────────────────────────────────────────────────
   # 15. AlphaMissense pathogenicity
-  # `pathogenicity-score` / `pathogenicity-heatmap` kinds apply the
+  # `alphamissense-pathogenicity` / `alphamissense-heatmap` kinds apply the
   # `alphamissense-ramp` theme automatically.
   # ───────────────────────────────────────────────────────────
   - id: ALPHAMISSENSE_PATHOGENICITY
     label: '{% help slug="structure_section#alphamissense-prediction-of-genetic-variation-consequence-in-the-feature-viewer" %}AlphaMissense{% /help %}'
     # Explicit component + rendering for parity: the two child kinds
-    # (`pathogenicity-score` → coloured-sequence, `pathogenicity-heatmap`
+    # (`alphamissense-pathogenicity` → coloured-sequence, `alphamissense-heatmap`
     # → sequence-heatmap) are mixed, so the collapsed aggregate
     # would otherwise default to `nightingale-track-canvas` without
     # a colour ramp.
@@ -519,14 +519,14 @@ rows:
     tracks:
       - id: alphamissense_pathogenicity
         label: Average Pathogenicity Score
-        kind: pathogenicity-score
+        kind: alphamissense-pathogenicity
         data:
           source: [alphafoldPrediction, proteins]
         description: AlphaMissense pathogenicity
 
       - id: alphamissense_pathogenicity_heatmap
         label: '[AlphaMissense Pathogenicity](https://alphafold.ebi.ac.uk/entry/{accession})'
-        kind: pathogenicity-heatmap
+        kind: alphamissense-heatmap
         data:
           source: [alphafoldPrediction, proteins]
         description: AlphaMissense pathogenicity

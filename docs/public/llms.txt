@@ -22,7 +22,7 @@ the "Representation". Documentation is licensed CC BY 4.0.
 
 ## Reference
 
-- [Built-in track kinds](https://ebi-webcomponents.github.io/protvista/track-kinds): the 12 kinds (`features`, `features-interpro`, `variants`, `variant-counts`, `rna-editing`, `rna-editing-counts`, `peptides`, `peptides-ptm`, `structure-coverage`, `confidence-score`, `pathogenicity-score`, `pathogenicity-heatmap`) and what each draws.
+- [Built-in track kinds](https://ebi-webcomponents.github.io/protvista/track-kinds): the 13 kinds (`features`, `interpro-features`, `variants`, `variant-counts`, `rna-editing`, `rna-editing-counts`, `peptides`, `peptides-ptm`, `structure-coverage`, `linegraph`, `alphafold-confidence`, `alphamissense-pathogenicity`, `alphamissense-heatmap`) and what each draws. A kind named with a plain domain word reads an author-supplied file as readily as a provider API; a kind named for its provider (`alphafold-*`, `alphamissense-*`) reads that feed only.
 - [Adapter reference](https://ebi-webcomponents.github.io/protvista/adapter-reference): expected payload shape for every built-in kind and adapter (generated from source, drift-tested).
 - [Theme the viewer](https://ebi-webcomponents.github.io/protvista/theming): CSS custom properties (`--protvista-*`) and `::part`.
 - [Author tooltips](https://ebi-webcomponents.github.io/protvista/data-tooltip): the three `dataTooltip` forms.
