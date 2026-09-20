@@ -37,13 +37,14 @@ A `features` track draws a list of **feature records**. Each record has:
 
 A machine-readable version is published as
 [`feature-record.schema.json`](https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json).
-The [Adapter reference](/protvista/adapter-reference) documents the shape for every
-built-in kind and adapter.
+The [Adapter reference](/protvista/adapter-reference) lists every record shape,
+which kinds draw it, and which encodings can carry it.
 
 ## Pick a format — the extension chooses the parser
 
-Point `data:` at a file and the **file extension selects the parser** for you.
-No `adapter:` needed.
+Point `data:` at a file and the **file extension says how it is encoded**,
+while the track's `kind` says what the records are. Between them there is
+nothing left to configure.
 
 The extension always chooses a parser your track's `kind` can use: `.csv` on a
 `kind: features` track reads feature records, `.csv` on a `kind: linegraph`
@@ -194,18 +195,24 @@ rows:
 ]
 ```
 
-Points are drawn in the order you supply them, so sort your records by `position` before serving them — the adapter neither sorts them nor rejects duplicates.
+Points are drawn in the order you supply them, so sort your records by `position` before serving them — nothing sorts them for you or rejects duplicates.
 
-Malformed rows fail with an error naming the row index and field.
+A malformed row fails with your own filename, the reading applied to it, and the offending row and column:
+
+```
+./depth.csv (parsed as CSV): row 3, column "value": expected a number, got "abc".
+```
 
 The same record shape works inline — `from: inline` with `inlineData:` — so a graph can render with no fetch at all. See [`examples/linegraph/`](https://github.com/ebi-webcomponents/protvista/tree/next/examples/linegraph), or open **Your own line graph (inline values)** in the [playground](/protvista/playground/).
 
-The `kind` picks the parser, so a `.json` file path works without naming the adapter — `data: ./depth.json` on a `kind: linegraph` track is read as line-graph records, not generic features. Name the adapter explicitly only on a track that has no `kind`:
+The `kind` decides what the records are, so `data: ./depth.json` on a `kind: linegraph` track is read as line-graph points rather than generic features — nothing to name, nothing to configure.
+
+Where an extension can't tell us — a URL with no filename, or records pasted straight into the config — say the encoding outright:
 
 ```yaml
 data:
-  url: ./depth.json
-  adapter: linegraph
+  url: https://my-lab.example/api/depth/{accession}
+  format: json
 ```
 
 The same records work as delimited text, which is usually what falls out of a spreadsheet or an analysis script. On a `kind: linegraph` track the extension picks the parser — `.csv` and `.tsv` read a `position,value` header row and produce exactly the graph the JSON form does:
@@ -224,7 +231,7 @@ position,value
 60,905
 ```
 
-Columns may be in either order, extra columns are ignored, and a malformed cell fails with the row and column named (`linegraph-csv: row 3, column "value": expected a number, got "abc"`). Note this only applies to a track that declares the `kind` — a bare `data: ./x.csv` with no `kind` still means generic features.
+Columns may be in either order, extra columns are ignored, and a malformed cell fails naming your file, the reading, the row and the column (`./depth.csv (parsed as CSV): row 3, column "value": expected a number, got "abc"`). Note the records come from the `kind` — a bare `data: ./x.csv` on a track with no `kind` means feature records instead.
 
 `kind: variant-counts` and `kind: rna-editing-counts` read the same
 `position,value` records, so a count you computed yourself renders on the same

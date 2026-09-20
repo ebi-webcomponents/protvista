@@ -6,9 +6,9 @@
 accession: P05067
 rows:
   # On a track that declares `kind: variants`, the file extension picks the
-  # matching parser (`.csv` → `variation-csv`, `.tsv` → `variation-tsv`,
-  # `.json` → `variation`). The kind decides what the track *is*; the
-  # extension only says what your file looks like.
+  # encoding (`.csv`, `.tsv`, `.json`). The kind decides what the track *is*
+  # — variation records — and the extension only says how they are written.
+  # Neither is an adapter name; you never write one.
   #
   # The header must contain `position` and `variant`; `wildType`,
   # `description`, and `consequence` are optional, order does not matter, and

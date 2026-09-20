@@ -13,9 +13,24 @@ The normative design now lives in **"Shape and format (normative)"** in
 [`config-approach.md`](./config-approach.md). This document is kept as the
 decision record — the reasoning and the rejected alternative — not as a spec.
 
-Implementation status: appendix item 1 (the inline/custom bypass) is **fixed and
-landed** independently, per the sequencing below. The refactor itself has not
-started; the branch still implements Option A in full and working form.
+**Implementation status: landed.** The refactor is complete on
+`byod-vocabulary`, in the additive-first sequence the pre-work called for:
+
+1. the inline/custom bypass fixed independently;
+2. golden snapshots of every shipped config, so "unchanged" had a definition
+   before anything moved;
+3. the vocabulary added inert — `shape` on kinds, `format` on descriptors,
+   `severity` on validation issues;
+4. `runPipeline` added and proven to match the grid cell by cell, payload and
+   error message alike;
+5. resolution switched over, with every payload golden byte-identical;
+6. the grid deleted — ten adapter names, two tables and their drift tests.
+
+What an author writes did not change: `kind: features` with
+`data: ./hotspots.csv` resolves as it always did. What changed is that it no
+longer resolves *through a name*, and the cases that used to need one —
+inline text, an extensionless URL, a misnamed file — now say `format:`
+instead.
 
 **The question:** ProtVista's bring-your-own-data surface currently names one
 *adapter* per (record shape × file encoding) pair. Should we keep that, or

@@ -68,7 +68,7 @@ REGION,290,340,Acidic-rich linker region,0.6
 MUTAGEN,614,614,Lab-observed loss-of-function point mutation,0.75
 ```
 
-The config never describes the CSV's columns — that contract belongs to the payload side. The `.csv` extension selects the `features-csv` adapter, which parses the file into feature records the `features` track renders. Swap `./hotspots.csv` for a URL and the same track reads the same shape from a server instead; the Intent is unchanged.
+The config never describes the CSV's columns — that contract belongs to the payload side. Two facts decide how the file is read, and the config states both without naming any machinery: `kind: features` says the track draws feature records, and the `.csv` extension says they are comma-separated. Swap `./hotspots.csv` for a URL and the same track reads the same shape from a server instead; the Intent is unchanged.
 
 ## Where to go next
 

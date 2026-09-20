@@ -1,5 +1,6 @@
 # Bring-your-own TSV file. The `.tsv` extension on `data:` infers the
-# `features-tsv` adapter — no explicit `adapter:` needed.
+# tab-separated encoding, feature records from `kind: features` — no
+# `adapter:` needed, and none exists to name.
 accession: P05067
 rows:
   - id: MY_LAB

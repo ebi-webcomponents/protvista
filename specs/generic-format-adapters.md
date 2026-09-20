@@ -1,5 +1,23 @@
 # Generic-format adapters — design
 
+> **Superseded — historical record.** The four adapters this document designs
+> (`features-csv`, `features-tsv`, `features-json`, `bed`) no longer exist as
+> named adapters. Their *behaviour* does: a track's `kind` declares which
+> records it needs and the source declares its encoding, and the pair is
+> composed at load time. The column conventions, coordinate rules and error
+> discipline below are still accurate and still enforced — only the naming and
+> the resolution path changed.
+>
+> For the current design see **"Shape and format (normative)"** in
+> [`config-approach.md`](./config-approach.md); for why it changed, see
+> [`adapter-model-decision.md`](./adapter-model-decision.md).
+>
+> Kept because it records the reasoning behind the record shapes themselves —
+> why a feature record carries `type`/`start`/`end`, why BED's 0-based
+> half-open coordinates are converted on read, and what was deliberately left
+> out of scope.
+
+
 Design for the four generic-format data adapters that let authors point a
 ProtVista track at a CSV / TSV / JSON / BED file without writing
 JavaScript. **Implemented and shipped** — `src/schema/adapters/{features-csv,features-tsv,features-json,bed}.ts`,

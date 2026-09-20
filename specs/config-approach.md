@@ -36,7 +36,7 @@ rows:
 
 A bench scientist writes only domain-level concepts (`kind: features`, the `my_hotspots` source-key) — never Nightingale component names, adapter names, or JavaScript. See [Example 4](#example-4-extending-the-ebi-default--one-line-one-new-track) for the full behaviour.
 
-> **Note.** Generic-format adapters let an author point a track at a local file with a `data: ./hotspots.csv` shorthand. **CSV, TSV, JSON, and BED all ship today** (`features-csv` / `features-tsv` / `features-json` / `bed`, pre-registered out of the box) — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md). BED is 0-based half-open per its spec; the `bed` adapter shifts coordinates to the viewer's 1-based inclusive convention (`start = bedStart + 1`, `end = bedEnd`). For a format not yet covered, the BYO-data path goes through a hosted URL or a `registerAdapter()`-supplied custom adapter pinned with `adapter: <name>` on the descriptor.
+> **Note.** An author points a track at a local file with a `data: ./hotspots.csv` shorthand. **CSV, TSV, JSON, and BED all ship today** — no adapter is named or registered for any of them: the track's `kind` says which records it needs and the extension says how they are encoded (see "Shape and format" below). BED is 0-based half-open per its spec; reading it converts coordinates to the viewer's 1-based inclusive convention (`start = bedStart + 1`, `end = bedEnd`), and because that conversion is part of the format, BED can only carry feature records. For a feed no format describes, the BYO-data path goes through a hosted URL or a `registerAdapter()`-supplied custom adapter pinned with `adapter: <name>` on the descriptor.
 
 ## Non-Goals
 
@@ -284,32 +284,33 @@ interface TrackConfig {
    *   - matches a key in root `sources`  → from: url, source: <value>
    *   - starts with http:// or https://  → from: url, url: <value>
    *
-   * Adapter selection. An explicit `adapter:` always wins. Otherwise
-   * the track's semantic `kind` decides, and a file extension picks
-   * *within* the kind's family rather than away from it — so `kind:`
-   * and a file path can never name conflicting adapters and there is
-   * no precedence rule between them:
+   * Source resolution, in order; the first match wins:
    *
-   *   - `kind: features` + `./hits.csv` → `features-csv` (the family
-   *     member for that format);
-   *   - `kind: alphafold-confidence` + `./plddt.json` →
-   *     `alphafold-prediction-json` (no `.json` member, so the kind's
-   *     own adapter, which reads exactly that dump);
-   *   - a hosted file resolves as the local one does —
-   *     `https://lab.example/hits.csv` is `features-csv` too, so a
-   *     track survives moving its file to a server. A provider
-   *     endpoint whose URL ends in a known extension is the one case
-   *     this misreads; pin `adapter:` there.
+   *   1. an explicit `adapter:` — a named transform, nothing else
+   *      consulted;
+   *   2. an explicit `format:` — decode that way, validate against the
+   *      kind's shape;
+   *   3. a recognised extension on the resolved URL — same, by its
+   *      format;
+   *   4. the kind's provider adapter, if it declares one;
+   *   5. the kind's shape read as JSON, if it declares one;
+   *   6. otherwise a validation error.
    *
-   * Only on a track with no `kind` at all does the extension alone
-   * decide: `./hits.csv → features-csv`, `./hits.tsv → features-tsv`,
-   * `./hits.json → features-json`, `./regions.bed → bed` (all
-   * pre-registered and shipping today). A `kind` pointed at a format
-   * its family cannot read is a config validation error
-   * (`kind-format-mismatch`), not a silently empty track. For a format
-   * not yet covered, authors use the object form with an explicit
-   * `from: 'file'` plus a `registerAdapter()`-supplied `adapter:` they
-   * pin themselves.
+   * So `kind: features` + `./hits.csv` reads feature records encoded as
+   * CSV, and a hosted file resolves exactly as the local one does. 4
+   * before 5 keeps a formatless UniProt URL on the provider adapter
+   * while a bring-your-own-data-native kind (`linegraph`) still works
+   * against an extensionless URL serving its records. A provider
+   * endpoint whose URL happens to end in a known extension is the one
+   * case this misreads; pin `adapter:` there.
+   *
+   * A track with no `kind` at all has no shape to validate against, so
+   * a known extension means the feature record — the one thing
+   * `./x.csv` has always meant there. A `kind` pointed at a format that
+   * cannot carry its records is a validation error
+   * (`kind-format-mismatch`), not a silently empty track. For a feed no
+   * format describes, authors use the object form with an explicit
+   * `from: 'file'` plus a `registerAdapter()`-supplied `adapter:`.
    *
    * The array form is normalized internally; runtime code always
    * sees `DataSourceDescriptor[]`.
@@ -464,12 +465,18 @@ interface DataSourceDescriptor {
   inlineData?: unknown;
 
   /**
-   * Named adapter that transforms the raw response into the shape
-   * the Nightingale track component expects. If omitted, the raw
-   * response is passed directly to the track; otherwise the parent
-   * track's semantic `kind` selects it — by file format where the
-   * kind's family declares one — falling back to the file extension
-   * alone on a track with no `kind`. See `TrackConfig.data`.
+   * How this source's bytes are encoded — `csv | tsv | json | bed`.
+   * Write it only when nothing can infer it: inline text, or a URL
+   * with no recognised extension. It states the encoding and nothing
+   * else; the track's `kind` decides what the records mean.
+   */
+  format?: DataFormat;
+
+  /**
+   * Named transform for this source. Highest precedence: set it and
+   * neither `format` nor the track's `kind` is consulted. The escape
+   * hatch for a bespoke feed — the built-ins it can name are the
+   * provider adapters plus anything `registerAdapter()` has added.
    */
   adapter?: AdapterName;
 }
@@ -683,9 +690,10 @@ A variation payload is the one shape the viewer completes: `nightingale-variatio
 
 ### Shape and format (normative)
 
-> **Status.** Agreed design, landing before the Oct 7–9 hackathon. Replaces the
-> per-kind adapter *family* table described above. Rationale and the rejected
-> alternative are in [`adapter-model-decision.md`](./adapter-model-decision.md).
+> **Status.** Implemented. Replaced the per-kind adapter *family* table and the
+> ten `<shape>-<format>` adapter names, which are deleted rather than
+> deprecated. Rationale and the rejected alternative are in
+> [`adapter-model-decision.md`](./adapter-model-decision.md).
 
 A track's data is described by two independent facts, each with one owner:
 
@@ -825,8 +833,8 @@ silently breaks author-authored tooltips — an author who adds a `gene` column
 to see it on hover is doing the expected thing, not an unexpected one. A
 delimited cell is preserved as the **string** it was: unknown columns are
 carried through uncoerced, which keeps them useful without guessing a type.
-This is a behaviour change for `features-json`, which currently keeps exactly
-its five documented fields and drops the rest.
+This was a behaviour change for the JSON feature decoder, which previously
+kept exactly its five documented fields and dropped the rest.
 
 Preserved fields are therefore *not* warned about — that would fire on every
 correct config. What is worth reporting is a **near miss**: an unrecognised
@@ -1352,7 +1360,7 @@ At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, me
 
 **Bring-your-own file — point the track at a spreadsheet:**
 
-Instead of a hosted `sources` URL, the same track can point straight at a local delimited file. The `.csv` / `.tsv` / `.bed` extension infers the pre-registered `features-csv` / `features-tsv` / `bed` adapter, so no `adapter:` and no `registerAdapter()` glue is needed:
+Instead of a hosted `sources` URL, the same track can point straight at a local delimited file. The `.csv` / `.tsv` / `.bed` extension gives the encoding and `kind: features` gives the records, so no `adapter:` and no `registerAdapter()` glue is needed:
 
 ```yaml
 rows:
@@ -1364,7 +1372,7 @@ rows:
         data: ./hotspots.csv # header: type,start,end,description[,score]
 ```
 
-At load time the loader recognises `./hotspots.csv` as a file source, fetches it as **text** (not JSON), runs `features-csv` to turn the rows into feature records, and renders them on `nightingale-track-canvas` exactly as a URL-sourced `kind: features` track would. A `.tsv` file behaves identically via `features-tsv`. The header row must be `type,start,end,description[,score]`; `start`/`end`/`score` are coerced to numbers.
+At load time the loader recognises `./hotspots.csv` as a file source, fetches it as **text** (not JSON), decodes the rows into the feature records `kind: features` declares, and renders them on `nightingale-track-canvas` exactly as a URL-sourced `kind: features` track would. A `.tsv` file behaves identically. The header row must be `type,start,end,description[,score]`; `start`/`end`/`score` are coerced to numbers.
 
 A `.json` file behaves the same via `features-json`, except the body is fetched as **JSON** (not text): the file must be an array of feature objects — `[{ "type": "DOMAIN", "start": 10, "end": 25, "description": "…", "score": 0.9 }, …]`. The start coordinate may be given as either `start` or `begin` (normalised to `start`); `description` and `score` are optional. A malformed record throws a descriptive, record-and-field-named error (e.g. `features-json: record 2, field "start": expected a number, got string`), which the loader turns into an empty track plus a console warning rather than crashing the viewer.
 

@@ -1,7 +1,8 @@
 # UniProt data NEXT TO your own data. The first row is sourced live from
 # the EBI Proteins API (UniProt domain features, narrowed by type); the
 # second is a bring-your-own JSON file (the `.json` extension infers the
-# `features-json` adapter). Both render as sibling rows.
+# read as feature records because the track says `kind: features`). Both
+# render as sibling rows.
 accession: P05067
 sources:
   features: https://www.ebi.ac.uk/proteins/api/features/{accession}
