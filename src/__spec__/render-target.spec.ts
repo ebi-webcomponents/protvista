@@ -437,6 +437,56 @@ describe('full render — shell + per-group DOM with frozen fixtures', () => {
     expect(attrFor(target, 'GROUP_LINEGRAPH')).toBe(true);
   });
 
+  it('decides the aggregate label from the track it draws, not the visible ones', () => {
+    // A graph group's aggregate payload is `groupData[0]` — `group.tracks` in
+    // config order, `hidden` ignored (see `load-data.ts`). Hiding that track
+    // must not change the label, because the aggregate still draws its
+    // series: asking the *visible* list instead would put "12 values" back on
+    // a bring-your-own graph the moment its track was switched off.
+    const hidden = structuredClone(testConfig) as typeof testConfig;
+    const group = hidden.rows.find((r) => r.id === 'GROUP_LINEGRAPH')!;
+    group.tracks[0].data[0].adapter = 'linegraph';
+    group.tracks[0].hidden = true;
+    // A second, visible track — otherwise hiding the only track takes the
+    // whole row down a different rendering path and there is no aggregate to
+    // assert on. This is the finding's real shape anyway: a mixed group whose
+    // first track is the one the aggregate draws.
+    group.tracks.push({
+      ...structuredClone(group.tracks[0]),
+      id: 'counts_track',
+      label: 'Counts Track',
+      hidden: false,
+      data: [
+        {
+          from: 'url',
+          url: 'stub://linegraph',
+          adapter: 'uniprot-variation-counts-json',
+        },
+      ],
+    });
+
+    const el = buildInstance({
+      config: hidden,
+      // The added track needs its own payload: the group only renders its
+      // aggregate when at least one *visible* track has data.
+      data: {
+        ...testData,
+        'GROUP_LINEGRAPH-counts_track': [{ values: [1, 2, 3] }],
+      },
+      openGroups: hidden.rows.map((r) => r.id),
+    });
+    const out = document.createElement('div');
+    render(el.render(), out);
+
+    expect(
+      out
+        .querySelector(
+          `nightingale-linegraph-track[id="${CSS_PREFIX}-track-GROUP_LINEGRAPH"]`
+        )
+        ?.hasAttribute('show-label-name')
+    ).toBe(false);
+  });
+
   it('does not render expanded tracks for closed groups', () => {
     // Rebuild with no open groups; the expanded `${CSS_PREFIX}-group__track`
     // divs must disappear while `${CSS_PREFIX}-group` blocks remain.

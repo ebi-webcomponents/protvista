@@ -97,6 +97,42 @@ describe('linegraph-csv / linegraph-tsv', () => {
     );
   });
 
+  it('accepts the trailing blank line a spreadsheet export leaves', () => {
+    // "Save as CSV" ends the file with a newline-terminated blank line. That
+    // used to be read as a ragged row and rejected the whole file, failing
+    // the least technical authors at their first step — while `bed.ts` had
+    // always skipped blank lines.
+    expect(linegraphCsv('position,value\n1,412\n30,688\n\n')).toEqual(
+      linegraphCsv('position,value\n1,412\n30,688\n')
+    );
+    expect(linegraphTsv('position\tvalue\n1\t412\n\n')).toEqual(
+      linegraphTsv('position\tvalue\n1\t412\n')
+    );
+  });
+
+  it('skips blank lines anywhere, and still numbers the rows by line', () => {
+    // Skipping happens in the row consumer, not the tokenizer, so a later
+    // error still names the physical line the author has to go and look at.
+    expect(linegraphCsv('position,value\n1,412\n\n60,905\n')).toEqual(
+      linegraphCsv('position,value\n1,412\n60,905\n')
+    );
+    expect(() => linegraphCsv('position,value\n1,412\n\n60,abc\n')).toThrow(
+      'linegraph-csv: row 4, column "value": expected a number, got "abc".'
+    );
+  });
+
+  it('accepts a header column named after an Object.prototype member', () => {
+    // The index used to be an object literal, so `'toString' in index` was
+    // true before any column was read: a file with a `toString` column was
+    // rejected as a duplicate, contradicting "extra columns are ignored".
+    for (const name of ['toString', 'constructor', 'valueOf', '__proto__']) {
+      expect(
+        linegraphCsv(`position,value,${name}\n1,412,x\n`),
+        `column named ${name}`
+      ).toEqual(linegraphCsv('position,value\n1,412\n'));
+    }
+  });
+
   it('warns and renders empty when handed a non-text body', () => {
     // The loader fetches these as text; a JSON body here means the wiring
     // broke, and one track degrading beats the viewer throwing.

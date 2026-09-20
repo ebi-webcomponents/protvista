@@ -2163,7 +2163,16 @@ class ProtvistaUniprot extends LitElement {
                 group.id,
                 groupAttrs.scale,
                 groupAttrs.colorRange,
-                showsSeriesLabel(tracks)
+                // Keyed off the track the aggregate actually draws, not the
+                // visible list. A graph group's aggregate payload is
+                // `groupData[0]` (see `load-data.ts`), which maps
+                // `group.tracks` in config order and ignores `hidden` — so
+                // asking `tracks` (the *visible* ones) can disagree in both
+                // directions: hide the first track and the aggregate still
+                // draws its series while the label logic no longer sees it,
+                // or put a bring-your-own series second and the label is
+                // suppressed for a UniProt series that wanted it.
+                showsSeriesLabel(group.tracks.slice(0, 1))
               )
             : ''}
         </div>

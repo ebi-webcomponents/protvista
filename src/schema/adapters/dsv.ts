@@ -121,6 +121,22 @@ export function parseDelimited(text: string, delimiter: string): string[][] {
 }
 
 /**
+ * Whether a tokenized row is a blank line rather than data.
+ *
+ * `parseDelimited` deliberately preserves every physical record so errors can
+ * name a 1-based line number, which means a blank line arrives as `['']`.
+ * Skipping it here rather than there keeps the line numbering honest while
+ * accepting the files people actually have: a trailing newline-terminated
+ * blank line is what most spreadsheet exports produce, and rejecting the
+ * whole file for it — `row 4 is ragged` — fails the least technical authors
+ * at the first step. `bed.ts` already skips blank lines; this brings the
+ * delimited parsers in line with it.
+ */
+function isBlankRow(cells: readonly string[]): boolean {
+  return cells.length === 1 && cells[0].trim() === '';
+}
+
+/**
  * Header columns a delimited (CSV/TSV) feature file must declare. `score`
  * is accepted as an optional extra column. Exported so the generated
  * adapter reference (`docs/adapter-reference.md`) can be pinned to the
@@ -173,32 +189,37 @@ export function rowsToFeatureRecords(
   if (rows.length === 0) return [];
 
   const header = rows[0];
-  const index: Record<string, number> = {};
+  // A `Map`, not an object literal: `'toString' in {}` is true, so a column
+  // legitimately named `toString` / `constructor` / `valueOf` would be
+  // rejected as a duplicate, and `__proto__` would not record an index at all.
+  const index = new Map<string, number>();
   header.forEach((name, i) => {
     const key = name.trim();
-    if (key in index) {
+    if (index.has(key)) {
       throw new Error(
         `${formatLabel}: duplicate header column "${key}". ` +
           `Each column name must be unique.`
       );
     }
-    index[key] = i;
+    index.set(key, i);
   });
 
   for (const col of REQUIRED_COLUMNS) {
-    if (!(col in index)) {
+    if (!index.has(col)) {
       throw new Error(
         `${formatLabel}: missing required header column "${col}". ` +
           `Header must contain type, start, end, description[, score].`
       );
     }
   }
-  const hasScore = 'score' in index;
+  const hasScore = index.has('score');
 
   const records: FeatureRecord[] = [];
   for (let r = 1; r < rows.length; r++) {
     const cells = rows[r];
     const line = r + 1; // header is line 1
+
+    if (isBlankRow(cells)) continue;
 
     if (cells.length !== header.length) {
       throw new Error(
@@ -208,7 +229,7 @@ export function rowsToFeatureRecords(
     }
 
     const num = (col: string): number => {
-      const raw = cells[index[col]];
+      const raw = cells[index.get(col) as number];
       const n = parseDecimal(raw);
       if (n === null) {
         throw new Error(
@@ -220,16 +241,16 @@ export function rowsToFeatureRecords(
     };
 
     const record: FeatureRecord = {
-      type: cells[index.type],
+      type: cells[index.get('type') as number],
       start: num('start'),
       end: num('end'),
     };
 
-    const description = cells[index.description];
+    const description = cells[index.get('description') as number];
     if (description !== '') record.description = description;
 
     if (hasScore) {
-      const rawScore = cells[index.score];
+      const rawScore = cells[index.get('score') as number];
       if (rawScore.trim() !== '') {
         const s = parseDecimal(rawScore);
         if (s === null) {
@@ -290,20 +311,23 @@ export function rowsToPointRecords(
   if (rows.length === 0) return [];
 
   const header = rows[0];
-  const index: Record<string, number> = {};
+  // A `Map`, not an object literal: `'toString' in {}` is true, so a column
+  // legitimately named `toString` / `constructor` / `valueOf` would be
+  // rejected as a duplicate, and `__proto__` would not record an index at all.
+  const index = new Map<string, number>();
   header.forEach((name, i) => {
     const key = name.trim();
-    if (key in index) {
+    if (index.has(key)) {
       throw new Error(
         `${formatLabel}: duplicate header column "${key}". ` +
           `Each column name must be unique.`
       );
     }
-    index[key] = i;
+    index.set(key, i);
   });
 
   for (const col of POINT_COLUMNS) {
-    if (!(col in index)) {
+    if (!index.has(col)) {
       throw new Error(
         `${formatLabel}: missing required header column "${col}". ` +
           `Header must contain position, value.`
@@ -316,6 +340,8 @@ export function rowsToPointRecords(
     const cells = rows[r];
     const line = r + 1; // header is line 1
 
+    if (isBlankRow(cells)) continue;
+
     if (cells.length !== header.length) {
       throw new Error(
         `${formatLabel}: row ${line} is ragged — expected ${header.length} ` +
@@ -324,7 +350,7 @@ export function rowsToPointRecords(
     }
 
     const num = (col: string): number => {
-      const raw = cells[index[col]];
+      const raw = cells[index.get(col) as number];
       const n = parseDecimal(raw);
       if (n === null) {
         throw new Error(
