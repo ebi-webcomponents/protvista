@@ -19,12 +19,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { loadProtvistaData } from '../load-data.js';
 import { createRegistry } from '../schema/registry.js';
 import { normalizeConfig } from '../schema/normalize.js';
-import {
-  WRAPPING_RECORD_ADAPTERS,
-  recordAdapterForKind,
-  KIND_ADAPTER_VARIANTS,
-  BYO_KIND_BASE_ADAPTERS,
-} from '../schema/file-formats.js';
+import { SHAPES, SHAPE_NAMES } from '../schema/shapes.js';
 import type { ProtvistaViewerConfig } from '../schema/types.js';
 import '../protvista-uniprot.js';
 
@@ -71,54 +66,17 @@ const loadCustom = (kind: string, payload: unknown) => {
   );
 };
 
-describe('WRAPPING_RECORD_ADAPTERS reflects what the adapters actually do', () => {
-  // The whole rule rests on this split, and it is the kind of fact that rots
-  // silently: an adapter changed from wrapping to pass-through (or a new
-  // family added without thinking about it) would leave the set asserting
-  // something no longer true, and the symptom would be a blank track.
-  const POINTS = [{ position: 1, value: 2 }];
-  const VARIATIONS = [{ position: 1, variant: 'K' }];
-  const FEATURES = [{ type: 'DOMAIN', start: 1, end: 9 }];
-
-  it.each([
-    ['linegraph', POINTS],
-    ['variation', VARIATIONS],
-    ['features-json', FEATURES],
-  ])('%s wraps iff it is listed as wrapping', async (name, records) => {
-    const out = await registry().getAdapter(name)!(records);
-    // "Wrapping" means: the output is not simply the records back again.
-    const wrapped = !(
-      Array.isArray(out) &&
-      out.length === records.length &&
-      out.every((item, i) => {
-        const source = records[i] as Record<string, unknown>;
-        return Object.keys(source).every(
-          (k) => (item as Record<string, unknown>)?.[k] === source[k]
-        );
-      })
-    );
-    expect(wrapped, `${name} wrapping mismatch`).toBe(
-      WRAPPING_RECORD_ADAPTERS.has(name)
-    );
-  });
-
-  it('every wrapping adapter is reachable as some kind’s record adapter', () => {
-    const reachable = new Set(
-      [
-        ...BYO_KIND_BASE_ADAPTERS,
-        ...Object.keys(KIND_ADAPTER_VARIANTS).flatMap((base) => [
-          base,
-          ...Object.values(KIND_ADAPTER_VARIANTS[base]),
-        ]),
-      ]
-        .map((a) => recordAdapterForKind(a))
-        .filter(Boolean)
-    );
-    for (const name of WRAPPING_RECORD_ADAPTERS) {
-      expect(reachable.has(name), `${name} is listed but unreachable`).toBe(
-        true
-      );
-    }
+describe('a shape knows whether its records need wrapping', () => {
+  // The rule the inline / setTrackData path turns on. `point` records are
+  // wrapped into a series and `variation` into `{ variants }`, but a
+  // `feature` array *is* what the track canvas renders — running records
+  // through a validator there would only strip fields a `dataTooltip` may
+  // reference.
+  it('only the wrapping shapes are marked as wrapping', () => {
+    expect(SHAPE_NAMES.filter((n) => SHAPES[n].wraps).sort()).toEqual([
+      'point',
+      'variation',
+    ]);
   });
 });
 

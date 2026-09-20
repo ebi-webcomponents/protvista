@@ -25,16 +25,6 @@
  */
 
 import type { AdapterFunction, KnownAdapterName } from '../types.js';
-import { featuresCsv } from './features-csv.js';
-import { featuresTsv } from './features-tsv.js';
-import { featuresJson } from './features-json.js';
-import { bed } from './bed.js';
-import { linegraph } from './linegraph.js';
-import { linegraphCsv } from './linegraph-csv.js';
-import { linegraphTsv } from './linegraph-tsv.js';
-import { variation } from './variation.js';
-import { variationCsv } from './variation-csv.js';
-import { variationTsv } from './variation-tsv.js';
 import { featureAdapter } from './feature-adapter.js';
 import { interproAdapter } from './interpro-adapter.js';
 import { proteomicsAdapter } from './proteomics-adapter.js';
@@ -51,17 +41,10 @@ import { alphamissenseHeatmapAdapter } from './alphamissense-heatmap-adapter.js'
 export const BUILTIN_ADAPTERS: ReadonlyArray<
   readonly [KnownAdapterName, AdapterFunction]
 > = [
-  // Generic bring-your-own-data file-format adapters.
-  ['features-csv', featuresCsv],
-  ['features-tsv', featuresTsv],
-  ['features-json', featuresJson],
-  ['bed', bed],
-  ['linegraph', linegraph],
-  ['linegraph-csv', linegraphCsv],
-  ['linegraph-tsv', linegraphTsv],
-  ['variation', variation],
-  ['variation-csv', variationCsv],
-  ['variation-tsv', variationTsv],
+  // Bring-your-own-data sources are no longer named adapters: a track's
+  // `kind` declares the records and the source declares the format, and
+  // `runPipeline` composes the pair. What remains here is the set of
+  // provider transforms — the things an author reaches only by naming one.
   // UniProt/EBI domain adapters (referenced by the built-in semantic kinds).
   ['uniprot-features-json', featureAdapter],
   ['interpro-entries-json', interproAdapter],

@@ -108,7 +108,7 @@ describe('component registration — consumer components', () => {
     element.registerComponent(tag, class extends HTMLElement {});
     element.registerSemanticKind('consumer-kind', {
       component: tag,
-      adapter: 'features-json',
+      shape: 'feature',
     });
 
     expect(customElements.get(tag)).toBeUndefined(); // not yet defined

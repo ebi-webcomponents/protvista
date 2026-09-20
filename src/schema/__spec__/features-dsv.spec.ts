@@ -14,8 +14,20 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { parseDelimited, rowsToFeatureRecords } from '../adapters/dsv.js';
-import { featuresCsv } from '../adapters/features-csv.js';
-import { featuresTsv } from '../adapters/features-tsv.js';
+
+import { runPipeline } from '../adapters/pipeline.js';
+
+/**
+ * The grid adapters these tests were written against are gone: a source now
+ * resolves to a (shape, format) pair and `runPipeline` composes it. The
+ * assertions below are unchanged — same parsers, same messages — so they are
+ * re-pointed rather than rewritten, with the source name the loader would
+ * pass so the error text is what an author actually sees.
+ */
+const featuresCsv = (body: unknown) =>
+  runPipeline('feature', 'csv', body, { source: './hits.csv' });
+const featuresTsv = (body: unknown) =>
+  runPipeline('feature', 'tsv', body, { source: './hits.tsv' });
 
 // ─────────────────────────────────────────────────────────────
 // parseDelimited — RFC-4180 tokenizer
@@ -117,21 +129,21 @@ describe('features-csv adapter', () => {
   it('throws a row+column-named error on a non-numeric start', () => {
     const csv = 'type,start,end,description\nDOMAIN,abc,5,x';
     expect(() => featuresCsv(csv)).toThrow(
-      /features-csv: row 2, column "start": expected a number, got "abc"/
+      /\.\/hits\.csv \(parsed as CSV\): row 2, column "start": expected a number, got "abc"/
     );
   });
 
   it('throws naming the missing required header column', () => {
     const csv = 'type,start,description\nDOMAIN,1,x';
     expect(() => featuresCsv(csv)).toThrow(
-      /features-csv: missing required header column "end"/
+      /\.\/hits\.csv \(parsed as CSV\): missing required header column "end"/
     );
   });
 
   it('throws on a ragged row', () => {
     const csv = 'type,start,end,description\nDOMAIN,1,5';
     expect(() => featuresCsv(csv)).toThrow(
-      /features-csv: row 2 is ragged — expected 4 columns, got 3/
+      /\.\/hits\.csv \(parsed as CSV\): row 2 is ragged — expected 4 columns, got 3/
     );
   });
 
@@ -144,7 +156,7 @@ describe('features-csv adapter', () => {
       'DOMAIN,1,5,"multi\nline note"\n' +
       'SITE,x,9,bad';
     expect(() => featuresCsv(csv)).toThrow(
-      /features-csv: row 3, column "start": expected a number, got "x"/
+      /\.\/hits\.csv \(parsed as CSV\): row 3, column "start": expected a number, got "x"/
     );
   });
 
@@ -152,14 +164,14 @@ describe('features-csv adapter', () => {
     // Number('0x10') is 16; the adapter must not silently accept it.
     const csv = 'type,start,end,description\nDOMAIN,0x10,25,x';
     expect(() => featuresCsv(csv)).toThrow(
-      /features-csv: row 2, column "start": expected a number, got "0x10"/
+      /\.\/hits\.csv \(parsed as CSV\): row 2, column "start": expected a number, got "0x10"/
     );
   });
 
   it('throws on a duplicate header column', () => {
     const csv = 'type,start,end,start,description\nDOMAIN,1,5,2,x';
     expect(() => featuresCsv(csv)).toThrow(
-      /features-csv: duplicate header column "start"/
+      /\.\/hits\.csv \(parsed as CSV\): duplicate header column "start"/
     );
   });
 
@@ -188,7 +200,7 @@ describe('features-tsv adapter', () => {
   it('throws a row+column-named error on a non-numeric end', () => {
     const tsv = 'type\tstart\tend\tdescription\nDOMAIN\t1\tzz\tx';
     expect(() => featuresTsv(tsv)).toThrow(
-      /features-tsv: row 2, column "end": expected a number, got "zz"/
+      /\.\/hits\.tsv \(parsed as TSV\): row 2, column "end": expected a number, got "zz"/
     );
   });
 

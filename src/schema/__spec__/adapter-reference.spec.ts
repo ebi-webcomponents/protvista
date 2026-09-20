@@ -20,49 +20,29 @@ import { resolve } from 'node:path';
 import {
   ADAPTER_REFERENCE,
   FEATURE_RECORD_FIELDS,
-  type GenericAdapterDoc,
   type KindAdapterDoc,
-  type ByodFormatAdapterDoc,
 } from '../adapters/adapter-reference.js';
 import { BUILTIN_ADAPTERS } from '../adapters/index.js';
 import {
-  REQUIRED_COLUMNS,
   POINT_COLUMNS,
   VARIATION_COLUMNS,
 } from '../adapters/dsv.js';
 import {
   DATA_FILE_FORMATS,
-  KIND_ADAPTER_VARIANTS,
-  BYO_KIND_BASE_ADAPTERS,
-  GENERIC_FILE_ADAPTERS,
-  TEXT_BODY_ADAPTERS,
+  DATA_FORMATS,
+  DATA_FORMAT_NAMES,
 } from '../file-formats.js';
-import { featuresCsv } from '../adapters/features-csv.js';
+import { SHAPES, SHAPE_NAMES } from '../shapes.js';
 import { createRegistry } from '../registry.js';
+import { runPipeline } from '../adapters/pipeline.js';
 
-const generic = ADAPTER_REFERENCE.filter(
-  (d): d is GenericAdapterDoc => d.tier === 'generic'
-);
-// Both kind-addressed tiers. `byod-kind` entries carry the same kind /
-// adapter / component columns as `domain` ones — they differ only in who
-// authors the payload — so the registry invariants below must cover both,
-// or moving an entry between tiers would silently drop its linkage check.
+/** The reading a `kind: features` track gives `examples/csv/hotspots.csv`. */
+const featuresCsv = (body: string) =>
+  runPipeline('feature', 'csv', body, { source: './hotspots.csv' });
+
 const kindEntries = ADAPTER_REFERENCE.filter(
-  (d): d is KindAdapterDoc => d.tier === 'domain' || d.tier === 'byod-kind'
+  (d): d is KindAdapterDoc => d.tier === 'domain'
 );
-
-describe('adapter reference — coverage', () => {
-  it('documents exactly the registered built-in adapters (no gaps, no orphans)', () => {
-    const documented = ADAPTER_REFERENCE.map((d) => d.name).sort();
-    const registered = BUILTIN_ADAPTERS.map(([name]) => name).sort();
-    expect(documented).toEqual(registered);
-  });
-
-  it('has no duplicate entries', () => {
-    const names = ADAPTER_REFERENCE.map((d) => d.name);
-    expect(new Set(names).size).toBe(names.length);
-  });
-});
 
 /**
  * `specs/config-approach.md` restates the `KnownAdapterName` and
@@ -117,9 +97,14 @@ describe('spec drift — specs/config-approach.md unions', () => {
 describe('adapter reference — kind linkage', () => {
   const registry = createRegistry();
 
-  it('covers every built-in semantic kind exactly once', () => {
+  it('covers every kind that has a provider adapter, exactly once', () => {
+    // A shape-only kind (`linegraph`) has no provider transform to document
+    // — its contract is the shape, rendered in the shapes section.
     const documentedKinds = kindEntries.map((d) => d.kind).sort();
-    expect(documentedKinds).toEqual(registry.listSemanticKinds());
+    const withAdapters = registry
+      .listSemanticKinds()
+      .filter((k) => registry.getSemanticKind(k)?.adapter !== undefined);
+    expect(documentedKinds).toEqual(withAdapters);
   });
 
   it('each kind entry matches the registry adapter + component for its kind', () => {
@@ -132,168 +117,49 @@ describe('adapter reference — kind linkage', () => {
   });
 });
 
-const byodFormat = ADAPTER_REFERENCE.filter(
-  (d): d is ByodFormatAdapterDoc => d.tier === 'byod-format'
-);
+describe('the reference documents the vocabulary authors actually write', () => {
+  const registry = createRegistry();
 
-describe('adapter reference — per-kind adapter families', () => {
-  it('documents every family member the resolver can select', () => {
-    // A family member may be documented in any of three tiers:
-    //   - `generic`     — the `features` family's members, which a bare
-    //                     `./x.csv` also selects on a kindless track;
-    //   - `byod-format` — reachable only through a kind;
-    //   - `byod-kind`   — a BYO kind's own canonical adapter, which doubles
-    //                     as the JSON member of families sharing its shape
-    //                     (`linegraph` is `kind: linegraph`'s adapter *and*
-    //                     what `./counts.json` means on `kind: variant-counts`).
-    // Either way the reference must know the name, and where it pins an
-    // extension that extension must be the one that reaches it.
-    for (const [base, byExt] of Object.entries(KIND_ADAPTER_VARIANTS)) {
-      for (const [ext, name] of Object.entries(byExt)) {
-        const doc = ADAPTER_REFERENCE.find((d) => d.name === name);
-        expect(
-          doc,
-          `family member '${name}' (${base} + ${ext}) is undocumented`
-        ).toBeDefined();
-        if (doc && doc.tier === 'byod-kind') continue;
-        expect(
-          doc && 'ext' in doc ? doc.ext : undefined,
-          `'${name}' is documented under a different extension`
-        ).toBe(ext);
-      }
+  it('every shape is documented with the fields its parser requires', () => {
+    // The reference renders from SHAPES, so this pins the shapes themselves
+    // against the parsers that enforce them.
+    expect(SHAPE_NAMES.sort()).toEqual(['feature', 'point', 'variation']);
+    expect(SHAPES.feature.requiredFields).toEqual(['type', 'start', 'end']);
+    expect(SHAPES.point.requiredFields).toEqual([...POINT_COLUMNS]);
+    expect(SHAPES.variation.requiredFields).toEqual([...VARIATION_COLUMNS]);
+  });
+
+  it('every shape is drawn by at least one kind', () => {
+    // A documented shape no kind draws would be a section of the reference
+    // nobody can reach.
+    for (const shape of SHAPE_NAMES) {
+      const kinds = registry
+        .listSemanticKinds()
+        .filter((k) => registry.getSemanticKind(k)?.shape === shape);
+      expect(kinds.length, `no kind draws ${shape}`).toBeGreaterThan(0);
     }
   });
 
-  it('byod-kind entries are exactly the bring-your-own-data kind bases', () => {
-    // Pins the two lists that decide BYO-ness — the reference tier and
-    // `BYO_KIND_BASE_ADAPTERS`, which gates the `hasData` empty-state check
-    // and the `from: inline` adapter run — against each other.
-    const documented = ADAPTER_REFERENCE.filter((d) => d.tier === 'byod-kind')
-      .map((d) => d.name)
-      .sort();
-    expect(documented).toEqual([...BYO_KIND_BASE_ADAPTERS].sort());
-  });
-
-  it('documents exactly the family members no bare extension selects', () => {
-    // `byod-format` covers every family member documented nowhere else —
-    // not a `generic` adapter (which a bare extension also selects) and not
-    // a `byod-kind` one (which a kind resolves to directly).
-    const documentedElsewhere = new Set(
-      ADAPTER_REFERENCE.filter(
-        (d) => d.tier === 'generic' || d.tier === 'byod-kind'
-      ).map((d) => d.name)
-    );
-    const documented = byodFormat.map((d) => `${d.ext}:${d.name}`).sort();
-    const wired = [
-      ...new Set(
-        Object.values(KIND_ADAPTER_VARIANTS).flatMap((byExt) =>
-          Object.entries(byExt)
-            .filter(
-              ([, name]) =>
-                !GENERIC_FILE_ADAPTERS.has(name) &&
-                !documentedElsewhere.has(name)
-            )
-            .map(([ext, name]) => `${ext}:${name}`)
-        )
-      ),
-    ].sort();
-    expect(documented).toEqual(wired);
-  });
-
-  it('each variant ext/body matches DATA_FILE_FORMATS and the fetch decision', () => {
-    for (const d of byodFormat) {
-      const fmt = DATA_FILE_FORMATS[d.ext];
-      expect(fmt, `no DATA_FILE_FORMATS entry for '${d.ext}'`).toBeDefined();
-      // The variant takes its body type from the extension it parses, and the
-      // loader must agree — a text body fetched as JSON never reaches the
-      // parser at all.
-      expect(d.body).toBe(fmt.body);
-      expect(TEXT_BODY_ADAPTERS.has(d.name)).toBe(d.body === 'text');
+  it('every format maps to an extension the resolver recognises', () => {
+    for (const name of DATA_FORMAT_NAMES) {
+      const fmt = DATA_FORMATS[name];
+      expect(DATA_FILE_FORMATS[fmt.ext], `${name} has no extension row`).toBeDefined();
+      expect(DATA_FILE_FORMATS[fmt.ext].body).toBe(fmt.body);
     }
   });
 
-  it('documented header columns match the parser’s own', () => {
-    // Each family's delimited members declare that family's columns; the
-    // JSON member has records, not a header, and declares none.
-    const expected: Record<string, readonly string[]> = {
-      linegraph: [...POINT_COLUMNS],
-      variation: [...VARIATION_COLUMNS],
-    };
-    expect(byodFormat.length).toBeGreaterThan(0);
-    for (const d of byodFormat) {
-      if (d.body === 'json') {
-        expect(d.headerColumns, `${d.name} is JSON, not a header format`).toBeUndefined();
-        continue;
-      }
-      expect(expected[d.family], `no columns known for family '${d.family}'`).toBeDefined();
-      expect(d.headerColumns).toEqual(expected[d.family]);
-    }
-  });
-
-  it('every documented family is one the resolver actually wires', () => {
-    const wiredNames = new Set(
-      Object.values(KIND_ADAPTER_VARIANTS).flatMap((byExt) =>
-        Object.values(byExt)
-      )
-    );
-    for (const d of byodFormat) {
-      expect(
-        wiredNames.has(d.name as never),
-        `'${d.name}' is documented but no kind's family selects it`
-      ).toBe(true);
-    }
-  });
-
-  it('every kind either declares a family or is named for its provider', () => {
+  it('every kind either declares a shape or is named for its provider', () => {
     // The vocabulary rule, enforced: a kind may keep a plain domain word
     // (`features`, `variants`) only if an author can bring their own data to
-    // it. A kind with no family must say whose feed it is, so nobody reads
-    // `alphafold-confidence` as "any confidence score".
-    const registry = createRegistry();
+    // it. A kind with no shape must say whose feed it is.
     const PROVIDERS = ['alphafold-', 'alphamissense-', 'interpro-', 'uniprot-'];
     for (const kind of registry.listSemanticKinds()) {
-      const base = registry.getSemanticKind(kind)?.adapter;
-      const hasFamily =
-        base !== undefined && KIND_ADAPTER_VARIANTS[base] !== undefined;
-      if (hasFamily) continue;
+      if (registry.getSemanticKind(kind)?.shape !== undefined) continue;
       expect(
-        PROVIDERS.some((p) => kind.startsWith(p)),
-        `kind '${kind}' has no bring-your-own-data family, so its name must ` +
-          `carry its provider (one of ${PROVIDERS.join(', ')})`
+        PROVIDERS.some((prefix) => kind.startsWith(prefix)),
+        `kind '${kind}' accepts no author data, so its name must carry its provider`
       ).toBe(true);
     }
-  });
-});
-
-describe('adapter reference — generic field accuracy', () => {
-  it('CSV/TSV header columns match the parser REQUIRED_COLUMNS', () => {
-    const delimited = generic.filter((d) => d.headerColumns);
-    expect(delimited.length).toBeGreaterThan(0);
-    for (const d of delimited) {
-      expect(d.headerColumns).toEqual([...REQUIRED_COLUMNS]);
-    }
-  });
-
-  it('each generic ext/body matches DATA_FILE_FORMATS', () => {
-    for (const d of generic) {
-      const fmt = DATA_FILE_FORMATS[d.ext];
-      expect(fmt, `no DATA_FILE_FORMATS entry for '${d.ext}'`).toBeDefined();
-      expect(fmt.adapter).toBe(d.name);
-      expect(fmt.body).toBe(d.body);
-    }
-  });
-
-  it('features-json documents the begin→start alias', () => {
-    const json = generic.find((d) => d.name === 'features-json');
-    const startField = json && json.fields.find((f) => f.name === 'start');
-    expect((startField && startField.notes) || '').toMatch(/begin/);
-  });
-
-  it('the FeatureRecord requires exactly type/start/end', () => {
-    const required = FEATURE_RECORD_FIELDS.filter((f) => f.required)
-      .map((f) => f.name)
-      .sort();
-    expect(required).toEqual(['end', 'start', 'type']);
   });
 });
 

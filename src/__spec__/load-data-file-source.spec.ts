@@ -15,8 +15,19 @@ import { describe, it, expect, vi } from 'vitest';
 import { loadConfig } from '../schema/load.js';
 import { createRegistry } from '../schema/registry.js';
 import { loadProtvistaData, type AdapterMap } from '../load-data.js';
-import { featuresCsv } from '../schema/adapters/features-csv.js';
 import { featuresJson } from '../schema/adapters/features-json.js';
+
+import { runPipeline } from '../schema/adapters/pipeline.js';
+
+/**
+ * The grid adapters these tests were written against are gone: a source now
+ * resolves to a (shape, format) pair and `runPipeline` composes it. The
+ * assertions below are unchanged — same parsers, same messages — so they are
+ * re-pointed rather than rewritten, with the source name the loader would
+ * pass so the error text is what an author actually sees.
+ */
+const featuresCsv = (body: unknown) =>
+  runPipeline('feature', 'csv', body, { source: './hits.csv' });
 
 const CSV = 'type,start,end,description\nDOMAIN,10,25,Kinase domain';
 
@@ -133,17 +144,23 @@ describe('loadProtvistaData — from: file (features-csv)', () => {
   });
 
   it.each([
-    ['features-csv', 'my-json'],
-    ['my-json', 'features-csv'],
+    ['csv', 'my-json'],
+    ['my-json', 'csv'],
   ])(
     'fetches a URL shared by a text-body and a json track once, as text (%s then %s)',
     async (firstAdapter, secondAdapter) => {
       const registry = createRegistry();
       registry.registerAdapter('my-json', () => []);
-      const tracks = [firstAdapter, secondAdapter].map((adapter, i) => ({
+      // One track reads the shared URL as CSV (a text body), the other names
+      // a custom JSON transform. Which is declared first must not decide how
+      // the body is fetched.
+      const tracks = [firstAdapter, secondAdapter].map((how, i) => ({
         id: `t${i}`,
         kind: 'features',
-        data: { from: 'url', url: './shared.csv', adapter },
+        data:
+          how === 'csv'
+            ? { from: 'url', url: './shared.csv', format: 'csv' }
+            : { from: 'url', url: './shared.csv', adapter: 'my-json' },
       }));
       const config = await loadConfig(
         { rows: [{ id: 'G', tracks }] },
@@ -155,7 +172,7 @@ describe('loadProtvistaData — from: file (features-csv)', () => {
         'P05067',
         config,
         fetchOne,
-        (name) => ({ 'features-csv': featuresCsv, 'my-json': () => [] })[name]
+        (name) => ({ 'my-json': () => [] })[name]
       );
 
       // Deduped to a single fetch; text wins regardless of declaration order

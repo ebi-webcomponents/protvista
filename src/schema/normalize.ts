@@ -74,10 +74,7 @@ import type {
 } from './types.js';
 import { isGroupConfig } from './discriminate.js';
 import type { Registry } from './registry.js';
-import {
-  formatForPath,
-  KIND_SELECTED_BYO_DATA_ADAPTERS,
-} from './file-formats.js';
+import { formatForPath } from './file-formats.js';
 
 // ─────────────────────────────────────────────────────────────
 // Output types — the canonical shape the loader consumes
@@ -215,9 +212,9 @@ export interface NormalizedDataSource {
  * provider API.
  *
  * A descriptor carrying a `format` was encoded by the author — that is what
- * declaring a format means. The remaining case is a kind that is
- * bring-your-own-data by nature (`linegraph`), whose canonical adapter reads
- * author records with no format of its own to declare.
+ * declaring a format means, and since a bring-your-own-data kind with no
+ * provider adapter falls back to its shape read as JSON, every authored
+ * source has one.
  *
  * Two viewer behaviours hang off this: the `hasData` empty-state gate, and
  * whether a line graph names its series in the hover readout.
@@ -225,11 +222,7 @@ export interface NormalizedDataSource {
 export function isAuthoredSource(
   d: NormalizedDataSource | undefined
 ): boolean {
-  if (d === undefined) return false;
-  if (d.format !== undefined) return true;
-  return (
-    d.adapter !== undefined && KIND_SELECTED_BYO_DATA_ADAPTERS.has(d.adapter)
-  );
+  return d?.format !== undefined;
 }
 
 // ─────────────────────────────────────────────────────────────

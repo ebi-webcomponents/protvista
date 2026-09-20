@@ -39,7 +39,6 @@ import type {
   KnownSemanticKind,
   KnownComponentName,
 } from '../types.js';
-import { POINT_COLUMNS, VARIATION_COLUMNS } from './dsv.js';
 
 /** One documented field of a generic bring-your-own-data payload. */
 export interface FieldDoc {
@@ -50,27 +49,6 @@ export interface FieldDoc {
   notes?: string;
 }
 
-/** A generic bring-your-own-data file adapter (author supplies the file). */
-export interface GenericAdapterDoc {
-  name: KnownAdapterName;
-  tier: 'generic';
-  /** Human label, e.g. "CSV (comma-separated)". */
-  title: string;
-  /** File extension the shorthand `data: ./x.csv` recognises. */
-  ext: string;
-  /** How the loader fetches the body before handing it to the adapter. */
-  body: 'text' | 'json';
-  summary: string;
-  /**
-   * For the delimited header formats (CSV/TSV): the columns the header row
-   * must contain. Mirrors `REQUIRED_COLUMNS` in `./dsv`. Undefined for
-   * headerless / object formats (`features-json`, `bed`).
-   */
-  headerColumns?: readonly string[];
-  fields: readonly FieldDoc[];
-  /** Coordinate / synthetic-field caveats (BED's 0-based half-open, …). */
-  coordinateNote?: string;
-}
 
 /** A domain adapter (a data provider / EBI API supplies the payload). */
 export interface DomainAdapterDoc {
@@ -88,69 +66,12 @@ export interface DomainAdapterDoc {
   fetchesSecondaryUrl: boolean;
 }
 
-/**
- * A bring-your-own-data adapter reached through a semantic `kind` rather than
- * a file extension. Same columns as {@link DomainAdapterDoc} — the difference
- * is provenance: the author writes this payload, so the reference must not
- * file it under "provider-supplied".
- */
-export interface ByodKindAdapterDoc {
-  name: KnownAdapterName;
-  tier: 'byod-kind';
-  /** The built-in semantic kind that resolves to this adapter. */
-  kind: KnownSemanticKind;
-  /** The component that kind renders with. */
-  component: KnownComponentName;
-  /** One-line description of the shape the author supplies. */
-  inputSummary: string;
-  /** Number of source bodies the adapter receives (see the track's `source:`). */
-  inputs: 1 | 2;
-  /** Whether the adapter fetches a further URL discovered in its input. */
-  fetchesSecondaryUrl: boolean;
-}
 
-/**
- * A delimited sibling of a `byod-kind` adapter — same records, different
- * file format (`linegraph-csv` parses `position,value` out of CSV into the
- * series `linegraph` builds from JSON).
- *
- * Its own tier because it is neither `generic` (a bare `./x.csv` still means
- * `features-csv`; only a kind-addressed track reaches these) nor `byod-kind`
- * (it is not the kind's canonical adapter, and each kind must map to exactly
- * one of those).
- */
-export interface ByodFormatAdapterDoc {
-  name: KnownAdapterName;
-  tier: 'byod-format';
-  /**
-   * The record family this parses — the author-facing shape, shared by every
-   * file format that carries it (`variation` covers `variation-csv` and
-   * `variation-tsv`). Not an adapter name: several kinds may reach the same
-   * family, and the renderer lists them from the registry rather than the
-   * table pinning one.
-   */
-  family: string;
-  /** File extension that selects it on a track whose kind declares this family. */
-  ext: string;
-  /** How the loader fetches the body before handing it to the adapter. */
-  body: 'text' | 'json';
-  /**
-   * The columns the header row must contain, for the delimited formats.
-   * Mirrors `POINT_COLUMNS` / `VARIATION_COLUMNS` in `./dsv`. Undefined for
-   * the JSON member of a family, which has records rather than a header.
-   */
-  headerColumns?: readonly string[];
-  summary: string;
-}
 
-export type AdapterDoc =
-  | GenericAdapterDoc
-  | ByodFormatAdapterDoc
-  | DomainAdapterDoc
-  | ByodKindAdapterDoc;
+export type AdapterDoc = DomainAdapterDoc;
 
-/** Every tier whose entries are addressed by a semantic `kind`. */
-export type KindAdapterDoc = DomainAdapterDoc | ByodKindAdapterDoc;
+/** Retained name for the kind-addressed tier, now the only one. */
+export type KindAdapterDoc = DomainAdapterDoc;
 
 /**
  * The canonical output shape shared by the generic feature adapters —
@@ -191,102 +112,8 @@ export const FEATURE_RECORD_FIELDS: readonly FieldDoc[] = [
   },
 ];
 
-const JSON_FIELDS: readonly FieldDoc[] = FEATURE_RECORD_FIELDS.map((f) =>
-  f.name === 'start'
-    ? {
-        ...f,
-        notes:
-          '1-based start position (inclusive). `begin` is accepted as an alias; `start` wins when both are present.',
-      }
-    : f
-);
 
 export const ADAPTER_REFERENCE: readonly AdapterDoc[] = [
-  // ── Generic bring-your-own-data adapters ────────────────────────────
-  {
-    name: 'features-csv',
-    tier: 'generic',
-    title: 'CSV (comma-separated)',
-    ext: '.csv',
-    body: 'text',
-    summary:
-      'A header row plus one feature per line. Point a track at `./x.csv` (or set `adapter: features-csv`).',
-    headerColumns: ['type', 'start', 'end', 'description'],
-    fields: FEATURE_RECORD_FIELDS,
-    coordinateNote:
-      'The header must contain `type,start,end,description`; `score` is an optional column. A `description` cell may be empty (the column is required, the value is not).',
-  },
-  {
-    name: 'features-tsv',
-    tier: 'generic',
-    title: 'TSV (tab-separated)',
-    ext: '.tsv',
-    body: 'text',
-    summary:
-      'Identical to `features-csv` but tab-delimited. Point a track at `./x.tsv`.',
-    headerColumns: ['type', 'start', 'end', 'description'],
-    fields: FEATURE_RECORD_FIELDS,
-    coordinateNote:
-      'The header must contain `type<TAB>start<TAB>end<TAB>description`; `score` is an optional column.',
-  },
-  {
-    name: 'features-json',
-    tier: 'generic',
-    title: 'JSON array of feature objects',
-    ext: '.json',
-    body: 'json',
-    summary:
-      'A JSON array of objects with the same fields as `features-csv`. Point a track at `./x.json`. Extra object keys are ignored.',
-    fields: JSON_FIELDS,
-    coordinateNote:
-      '`start` may instead be given as `begin` (the UniProt convention); `start` wins when both are present.',
-  },
-  {
-    name: 'bed',
-    tier: 'generic',
-    title: 'BED (tab-separated, positional)',
-    ext: '.bed',
-    body: 'text',
-    summary:
-      'Standard BED (BED3–BED6), headerless and positional. Point a track at `./x.bed`.',
-    fields: [
-      {
-        name: 'chrom',
-        type: 'string',
-        required: false,
-        notes:
-          'Column 1 — sequence name; informational only for this single-sequence viewer, so it is dropped.',
-      },
-      {
-        name: 'chromStart',
-        type: 'number',
-        required: true,
-        notes: 'Column 2 — 0-based start; mapped to `start` (start = chromStart + 1).',
-      },
-      {
-        name: 'chromEnd',
-        type: 'number',
-        required: true,
-        notes: 'Column 3 — 0-based half-open end; mapped to 1-based inclusive `end`.',
-      },
-      {
-        name: 'name',
-        type: 'string',
-        required: false,
-        notes: 'Column 4 (optional) — mapped to `description`.',
-      },
-      {
-        name: 'score',
-        type: 'number',
-        required: false,
-        notes: 'Column 5 (optional) — mapped to `score`.',
-      },
-    ],
-    coordinateNote:
-      'BED coordinates are 0-based half-open and converted to 1-based inclusive. `track`/`browser`/`#` header lines are skipped. Output records carry a synthetic `type: "BED"`; columns 6+ (strand, …) are dropped.',
-  },
-
-  // ── Domain adapters (a data provider / EBI API supplies the payload) ─
   {
     name: 'uniprot-features-json',
     tier: 'domain',
@@ -407,63 +234,5 @@ export const ADAPTER_REFERENCE: readonly AdapterDoc[] = [
     inputs: 2,
     fetchesSecondaryUrl: true,
   },
-  {
-    name: 'linegraph',
-    tier: 'byod-kind',
-    kind: 'linegraph',
-    component: 'nightingale-linegraph-track',
-    inputSummary:
-      'Generic bring-your-own-data: a JSON array of `{ position, value }` records (both numbers), validated and emitted as one line-graph series. Not UniProt-specific — for the UniProt variation API keep `variant-counts`.',
-    inputs: 1,
-    fetchesSecondaryUrl: false,
-  },
-  {
-    name: 'linegraph-csv',
-    tier: 'byod-format',
-    family: 'linegraph',
-    ext: '.csv',
-    body: 'text',
-    headerColumns: [...POINT_COLUMNS],
-    summary:
-      'The same `{ position, value }` records as `linegraph`, read from a CSV body with a `position,value` header row.',
-  },
-  {
-    name: 'linegraph-tsv',
-    tier: 'byod-format',
-    family: 'linegraph',
-    ext: '.tsv',
-    body: 'text',
-    headerColumns: [...POINT_COLUMNS],
-    summary:
-      'The tab-separated form of `linegraph-csv` — identical columns, `\\t` delimiter.',
-  },
-  {
-    name: 'variation',
-    tier: 'byod-format',
-    family: 'variation',
-    ext: '.json',
-    body: 'json',
-    summary:
-      'Your own residue changes: a JSON array of `{ position, variant }` records, with optional `wildType`, `description`, and `consequence`. `variant` is the residue the position changes to — `\'*\'` for a stop, `\'-\'` for a deletion. The viewer supplies the protein sequence the track needs.',
-  },
-  {
-    name: 'variation-csv',
-    tier: 'byod-format',
-    family: 'variation',
-    ext: '.csv',
-    body: 'text',
-    headerColumns: [...VARIATION_COLUMNS],
-    summary:
-      'The same records as `variation`, read from a CSV body. The header must contain `position,variant`; `wildType`, `description`, and `consequence` are optional columns.',
-  },
-  {
-    name: 'variation-tsv',
-    tier: 'byod-format',
-    family: 'variation',
-    ext: '.tsv',
-    body: 'text',
-    headerColumns: [...VARIATION_COLUMNS],
-    summary:
-      'The tab-separated form of `variation-csv` — identical columns, `\\t` delimiter.',
-  },
 ];
+

@@ -165,16 +165,18 @@ describe('linegraph kind registration', () => {
   it('resolves semantic kind linegraph to nightingale-linegraph-track and linegraph adapter', () => {
     expect(r.getSemanticKind('linegraph')).toEqual({
       component: 'nightingale-linegraph-track',
-      // `shape` is what lets an author bring point records to this kind by
-      // file, inline, or setTrackData; `adapter` is the transform for its
-      // JSON form. See "Shape and format" in specs/config-approach.md.
+      // Shape-only: there is no provider feed for "a graph of your numbers".
+      // With no adapter to fall back to, a formatless source is read as this
+      // shape's JSON records.
       shape: 'point',
-      adapter: 'linegraph',
     });
   });
 
-  it('retrieves the linegraph adapter function from registry', () => {
-    expect(r.getAdapter('linegraph')).toBe(linegraph);
+  it('registers no adapter named for the records it reads', () => {
+    // Bring-your-own-data sources are resolved from (shape, format), so
+    // there is no `linegraph` adapter for an author to name — or to have to
+    // learn.
+    expect(r.getAdapter('linegraph')).toBeUndefined();
   });
 
   it('lists linegraph in semantic kinds and preserves existing variant-counts registration', () => {
@@ -211,12 +213,11 @@ describe('kind: linegraph end to end', () => {
     expect(n.rows[0].tracks[0].data[0]).toEqual({
       from: 'url',
       url: 'https://example.invalid/api/{accession}/depth',
-      // The URL declares no format, so the kind's own adapter reads it —
-      // `linegraph` is bring-your-own-data by nature and has no provider
-      // feed to fall back to. `shape` rides along so the loader knows these
-      // records need wrapping for the component.
+      // The URL declares no format, and this kind has no provider adapter
+      // to fall back to — so its records are read as JSON, the shape's own
+      // encoding.
       shape: 'point',
-      adapter: 'linegraph',
+      format: 'json',
     });
   });
 

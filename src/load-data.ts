@@ -36,10 +36,7 @@ import {
   type NormalizedConfig,
   type NormalizedTrack,
 } from './schema/normalize.js';
-import {
-  TEXT_BODY_ADAPTERS,
-  DATA_FORMATS,
-} from './schema/file-formats.js';
+import { DATA_FORMATS } from './schema/file-formats.js';
 import { runPipeline } from './schema/adapters/pipeline.js';
 import { SHAPES } from './schema/shapes.js';
 import { resolveTooltip } from './tooltips/resolve.js';
@@ -359,12 +356,12 @@ export async function loadProtvistaData(
       if (!isReloading(key)) continue;
       const raw = trackUrl(track.data);
       const list = (Array.isArray(raw) ? raw : [raw]).filter((u) => u !== '');
+      // Only a declared format reads as text; every provider transform takes
+      // a JSON response.
       const source = track.data[0];
       const wantsText =
-        source?.format !== undefined
-          ? DATA_FORMATS[source.format].body === 'text'
-          : source?.adapter !== undefined &&
-            TEXT_BODY_ADAPTERS.has(source.adapter);
+        source?.format !== undefined &&
+        DATA_FORMATS[source.format].body === 'text';
       for (const t of list) {
         templates.add(t);
         if (wantsText) bodyType.set(t, 'text');

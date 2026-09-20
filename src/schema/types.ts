@@ -698,27 +698,7 @@ export type KnownAdapterName =
   | 'interpro-entries-json'
   | 'alphafold-prediction-json'
   | 'alphamissense-average-csv'
-  | 'alphamissense-full-csv'
-  /** CSV with columns: `type,start,end,description[,score]`. */
-  | 'features-csv'
-  /** TSV (tab-separated) with the same columns as `features-csv`. */
-  | 'features-tsv'
-  /** JSON array of feature-shaped records with the same fields as `features-csv`. */
-  | 'features-json'
-  /** Standard BED (tab-separated). 0-based half-open → shifted to 1-based inclusive. */
-  | 'bed'
-  /** Generic bring-your-own-data line graph: JSON array of `{ position, value }`. Selected by `kind: linegraph`, never inferred from a file extension. */
-  | 'linegraph'
-  /** The CSV form of `linegraph`: header `position,value`. Selected by a `.csv` path on a `kind: linegraph` track. */
-  | 'linegraph-csv'
-  /** The TSV form of `linegraph`: header `position<TAB>value`. Selected by a `.tsv` path on a `kind: linegraph` track. */
-  | 'linegraph-tsv'
-  /** Generic bring-your-own-data residue changes: JSON array of `{ position, variant }` (optional `wildType`, `description`, `consequence`). Selected by a `.json` path on a `kind: variants` / `kind: rna-editing` track. */
-  | 'variation'
-  /** The CSV form of `variation`: header containing `position,variant`. */
-  | 'variation-csv'
-  /** The TSV form of `variation`: header containing `position<TAB>variant`. */
-  | 'variation-tsv';
+  | 'alphamissense-full-csv';
 
 /**
  * How a source's bytes are encoded — *not* what its records mean, which the

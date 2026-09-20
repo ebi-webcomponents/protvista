@@ -654,25 +654,7 @@ type KnownAdapterName =
   | 'interpro-entries-json'
   | 'alphafold-prediction-json'
   | 'alphamissense-average-csv'
-  | 'alphamissense-full-csv'
-  // ── Generic (bring-your-own-data; shape-validating). Also the
-  //    `features` family: reached by extension on a kindless track,
-  //    and by `kind: features` + a file path. ──
-  | 'features-csv'
-  | 'features-tsv'
-  | 'features-json'
-  | 'bed'
-  // ── The `linegraph` family. No extension names these on its own:
-  //    `kind: linegraph` selects the family, the path's extension
-  //    selects the member. ──
-  | 'linegraph'
-  | 'linegraph-csv'
-  | 'linegraph-tsv'
-  // ── The `variation` family: your own residue changes, read by the
-  //    `variants` and `rna-editing` kinds from a file. ──
-  | 'variation'
-  | 'variation-csv'
-  | 'variation-tsv';
+  | 'alphamissense-full-csv';
 
 /** Open string — adapters registered via `registerAdapter()` are also valid. */
 type AdapterName = KnownAdapterName | (string & {});

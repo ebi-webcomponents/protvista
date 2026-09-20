@@ -12,13 +12,25 @@ import { describe, it, expect } from 'vitest';
 import { render } from 'lit';
 
 import { variation } from '../variation.js';
-import { variationCsv } from '../variation-csv.js';
-import { variationTsv } from '../variation-tsv.js';
 import { createRegistry } from '../../registry.js';
 import { normalizeConfig } from '../../normalize.js';
 import { validateConfig } from '../../validate.js';
 import type { ProtvistaViewerConfig } from '../../types.js';
 import '../../../protvista-uniprot.js';
+
+import { runPipeline } from '../pipeline.js';
+
+/**
+ * The grid adapters these tests were written against are gone: a source now
+ * resolves to a (shape, format) pair and `runPipeline` composes it. The
+ * assertions below are unchanged — same parsers, same messages — so they are
+ * re-pointed rather than rewritten, with the source name the loader would
+ * pass so the error text is what an author actually sees.
+ */
+const variationCsv = (body: unknown) =>
+  runPipeline('variation', 'csv', body, { source: './my-variants.csv' });
+const variationTsv = (body: unknown) =>
+  runPipeline('variation', 'tsv', body, { source: './my-variants.tsv' });
 
 type Payload = { variants: Array<Record<string, unknown>> };
 
@@ -162,16 +174,16 @@ describe('variation-csv / variation-tsv', () => {
 
   it('names the missing column when the header is wrong', () => {
     expect(() => variationCsv('position,value\n1,2\n')).toThrow(
-      /variation-csv: missing required header column "variant"\. Header must contain position, variant\./
+      /\.\/my-variants\.csv \(parsed as CSV\): missing required header column "variant"\. Header must contain position, variant\./
     );
   });
 
   it('names the row and column when a cell is wrong', () => {
     expect(() => variationCsv('position,variant\nabc,K\n')).toThrow(
-      /variation-csv: row 2, column "position": expected a number, got "abc"\./
+      /\.\/my-variants\.csv \(parsed as CSV\): row 2, column "position": expected a number, got "abc"\./
     );
     expect(() => variationCsv('position,variant\n42,\n')).toThrow(
-      /variation-csv: row 2, column "variant": expected the residue/
+      /\.\/my-variants\.csv \(parsed as CSV\): row 2, column "variant": expected the residue/
     );
   });
 

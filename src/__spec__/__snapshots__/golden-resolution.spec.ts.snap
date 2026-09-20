@@ -1630,8 +1630,8 @@ exports[`golden: examples/linegraph > resolution (expected to change with the re
     "kind": "linegraph",
     "sources": [
       {
-        "adapter": "linegraph",
-        "format": null,
+        "adapter": null,
+        "format": "json",
         "from": "inline",
         "inline": true,
         "shape": "point",
@@ -2236,14 +2236,14 @@ exports[`golden: kind × source resolution matrix > resolves every kind against 
     "inline": "interpro-entries-json",
   },
   "linegraph": {
-    "extensionless URL": "linegraph",
+    "extensionless URL": "point/json",
     "file .bed": "point/bed [kind-format-mismatch]",
     "file .csv": "point/csv",
     "file .json": "point/json",
     "file .tsv": "point/tsv",
     "hosted .csv": "point/csv",
     "hosted .json": "point/json",
-    "inline": "linegraph",
+    "inline": "point/json",
   },
   "peptides": {
     "extensionless URL": "uniprot-proteomics-json",

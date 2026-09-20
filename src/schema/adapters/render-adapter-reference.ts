@@ -13,15 +13,14 @@ import {
   ADAPTER_REFERENCE,
   FEATURE_RECORD_FIELDS,
   type AdapterDoc,
-  type GenericAdapterDoc,
   type DomainAdapterDoc,
-  type ByodKindAdapterDoc,
-  type ByodFormatAdapterDoc,
   type KindAdapterDoc,
   type FieldDoc,
 } from './adapter-reference.js';
-import { KIND_ADAPTER_VARIANTS } from '../file-formats.js';
+import { DATA_FORMATS, DATA_FORMAT_NAMES } from '../file-formats.js';
+import { SHAPES, SHAPE_NAMES } from '../shapes.js';
 import { createRegistry } from '../registry.js';
+import type { ShapeName } from '../types.js';
 
 const PAGES_BASE = 'https://ebi-webcomponents.github.io/protvista';
 const GITHUB_BLOB = 'https://github.com/ebi-webcomponents/protvista/blob/next';
@@ -37,12 +36,7 @@ export const FEATURE_RECORD_SCHEMA_PATH = 'public/schema/v1/feature-record.schem
 export const ADAPTER_REFERENCE_MD_PATH =
   'docs/src/content/docs/adapter-reference.md';
 
-const isGeneric = (d: AdapterDoc): d is GenericAdapterDoc => d.tier === 'generic';
 const isDomain = (d: AdapterDoc): d is DomainAdapterDoc => d.tier === 'domain';
-const isByodKind = (d: AdapterDoc): d is ByodKindAdapterDoc =>
-  d.tier === 'byod-kind';
-const isByodFormat = (d: AdapterDoc): d is ByodFormatAdapterDoc =>
-  d.tier === 'byod-format';
 
 /** Escape a value for use inside a Markdown table cell. */
 function cell(value: string): string {
@@ -60,26 +54,105 @@ function fieldTable(fields: readonly FieldDoc[]): string {
   return [header, ...rows].join('\n');
 }
 
-function genericSection(d: GenericAdapterDoc): string {
+/** Field docs per shape; the feature record is the one with prose notes. */
+const SHAPE_FIELDS: Record<ShapeName, readonly FieldDoc[]> = {
+  feature: FEATURE_RECORD_FIELDS,
+  point: [
+    {
+      name: 'position',
+      type: 'number',
+      required: true,
+      notes: '1-based residue position.',
+    },
+    {
+      name: 'value',
+      type: 'number',
+      required: true,
+      notes: 'The number plotted at that position. Any finite value.',
+    },
+  ],
+  variation: [
+    {
+      name: 'position',
+      type: 'number',
+      required: true,
+      notes: '1-based position of the changed residue.',
+    },
+    {
+      name: 'variant',
+      type: 'string',
+      required: true,
+      notes:
+        'The residue it changes to. `*` for a stop, `-` for a deletion.',
+    },
+    {
+      name: 'wildType',
+      type: 'string',
+      required: false,
+      notes: 'The original residue. Shown on hover.',
+    },
+    {
+      name: 'description',
+      type: 'string',
+      required: false,
+      notes: 'Free text shown on hover/click.',
+    },
+    {
+      name: 'consequence',
+      type: 'string',
+      required: false,
+      notes: 'Your own consequence label, e.g. `missense`.',
+    },
+  ],
+};
+
+/** The kinds that draw a shape, from the registry rather than a hand-list. */
+function kindsDrawing(shape: ShapeName): string[] {
+  const registry = createRegistry();
+  return registry
+    .listSemanticKinds()
+    .filter((k) => registry.getSemanticKind(k)?.shape === shape);
+}
+
+/** Formats that can carry a shape's records. */
+function formatsFor(shape: ShapeName): string[] {
+  return DATA_FORMAT_NAMES.filter((f) => {
+    const emits = DATA_FORMATS[f].emitsShape;
+    return emits === undefined || emits === shape;
+  });
+}
+
+function shapeSection(shape: ShapeName): string {
+  const def = SHAPES[shape];
+  const kinds = kindsDrawing(shape);
   const parts: string[] = [];
-  parts.push(`### \`${d.name}\` — ${d.title}`);
-  parts.push('');
-  parts.push(d.summary);
+  parts.push(`### ${def.label}`);
   parts.push('');
   parts.push(
-    `- **File extension:** \`${d.ext}\` — **fetched as:** ${d.body}`
+    `Written by: ${kinds.map((k) => `\`kind: ${k}\``).join(', ')}.`
   );
-  if (d.headerColumns) {
-    parts.push(
-      `- **Header row (required columns):** \`${d.headerColumns.join(',')}\` — plus optional \`score\`.`
-    );
-  }
-  if (d.coordinateNote) {
-    parts.push(`- ${d.coordinateNote}`);
-  }
   parts.push('');
-  parts.push(fieldTable(d.fields));
+  parts.push(
+    `Readable as: ${formatsFor(shape)
+      .map((f) => `\`${f}\``)
+      .join(', ')} — by file extension, or with an explicit \`format:\`.`
+  );
+  parts.push('');
+  parts.push(fieldTable(SHAPE_FIELDS[shape]));
   return parts.join('\n');
+}
+
+function formatTable(): string {
+  const header =
+    '| Format | Extension | Fetched as | Records it can carry |\n|---|---|---|---|';
+  const rows = DATA_FORMAT_NAMES.map((f) => {
+    const d = DATA_FORMATS[f];
+    const carries = d.emitsShape
+      ? `${SHAPES[d.emitsShape].label} only`
+      : 'whatever the track\'s kind draws';
+    return `| \`${f}\` | \`${d.ext}\` | ${d.body} | ${carries} |`;
+  });
+  return [header, ...rows].join('\n');
 }
 
 function domainTable(docs: readonly KindAdapterDoc[]): string {
@@ -96,47 +169,10 @@ function domainTable(docs: readonly KindAdapterDoc[]): string {
   return [header, ...rows].join('\n');
 }
 
-/**
- * The kinds that reach a given adapter through their family, in registry
- * order. Derived rather than declared: several kinds share a family (every
- * feature kind reads `features-csv`), and a hand-written list would be one
- * more thing to forget when a kind gains a family.
- */
-function kindsReaching(adapter: string): string[] {
-  const registry = createRegistry();
-  return registry.listSemanticKinds().filter((kind) => {
-    const base = registry.getSemanticKind(kind)?.adapter;
-    return (
-      base !== undefined &&
-      Object.values(KIND_ADAPTER_VARIANTS[base] ?? {}).includes(
-        adapter as never
-      )
-    );
-  });
-}
-
-function byodFormatTable(docs: readonly ByodFormatAdapterDoc[]): string {
-  const header =
-    '| Extension | Adapter | Records | Fetched as | Header row | Kinds that read it |\n|---|---|---|---|---|---|';
-  const rows = docs.map((d) => {
-    const columns = d.headerColumns
-      ? `\`${d.headerColumns.join(',')}\``
-      : '— (JSON records)';
-    const kinds = kindsReaching(d.name)
-      .map((k) => `\`${k}\``)
-      .join(', ');
-    return `| \`${d.ext}\` | \`${d.name}\` | \`${d.family}\` | ${d.body} | ${columns} | ${kinds || '—'} |`;
-  });
-  return [header, ...rows].join('\n');
-}
-
 export function renderReferenceMarkdown(
   reference: readonly AdapterDoc[] = ADAPTER_REFERENCE
 ): string {
-  const generic = reference.filter(isGeneric);
   const domain = reference.filter(isDomain);
-  const byodKind = reference.filter(isByodKind);
-  const byodFormat = reference.filter(isByodFormat);
 
   const lines: string[] = [];
   lines.push('---');
@@ -162,68 +198,55 @@ export function renderReferenceMarkdown(
   );
   lines.push('');
 
-  lines.push('## Bring-your-own-data formats');
+  lines.push('## Bring your own data');
   lines.push('');
   lines.push(
-    'These four adapters parse a file **you** supply and emit the canonical *feature record* ' +
-      '(`type`, `start`, `end`, optional `description`/`score`). Point a track at a local file ' +
-      'whose extension selects the adapter (e.g. `data: ./hotspots.csv`), or set `adapter:` ' +
-      'explicitly. They are also the `features` kind\'s file formats: on a `kind: features` ' +
-      'track the same extensions select the same adapters, so a hosted UniProt URL and an ' +
-      'exported file are the same track with a different `data:`. ' +
-      'A machine-readable schema for this record is served at ' +
-      `[\`feature-record.schema.json\`](${FEATURE_RECORD_SCHEMA_ID}) ` +
-      `(published at \`${FEATURE_RECORD_SCHEMA_ID}\`).`
+    'Two independent facts decide how a source is read. Your track\'s `kind` says **which ' +
+      'records** it needs; the file says **how they are encoded**. You never name an ' +
+      'adapter for either: point a track at `./hits.csv` and the kind supplies the first ' +
+      'half while the extension supplies the second. Use `format:` only when nothing can ' +
+      'infer it — inline text, or a URL with no recognised extension.'
   );
   lines.push('');
-  for (const d of generic) {
-    lines.push(genericSection(d));
+  lines.push(
+    'A malformed file fails with your own filename, the reading applied to it, and the ' +
+      'offending row and column: `./depth.csv (parsed as CSV): row 3, column "value": ' +
+      'expected a number, got "abc"`.'
+  );
+  lines.push('');
+  lines.push('### The formats');
+  lines.push('');
+  lines.push(formatTable());
+  lines.push('');
+  lines.push(
+    'Only BED constrains what it can carry: it encodes feature semantics (0-based ' +
+      'half-open, converted on read), so pairing it with a kind that draws anything else ' +
+      'is a config error naming both sides.'
+  );
+  lines.push('');
+  lines.push('## The record shapes');
+  lines.push('');
+  lines.push(
+    'Three shapes cover every kind that accepts your data. A machine-readable schema for ' +
+      `the feature record is served at [\`feature-record.schema.json\`](${FEATURE_RECORD_SCHEMA_ID}).`
+  );
+  lines.push('');
+  for (const shape of SHAPE_NAMES) {
+    lines.push(shapeSection(shape));
     lines.push('');
   }
 
   lines.push('## Built-in track adapters (provider-supplied)');
   lines.push('');
   lines.push(
-    'These adapters back the built-in semantic `kind`s. Their input is a response from an EBI ' +
-      'API (or equivalent provider) — you do **not** author these payloads; you point a track at ' +
-      'the source URL and the adapter transforms the response. The shapes below are informational ' +
-      '(useful when swapping an endpoint or writing a custom adapter for a kind), not a contract ' +
-      'you must produce.'
+    'These back the kinds named for their provider. Their input is a response from an EBI ' +
+      'API (or equivalent) — you do **not** author these payloads, and no file can stand in ' +
+      'for one: each takes two responses plus a further fetch. The shapes below are ' +
+      'informational, not a contract you must produce.'
   );
   lines.push('');
   lines.push(domainTable(domain));
   lines.push('');
-
-  if (byodKind.length > 0) {
-    lines.push('## Bring-your-own-data track kinds');
-    lines.push('');
-    lines.push(
-      'These adapters also back a semantic `kind`, but the payload is one **you** author ' +
-        'rather than a provider response — point the track at any URL or file path serving ' +
-        'the JSON shape below, or write it inline with `from: inline`. The `kind` selects the ' +
-        'adapter, so `data: ./depth.json` on a `kind: linegraph` track is read as line-graph ' +
-        'records rather than generic features. Unlike the ' +
-        'provider-supplied adapters above, these shapes *are* a contract you must produce: a ' +
-        'malformed record fails with an error naming the row index and field.'
-    );
-    lines.push('');
-    lines.push(domainTable(byodKind));
-    lines.push('');
-
-    if (byodFormat.length > 0) {
-      lines.push(
-        'The same records can arrive as delimited text. On a track already using one of ' +
-          'these kinds, the file extension picks the matching parser — `data: ./depth.csv` ' +
-          'on a `kind: linegraph` track parses a `position,value` header, it does not fall ' +
-          'back to the feature adapters. The extension chooses *within* the kind, never ' +
-          'away from it. (A bare `./x.csv` on a track with no `kind` still means ' +
-          '`features-csv`.)'
-      );
-      lines.push('');
-      lines.push(byodFormatTable(byodFormat));
-      lines.push('');
-    }
-  }
 
   lines.push('## Related');
   lines.push('');

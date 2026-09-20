@@ -10,9 +10,21 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { linegraphCsv } from '../linegraph-csv.js';
-import { linegraphTsv } from '../linegraph-tsv.js';
 import { linegraph, LINE_COLOR } from '../linegraph.js';
+
+import { runPipeline } from '../pipeline.js';
+
+/**
+ * The grid adapters these tests were written against are gone: a source now
+ * resolves to a (shape, format) pair and `runPipeline` composes it. The
+ * assertions below are unchanged — same parsers, same messages — so they are
+ * re-pointed rather than rewritten, with the source name the loader would
+ * pass so the error text is what an author actually sees.
+ */
+const linegraphCsv = (body: unknown) =>
+  runPipeline('point', 'csv', body, { source: './depth.csv' });
+const linegraphTsv = (body: unknown) =>
+  runPipeline('point', 'tsv', body, { source: './depth.tsv' });
 
 const CSV = 'position,value\n1,412\n30,688\n60,905\n';
 const TSV = CSV.replace(/,/g, '\t');
@@ -71,29 +83,29 @@ describe('linegraph-csv / linegraph-tsv', () => {
 
   it('names the missing column when the header is wrong', () => {
     expect(() => linegraphCsv('type,start,end\nBINDING,1,2\n')).toThrow(
-      'linegraph-csv: missing required header column "position". ' +
+      './depth.csv (parsed as CSV): missing required header column "position". ' +
         'Header must contain position, value.'
     );
     expect(() => linegraphTsv('position\t\n1\t\n')).toThrow(
-      'linegraph-tsv: missing required header column "value".'
+      './depth.tsv (parsed as TSV): missing required header column "value".'
     );
   });
 
   it('names the row and column for a non-numeric cell', () => {
     expect(() => linegraphCsv('position,value\n1,412\n2,abc\n')).toThrow(
-      'linegraph-csv: row 3, column "value": expected a number, got "abc".'
+      './depth.csv (parsed as CSV): row 3, column "value": expected a number, got "abc".'
     );
   });
 
   it('rejects a ragged row by line number', () => {
     expect(() => linegraphCsv('position,value\n1,412\n2\n')).toThrow(
-      'linegraph-csv: row 3 is ragged — expected 2 columns, got 1.'
+      './depth.csv (parsed as CSV): row 3 is ragged — expected 2 columns, got 1.'
     );
   });
 
   it('rejects a duplicate header column', () => {
     expect(() => linegraphCsv('position,value,value\n1,2,3\n')).toThrow(
-      'linegraph-csv: duplicate header column "value".'
+      './depth.csv (parsed as CSV): duplicate header column "value".'
     );
   });
 
@@ -117,7 +129,7 @@ describe('linegraph-csv / linegraph-tsv', () => {
       linegraphCsv('position,value\n1,412\n60,905\n')
     );
     expect(() => linegraphCsv('position,value\n1,412\n\n60,abc\n')).toThrow(
-      'linegraph-csv: row 4, column "value": expected a number, got "abc".'
+      './depth.csv (parsed as CSV): row 4, column "value": expected a number, got "abc".'
     );
   });
 
@@ -139,7 +151,7 @@ describe('linegraph-csv / linegraph-tsv', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     expect(linegraphCsv([{ position: 1, value: 2 }] as never)).toEqual([]);
     expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('linegraph-csv adapter: expected a text body')
+      expect.stringContaining('./depth.csv (parsed as CSV): expected a text body')
     );
     warn.mockRestore();
   });

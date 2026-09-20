@@ -214,9 +214,9 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
     {
       component: 'nightingale-linegraph-track',
       // Shape-only: there is no provider feed for "a graph of your numbers",
-      // which is exactly why this kind exists.
+      // which is exactly why this kind exists. With no adapter to fall back
+      // to, a formatless source is read as this shape's JSON records.
       shape: 'point',
-      adapter: 'linegraph',
     },
   ],
 ];

@@ -65,6 +65,29 @@ import {
   type ValidationIssueCode,
 } from './errors.js';
 
+/**
+ * Adapter names that existed until the shape/format split, mapped to what to
+ * write instead.
+ *
+ * These were the cross-product of a record shape and a file format, and both
+ * halves are now stated directly: the track's `kind` gives the records, and
+ * the extension — or `format:` — gives the encoding. A config copied from
+ * documentation written before the change gets told exactly that, rather than
+ * being sent to `registerAdapter()` to reimplement something built in.
+ */
+const REMOVED_ADAPTERS: Record<string, string> = {
+  'features-csv': "Removed: use format: csv (the track's kind gives the records).",
+  'features-tsv': "Removed: use format: tsv (the track's kind gives the records).",
+  'features-json': "Removed: use format: json (the track's kind gives the records).",
+  bed: "Removed: use format: bed (the track's kind gives the records).",
+  linegraph: 'Removed: use kind: linegraph, which reads { position, value } records.',
+  'linegraph-csv': 'Removed: use kind: linegraph with format: csv.',
+  'linegraph-tsv': 'Removed: use kind: linegraph with format: tsv.',
+  variation: 'Removed: use kind: variants, which reads { position, variant } records.',
+  'variation-csv': 'Removed: use kind: variants with format: csv.',
+  'variation-tsv': 'Removed: use kind: variants with format: tsv.',
+};
+
 // ─────────────────────────────────────────────────────────────
 // Ajv instance (memoised)
 //
@@ -746,7 +769,10 @@ function checkDescriptor(
   if (d.adapter !== undefined && !registry.hasAdapter(d.adapter)) {
     issues.push({
       path: trackPath,
-      message: `Unknown adapter: ${d.adapter} in track ${trackPath}. Did you forget to call registerAdapter()?`,
+      message:
+        `Unknown adapter: ${d.adapter} in track ${trackPath}. ` +
+        (REMOVED_ADAPTERS[d.adapter] ??
+          'Did you forget to call registerAdapter()?'),
       code: 'unknown-adapter',
     });
   }

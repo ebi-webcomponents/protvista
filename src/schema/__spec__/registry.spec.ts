@@ -51,8 +51,12 @@ describe('Registry — built-in seeding', () => {
       const def = r.getSemanticKind(name);
       expect(def).toBeDefined();
       expect(def?.component).toMatch(/^nightingale-/);
-      expect(def?.adapter).toBeTypeOf('string');
-      expect(def?.adapter.length).toBeGreaterThan(0);
+      // A kind declares a shape (an author can bring records to it), an
+      // adapter (a provider transform), or both — never neither.
+      expect(
+        def?.shape !== undefined || def?.adapter !== undefined,
+        `${name} declares neither shape nor adapter`
+      ).toBe(true);
     }
   });
 
@@ -108,16 +112,27 @@ describe('Registry — built-in seeding', () => {
     }
   });
 
-  it('ships the generic-format adapters out of the box', () => {
-    // The bring-your-own-data path relies on these being pre-registered
-    // on every fresh registry (so `data: "./x.csv"` / `./x.json` loads
-    // without an "Unknown adapter" error). Assert them by name so a
-    // regression that drops any one from the table is caught explicitly.
+  it('registers no adapter for the bring-your-own-data formats', () => {
+    // `./x.csv` used to need a pre-registered `features-csv`. It no longer
+    // resolves to an adapter at all: the track's `kind` gives the records
+    // and the extension gives the encoding, and the pair is composed. These
+    // names are gone from the registry, from `KnownAdapterName`, and from
+    // anything an author can write.
     const r = createRegistry();
-    expect(r.hasAdapter('features-csv')).toBe(true);
-    expect(r.hasAdapter('features-tsv')).toBe(true);
-    expect(r.hasAdapter('features-json')).toBe(true);
-    expect(r.hasAdapter('bed')).toBe(true);
+    for (const gone of [
+      'features-csv',
+      'features-tsv',
+      'features-json',
+      'bed',
+      'linegraph',
+      'linegraph-csv',
+      'linegraph-tsv',
+      'variation',
+      'variation-csv',
+      'variation-tsv',
+    ]) {
+      expect(r.hasAdapter(gone), `${gone} should no longer exist`).toBe(false);
+    }
   });
 });
 

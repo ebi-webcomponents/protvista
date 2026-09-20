@@ -28,9 +28,6 @@ import {
   isDataFormat,
   formatForPath,
   DATA_FILE_FORMATS,
-  KIND_ADAPTER_VARIANTS,
-  WRAPPING_RECORD_ADAPTERS,
-  recordAdapterForKind,
 } from '../file-formats.js';
 import { createRegistry, InvalidSemanticKindError } from '../registry.js';
 import { validateConfig } from '../validate.js';
@@ -63,15 +60,9 @@ describe('shapes', () => {
     expect(SHAPES.variation.requiredFields).toEqual([...VARIATION_COLUMNS]);
   });
 
-  it('`wraps` agrees with what the record adapters actually do', () => {
-    // The same fact `WRAPPING_RECORD_ADAPTERS` encodes today, asserted from
-    // the other direction so phase 2 can delete that set and keep the rule.
+  it('marks exactly the shapes whose records the component does not render directly', () => {
     const wrappingShapes = SHAPE_NAMES.filter((n) => SHAPES[n].wraps).sort();
     expect(wrappingShapes).toEqual(['point', 'variation']);
-    expect([...WRAPPING_RECORD_ADAPTERS].sort()).toEqual([
-      'linegraph',
-      'variation',
-    ]);
   });
 
   it('only the variation shape needs the viewer to supply a sequence', () => {
@@ -122,48 +113,15 @@ describe('formats', () => {
   });
 });
 
-describe('kinds declare a shape that agrees with the family table', () => {
+describe('kinds declare a shape or a provider adapter', () => {
   it.each(registry.listSemanticKinds())('%s', (kind) => {
     const def = registry.getSemanticKind(kind)!;
-    // Every kind must be renderable: a shape, an adapter, or both.
     expect(
       def.shape !== undefined || def.adapter !== undefined,
       `${kind} declares neither`
     ).toBe(true);
-
-    const family = def.adapter ? KIND_ADAPTER_VARIANTS[def.adapter] : undefined;
-    if (def.shape === undefined) {
-      // No shape means no bring-your-own-data path, which is exactly what
-      // having no family means today.
-      expect(family, `${kind} has no shape but has a family`).toBeUndefined();
-      return;
-    }
-    if (def.adapter === undefined) return; // shape-only kind: nothing to cross-check
-
-    // The family's members must be the adapters for this shape. Checked via
-    // the `.csv` member, which every family declares.
-    const csv = family?.['.csv'];
-    const expected = {
-      feature: 'features-csv',
-      point: 'linegraph-csv',
-      variation: 'variation-csv',
-    }[def.shape];
-    expect(csv, `${kind} (shape ${def.shape}) reads the wrong CSV parser`).toBe(
-      expected
-    );
-  });
-
-  it('every kind with a record adapter declares a wrapping shape', () => {
-    for (const kind of registry.listSemanticKinds()) {
-      const def = registry.getSemanticKind(kind)!;
-      const hasRecordAdapter =
-        recordAdapterForKind(def.adapter) !== undefined ||
-        (def.adapter === undefined && def.shape !== undefined);
-      if (!hasRecordAdapter) continue;
-      expect(
-        def.shape && SHAPES[def.shape].wraps,
-        `${kind} has a record adapter but a non-wrapping shape`
-      ).toBe(true);
+    if (def.shape !== undefined) {
+      expect(SHAPE_NAMES).toContain(def.shape);
     }
   });
 });

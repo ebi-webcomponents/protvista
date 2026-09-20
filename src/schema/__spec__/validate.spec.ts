@@ -1007,3 +1007,32 @@ function issueByCode(
 ): ValidationIssue | undefined {
   return issues.find((i) => i.code === code);
 }
+
+describe('validateConfig — adapters removed by the shape/format split', () => {
+  it.each([
+    ['features-csv', 'format: csv'],
+    ['linegraph-tsv', 'kind: linegraph with format: tsv'],
+    ['variation', 'kind: variants'],
+  ])('tells an author what to write instead of %s', (name, replacement) => {
+    // A config copied from documentation written before the change should
+    // learn the replacement, not be sent to registerAdapter() to reimplement
+    // something that is still built in.
+    const result = validateConfig(
+      {
+        accession: 'P05067',
+        rows: [
+          {
+            id: 'X',
+            tracks: [
+              { id: 'y', kind: 'features', data: { url: './x', adapter: name } },
+            ],
+          },
+        ],
+      },
+      freshRegistry()
+    );
+    const issue = result.issues.find((i) => i.code === 'unknown-adapter');
+    expect(issue?.message).toContain('Removed:');
+    expect(issue?.message).toContain(replacement);
+  });
+});
