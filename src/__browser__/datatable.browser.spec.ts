@@ -12,7 +12,7 @@ import { userEvent } from 'vitest/browser';
 
 import '../protvista-uniprot-datatable.js';
 import type { ProtvistaUniprotDatatable } from '../protvista-uniprot-datatable.js';
-import { mount } from './mount.js';
+import { mount, track } from './mount.js';
 import { expectNoA11yViolations } from './axe.js';
 
 type Row = { id: string; source: string; method: string };
@@ -171,5 +171,72 @@ describe('<protvista-uniprot-datatable> — pointer selection', () => {
     expect(active?.getAttribute('data-id')).toBe('3');
     expect(active?.getAttribute('aria-selected')).toBe('true');
     expect(selected).toHaveBeenCalledWith('3');
+  });
+});
+
+describe('<protvista-uniprot-datatable> — theming reaches the shadow root', () => {
+  /** Mount the table inside a wrapper carrying token overrides, which is
+   *  how a consumer themes one viewer rather than the whole page. */
+  async function mountUnder(vars: Record<string, string>): Promise<El> {
+    const wrapper = track(document.createElement('div'));
+    for (const [name, value] of Object.entries(vars)) {
+      wrapper.style.setProperty(name, value);
+    }
+    const el = document.createElement(
+      'protvista-uniprot-datatable'
+    ) as unknown as El;
+    wrapper.append(el);
+    el.data = DATA;
+    el.columns = COLUMNS;
+    await el.updateComplete;
+    return el;
+  }
+
+  const container = (el: El) =>
+    el.shadowRoot!.querySelector('.scroll-container')!;
+
+  it('takes a component token set on an ancestor', async () => {
+    // These tokens used to be declared on `:host`, and a declaration on
+    // an element beats anything inherited into it — so this override
+    // reached nothing, though docs/theming.md advertises exactly it.
+    const el = await mountUnder({
+      '--protvista-datatable-border': 'rgb(0, 128, 0)',
+    });
+    expect(getComputedStyle(container(el)).borderTopColor).toBe(
+      'rgb(0, 128, 0)'
+    );
+  });
+
+  it('takes a global token the component token defaults from', async () => {
+    const el = await mountUnder({
+      '--protvista-color-surface': 'rgb(0, 128, 0)',
+    });
+    expect(getComputedStyle(container(el)).backgroundColor).toBe(
+      'rgb(0, 128, 0)'
+    );
+  });
+
+  it('still honours a legacy --protvista-dt-* override', async () => {
+    const el = await mountUnder({ '--protvista-dt-border': 'rgb(0, 128, 0)' });
+    expect(getComputedStyle(container(el)).borderTopColor).toBe(
+      'rgb(0, 128, 0)'
+    );
+  });
+
+  it('prefers the current token name over the legacy alias', async () => {
+    const el = await mountUnder({
+      '--protvista-dt-border': 'rgb(255, 0, 0)',
+      '--protvista-datatable-border': 'rgb(0, 128, 0)',
+    });
+    expect(getComputedStyle(container(el)).borderTopColor).toBe(
+      'rgb(0, 128, 0)'
+    );
+  });
+
+  it('falls back to the shipped literal when nothing is set', async () => {
+    const el = await mountUnder({});
+    expect(getComputedStyle(container(el)).borderTopColor).toBe(
+      'rgb(224, 224, 224)'
+    );
   });
 });

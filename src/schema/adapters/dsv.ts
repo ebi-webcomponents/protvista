@@ -131,9 +131,14 @@ export function parseDelimited(text: string, delimiter: string): string[][] {
  * whole file for it — `row 4 is ragged` — fails the least technical authors
  * at the first step. `bed.ts` already skips blank lines; this brings the
  * delimited parsers in line with it.
+ *
+ * A row of empty cells (`,,` or `\t\t`) counts as blank too. Spreadsheets
+ * write cleared rows inside the used range that way, and they have the
+ * header's column count, so without this they pass the ragged check and
+ * then fail as `expected a number, got ""`.
  */
 function isBlankRow(cells: readonly string[]): boolean {
-  return cells.length === 1 && cells[0].trim() === '';
+  return cells.every((cell) => cell.trim() === '');
 }
 
 /**

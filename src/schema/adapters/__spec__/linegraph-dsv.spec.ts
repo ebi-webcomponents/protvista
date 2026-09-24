@@ -133,6 +133,18 @@ describe('linegraph-csv / linegraph-tsv', () => {
     );
   });
 
+  it('skips the all-empty rows a spreadsheet writes for cleared cells', () => {
+    // Cleared rows inside the used range export as bare delimiters. They have
+    // the header's column count, so they are not ragged, and every cell used
+    // to fail as `expected a number, got ""`.
+    expect(linegraphCsv('position,value\n1,412\n,\n30,688\n, \n')).toEqual(
+      linegraphCsv('position,value\n1,412\n30,688\n')
+    );
+    expect(linegraphTsv('position\tvalue\n1\t412\n\t\n')).toEqual(
+      linegraphTsv('position\tvalue\n1\t412\n')
+    );
+  });
+
   it('accepts a header column named after an Object.prototype member', () => {
     // The index used to be an object literal, so `'toString' in index` was
     // true before any column was read: a file with a `toString` column was

@@ -71,7 +71,17 @@
       "additionalProperties": false,
       "properties": {
         "labelColor": {
-          "description": "Background of the row-label side panel (group + track labels).",
+          "description": "One-colour tint for the row-label side panel: group labels get the colour itself, track labels a light tint of it — preserving the group-vs-track hierarchy. Label text, caret and hover state are derived to stay legible on it.",
+          "type": "string",
+          "minLength": 1
+        },
+        "groupLabelColor": {
+          "description": "Exact background of collapsible group labels; overrides what labelColor would set.",
+          "type": "string",
+          "minLength": 1
+        },
+        "trackLabelColor": {
+          "description": "Exact background of individual track labels; overrides the tint derived from labelColor.",
           "type": "string",
           "minLength": 1
         },
