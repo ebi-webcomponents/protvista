@@ -4,7 +4,7 @@
  * ProtVista's JSON Schema (`schema.json`) validates viewer *configuration*
  * but deliberately omits *payload* schemas — the shapes adapters consume.
  * This table fills that gap for documentation: one entry per built-in
- * adapter, split into two tiers.
+ * adapter, split into three tiers.
  *
  *   - `generic` — the bring-your-own-data file adapters (`features-csv`,
  *     `features-tsv`, `features-json`, `bed`). These are the shapes an
@@ -13,6 +13,14 @@
  *     `alphafold-*`, `alphamissense-*`). These consume responses a data
  *     *provider* (an EBI API) supplies, not shapes the user writes, so
  *     each carries only a short informational summary.
+ *   - `byod-kind` — adapters that back a semantic `kind` (so they look like
+ *     `domain` entries) but consume a shape the *author* supplies rather
+ *     than a provider response (`linegraph`). No file extension selects
+ *     them on its own, so they cannot be `generic`; and calling them
+ *     provider-supplied would be false, so they cannot be `domain`.
+ *   - `byod-format` — the delimited siblings of a `byod-kind` adapter
+ *     (`linegraph-csv`, `linegraph-tsv`): the same records out of CSV/TSV,
+ *     reached only by a file extension on a track already using that kind.
  *
  * This is NOT a normative schema. The normative contract for the generic
  * format lives in `specs/generic-format-adapters.md`; the Intent vs
@@ -31,6 +39,7 @@ import type {
   KnownSemanticKind,
   KnownComponentName,
 } from '../types.js';
+import { POINT_COLUMNS } from './dsv.js';
 
 /** One documented field of a generic bring-your-own-data payload. */
 export interface FieldDoc {
@@ -79,7 +88,59 @@ export interface DomainAdapterDoc {
   fetchesSecondaryUrl: boolean;
 }
 
-export type AdapterDoc = GenericAdapterDoc | DomainAdapterDoc;
+/**
+ * A bring-your-own-data adapter reached through a semantic `kind` rather than
+ * a file extension. Same columns as {@link DomainAdapterDoc} — the difference
+ * is provenance: the author writes this payload, so the reference must not
+ * file it under "provider-supplied".
+ */
+export interface ByodKindAdapterDoc {
+  name: KnownAdapterName;
+  tier: 'byod-kind';
+  /** The built-in semantic kind that resolves to this adapter. */
+  kind: KnownSemanticKind;
+  /** The component that kind renders with. */
+  component: KnownComponentName;
+  /** One-line description of the shape the author supplies. */
+  inputSummary: string;
+  /** Number of source bodies the adapter receives (see the track's `source:`). */
+  inputs: 1 | 2;
+  /** Whether the adapter fetches a further URL discovered in its input. */
+  fetchesSecondaryUrl: boolean;
+}
+
+/**
+ * A delimited sibling of a `byod-kind` adapter — same records, different
+ * file format (`linegraph-csv` parses `position,value` out of CSV into the
+ * series `linegraph` builds from JSON).
+ *
+ * Its own tier because it is neither `generic` (a bare `./x.csv` still means
+ * `features-csv`; only a kind-addressed track reaches these) nor `byod-kind`
+ * (it is not the kind's canonical adapter, and each kind must map to exactly
+ * one of those).
+ */
+export interface ByodFormatAdapterDoc {
+  name: KnownAdapterName;
+  tier: 'byod-format';
+  /** The `byod-kind` adapter whose records this parses. */
+  of: KnownAdapterName;
+  /** File extension that selects it on a track using `of`'s kind. */
+  ext: string;
+  /** How the loader fetches the body before handing it to the adapter. */
+  body: 'text' | 'json';
+  /** The columns the header row must contain. Mirrors `POINT_COLUMNS` in `./dsv`. */
+  headerColumns: readonly string[];
+  summary: string;
+}
+
+export type AdapterDoc =
+  | GenericAdapterDoc
+  | ByodFormatAdapterDoc
+  | DomainAdapterDoc
+  | ByodKindAdapterDoc;
+
+/** Every tier whose entries are addressed by a semantic `kind`. */
+export type KindAdapterDoc = DomainAdapterDoc | ByodKindAdapterDoc;
 
 /**
  * The canonical output shape shared by the generic feature adapters —
@@ -335,5 +396,35 @@ export const ADAPTER_REFERENCE: readonly AdapterDoc[] = [
       'Same AlphaMissense annotations as `alphamissense-average-csv`, but returns the full per-mutation `{ xValue, yValue, score }` matrix for the heatmap.',
     inputs: 2,
     fetchesSecondaryUrl: true,
+  },
+  {
+    name: 'linegraph',
+    tier: 'byod-kind',
+    kind: 'linegraph',
+    component: 'nightingale-linegraph-track',
+    inputSummary:
+      'Generic bring-your-own-data: a JSON array of `{ position, value }` records (both numbers), validated and emitted as one line-graph series. Not UniProt-specific — for the UniProt variation API keep `variant-counts`.',
+    inputs: 1,
+    fetchesSecondaryUrl: false,
+  },
+  {
+    name: 'linegraph-csv',
+    tier: 'byod-format',
+    of: 'linegraph',
+    ext: '.csv',
+    body: 'text',
+    headerColumns: [...POINT_COLUMNS],
+    summary:
+      'The same `{ position, value }` records as `linegraph`, read from a CSV body with a `position,value` header row.',
+  },
+  {
+    name: 'linegraph-tsv',
+    tier: 'byod-format',
+    of: 'linegraph',
+    ext: '.tsv',
+    body: 'text',
+    headerColumns: [...POINT_COLUMNS],
+    summary:
+      'The tab-separated form of `linegraph-csv` — identical columns, `\\t` delimiter.',
   },
 ];

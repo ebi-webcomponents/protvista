@@ -10,8 +10,10 @@
  *
  * Which examples are surfaced here is deliberately curated for a single
  * hosted page:
- *   - `basic` / `inline-data` render fully standalone (`inline-data` also
- *     carries a `theme:` block — no-code config theming).
+ *   - `basic` / `inline-data` / `linegraph` render fully standalone
+ *     (`inline-data` also carries a `theme:` block — no-code config theming;
+ *     `linegraph` is the bring-your-own-metric line graph, inline so it needs
+ *     nothing served).
  *   - `csv` (a single standalone track — one row, no group) and `json` (a
  *     live UniProt API track next to the BYO file) are bring-your-own-file.
  *     The examples reference `data: ./hotspots.*`, which the loader resolves
@@ -40,6 +42,7 @@
 import defaultConfigYaml from '../default-config.yaml?raw';
 import basicConfig from '../../examples/basic/config.yaml?raw';
 import inlineDataConfig from '../../examples/inline-data/config.yaml?raw';
+import linegraphConfig from '../../examples/linegraph/config.yaml?raw';
 import csvConfig from '../../examples/csv/config.yaml?raw';
 import jsonConfig from '../../examples/json/config.yaml?raw';
 // The CDN-`extends:` recipe from the Starter Kit. Its base config is a jsDelivr
@@ -129,6 +132,15 @@ export const PRESETS: readonly Preset[] = [
     description:
       'Track data written inline (no fetch), plus a no-code theme colour.',
     config: inlineDataConfig,
+    accession: DEFAULT_ACCESSION,
+  },
+  {
+    id: 'linegraph',
+    label: 'Your own line graph (inline values)',
+    description:
+      'kind: linegraph — a bring-your-own metric drawn as a line from inline ' +
+      '{ position, value } records.',
+    config: linegraphConfig,
     accession: DEFAULT_ACCESSION,
   },
   {

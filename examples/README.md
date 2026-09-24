@@ -38,6 +38,8 @@ here surfaces immediately rather than silently:
 | --- | --- |
 | [`basic/`](./basic) | Minimal config: one group, one URL-sourced track against the real UniProt API |
 | [`inline-data/`](./inline-data) | `from: inline` — no network fetch for track data — plus a `theme:` block recolouring the row-label panel (no-code theming) |
+| [`linegraph/`](./linegraph) | `kind: linegraph` — a bring-your-own line graph from inline `{ position, value }` records, y-axis fitted to the data |
+| [`linegraph-csv/`](./linegraph-csv) | The same line graph from a CSV file — `linegraph-csv` adapter, selected by the `.csv` extension *on a `kind: linegraph` track* |
 | [`csv/`](./csv) | Bring-your-own CSV file as a **single standalone track** (one `rows:` entry, no group wrapper) — `features-csv` adapter, inferred from the `.csv` extension |
 | [`tsv/`](./tsv) | Bring-your-own TSV file — `features-tsv` adapter, inferred from the `.tsv` extension |
 | [`json/`](./json) | A live **UniProt** API track next to a bring-your-own JSON file — `features-json` adapter, inferred from the `.json` extension |

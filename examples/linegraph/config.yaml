@@ -1,0 +1,50 @@
+# A bring-your-own line graph, fully inline — no `sources`, no file, no
+# network for the track itself. `accession` is still required: the
+# element's top-level sequence fetch is gated on it regardless of where
+# track data comes from. See examples/README.md.
+accession: P05067
+rows:
+  # `kind: linegraph` takes a JSON array of `{ position, value }` records
+  # (both numbers) and draws them as a line. Unlike the UniProt count
+  # graphs, the values are whatever metric you bring — here, per-residue
+  # sequencing read depth from an imagined pipeline. The y-axis fits the
+  # data's own extent, so a series sitting around 1000 still shows its
+  # shape rather than flattening against a zero baseline.
+  #
+  # Points are drawn in the order supplied — sort by `position` before
+  # serving; the adapter neither sorts nor rejects duplicates. They need
+  # not be contiguous: the track joins the positions you give it.
+  - id: read_depth
+    label: Read depth
+    kind: linegraph
+    description: Per-residue sequencing read depth from my pipeline
+    data:
+      from: inline
+      inlineData:
+        - { position: 1, value: 412 }
+        - { position: 30, value: 688 }
+        - { position: 60, value: 905 }
+        - { position: 90, value: 1044 }
+        - { position: 120, value: 1131 }
+        - { position: 150, value: 1096 }
+        - { position: 180, value: 1172 }
+        - { position: 210, value: 1240 }
+        - { position: 240, value: 1198 }
+        - { position: 270, value: 1085 }
+        - { position: 300, value: 967 }
+        - { position: 330, value: 1023 }
+        - { position: 360, value: 1154 }
+        - { position: 390, value: 1287 }
+        - { position: 420, value: 1319 }
+        - { position: 450, value: 1252 }
+        - { position: 480, value: 1108 }
+        - { position: 510, value: 994 }
+        - { position: 540, value: 1061 }
+        - { position: 570, value: 1183 }
+        - { position: 600, value: 1229 }
+        - { position: 630, value: 1147 }
+        - { position: 660, value: 1012 }
+        - { position: 690, value: 873 }
+        - { position: 720, value: 701 }
+        - { position: 750, value: 488 }
+        - { position: 770, value: 356 }

@@ -15,6 +15,9 @@ import {
   type AdapterDoc,
   type GenericAdapterDoc,
   type DomainAdapterDoc,
+  type ByodKindAdapterDoc,
+  type ByodFormatAdapterDoc,
+  type KindAdapterDoc,
   type FieldDoc,
 } from './adapter-reference.js';
 
@@ -34,6 +37,10 @@ export const ADAPTER_REFERENCE_MD_PATH =
 
 const isGeneric = (d: AdapterDoc): d is GenericAdapterDoc => d.tier === 'generic';
 const isDomain = (d: AdapterDoc): d is DomainAdapterDoc => d.tier === 'domain';
+const isByodKind = (d: AdapterDoc): d is ByodKindAdapterDoc =>
+  d.tier === 'byod-kind';
+const isByodFormat = (d: AdapterDoc): d is ByodFormatAdapterDoc =>
+  d.tier === 'byod-format';
 
 /** Escape a value for use inside a Markdown table cell. */
 function cell(value: string): string {
@@ -73,7 +80,7 @@ function genericSection(d: GenericAdapterDoc): string {
   return parts.join('\n');
 }
 
-function domainTable(docs: readonly DomainAdapterDoc[]): string {
+function domainTable(docs: readonly KindAdapterDoc[]): string {
   const header =
     '| Semantic kind | Adapter | Renders with | Inputs | Input shape |\n|---|---|---|---|---|';
   const rows = docs.map((d) => {
@@ -87,11 +94,25 @@ function domainTable(docs: readonly DomainAdapterDoc[]): string {
   return [header, ...rows].join('\n');
 }
 
+function byodFormatTable(docs: readonly ByodFormatAdapterDoc[]): string {
+  const header =
+    '| Extension | Adapter | Same records as | Fetched as | Header row |\n|---|---|---|---|---|';
+  const rows = docs.map(
+    (d) =>
+      `| \`${d.ext}\` | \`${d.name}\` | \`${d.of}\` | ${d.body} | \`${d.headerColumns.join(
+        ','
+      )}\` |`
+  );
+  return [header, ...rows].join('\n');
+}
+
 export function renderReferenceMarkdown(
   reference: readonly AdapterDoc[] = ADAPTER_REFERENCE
 ): string {
   const generic = reference.filter(isGeneric);
   const domain = reference.filter(isDomain);
+  const byodKind = reference.filter(isByodKind);
+  const byodFormat = reference.filter(isByodFormat);
 
   const lines: string[] = [];
   lines.push('---');
@@ -145,6 +166,36 @@ export function renderReferenceMarkdown(
   lines.push('');
   lines.push(domainTable(domain));
   lines.push('');
+
+  if (byodKind.length > 0) {
+    lines.push('## Bring-your-own-data track kinds');
+    lines.push('');
+    lines.push(
+      'These adapters also back a semantic `kind`, but the payload is one **you** author ' +
+        'rather than a provider response — point the track at any URL or file path serving ' +
+        'the JSON shape below, or write it inline with `from: inline`. The `kind` outranks ' +
+        'extension inference, so `data: ./depth.json` on a `kind: linegraph` track stays on ' +
+        '`linegraph` rather than being read as generic features. Unlike the ' +
+        'provider-supplied adapters above, these shapes *are* a contract you must produce: a ' +
+        'malformed record fails with an error naming the row index and field.'
+    );
+    lines.push('');
+    lines.push(domainTable(byodKind));
+    lines.push('');
+
+    if (byodFormat.length > 0) {
+      lines.push(
+        'The same records can arrive as delimited text. On a track already using one of ' +
+          'these kinds, the file extension picks the matching parser — `data: ./depth.csv` ' +
+          'on a `kind: linegraph` track parses a `position,value` header, it does not fall ' +
+          'back to the feature adapters. (A bare `./x.csv` on a track with no `kind` still ' +
+          'means `features-csv`.)'
+      );
+      lines.push('');
+      lines.push(byodFormatTable(byodFormat));
+      lines.push('');
+    }
+  }
 
   lines.push('## Related');
   lines.push('');

@@ -21,19 +21,28 @@ import {
   ADAPTER_REFERENCE,
   FEATURE_RECORD_FIELDS,
   type GenericAdapterDoc,
-  type DomainAdapterDoc,
+  type KindAdapterDoc,
+  type ByodFormatAdapterDoc,
 } from '../adapters/adapter-reference.js';
 import { BUILTIN_ADAPTERS } from '../adapters/index.js';
-import { REQUIRED_COLUMNS } from '../adapters/dsv.js';
-import { DATA_FILE_FORMATS } from '../file-formats.js';
+import { REQUIRED_COLUMNS, POINT_COLUMNS } from '../adapters/dsv.js';
+import {
+  DATA_FILE_FORMATS,
+  BYO_ADAPTER_VARIANTS,
+  TEXT_BODY_ADAPTERS,
+} from '../file-formats.js';
 import { featuresCsv } from '../adapters/features-csv.js';
 import { createRegistry } from '../registry.js';
 
 const generic = ADAPTER_REFERENCE.filter(
   (d): d is GenericAdapterDoc => d.tier === 'generic'
 );
-const domain = ADAPTER_REFERENCE.filter(
-  (d): d is DomainAdapterDoc => d.tier === 'domain'
+// Both kind-addressed tiers. `byod-kind` entries carry the same kind /
+// adapter / component columns as `domain` ones — they differ only in who
+// authors the payload — so the registry invariants below must cover both,
+// or moving an entry between tiers would silently drop its linkage check.
+const kindEntries = ADAPTER_REFERENCE.filter(
+  (d): d is KindAdapterDoc => d.tier === 'domain' || d.tier === 'byod-kind'
 );
 
 describe('adapter reference — coverage', () => {
@@ -49,20 +58,64 @@ describe('adapter reference — coverage', () => {
   });
 });
 
-describe('adapter reference — domain kind linkage', () => {
+describe('adapter reference — kind linkage', () => {
   const registry = createRegistry();
 
   it('covers every built-in semantic kind exactly once', () => {
-    const documentedKinds = domain.map((d) => d.kind).sort();
+    const documentedKinds = kindEntries.map((d) => d.kind).sort();
     expect(documentedKinds).toEqual(registry.listSemanticKinds());
   });
 
-  it('each domain entry matches the registry adapter + component for its kind', () => {
-    for (const d of domain) {
+  it('each kind entry matches the registry adapter + component for its kind', () => {
+    for (const d of kindEntries) {
       const def = registry.getSemanticKind(d.kind);
       expect(def, `kind '${d.kind}' is not a built-in`).toBeDefined();
       expect(def && def.adapter).toBe(d.name);
       expect(def && def.component).toBe(d.component);
+    }
+  });
+});
+
+const byodFormat = ADAPTER_REFERENCE.filter(
+  (d): d is ByodFormatAdapterDoc => d.tier === 'byod-format'
+);
+
+describe('adapter reference — delimited kind variants', () => {
+  it('documents exactly the variants the resolver can select', () => {
+    const documented = byodFormat.map((d) => `${d.of}${d.ext}:${d.name}`).sort();
+    const wired = Object.entries(BYO_ADAPTER_VARIANTS)
+      .flatMap(([base, byExt]) =>
+        Object.entries(byExt).map(([ext, name]) => `${base}${ext}:${name}`)
+      )
+      .sort();
+    expect(documented).toEqual(wired);
+  });
+
+  it('each variant ext/body matches DATA_FILE_FORMATS and the fetch decision', () => {
+    for (const d of byodFormat) {
+      const fmt = DATA_FILE_FORMATS[d.ext];
+      expect(fmt, `no DATA_FILE_FORMATS entry for '${d.ext}'`).toBeDefined();
+      // The variant takes its body type from the extension it parses, and the
+      // loader must agree — a text body fetched as JSON never reaches the
+      // parser at all.
+      expect(d.body).toBe(fmt.body);
+      expect(TEXT_BODY_ADAPTERS.has(d.name)).toBe(d.body === 'text');
+    }
+  });
+
+  it('documented header columns match the parser POINT_COLUMNS', () => {
+    expect(byodFormat.length).toBeGreaterThan(0);
+    for (const d of byodFormat) {
+      expect(d.headerColumns).toEqual([...POINT_COLUMNS]);
+    }
+  });
+
+  it('every variant names a documented byod-kind base adapter', () => {
+    const byodKindNames = ADAPTER_REFERENCE.filter(
+      (d) => d.tier === 'byod-kind'
+    ).map((d) => d.name);
+    for (const d of byodFormat) {
+      expect(byodKindNames).toContain(d.of);
     }
   });
 });

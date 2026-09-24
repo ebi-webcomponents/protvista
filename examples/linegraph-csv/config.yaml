@@ -1,0 +1,20 @@
+# The delimited form of `kind: linegraph` — the same `{ position, value }`
+# records as examples/linegraph/, read from a CSV file instead of written
+# inline. See examples/README.md.
+accession: P05067
+rows:
+  # On a track that declares `kind: linegraph`, the file extension picks the
+  # matching parser (`.csv` → `linegraph-csv`, `.tsv` → `linegraph-tsv`)
+  # rather than falling back to the generic feature adapters. A bare
+  # `data: ./x.csv` on a track with *no* `kind` still means `features-csv`.
+  #
+  # The header row must contain `position` and `value`; either order, extra
+  # columns ignored. A malformed cell fails with the row and column named.
+  #
+  # NOTE: `./depth.csv` resolves against the *hosting page*, not this config
+  # file — see the path gotcha in examples/README.md.
+  - id: read_depth
+    label: Read depth
+    kind: linegraph
+    description: Per-residue sequencing read depth from my pipeline
+    data: ./depth.csv

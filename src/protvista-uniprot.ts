@@ -58,6 +58,7 @@ import type {
   NormalizedTrack,
 } from './schema/normalize.js';
 import { renderingToAttrs } from './renderer/render-helpers.js';
+import { KIND_SELECTED_BYO_DATA_ADAPTERS } from './schema/file-formats.js';
 import {
   type LayoutPatch,
   type DisplayRow,
@@ -209,6 +210,21 @@ const hasRenderableData = (value: unknown): boolean => {
   }
   return Object.keys(value as object).length > 0;
 };
+
+/**
+ * Whether a line-graph track's hover readout should name its series.
+ *
+ * `nightingale-linegraph-track` composes the readout as
+ * `` `${value} ${name}${value === 1 ? '' : 's'}` `` — it pluralises the series
+ * name as if it were a count. That reads correctly for the domain count
+ * adapters ("12 variants", "1 missense") but not for a bring-your-own metric,
+ * where `linegraph`'s placeholder series name would turn a read depth of 12
+ * into "12 values". Those tracks show the bare number instead.
+ */
+const showsSeriesLabel = (tracks: readonly NormalizedTrack[]): boolean =>
+  !tracks.some((t) =>
+    t.data?.some((d) => KIND_SELECTED_BYO_DATA_ADAPTERS.has(d.adapter ?? ''))
+  );
 
 /**
  * How long a just-moved row stays highlighted. Long enough to find the row
@@ -2119,7 +2135,8 @@ class ProtvistaUniprot extends LitElement {
             attrs.shape,
             `${group.id}-${track.id}`,
             attrs.scale,
-            attrs.colorRange
+            attrs.colorRange,
+            showsSeriesLabel([track])
           )}
         </div>
       </div>
@@ -2291,7 +2308,17 @@ class ProtvistaUniprot extends LitElement {
                 groupAttrs.shape,
                 group.id,
                 groupAttrs.scale,
-                groupAttrs.colorRange
+                groupAttrs.colorRange,
+                // Keyed off the track the aggregate actually draws, not the
+                // visible list. A graph group's aggregate payload is
+                // `groupData[0]` (see `load-data.ts`), which maps
+                // `group.tracks` in config order and ignores `hidden` — so
+                // asking `tracks` (the *visible* ones) can disagree in both
+                // directions: hide the first track and the aggregate still
+                // draws its series while the label logic no longer sees it,
+                // or put a bring-your-own series second and the label is
+                // suppressed for a UniProt series that wanted it.
+                showsSeriesLabel(group.tracks.slice(0, 1))
               )
             : ''}
         </div>
@@ -2385,7 +2412,8 @@ class ProtvistaUniprot extends LitElement {
                 attrs.shape,
                 key,
                 attrs.scale,
-                attrs.colorRange
+                attrs.colorRange,
+                showsSeriesLabel([track])
               )}
             </div>`
           : ''}
@@ -3374,7 +3402,8 @@ class ProtvistaUniprot extends LitElement {
     shape = '',
     id = '',
     scale = '',
-    colorRange = ''
+    colorRange = '',
+    showSeriesLabel = true
   ) {
     // lit-html doesn't allow to have dynamic tag names, hence the switch/case
     // with repeated code
@@ -3416,7 +3445,7 @@ class ProtvistaUniprot extends LitElement {
             display-start="${this.displayCoordinates?.start}"
             display-end="${this.displayCoordinates?.end}"
             id="${CSS_PREFIX}-track-${id}"
-            show-label-name
+            ?show-label-name="${showSeriesLabel}"
             highlight-on-click
             use-ctrl-to-zoom
           >

@@ -227,4 +227,18 @@ describe('rowsToFeatureRecords', () => {
       rowsToFeatureRecords(rows, { formatLabel: 'features-csv' })
     ).toThrow(/row 2, column "score": expected a number, got "high"/);
   });
+
+  it('accepts a trailing blank line and a prototype-named column', () => {
+    // The same two defects the point parser had, in the parser it inherited
+    // them from: a spreadsheet export's trailing blank line was read as a
+    // ragged row, and a column named `toString` collided with
+    // `Object.prototype` in the header index.
+    const base = featuresCsv('type,start,end,description\nDOMAIN,1,9,x\n');
+    expect(featuresCsv('type,start,end,description\nDOMAIN,1,9,x\n\n')).toEqual(
+      base
+    );
+    expect(
+      featuresCsv('type,start,end,description,toString\nDOMAIN,1,9,x,y\n')
+    ).toEqual(base);
+  });
 });

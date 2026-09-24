@@ -585,7 +585,9 @@ type SemanticKind =
   /** AlphaMissense per-residue pathogenicity. Includes default colour ramp. */
   | 'pathogenicity-score'
   /** AlphaMissense per-position × amino-acid heatmap. */
-  | 'pathogenicity-heatmap';
+  | 'pathogenicity-heatmap'
+  /** Generic line graph of author-supplied `{ position, value }` records. Not tied to any UniProt API. */
+  | 'linegraph';
 
 /**
  * Low-level Nightingale component names.
@@ -620,9 +622,8 @@ type ComponentName = KnownComponentName | (string & {});
  * custom one at runtime.
  *
  * Generic-format adapters for bring-your-own-data files ship today for
- * CSV / TSV / JSON (`features-csv` / `features-tsv` / `features-json`);
- * BED is a planned addition — see `specs/generic-format-adapters.md`
- * for the design.
+ * CSV / TSV / JSON / BED — see `specs/generic-format-adapters.md` for the
+ * design.
  */
 type KnownAdapterName =
   // ── Source-specific (coupled to a particular API output) ──
@@ -637,11 +638,19 @@ type KnownAdapterName =
   | 'interpro-entries-json'
   | 'alphafold-prediction-json'
   | 'alphamissense-average-csv'
-  | 'alphamissense-full-csv';
+  | 'alphamissense-full-csv'
+  // ── Generic (bring-your-own-data; shape-validating) ──
+  | 'features-csv'
+  | 'features-tsv'
+  | 'features-json'
+  | 'bed'
+  | 'linegraph';
 
 /** Open string — adapters registered via `registerAdapter()` are also valid. */
 type AdapterName = KnownAdapterName | (string & {});
 ```
+
+**Generic kinds.** `linegraph` renders with `nightingale-linegraph-track` and expects `{ position, value }[]` (both numbers). Use this kind for generic linegraph rendering when your data isn't one of the UniProt-specific variant-count sources. Keep using `variant-counts` for UniProt variation-API input. The `linegraph` adapter is a *generic* shape-validating adapter, distinct from `uniprot-variation-counts-json`, which also feeds `nightingale-linegraph-track` but applies UniProt-specific transforms; kinds and adapters are separate registries, so `kind: linegraph` and `adapter: linegraph` coexist. The field names `{ position, value }` were chosen over `{ x, y }` to match the sequence vocabulary (`position`, `begin`, `end`, `score`); future generic kinds converge on it. The names `track`, `colored-sequence`, `heatmap`, and `variation` are reserved for future generic kinds and are not registered.
 
 ### Escape-Hatch API (Programmatic — 20% advanced use cases)
 

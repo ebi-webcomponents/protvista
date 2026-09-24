@@ -98,6 +98,8 @@ it('discovers the expected example directories', () => {
     expect.arrayContaining([
       'basic',
       'inline-data',
+      'linegraph',
+      'linegraph-csv',
       'csv',
       'tsv',
       'json',

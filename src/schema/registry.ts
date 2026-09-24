@@ -196,6 +196,13 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
       adapter: 'alphamissense-full-csv',
     },
   ],
+  [
+    'linegraph',
+    {
+      component: 'nightingale-linegraph-track',
+      adapter: 'linegraph',
+    },
+  ],
 ];
 
 // ─────────────────────────────────────────────────────────────
