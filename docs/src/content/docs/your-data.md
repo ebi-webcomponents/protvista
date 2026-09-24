@@ -2,10 +2,26 @@
 title: Load your own data
 ---
 
-ProtVista isn't limited to UniProt. A `features` track can read your own
-annotations from a **CSV, TSV, JSON, or BED** file, from a URL, or written
-straight into the config. This page shows the shape your data needs and how to
-point a track at it.
+ProtVista isn't limited to UniProt. Most tracks can read your own annotations
+from a **CSV, TSV, JSON, or BED** file, from a URL, or written straight into the
+config. This page shows the shape your data needs and how to point a track at
+it.
+
+You keep the same `kind:` either way. `kind: variants` draws variants whether
+the records come from the UniProt API or from your spreadsheet — the kind picks
+the renderer, the tooltips, and the colours; your file only has to carry the
+records. Which records depends on what the track draws, and there are three
+shapes in all:
+
+| Shape | Required columns | Used by |
+| --- | --- | --- |
+| [Feature record](#the-feature-record) | `type`, `start`, `end` | `features`, `interpro-features`, `peptides`, `peptides-ptm`, `structure-coverage` |
+| [Point record](#a-line-graph-of-your-own-values) | `position`, `value` | `linegraph`, `variant-counts`, `rna-editing-counts` |
+| [Variation record](#your-own-variants) | `position`, `variant` | `variants`, `rna-editing` |
+
+Kinds named for a provider — `alphafold-confidence`,
+`alphamissense-pathogenicity`, `alphamissense-heatmap` — read that provider's
+feed only; see [Built-in track kinds](/protvista/track-kinds).
 
 ## The feature record
 
@@ -21,13 +37,22 @@ A `features` track draws a list of **feature records**. Each record has:
 
 A machine-readable version is published as
 [`feature-record.schema.json`](https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json).
-The [Adapter reference](/protvista/adapter-reference) documents the shape for every
-built-in kind and adapter.
+The [Adapter reference](/protvista/adapter-reference) lists every record shape,
+which kinds draw it, and which encodings can carry it.
 
 ## Pick a format — the extension chooses the parser
 
-Point `data:` at a file and the **file extension selects the parser** for you.
-No `adapter:` needed.
+Point `data:` at a file and the **file extension says how it is encoded**,
+while the track's `kind` says what the records are. Between them there is
+nothing left to configure.
+
+The extension always chooses a parser your track's `kind` can use: `.csv` on a
+`kind: features` track reads feature records, `.csv` on a `kind: linegraph`
+track reads `position,value` points. The `kind` says what the track *is*; the
+extension says what your file *looks like*. Pair a kind with a format it has no
+parser for — `kind: variants` at a `./x.csv` — and the config is rejected with a
+message naming the kinds that do read that format, rather than the track
+quietly coming up empty.
 
 ### CSV
 
@@ -170,18 +195,24 @@ rows:
 ]
 ```
 
-Points are drawn in the order you supply them, so sort your records by `position` before serving them — the adapter neither sorts them nor rejects duplicates.
+Points are drawn in the order you supply them, so sort your records by `position` before serving them — nothing sorts them for you or rejects duplicates.
 
-Malformed rows fail with an error naming the row index and field.
+A malformed row fails with your own filename, the reading applied to it, and the offending row and column:
+
+```
+./depth.csv (parsed as CSV): row 3, column "value": expected a number, got "abc".
+```
 
 The same record shape works inline — `from: inline` with `inlineData:` — so a graph can render with no fetch at all. See [`examples/linegraph/`](https://github.com/ebi-webcomponents/protvista/tree/next/examples/linegraph), or open **Your own line graph (inline values)** in the [playground](/protvista/playground/).
 
-`kind: linegraph` also wins over the usual extension inference, so a `.json` file path works without naming the adapter — `data: ./depth.json` is read as line-graph records, not generic features. Name the adapter explicitly only on a track that has no `kind`:
+The `kind` decides what the records are, so `data: ./depth.json` on a `kind: linegraph` track is read as line-graph points rather than generic features — nothing to name, nothing to configure.
+
+Where an extension can't tell us — a URL with no filename, or records pasted straight into the config — say the encoding outright:
 
 ```yaml
 data:
-  url: ./depth.json
-  adapter: linegraph
+  url: https://my-lab.example/api/depth/{accession}
+  format: json
 ```
 
 The same records work as delimited text, which is usually what falls out of a spreadsheet or an analysis script. On a `kind: linegraph` track the extension picks the parser — `.csv` and `.tsv` read a `position,value` header row and produce exactly the graph the JSON form does:
@@ -200,7 +231,57 @@ position,value
 60,905
 ```
 
-Columns may be in either order, extra columns are ignored, and a malformed cell fails with the row and column named (`linegraph-csv: row 3, column "value": expected a number, got "abc"`). Note this only applies to a track that declares the `kind` — a bare `data: ./x.csv` with no `kind` still means generic features.
+Columns may be in either order, extra columns are ignored, and a malformed cell fails naming your file, the reading, the row and the column (`./depth.csv (parsed as CSV): row 3, column "value": expected a number, got "abc"`). Note the records come from the `kind` — a bare `data: ./x.csv` on a track with no `kind` means feature records instead.
+
+`kind: variant-counts` and `kind: rna-editing-counts` read the same
+`position,value` records, so a count you computed yourself renders on the same
+track the UniProt counts would.
+
+## Your own variants
+
+`kind: variants` is the kind the UniProt viewer uses for its variation track.
+Point it at a file and it reads your calls instead — same track, same hover
+detail, same filter widget.
+
+```yaml
+accession: P05067
+rows:
+  - id: cohort_variants
+    label: Cohort variants
+    kind: variants
+    data: ./my-variants.csv
+    description: Missense variants called in our patient cohort
+```
+
+```csv
+position,wildType,variant,description,consequence
+672,D,N,Observed in 3 of 48 cohort samples,missense
+692,K,N,Recurrent in early-onset subgroup,missense
+723,T,*,Premature stop in one carrier,stop_gained
+```
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `position` | yes | 1-based position of the changed residue. |
+| `variant` | yes | The residue it changes to. `*` for a stop, `-` for a deletion. |
+| `wildType` | no | The original residue. Shown on hover and used to label the change. |
+| `description` | no | Free text shown on hover/click. |
+| `consequence` | no | Your own consequence label (e.g. `missense`), shown on hover. |
+
+The same records work as `.tsv`, or as `.json` with one object per change:
+
+```json
+[
+  { "position": 672, "wildType": "D", "variant": "N", "description": "3 of 48 samples" },
+  { "position": 723, "wildType": "T", "variant": "*", "consequence": "stop_gained" }
+]
+```
+
+Your file doesn't carry the protein sequence — the viewer already fetched it for
+`accession:` and supplies it, which is what lets the track lay out one row per
+residue.
+
+`kind: rna-editing` reads exactly the same shape.
 
 ## Add to the default UniProt viewer
 

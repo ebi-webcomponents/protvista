@@ -24,14 +24,15 @@
  *     canonical `examples/csv|json/hotspots.*`). That is the only edit from
  *     verbatim, and it makes the presets render on the native Astro page.
  *   - `extend-uniprot` (from `starter-kit/recipes/`) layers a custom track
- *     on the full default viewer via `extends:`. It names the jsDelivr
- *     `dist/default-config.yaml` URL — fetched over the network at render
- *     time, and repointed here from the recipe's exact-version pin to the
- *     `beta` dist-tag, which is always published (see `withPublishedExtends`)
- *     — so it resolves on the hosted page, unlike `examples/extend-default`
- *     whose `extends: /src/default-config.yaml` only loads under the dev
- *     server (the built `site/` bundle does not serve `/src/`). Its `./data/`
- *     sample is repointed at the served `hotspots.csv` like the presets above.
+ *     on the full default viewer via `extends:`. Its exact-version jsDelivr
+ *     pin is repointed here at `/protvista/default-config.yaml` (see
+ *     `withServedExtends`), which this site generates from the repo's own
+ *     `src/default-config.yaml` — still fetched over the network at render
+ *     time, but always the config this commit ships, and served by both the
+ *     dev server and the built `site/` bundle (unlike
+ *     `examples/extend-default`, whose `extends: /src/default-config.yaml`
+ *     is dev-only). Its `./data/` sample is repointed at the served
+ *     `hotspots.csv` like the presets above.
  *   - `extend-default` / `tsv` / `bed` are intentionally omitted:
  *     `extend-default` is the dev-only `/src/`-extends variant just described;
  *     `tsv` duplicates `csv`'s shape and `bed` is niche.
@@ -45,10 +46,10 @@ import inlineDataConfig from '../../examples/inline-data/config.yaml?raw';
 import linegraphConfig from '../../examples/linegraph/config.yaml?raw';
 import csvConfig from '../../examples/csv/config.yaml?raw';
 import jsonConfig from '../../examples/json/config.yaml?raw';
-// The CDN-`extends:` recipe from the Starter Kit. Its base config is a jsDelivr
-// URL, so — unlike examples/extend-default, which extends the dev-only `/src/`
-// path — it resolves on the hosted playground (the element fetches it over the
-// network at render time).
+// The `extends:` recipe from the Starter Kit. Its base config is repointed
+// below at the copy this site serves, so — unlike examples/extend-default,
+// which extends the dev-only `/src/` path — it resolves on the hosted
+// playground (the element fetches it over the network at render time).
 import extendUniprotConfig from '../../starter-kit/recipes/extend-uniprot.yaml?raw';
 import { DEFAULT_ACCESSION } from './url-state.js';
 
@@ -74,28 +75,34 @@ const withServedExtendsData = (config: string): string =>
   );
 
 /**
- * Point the recipe's `extends:` at the `beta` dist-tag rather than the exact
- * version it ships pinned to.
+ * Point the recipe's `extends:` at the base config this site serves, rather
+ * than the published copy the recipe ships pinned to.
  *
  * The pin is right for the Starter Kit — the kit is downloaded beside a release
  * and `starter-kit.spec.ts` holds every reference in it to this package's
  * version. The hosted playground is not on that clock: the docs site deploys on
- * every push to `next`, while npm publishes only at release, so from the
- * version-bump commit until `npm publish` the pinned URL names a release that
- * does not exist yet and the preset would 404 for the whole window. The tag
- * always resolves to a published `dist/default-config.yaml` — during that same
- * window the *previous* beta's, so the hosted demo extends a base config one
- * release behind the repo. A slightly stale demo beats a broken one, and it
- * corrects itself at publish; jsDelivr reports which it served in
- * `x-jsd-version`.
+ * every push to `next`, while npm publishes only at release, so a published
+ * base config is always a base config from some *other* commit.
+ *
+ * That was tolerable while the gap was one release of drift. It stopped being
+ * tolerable when the kind vocabulary was renamed: the published copy still
+ * said `confidence-score` / `pathogenicity-score` / `pathogenicity-heatmap` /
+ * `features-interpro`, so the merged config failed validation with four
+ * `unknown-semantic-kind` errors on the page that exists to demonstrate a
+ * working config — and no test caught it, because the preset test substitutes
+ * the repo's own config for the remote one.
+ *
+ * `/protvista/default-config.yaml` is generated from `src/default-config.yaml`
+ * by `docs/src/pages/default-config.yaml.ts`, so the preset now extends the
+ * config this commit actually ships. It is still fetched over the network at
+ * render time, which is the part the preset exists to show.
  */
-const BETA_BASE_CONFIG =
-  'https://cdn.jsdelivr.net/npm/protvista-uniprot@beta/dist/default-config.yaml';
+const SERVED_BASE_CONFIG = '/protvista/default-config.yaml';
 
-const withPublishedExtends = (config: string): string =>
+const withServedExtends = (config: string): string =>
   config.replace(
     /extends:\s*(["']?)[^\s"']*\/protvista-uniprot@[^/\s"']+\/dist\/default-config\.yaml\1/,
-    `extends: ${BETA_BASE_CONFIG}`
+    `extends: ${SERVED_BASE_CONFIG}`
   );
 
 export interface Preset {
@@ -163,7 +170,7 @@ export const PRESETS: readonly Preset[] = [
     description:
       'Your own track layered on the entire default UniProt viewer via ' +
       'extends: — fetches the published base config over the network.',
-    config: withPublishedExtends(withServedExtendsData(extendUniprotConfig)),
+    config: withServedExtends(withServedExtendsData(extendUniprotConfig)),
     accession: DEFAULT_ACCESSION,
   },
 ];

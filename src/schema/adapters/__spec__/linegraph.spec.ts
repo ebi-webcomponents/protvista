@@ -66,16 +66,16 @@ describe('linegraph adapter', () => {
 
   it('throws for non-array inputs', () => {
     expect(() => linegraph({ position: 1, value: 2 } as any)).toThrow(
-      '[linegraph] expected an array of { position, value } records; got object.'
+      'linegraph: expected an array of { position, value } records; got object.'
     );
     expect(() => linegraph('1,2' as any)).toThrow(
-      '[linegraph] expected an array of { position, value } records; got string.'
+      'linegraph: expected an array of { position, value } records; got string.'
     );
     expect(() => linegraph(null as any)).toThrow(
-      '[linegraph] expected an array of { position, value } records; got null.'
+      'linegraph: expected an array of { position, value } records; got null.'
     );
     expect(() => linegraph(undefined as any)).toThrow(
-      '[linegraph] expected an array of { position, value } records; got undefined.'
+      'linegraph: expected an array of { position, value } records; got undefined.'
     );
   });
 
@@ -83,43 +83,43 @@ describe('linegraph adapter', () => {
     expect(() =>
       linegraph([{ position: 1, value: 2 }, { position: 2 } as any])
     ).toThrow(
-      "[linegraph] row 1: expected 'position' and 'value' (both numbers); got { position: 2 } — 'value' is missing."
+      "linegraph: row 1: expected 'position' and 'value' (both numbers); got { position: 2 } — 'value' is missing."
     );
   });
 
   it('throws when a field is the wrong type', () => {
     expect(() => linegraph([{ position: '47' as any, value: 0.9 }])).toThrow(
-      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got { position: '47', value: 0.9 } — 'position' is a string, not a number."
+      "linegraph: row 0: expected 'position' and 'value' (both numbers); got { position: '47', value: 0.9 } — 'position' is a string, not a number."
     );
   });
 
   it('throws when a field is null', () => {
     expect(() => linegraph([{ position: 3, value: null as any }])).toThrow(
-      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got { position: 3, value: null } — 'value' is null, not a number."
+      "linegraph: row 0: expected 'position' and 'value' (both numbers); got { position: 3, value: null } — 'value' is null, not a number."
     );
   });
 
   it('throws when a field is non-finite', () => {
     expect(() => linegraph([{ position: 3, value: NaN }])).toThrow(
-      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got { position: 3, value: NaN } — 'value' is not a finite number."
+      "linegraph: row 0: expected 'position' and 'value' (both numbers); got { position: 3, value: NaN } — 'value' is not a finite number."
     );
   });
 
   it('throws when a row is not an object', () => {
     expect(() => linegraph([{ position: 1, value: 1 }, 42 as any])).toThrow(
-      "[linegraph] row 1: expected 'position' and 'value' (both numbers); got 42 — row is a number, not an object."
+      "linegraph: row 1: expected 'position' and 'value' (both numbers); got 42 — row is a number, not an object."
     );
     expect(() => linegraph([null as any])).toThrow(
-      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got null — row is null, not an object."
+      "linegraph: row 0: expected 'position' and 'value' (both numbers); got null — row is null, not an object."
     );
     expect(() => linegraph([[1, 2] as any])).toThrow(
-      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got [array] — row is an array, not an object."
+      "linegraph: row 0: expected 'position' and 'value' (both numbers); got [array] — row is an array, not an object."
     );
   });
 
   it('throws for a non-finite value other than NaN', () => {
     expect(() => linegraph([{ position: 1, value: Infinity }])).toThrow(
-      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got { position: 1, value: Infinity } — 'value' is not a finite number."
+      "linegraph: row 0: expected 'position' and 'value' (both numbers); got { position: 1, value: Infinity } — 'value' is not a finite number."
     );
   });
 
@@ -129,7 +129,7 @@ describe('linegraph adapter', () => {
     expect(() =>
       linegraph([Object.create({ position: 1, value: 2 }) as never])
     ).toThrow(
-      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got {} — 'position' is missing."
+      "linegraph: row 0: expected 'position' and 'value' (both numbers); got {} — 'position' is missing."
     );
   });
 
@@ -154,7 +154,7 @@ describe('linegraph adapter', () => {
 
   it('throws when a row is an empty object', () => {
     expect(() => linegraph([{} as any])).toThrow(
-      "[linegraph] row 0: expected 'position' and 'value' (both numbers); got {} — 'position' is missing."
+      "linegraph: row 0: expected 'position' and 'value' (both numbers); got {} — 'position' is missing."
     );
   });
 });
@@ -165,18 +165,25 @@ describe('linegraph kind registration', () => {
   it('resolves semantic kind linegraph to nightingale-linegraph-track and linegraph adapter', () => {
     expect(r.getSemanticKind('linegraph')).toEqual({
       component: 'nightingale-linegraph-track',
-      adapter: 'linegraph',
+      // Shape-only: there is no provider feed for "a graph of your numbers".
+      // With no adapter to fall back to, a formatless source is read as this
+      // shape's JSON records.
+      shape: 'point',
     });
   });
 
-  it('retrieves the linegraph adapter function from registry', () => {
-    expect(r.getAdapter('linegraph')).toBe(linegraph);
+  it('registers no adapter named for the records it reads', () => {
+    // Bring-your-own-data sources are resolved from (shape, format), so
+    // there is no `linegraph` adapter for an author to name — or to have to
+    // learn.
+    expect(r.getAdapter('linegraph')).toBeUndefined();
   });
 
   it('lists linegraph in semantic kinds and preserves existing variant-counts registration', () => {
     expect(r.listSemanticKinds()).toContain('linegraph');
     expect(r.getSemanticKind('variant-counts')).toEqual({
       component: 'nightingale-linegraph-track',
+      shape: 'point',
       adapter: 'uniprot-variation-counts-json',
     });
   });
@@ -200,34 +207,54 @@ describe('kind: linegraph end to end', () => {
     expect(validateConfig(config, registry).valid).toBe(true);
   });
 
-  it('normalizes a config using kind: linegraph into nightingale-linegraph-track with adapter linegraph', () => {
+  it('normalizes a config using kind: linegraph into nightingale-linegraph-track', () => {
     const n = normalizeConfig(config as any, { registry });
     expect(n.rows[0].tracks[0].component).toBe('nightingale-linegraph-track');
     expect(n.rows[0].tracks[0].data[0]).toEqual({
       from: 'url',
       url: 'https://example.invalid/api/{accession}/depth',
-      adapter: 'linegraph',
+      // The URL declares no format, and this kind has no provider adapter
+      // to fall back to — so its records are read as JSON, the shape's own
+      // encoding.
+      shape: 'point',
+      format: 'json',
     });
   });
 
-  // Extension inference would otherwise turn `./depth.json` into
-  // `features-json`, which throws on `{ position, value }` rows — the loader
-  // swallows that as a warning, so the track would silently render empty.
+  // The kind fixes the records (`point`); the path's extension only says how
+  // they are encoded. Extension inference alone would read `./depth.json` as
+  // generic features, which throws on `{ position, value }` rows — and the
+  // loader swallows that as a warning, so the track would silently empty.
   it.each([
-    ['./depth.json', 'linegraph'],
-    ['https://example.invalid/api/depth.json', 'linegraph'],
-    // A delimited path stays inside the kind's family rather than falling
-    // back to the feature adapters: same records, different file format.
-    ['/data/depth.csv', 'linegraph-csv'],
-    ['./depth.tsv', 'linegraph-tsv'],
-    ['https://example.invalid/api/depth.csv?v=2', 'linegraph-csv'],
-    ['./depth.bed', 'linegraph'],
-  ])('resolves %s to the %s adapter', (url, expected) => {
+    ['./depth.json', 'json'],
+    ['https://example.invalid/api/depth.json', 'json'],
+    // A hosted file resolves exactly as the local one does.
+    ['/data/depth.csv', 'csv'],
+    ['./depth.tsv', 'tsv'],
+    ['https://example.invalid/api/depth.csv?v=2', 'csv'],
+  ])('reads %s as point records encoded in %s', (url, format) => {
     const n = normalizeConfig(
       { ...config, rows: [{ ...config.rows[0], data: url }] } as any,
       { registry }
     );
-    expect(n.rows[0].tracks[0].data[0].adapter).toBe(expected);
+    const source = n.rows[0].tracks[0].data[0];
+    expect(source.shape).toBe('point');
+    expect(source.format).toBe(format);
+    expect(source.adapter).toBeUndefined();
+  });
+
+  it('rejects a BED file, which cannot carry point records', () => {
+    // BED encodes feature semantics in the format itself, so it is the one
+    // format that constrains what it can produce. Previously this resolved
+    // to the `linegraph` adapter and fed BED text to a JSON reader.
+    const cfg = {
+      ...config,
+      rows: [{ ...config.rows[0], data: './depth.bed' }],
+    } as any;
+    const issue = validateConfig(cfg, registry).issues.find(
+      (i) => i.code === 'kind-format-mismatch'
+    );
+    expect(issue).toBeDefined();
   });
 
   it('still lets an explicit adapter: override the kind', () => {

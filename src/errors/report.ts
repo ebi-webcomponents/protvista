@@ -15,7 +15,9 @@
  * event's `detail.phase`. Embedders listen once and `switch` on this.
  *
  * Four phases emit today:
- *   - `config`          — config validation / parse failure (mount panel)
+ *   - `config`          — config validation / parse failure (mount panel),
+ *                         or a config that loaded with warnings (event only;
+ *                         each issue carries `severity: 'warning'`)
  *   - `sequence`        — no usable sequence for the accession (mount panel)
  *   - `track-fetch`     — a track's URL returned HTTP 4xx/5xx (opt-in badge)
  *   - `set-track-data`  — misuse of the `setTrackData()` escape hatch

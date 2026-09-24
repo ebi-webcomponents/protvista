@@ -1,0 +1,7 @@
+position,wildType,variant,description,consequence
+672,D,N,Observed in 3 of 48 cohort samples,missense
+673,A,V,Observed in 1 of 48 cohort samples,missense
+692,K,N,Recurrent in early-onset subgroup,missense
+714,I,M,Single carrier; low coverage,missense
+717,V,G,Known pathogenic substitution,missense
+723,T,*,Premature stop in one carrier,stop_gained

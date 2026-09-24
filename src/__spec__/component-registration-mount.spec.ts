@@ -130,7 +130,7 @@ describe('_init defines the components the config references', () => {
     el.registerComponent(tag, class extends HTMLElement {});
     el.registerSemanticKind('mount-consumer-kind', {
       component: tag,
-      adapter: 'features-json',
+      shape: 'feature',
     });
     el.accession = 'P05067';
     el.viewerConfig = {

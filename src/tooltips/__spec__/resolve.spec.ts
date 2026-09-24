@@ -227,7 +227,7 @@ describe('resolveTooltip — no spec (auto-fallback)', () => {
         ],
       },
       undefined,
-      { ...ctx, kind: 'pathogenicity-score' }
+      { ...ctx, kind: 'alphamissense-pathogenicity' }
     );
 
     expect(out).toBe(

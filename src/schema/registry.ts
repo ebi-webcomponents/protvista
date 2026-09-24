@@ -59,6 +59,7 @@ import type {
   KnownSemanticKind,
   KnownComponentName,
   KnownAdapterName,
+  ShapeName,
 } from './types.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -104,7 +105,10 @@ type BuiltinSemanticKindEntry = readonly [
   KnownSemanticKind,
   {
     readonly component: KnownComponentName;
-    readonly adapter: KnownAdapterName;
+    /** Records a file on this kind must carry; absent = provider feed only. */
+    readonly shape?: ShapeName;
+    /** Provider transform; absent = the kind renders author records only. */
+    readonly adapter?: KnownAdapterName;
     readonly rendering?: SemanticKindDefinition['rendering'];
   },
 ];
@@ -114,13 +118,15 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
     'features',
     {
       component: 'nightingale-track-canvas',
+      shape: 'feature',
       adapter: 'uniprot-features-json',
     },
   ],
   [
-    'features-interpro',
+    'interpro-features',
     {
       component: 'nightingale-track-canvas',
+      shape: 'feature',
       adapter: 'interpro-entries-json',
     },
   ],
@@ -128,6 +134,7 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
     'variants',
     {
       component: 'nightingale-variation-canvas',
+      shape: 'variation',
       adapter: 'uniprot-variation-json',
     },
   ],
@@ -135,6 +142,7 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
     'variant-counts',
     {
       component: 'nightingale-linegraph-track',
+      shape: 'point',
       adapter: 'uniprot-variation-counts-json',
     },
   ],
@@ -142,6 +150,7 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
     'rna-editing',
     {
       component: 'nightingale-variation-canvas',
+      shape: 'variation',
       adapter: 'uniprot-rna-editing-json',
     },
   ],
@@ -149,6 +158,7 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
     'rna-editing-counts',
     {
       component: 'nightingale-linegraph-track',
+      shape: 'point',
       adapter: 'uniprot-rna-editing-counts-json',
     },
   ],
@@ -156,6 +166,7 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
     'peptides',
     {
       component: 'nightingale-track-canvas',
+      shape: 'feature',
       adapter: 'uniprot-proteomics-json',
     },
   ],
@@ -163,6 +174,7 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
     'peptides-ptm',
     {
       component: 'nightingale-track-canvas',
+      shape: 'feature',
       adapter: 'uniprot-proteomics-ptm-json',
     },
   ],
@@ -170,11 +182,12 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
     'structure-coverage',
     {
       component: 'nightingale-track-canvas',
+      shape: 'feature',
       adapter: 'uniprot-proteins-pdb-json',
     },
   ],
   [
-    'confidence-score',
+    'alphafold-confidence',
     {
       component: 'nightingale-colored-sequence',
       adapter: 'alphafold-prediction-json',
@@ -182,7 +195,7 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
     },
   ],
   [
-    'pathogenicity-score',
+    'alphamissense-pathogenicity',
     {
       component: 'nightingale-colored-sequence',
       adapter: 'alphamissense-average-csv',
@@ -190,7 +203,7 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
     },
   ],
   [
-    'pathogenicity-heatmap',
+    'alphamissense-heatmap',
     {
       component: 'nightingale-sequence-heatmap',
       adapter: 'alphamissense-full-csv',
@@ -200,7 +213,10 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
     'linegraph',
     {
       component: 'nightingale-linegraph-track',
-      adapter: 'linegraph',
+      // Shape-only: there is no provider feed for "a graph of your numbers",
+      // which is exactly why this kind exists. With no adapter to fall back
+      // to, a formatless source is read as this shape's JSON records.
+      shape: 'point',
     },
   ],
 ];
@@ -209,7 +225,7 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
 // Built-in colour themes
 //
 // Canonical, accessibility-reviewed palettes referenced by the
-// `confidence-score` / `pathogenicity-score` semantic kinds. Custom
+// `alphafold-confidence` / `alphamissense-pathogenicity` semantic kinds. Custom
 // themes may be added at runtime via `registerTheme()`.
 // ─────────────────────────────────────────────────────────────
 
@@ -241,6 +257,40 @@ const BUILTIN_THEMES: ReadonlyArray<readonly [string, readonly ColorStop[]]> = [
  * docstrings require "unique … must not collide with built-ins"; a
  * silent override would make behaviour order-dependent.
  */
+/**
+ * Thrown when a semantic kind declares neither a `shape` nor an `adapter`.
+ *
+ * Such a kind can never produce data: there is no provider transform to run,
+ * and no record contract a file or inline payload could satisfy. Every config
+ * using it would fail in a different place for the same reason, so it is
+ * rejected once, at registration, where the mistake actually is. This is a
+ * programming error in the registering code — not something an author can
+ * cause or fix.
+ */
+export class InvalidSemanticKindError extends Error {
+  public readonly kindName: string;
+  constructor(name: string) {
+    super(
+      `Cannot register semantic kind '${name}': it declares neither 'shape' ` +
+        `nor 'adapter', so it can never produce data. Give it a 'shape' (the ` +
+        `records an author's file must contain), an 'adapter' (a transform ` +
+        `for its provider's feed), or both.`
+    );
+    this.name = 'InvalidSemanticKindError';
+    this.kindName = name;
+    Object.setPrototypeOf(this, InvalidSemanticKindError.prototype);
+  }
+}
+
+function assertKindIsRenderable(
+  name: string,
+  def: SemanticKindDefinition
+): void {
+  if (def.shape === undefined && def.adapter === undefined) {
+    throw new InvalidSemanticKindError(name);
+  }
+}
+
 export class RegistryCollisionError extends Error {
   public readonly bucket: string;
   public readonly registeredName: string;
@@ -344,7 +394,11 @@ export function createRegistry(): Registry {
   for (const [name, def] of BUILTIN_SEMANTIC_KINDS) {
     semanticKinds.set(name, {
       component: def.component,
-      adapter: def.adapter,
+      // Both are optional and both are omitted rather than set to
+      // `undefined`, so `'shape' in def` stays a usable question and a
+      // provider-only kind doesn't look like one with an unset shape.
+      ...(def.shape ? { shape: def.shape } : {}),
+      ...(def.adapter ? { adapter: def.adapter } : {}),
       ...(def.rendering
         ? { rendering: structuredCloneCompat(def.rendering) }
         : {}),
@@ -380,6 +434,7 @@ export function createRegistry(): Registry {
   const registry: Registry = {
     // ── Semantic kinds ──────────────────────────────────────
     registerSemanticKind(name, def) {
+      assertKindIsRenderable(name, def);
       registerInto('semantic kind', semanticKinds, name, def);
     },
     getSemanticKind(name) {

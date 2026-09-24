@@ -39,16 +39,17 @@ here surfaces immediately rather than silently:
 | [`basic/`](./basic) | Minimal config: one group, one URL-sourced track against the real UniProt API |
 | [`inline-data/`](./inline-data) | `from: inline` — no network fetch for track data — plus a `theme:` block recolouring the row-label panel (no-code theming) |
 | [`linegraph/`](./linegraph) | `kind: linegraph` — a bring-your-own line graph from inline `{ position, value }` records, y-axis fitted to the data |
-| [`linegraph-csv/`](./linegraph-csv) | The same line graph from a CSV file — `linegraph-csv` adapter, selected by the `.csv` extension *on a `kind: linegraph` track* |
-| [`csv/`](./csv) | Bring-your-own CSV file as a **single standalone track** (one `rows:` entry, no group wrapper) — `features-csv` adapter, inferred from the `.csv` extension |
-| [`tsv/`](./tsv) | Bring-your-own TSV file — `features-tsv` adapter, inferred from the `.tsv` extension |
-| [`json/`](./json) | A live **UniProt** API track next to a bring-your-own JSON file — `features-json` adapter, inferred from the `.json` extension |
-| [`bed/`](./bed) | Bring-your-own BED file — `bed` adapter, inferred from the `.bed` extension |
+| [`linegraph-csv/`](./linegraph-csv) | The same line graph from a CSV file — the `.csv` extension supplies the encoding, `kind: linegraph` the records |
+| [`csv/`](./csv) | Bring-your-own CSV file as a **single standalone track** (one `rows:` entry, no group wrapper) — feature records, read as CSV from the extension |
+| [`tsv/`](./tsv) | Bring-your-own TSV file — the same records as `csv/`, tab-separated |
+| [`json/`](./json) | A live **UniProt** API track next to a bring-your-own JSON file — same kind on both, different sources |
+| [`bed/`](./bed) | Bring-your-own BED file — the one format that fixes its own records (feature records only) |
+| [`variation-csv/`](./variation-csv) | Your own variants on `kind: variants` — the same kind the UniProt viewer uses, reading a `position,variant` CSV instead of the variation API |
 | [`extend-default/`](./extend-default) | `extends:` the shipped canonical UniProt config and layers one custom CSV-backed track on top |
 
-Column/shape conventions for the four generic-format adapters (CSV,
-TSV, JSON, BED) are documented in
-[`specs/generic-format-adapters.md`](../specs/generic-format-adapters.md).
+Which records each `kind` reads, and which encodings can carry them, are
+documented in the "Shape and format" section of
+[`specs/config-approach.md`](../specs/config-approach.md).
 The expected payload shape for every built-in kind and adapter — plus
 the config-vs-payload boundary — is in
 [the adapter reference](https://ebi-webcomponents.github.io/protvista/adapter-reference) and

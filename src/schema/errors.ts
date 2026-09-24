@@ -31,7 +31,23 @@ export interface ValidationIssue {
   message: string;
   /** Stable machine-readable identifier (kebab-case). */
   code: ValidationIssueCode;
+  /**
+   * How much this issue matters. Absent means `'error'`, so every issue
+   * written before this field existed keeps its meaning and no consumer
+   * checking `result.valid` changes behaviour.
+   *
+   * A `'warning'` names something legal but worth saying out loud — an
+   * explicit `format:` overriding a file's own extension, say. It does not
+   * make the config invalid. Warnings are issues rather than `console.warn`
+   * calls on purpose: console-only diagnostics never reach the
+   * `protvista-error` event, the ⚠ badge, or CI.
+   */
+  severity?: 'error' | 'warning';
 }
+
+/** An issue that makes the config invalid (the default). */
+export const isError = (issue: ValidationIssue): boolean =>
+  (issue.severity ?? 'error') === 'error';
 
 /**
  * Closed set of validation issue codes. Every semantic check in
@@ -59,6 +75,35 @@ export type ValidationIssueCode =
    * directly and replaces those with one targeted message.
    */
   | 'invalid-entry-shape'
+  /**
+   * A track's `kind` cannot read the file format its `data:` points at —
+   * `kind: variants` at a `./x.csv`, say. The kind owns adapter selection,
+   * and its family has no member for that extension, so the file would be
+   * fetched and handed to an adapter expecting a different body type.
+   * Reported at config time rather than surfacing as an opaque parse
+   * failure per track at load time.
+   */
+  | 'kind-format-mismatch'
+  /**
+   * An explicit `format:` disagrees with the file extension on the same
+   * source (`./x.csv` with `format: tsv`). Legal — a misnamed file is exactly
+   * why `format:` exists — and reported at `severity: 'warning'` so the
+   * author sees the override they may not have intended.
+   */
+  | 'format-overrides-extension'
+  /**
+   * Inline data that is encoded text (a YAML block scalar) with no `format:`
+   * to say how to read it. There is no content-sniffing, so this cannot be
+   * resolved by guessing.
+   */
+  | 'missing-format'
+  /**
+   * One data descriptor lists several sources but reads them through a
+   * format (`url: ['./a.csv', './b.csv']`). A format decodes one body, so
+   * only the first would be read. Several sources belong to a multi-input
+   * provider adapter, named with an explicit `adapter:`.
+   */
+  | 'multi-source-format'
   // ── Extends resolution ─────────────────────────────────
   /** The `extends` chain forms a cycle (a → b → a). */
   | 'circular-extends'

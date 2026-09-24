@@ -416,7 +416,14 @@ describe('full render — shell + per-group DOM with frozen fixtures', () => {
     // appear for an author-supplied metric.
     const byo = structuredClone(testConfig) as typeof testConfig;
     const group = byo.rows.find((r) => r.id === 'GROUP_LINEGRAPH')!;
-    group.tracks[0].data[0].adapter = 'linegraph';
+    // What marks a series as the author's own is now its `format`: a source
+    // that declares one was encoded by whoever wrote the config.
+    group.tracks[0].data[0] = {
+      ...group.tracks[0].data[0],
+      adapter: undefined,
+      shape: 'point',
+      format: 'json',
+    };
     const byoEl = buildInstance({
       config: byo,
       data: testData,
@@ -445,7 +452,14 @@ describe('full render — shell + per-group DOM with frozen fixtures', () => {
     // a bring-your-own graph the moment its track was switched off.
     const hidden = structuredClone(testConfig) as typeof testConfig;
     const group = hidden.rows.find((r) => r.id === 'GROUP_LINEGRAPH')!;
-    group.tracks[0].data[0].adapter = 'linegraph';
+    // What marks a series as the author's own is now its `format`: a source
+    // that declares one was encoded by whoever wrote the config.
+    group.tracks[0].data[0] = {
+      ...group.tracks[0].data[0],
+      adapter: undefined,
+      shape: 'point',
+      format: 'json',
+    };
     group.tracks[0].hidden = true;
     // A second, visible track — otherwise hiding the only track takes the
     // whole row down a different rendering path and there is no aggregate to

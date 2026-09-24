@@ -31,12 +31,14 @@
  * `__unfiltered` keys as inert baselines, not live renderer payload.
  */
 
-import type { NormalizedConfig, NormalizedTrack } from './schema/normalize.js';
 import {
-  TEXT_BODY_ADAPTERS,
-  BYO_DATA_ADAPTERS,
-  KIND_SELECTED_BYO_DATA_ADAPTERS,
-} from './schema/file-formats.js';
+  isAuthoredSource,
+  type NormalizedConfig,
+  type NormalizedTrack,
+} from './schema/normalize.js';
+import { DATA_FORMATS } from './schema/file-formats.js';
+import { runPipeline } from './schema/adapters/pipeline.js';
+import { SHAPES } from './schema/shapes.js';
 import { resolveTooltip } from './tooltips/resolve.js';
 import { tooltipDefaults } from './tooltips/defaults.js';
 import type { TooltipContext, TooltipSpec } from './tooltips/types.js';
@@ -63,10 +65,9 @@ export type AdapterResolver = (name: string) => AdapterFn | undefined;
 
 /**
  * Fetch a single URL. `responseType` tells the fetcher how to read the
- * body: `'json'` for API responses (the default for every UniProt/AlphaFold
- * source) and for the JSON-body bring-your-own-data file adapter
- * (`features-json`), `'text'` for delimited bring-your-own-data files
- * (`features-csv` / `features-tsv` / `bed`) whose adapters parse raw text.
+ * body, and comes straight off the source's format: `'text'` for the
+ * delimited formats (CSV / TSV / BED), which the decoder parses itself, and
+ * `'json'` for everything else — JSON files and every provider response.
  */
 type FetchOne = (
   url: string,
@@ -121,6 +122,111 @@ type LoadResult = {
    */
   trackUrls: Record<string, string[]>;
 };
+
+/**
+ * Whether an adapted payload actually carries something to draw.
+ *
+ * Gates the `hasData` empty-state flag for bring-your-own-data tracks, so it
+ * has to recognise every wrapper an adapter may emit — not just the bare
+ * array most produce. A variation payload is `{ variants: [...] }`, and a
+ * viewer built solely from a BYO variants file would otherwise parse
+ * correctly and still show "no data for this entry".
+ *
+ * Exported so `examples.spec.ts` asserts example payloads with the same
+ * predicate the gate uses: a test recognising fewer shapes than the gate
+ * would pass an example the viewer blanks out.
+ */
+export function hasRenderableRows(payload: unknown): boolean {
+  if (Array.isArray(payload)) return payload.length > 0;
+  if (payload && typeof payload === 'object') {
+    const variants = (payload as { variants?: unknown }).variants;
+    return Array.isArray(variants) && variants.length > 0;
+  }
+  return false;
+}
+
+/**
+ * Whether a payload is already in the representation the component renders,
+ * rather than the author-facing records it is built from.
+ *
+ * The two shapes are structurally disjoint for every wrapping family, so this
+ * distinguishes them without guessing: a rendered line graph is an array of
+ * series objects carrying `values`, a rendered variation payload is an object
+ * carrying `variants`. An author's records are neither — they are flat
+ * `{ position, … }` objects.
+ *
+ * Exists so `from: custom` keeps honouring its documented contract (inject
+ * what the renderer wants) while also accepting the record contract every
+ * other part of the docs publishes. A consumer who reads `your-data.md` and
+ * calls `setTrackData(key, [{ position: 1, value: 412 }])` should get a line
+ * graph, not `TypeError: undefined is not iterable`.
+ */
+function isRenderedRepresentation(payload: unknown): boolean {
+  if (Array.isArray(payload)) {
+    return payload.some(
+      (item) =>
+        !!item &&
+        typeof item === 'object' &&
+        Array.isArray((item as { values?: unknown }).values)
+    );
+  }
+  return (
+    !!payload &&
+    typeof payload === 'object' &&
+    Array.isArray((payload as { variants?: unknown }).variants)
+  );
+}
+
+/**
+ * Run a track's record adapter over an author-supplied payload — the shared
+ * tail of `from: inline` and `from: custom`.
+ *
+ * Both carry data the *author* wrote, against the record contract published
+ * for the track's `kind` (`{ position, value }` for a line graph,
+ * `{ position, variant }` for variants). That contract is the same whether the
+ * records arrive over the network, inline in the config, or through
+ * `setTrackData()`, so the adapter that validates and wraps them runs for all
+ * three. Kinds whose records need no wrapping (the feature family) and
+ * provider-only kinds have no record adapter and pass through untouched —
+ * running `features-json` here would strip every field outside its five
+ * documented ones, including any a `dataTooltip` path references.
+ *
+ * A payload already in the renderer's representation is passed through, so the
+ * previously-documented `setTrackData()` contract keeps working.
+ *
+ * The descriptor's `format:` is honoured here exactly as it is for a fetched
+ * body. Inline text is the case `format:` was introduced for — there is no
+ * extension to read it off and no content sniffing — so ignoring it here would
+ * make the one remedy the validator recommends a no-op.
+ */
+async function adaptAuthoredRecords(
+  payload: unknown,
+  track: NormalizedTrack
+): Promise<unknown> {
+  const source = track.data[0];
+  const shape = source?.shape;
+  // No shape means no record contract to hold the payload to.
+  if (shape === undefined) return payload;
+
+  // A delimited format needs a string to decode. A payload that is already
+  // structured (a `setTrackData()` record array on a descriptor that also
+  // carries a `format:`) is read as what it is rather than warned away to an
+  // empty track.
+  const declared = source?.format ?? 'json';
+  const format =
+    DATA_FORMATS[declared].body === 'text' && typeof payload !== 'string'
+      ? 'json'
+      : declared;
+
+  // A shape that does not wrap means JSON records *are* the representation,
+  // and running them through a validator would only strip fields a
+  // `dataTooltip` may reference. Encoded text still has to be decoded — the
+  // raw string is no one's representation.
+  if (format === 'json' && !SHAPES[shape].wraps) return payload;
+  if (isRenderedRepresentation(payload)) return payload;
+  // No `source`, so a parse error reads "inline data (parsed as CSV): …".
+  return runPipeline(shape, format, payload);
+}
 
 /**
  * Resolve per-item `tooltipContent` strings and return an annotated
@@ -269,9 +375,12 @@ export async function loadProtvistaData(
       if (!isReloading(key)) continue;
       const raw = trackUrl(track.data);
       const list = (Array.isArray(raw) ? raw : [raw]).filter((u) => u !== '');
-      const adapter = track.data[0]?.adapter;
+      // Only a declared format reads as text; every provider transform takes
+      // a JSON response.
+      const source = track.data[0];
       const wantsText =
-        adapter !== undefined && TEXT_BODY_ADAPTERS.has(adapter);
+        source?.format !== undefined &&
+        DATA_FORMATS[source.format].body === 'text';
       for (const t of list) {
         templates.add(t);
         if (wantsText) bodyType.set(t, 'text');
@@ -342,14 +451,8 @@ export async function loadProtvistaData(
       data[`${key}${UNFILTERED_SUFFIX}`] = payload;
     }
     const source = track.data[0];
-    const isByoDataAdapter =
-      source?.adapter !== undefined && BYO_DATA_ADAPTERS.has(source.adapter);
     const isInline = source?.from === 'inline';
-    if (
-      (isByoDataAdapter || isInline) &&
-      Array.isArray(payload) &&
-      payload.length > 0
-    ) {
+    if ((isAuthoredSource(source) || isInline) && hasRenderableRows(payload)) {
       hasData = true;
     }
   };
@@ -419,12 +522,12 @@ export async function loadProtvistaData(
         // here would abort the entire load, skipping the caller's
         // error-correlation pass so no failure gets surfaced at all.
         try {
-          // `from: custom` — consumer-supplied data bypasses fetch + adapter
-          // entirely. If the descriptor declares `custom` but no data
-          // was injected via `setTrackData()`, emit a `console.info`
-          // and leave the slot empty. Injected data still flows through
-          // the downstream `filter:` sugar and tooltip resolver so behaviour
-          // is symmetric with URL-sourced tracks.
+          // `from: custom` — consumer-supplied data bypasses the fetch. If the
+          // descriptor declares `custom` but no data was injected via
+          // `setTrackData()`, emit a `console.info` and leave the slot empty.
+          // Injected data still flows through the downstream `filter:` sugar
+          // and tooltip resolver so behaviour is symmetric with URL-sourced
+          // tracks.
           if (first.from === 'custom') {
             if (!(trackKey in customTrackData)) {
               console.info(
@@ -433,7 +536,7 @@ export async function loadProtvistaData(
               return;
             }
             return filterResolveAndAssign(
-              customTrackData[trackKey],
+              await adaptAuthoredRecords(customTrackData[trackKey], track),
               trackKey,
               track
             );
@@ -442,32 +545,33 @@ export async function loadProtvistaData(
           // `from: inline` — the payload lives on the descriptor itself
           // (`inlineData`, populated by the normalizer); no fetch. Filter +
           // tooltip resolution still apply, mirroring `from: custom` above.
-          //
-          // Inline data is normally written in the shape the component
-          // renders, so no adapter runs. The kind-selected bring-your-own-data
-          // adapters are the exception: what they accept is the author-facing
-          // contract published for the kind (`{ position, value }` records for
-          // `kind: linegraph`), not the component's own representation
-          // (`[{ name, range, values }]`). That contract is the same shape
-          // whether the payload arrives over the network or inline, so the
-          // adapter runs here too — otherwise `from: inline` would silently
-          // hand the track a shape it cannot draw.
           if (first.from === 'inline') {
-            const inlineData =
-              adapter && KIND_SELECTED_BYO_DATA_ADAPTERS.has(adapter)
-                ? await resolveAdapterFn(adapter)(first.inlineData)
-                : first.inlineData;
-            return filterResolveAndAssign(inlineData, trackKey, track);
+            return filterResolveAndAssign(
+              await adaptAuthoredRecords(first.inlineData, track),
+              trackKey,
+              track
+            );
           }
 
           const trackData = (Array.isArray(url) ? url : [url ?? '']).map(
             (u) => rawData[u as string] || []
           );
 
-          // 1. Convert data. Empty-body guards and any post-processing live
-          //    inside the adapters themselves.
+          // 1. Convert data. Two ways a body becomes a payload, and a
+          //    descriptor carries exactly one of them: a `format` (decode it,
+          //    validate against the track's shape) or a named `adapter` (a
+          //    provider transform, or one the author pinned). Empty-body
+          //    guards and post-processing live inside each.
           let transformedData: any = trackData;
-          if (adapter) {
+          if (first.format !== undefined) {
+            transformedData = await runPipeline(
+              first.shape ?? 'feature',
+              first.format,
+              trackData[0],
+              // The author's own path, so a parse error names their file.
+              { source: substituteAccession(String(url ?? ''), accession) }
+            );
+          } else if (adapter) {
             transformedData = await resolveAdapterFn(adapter)(...trackData);
           }
 

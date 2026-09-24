@@ -8,17 +8,32 @@ ProtVista *configuration* (rows, tracks, sources, rendering) is validated by the
 
 This reference is generated from the adapter code and kept in sync by drift tests, so it cannot silently diverge. It is a reference aid, not a normative schema.
 
-## Bring-your-own-data formats
+## Bring your own data
 
-These four adapters parse a file **you** supply and emit the canonical *feature record* (`type`, `start`, `end`, optional `description`/`score`). Point a track at a local file whose extension selects the adapter (e.g. `data: ./hotspots.csv`), or set `adapter:` explicitly. A machine-readable schema for this record is served at [`feature-record.schema.json`](https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json) (published at `https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json`).
+Two independent facts decide how a source is read. Your track's `kind` says **which records** it needs; the file says **how they are encoded**. You never name an adapter for either: point a track at `./hits.csv` and the kind supplies the first half while the extension supplies the second. Use `format:` only when nothing can infer it — inline text, or a URL with no recognised extension.
 
-### `features-csv` — CSV (comma-separated)
+A malformed file fails with your own filename, the reading applied to it, and the offending row and column: `./depth.csv (parsed as CSV): row 3, column "value": expected a number, got "abc"`.
 
-A header row plus one feature per line. Point a track at `./x.csv` (or set `adapter: features-csv`).
+### The formats
 
-- **File extension:** `.csv` — **fetched as:** text
-- **Header row (required columns):** `type,start,end,description` — plus optional `score`.
-- The header must contain `type,start,end,description`; `score` is an optional column. A `description` cell may be empty (the column is required, the value is not).
+| Format | Extension | Fetched as | Records it can carry |
+|---|---|---|---|
+| `csv` | `.csv` | text | whatever the track's kind draws |
+| `tsv` | `.tsv` | text | whatever the track's kind draws |
+| `json` | `.json` | json | whatever the track's kind draws |
+| `bed` | `.bed` | text | feature records (type, start, end) only |
+
+Only BED constrains what it can carry: it encodes feature semantics (0-based half-open, converted on read), so pairing it with a kind that draws anything else is a config error naming both sides.
+
+## The record shapes
+
+Three shapes cover every kind that accepts your data. A machine-readable schema for the feature record is served at [`feature-record.schema.json`](https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json).
+
+### feature records (type, start, end)
+
+Written by: `kind: features`, `kind: interpro-features`, `kind: peptides`, `kind: peptides-ptm`, `kind: structure-coverage`.
+
+Readable as: `csv`, `tsv`, `json`, `bed` — by file extension, or with an explicit `format:`.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
@@ -28,60 +43,39 @@ A header row plus one feature per line. Point a track at `./x.csv` (or set `adap
 | `description` | string | No | Free text shown in the default tooltip. Omitted when empty. |
 | `score` | number | No | Optional numeric score. Omitted when empty. |
 
-### `features-tsv` — TSV (tab-separated)
+### point records (position, value)
 
-Identical to `features-csv` but tab-delimited. Point a track at `./x.tsv`.
+Written by: `kind: linegraph`, `kind: rna-editing-counts`, `kind: variant-counts`.
 
-- **File extension:** `.tsv` — **fetched as:** text
-- **Header row (required columns):** `type,start,end,description` — plus optional `score`.
-- The header must contain `type<TAB>start<TAB>end<TAB>description`; `score` is an optional column.
+Readable as: `csv`, `tsv`, `json` — by file extension, or with an explicit `format:`.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `type` | string | Yes | Feature category label (e.g. DOMAIN, BINDING). Drives `filter:` and colour grouping. |
-| `start` | number | Yes | 1-based start position (inclusive). |
-| `end` | number | Yes | 1-based end position (inclusive). |
-| `description` | string | No | Free text shown in the default tooltip. Omitted when empty. |
-| `score` | number | No | Optional numeric score. Omitted when empty. |
+| `position` | number | Yes | 1-based residue position. |
+| `value` | number | Yes | The number plotted at that position. Any finite value. |
 
-### `features-json` — JSON array of feature objects
+### variation records (position, variant)
 
-A JSON array of objects with the same fields as `features-csv`. Point a track at `./x.json`. Extra object keys are ignored.
+Written by: `kind: rna-editing`, `kind: variants`.
 
-- **File extension:** `.json` — **fetched as:** json
-- `start` may instead be given as `begin` (the UniProt convention); `start` wins when both are present.
+Readable as: `csv`, `tsv`, `json` — by file extension, or with an explicit `format:`.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `type` | string | Yes | Feature category label (e.g. DOMAIN, BINDING). Drives `filter:` and colour grouping. |
-| `start` | number | Yes | 1-based start position (inclusive). `begin` is accepted as an alias; `start` wins when both are present. |
-| `end` | number | Yes | 1-based end position (inclusive). |
-| `description` | string | No | Free text shown in the default tooltip. Omitted when empty. |
-| `score` | number | No | Optional numeric score. Omitted when empty. |
-
-### `bed` — BED (tab-separated, positional)
-
-Standard BED (BED3–BED6), headerless and positional. Point a track at `./x.bed`.
-
-- **File extension:** `.bed` — **fetched as:** text
-- BED coordinates are 0-based half-open and converted to 1-based inclusive. `track`/`browser`/`#` header lines are skipped. Output records carry a synthetic `type: "BED"`; columns 6+ (strand, …) are dropped.
-
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `chrom` | string | No | Column 1 — sequence name; informational only for this single-sequence viewer, so it is dropped. |
-| `chromStart` | number | Yes | Column 2 — 0-based start; mapped to `start` (start = chromStart + 1). |
-| `chromEnd` | number | Yes | Column 3 — 0-based half-open end; mapped to 1-based inclusive `end`. |
-| `name` | string | No | Column 4 (optional) — mapped to `description`. |
-| `score` | number | No | Column 5 (optional) — mapped to `score`. |
+| `position` | number | Yes | 1-based position of the changed residue. |
+| `variant` | string | Yes | The residue it changes to. `*` for a stop, `-` for a deletion. |
+| `wildType` | string | No | The original residue. Shown on hover. |
+| `description` | string | No | Free text shown on hover/click. |
+| `consequence` | string | No | Your own consequence label, e.g. `missense`. |
 
 ## Built-in track adapters (provider-supplied)
 
-These adapters back the built-in semantic `kind`s. Their input is a response from an EBI API (or equivalent provider) — you do **not** author these payloads; you point a track at the source URL and the adapter transforms the response. The shapes below are informational (useful when swapping an endpoint or writing a custom adapter for a kind), not a contract you must produce.
+These back the kinds named for their provider. Their input is a response from an EBI API (or equivalent) — you do **not** author these payloads, and no file can stand in for one: each takes two responses plus a further fetch. The shapes below are informational, not a contract you must produce.
 
 | Semantic kind | Adapter | Renders with | Inputs | Input shape |
 |---|---|---|---|---|
 | `features` | `uniprot-features-json` | `nightingale-track-canvas` | 1 | UniProt Proteins API features response — `{ features: [...] }`, each feature carrying `type`, `begin`, `end`, and evidence. |
-| `features-interpro` | `interpro-entries-json` | `nightingale-track-canvas` | 1 | InterPro protein-entries response — `{ results: [{ metadata, proteins: [{ entry_protein_locations }] }] }`. Representative-domain fragments are flattened into features. |
+| `interpro-features` | `interpro-entries-json` | `nightingale-track-canvas` | 1 | InterPro protein-entries response — `{ results: [{ metadata, proteins: [{ entry_protein_locations }] }] }`. Representative-domain fragments are flattened into features. |
 | `variants` | `uniprot-variation-json` | `nightingale-variation-canvas` | 1 | UniProt Proteins API variation response — `{ sequence, features: [...] }` with per-variant genomic location, alternative sequence and predictions. |
 | `variant-counts` | `uniprot-variation-counts-json` | `nightingale-linegraph-track` | 1 | Same variation response as `uniprot-variation-json`; aggregated into per-position total and disease-causing variant counts for the line graph. |
 | `rna-editing` | `uniprot-rna-editing-json` | `nightingale-variation-canvas` | 1 | UniProt Proteins API RNA-editing response — `{ sequence, features: [{ locationType, variantType }] }`. |
@@ -89,24 +83,9 @@ These adapters back the built-in semantic `kind`s. Their input is a response fro
 | `peptides` | `uniprot-proteomics-json` | `nightingale-track-canvas` | 1 | UniProt Proteomics API response — `{ features: [{ unique, ptms }] }`; PTMs are lifted onto each peptide as residues to highlight. |
 | `peptides-ptm` | `uniprot-proteomics-ptm-json` | `nightingale-track-canvas` | 1 | PTMeXchange proteomics-PTM response — `{ features: [{ begin, peptide, ptms: [{ name, position, dbReferences }] }] }`; emitted as per-residue MOD_RES markers coloured by confidence. |
 | `structure-coverage` | `uniprot-proteins-pdb-json` | `nightingale-track-canvas` | 1 | UniProt Proteins API entry — `{ dbReferences: [{ type: "PDB", properties: { chains } }] }`; PDB chain ranges are parsed and overlapping intervals merged. |
-| `confidence-score` | `alphafold-prediction-json` | `nightingale-colored-sequence` | 2 (+ fetches a further URL) | AlphaFold prediction list (matched to the protein sequence) plus the UniProt entry. The adapter then fetches the per-residue confidence JSON and returns pLDDT categories. |
-| `pathogenicity-score` | `alphamissense-average-csv` | `nightingale-colored-sequence` | 2 (+ fetches a further URL) | AlphaFold prediction list (with an AlphaMissense annotations URL) plus the UniProt entry. The adapter fetches the annotations CSV and returns per-position average pathogenicity codes. |
-| `pathogenicity-heatmap` | `alphamissense-full-csv` | `nightingale-sequence-heatmap` | 2 (+ fetches a further URL) | Same AlphaMissense annotations as `alphamissense-average-csv`, but returns the full per-mutation `{ xValue, yValue, score }` matrix for the heatmap. |
-
-## Bring-your-own-data track kinds
-
-These adapters also back a semantic `kind`, but the payload is one **you** author rather than a provider response — point the track at any URL or file path serving the JSON shape below, or write it inline with `from: inline`. The `kind` outranks extension inference, so `data: ./depth.json` on a `kind: linegraph` track stays on `linegraph` rather than being read as generic features. Unlike the provider-supplied adapters above, these shapes *are* a contract you must produce: a malformed record fails with an error naming the row index and field.
-
-| Semantic kind | Adapter | Renders with | Inputs | Input shape |
-|---|---|---|---|---|
-| `linegraph` | `linegraph` | `nightingale-linegraph-track` | 1 | Generic bring-your-own-data: a JSON array of `{ position, value }` records (both numbers), validated and emitted as one line-graph series. Not UniProt-specific — for the UniProt variation API keep `variant-counts`. |
-
-The same records can arrive as delimited text. On a track already using one of these kinds, the file extension picks the matching parser — `data: ./depth.csv` on a `kind: linegraph` track parses a `position,value` header, it does not fall back to the feature adapters. (A bare `./x.csv` on a track with no `kind` still means `features-csv`.)
-
-| Extension | Adapter | Same records as | Fetched as | Header row |
-|---|---|---|---|---|
-| `.csv` | `linegraph-csv` | `linegraph` | text | `position,value` |
-| `.tsv` | `linegraph-tsv` | `linegraph` | text | `position,value` |
+| `alphafold-confidence` | `alphafold-prediction-json` | `nightingale-colored-sequence` | 2 (+ fetches a further URL) | AlphaFold prediction list (matched to the protein sequence) plus the UniProt entry. The adapter then fetches the per-residue confidence JSON and returns pLDDT categories. |
+| `alphamissense-pathogenicity` | `alphamissense-average-csv` | `nightingale-colored-sequence` | 2 (+ fetches a further URL) | AlphaFold prediction list (with an AlphaMissense annotations URL) plus the UniProt entry. The adapter fetches the annotations CSV and returns per-position average pathogenicity codes. |
+| `alphamissense-heatmap` | `alphamissense-full-csv` | `nightingale-sequence-heatmap` | 2 (+ fetches a further URL) | Same AlphaMissense annotations as `alphamissense-average-csv`, but returns the full per-mutation `{ xValue, yValue, score }` matrix for the heatmap. |
 
 ## Related
 

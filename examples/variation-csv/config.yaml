@@ -1,0 +1,28 @@
+# Your own variants, from a spreadsheet — no UniProt API involved.
+#
+# `kind: variants` is the same kind the UniProt viewer uses for its variation
+# track. Pointing it at a file rather than the API keeps the kind, the
+# component, and the tooltips; only the parser changes. See examples/README.md.
+accession: P05067
+rows:
+  # On a track that declares `kind: variants`, the file extension picks the
+  # encoding (`.csv`, `.tsv`, `.json`). The kind decides what the track *is*
+  # — variation records — and the extension only says how they are written.
+  # Neither is an adapter name; you never write one.
+  #
+  # The header must contain `position` and `variant`; `wildType`,
+  # `description`, and `consequence` are optional, order does not matter, and
+  # extra columns are ignored. A malformed cell fails with the row and column
+  # named.
+  #
+  # The track needs the protein sequence to lay out its residue rows — the
+  # viewer supplies the one it already fetched for `accession`, so your file
+  # does not carry it.
+  #
+  # NOTE: `./my-variants.csv` resolves against the *hosting page*, not this
+  # config file — see the path gotcha in examples/README.md.
+  - id: cohort_variants
+    label: Cohort variants
+    kind: variants
+    description: Missense variants called in our patient cohort
+    data: ./my-variants.csv

@@ -83,10 +83,15 @@ export function toSeries(values: readonly PointRecord[]): unknown[] {
   ];
 }
 
-export const linegraph: AdapterFunction = (raw) => {
+export const linegraph: AdapterFunction = (raw, labelArg) => {
+  // Every parser prefixes its errors the same way — `<label>: …` — so an
+  // author reading two failures side by side sees one shape. The pipeline
+  // passes their own source; a direct call falls back to this record family's
+  // name.
+  const label = typeof labelArg === 'string' ? labelArg : 'linegraph';
   if (!Array.isArray(raw)) {
     throw new Error(
-      `[linegraph] expected an array of { position, value } records; got ${describe(raw)}.`
+      `${label}: expected an array of { position, value } records; got ${describe(raw)}.`
     );
   }
   if (raw.length === 0) return [];
@@ -97,7 +102,7 @@ export const linegraph: AdapterFunction = (raw) => {
     const row = raw[i];
     if (row === null || typeof row !== 'object' || Array.isArray(row)) {
       throw new Error(
-        `[linegraph] row ${i}: expected 'position' and 'value' (both numbers); got ${repr(row)} — row is ${kindOf(row)}, not an object.`
+        `${label}: row ${i}: expected 'position' and 'value' (both numbers); got ${repr(row)} — row is ${kindOf(row)}, not an object.`
       );
     }
     const rec = row as Record<string, unknown>;
@@ -115,17 +120,17 @@ export const linegraph: AdapterFunction = (raw) => {
         : undefined;
       if (v === undefined) {
         throw new Error(
-          `[linegraph] row ${i}: expected 'position' and 'value' (both numbers); got ${rowRendering} — '${f}' is missing.`
+          `${label}: row ${i}: expected 'position' and 'value' (both numbers); got ${rowRendering} — '${f}' is missing.`
         );
       }
       if (typeof v !== 'number') {
         throw new Error(
-          `[linegraph] row ${i}: expected 'position' and 'value' (both numbers); got ${rowRendering} — '${f}' is ${kindOf(v)}, not a number.`
+          `${label}: row ${i}: expected 'position' and 'value' (both numbers); got ${rowRendering} — '${f}' is ${kindOf(v)}, not a number.`
         );
       }
       if (!Number.isFinite(v)) {
         throw new Error(
-          `[linegraph] row ${i}: expected 'position' and 'value' (both numbers); got ${rowRendering} — '${f}' is not a finite number.`
+          `${label}: row ${i}: expected 'position' and 'value' (both numbers); got ${rowRendering} — '${f}' is not a finite number.`
         );
       }
     }

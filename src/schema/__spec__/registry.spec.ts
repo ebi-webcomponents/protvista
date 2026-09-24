@@ -29,12 +29,12 @@ describe('Registry — built-in seeding', () => {
     // Keep this list in lockstep with `KnownSemanticKind` in
     // types.ts — that union is the type-level source of truth.
     expect(r.listSemanticKinds()).toEqual([
-      'confidence-score',
+      'alphafold-confidence',
+      'alphamissense-heatmap',
+      'alphamissense-pathogenicity',
       'features',
-      'features-interpro',
+      'interpro-features',
       'linegraph',
-      'pathogenicity-heatmap',
-      'pathogenicity-score',
       'peptides',
       'peptides-ptm',
       'rna-editing',
@@ -51,20 +51,24 @@ describe('Registry — built-in seeding', () => {
       const def = r.getSemanticKind(name);
       expect(def).toBeDefined();
       expect(def?.component).toMatch(/^nightingale-/);
-      expect(def?.adapter).toBeTypeOf('string');
-      expect(def?.adapter.length).toBeGreaterThan(0);
+      // A kind declares a shape (an author can bring records to it), an
+      // adapter (a provider transform), or both — never neither.
+      expect(
+        def?.shape !== undefined || def?.adapter !== undefined,
+        `${name} declares neither shape nor adapter`
+      ).toBe(true);
     }
   });
 
-  it('attaches the AlphaFold colour ramp to confidence-score', () => {
+  it('attaches the AlphaFold colour ramp to alphafold-confidence', () => {
     const r = createRegistry();
-    const def = r.getSemanticKind('confidence-score');
+    const def = r.getSemanticKind('alphafold-confidence');
     expect(def?.rendering?.colorScale?.theme).toBe('alphafold-ramp');
   });
 
-  it('attaches the AlphaMissense colour ramp to pathogenicity-score', () => {
+  it('attaches the AlphaMissense colour ramp to alphamissense-pathogenicity', () => {
     const r = createRegistry();
-    const def = r.getSemanticKind('pathogenicity-score');
+    const def = r.getSemanticKind('alphamissense-pathogenicity');
     expect(def?.rendering?.colorScale?.theme).toBe('alphamissense-ramp');
   });
 
@@ -108,16 +112,27 @@ describe('Registry — built-in seeding', () => {
     }
   });
 
-  it('ships the generic-format adapters out of the box', () => {
-    // The bring-your-own-data path relies on these being pre-registered
-    // on every fresh registry (so `data: "./x.csv"` / `./x.json` loads
-    // without an "Unknown adapter" error). Assert them by name so a
-    // regression that drops any one from the table is caught explicitly.
+  it('registers no adapter for the bring-your-own-data formats', () => {
+    // `./x.csv` used to need a pre-registered `features-csv`. It no longer
+    // resolves to an adapter at all: the track's `kind` gives the records
+    // and the extension gives the encoding, and the pair is composed. These
+    // names are gone from the registry, from `KnownAdapterName`, and from
+    // anything an author can write.
     const r = createRegistry();
-    expect(r.hasAdapter('features-csv')).toBe(true);
-    expect(r.hasAdapter('features-tsv')).toBe(true);
-    expect(r.hasAdapter('features-json')).toBe(true);
-    expect(r.hasAdapter('bed')).toBe(true);
+    for (const gone of [
+      'features-csv',
+      'features-tsv',
+      'features-json',
+      'bed',
+      'linegraph',
+      'linegraph-csv',
+      'linegraph-tsv',
+      'variation',
+      'variation-csv',
+      'variation-tsv',
+    ]) {
+      expect(r.hasAdapter(gone), `${gone} should no longer exist`).toBe(false);
+    }
   });
 });
 
@@ -359,16 +374,16 @@ describe('Registry — instance isolation', () => {
 
   it('mutating a registered rendering preset does not mutate the built-in table', () => {
     // Two independent registries should see the same canonical built-in
-    // rendering for `confidence-score` even after one caller mutates
+    // rendering for `alphafold-confidence` even after one caller mutates
     // the object returned by the first registry.
     const a = createRegistry();
     const b = createRegistry();
-    const fromA = a.getSemanticKind('confidence-score');
+    const fromA = a.getSemanticKind('alphafold-confidence');
     // Mutate
     if (fromA?.rendering?.colorScale) {
       fromA.rendering.colorScale.theme = 'mutated';
     }
-    const fromB = b.getSemanticKind('confidence-score');
+    const fromB = b.getSemanticKind('alphafold-confidence');
     expect(fromB?.rendering?.colorScale?.theme).toBe('alphafold-ramp');
   });
 });

@@ -1,0 +1,4435 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`golden: examples/basic > payloads (must survive the refactor byte-identically) 1`] = `
+{
+  "data": {
+    "DOMAINS": [
+      {
+        "begin": 1,
+        "description": "Fixture domain",
+        "end": 770,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "DOMAIN",
+      },
+    ],
+    "DOMAINS-domain": [
+      {
+        "begin": 1,
+        "description": "Fixture domain",
+        "end": 770,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "DOMAIN",
+      },
+    ],
+  },
+  "hasData": true,
+}
+`;
+
+exports[`golden: examples/basic > resolution (expected to change with the refactor) 1`] = `
+{
+  "DOMAINS-domain": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden: examples/bed > payloads (must survive the refactor byte-identically) 1`] = `
+{
+  "data": {
+    "MY_LAB": [
+      {
+        "description": "extracellular_domain",
+        "end": 289,
+        "score": 800,
+        "start": 18,
+        "tooltipContent": "<h5>Type</h5><p>BED</p><h5>Description</h5><p>extracellular_domain</p><h5>Start</h5><p>18</p><h5>End</h5><p>289</p>",
+        "type": "BED",
+      },
+      {
+        "description": "kunitz_domain",
+        "end": 501,
+        "score": 650,
+        "start": 345,
+        "tooltipContent": "<h5>Type</h5><p>BED</p><h5>Description</h5><p>kunitz_domain</p><h5>Start</h5><p>345</p><h5>End</h5><p>501</p>",
+        "type": "BED",
+      },
+      {
+        "description": "transmembrane_region",
+        "end": 722,
+        "score": 500,
+        "start": 700,
+        "tooltipContent": "<h5>Type</h5><p>BED</p><h5>Description</h5><p>transmembrane_region</p><h5>Start</h5><p>700</p><h5>End</h5><p>722</p>",
+        "type": "BED",
+      },
+    ],
+    "MY_LAB-hotspots": [
+      {
+        "description": "extracellular_domain",
+        "end": 289,
+        "score": 800,
+        "start": 18,
+        "tooltipContent": "<h5>Type</h5><p>BED</p><h5>Description</h5><p>extracellular_domain</p><h5>Start</h5><p>18</p><h5>End</h5><p>289</p>",
+        "type": "BED",
+      },
+      {
+        "description": "kunitz_domain",
+        "end": 501,
+        "score": 650,
+        "start": 345,
+        "tooltipContent": "<h5>Type</h5><p>BED</p><h5>Description</h5><p>kunitz_domain</p><h5>Start</h5><p>345</p><h5>End</h5><p>501</p>",
+        "type": "BED",
+      },
+      {
+        "description": "transmembrane_region",
+        "end": 722,
+        "score": 500,
+        "start": 700,
+        "tooltipContent": "<h5>Type</h5><p>BED</p><h5>Description</h5><p>transmembrane_region</p><h5>Start</h5><p>700</p><h5>End</h5><p>722</p>",
+        "type": "BED",
+      },
+    ],
+  },
+  "hasData": true,
+}
+`;
+
+exports[`golden: examples/bed > resolution (expected to change with the refactor) 1`] = `
+{
+  "MY_LAB-hotspots": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": null,
+        "format": "bed",
+        "from": "file",
+        "inline": false,
+        "shape": "feature",
+        "url": "./regions.bed",
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden: examples/csv > payloads (must survive the refactor byte-identically) 1`] = `
+{
+  "data": {
+    "hotspots": [
+      {
+        "description": "Extracellular domain (custom re-annotation)",
+        "end": 289,
+        "score": 0.95,
+        "start": 18,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Extracellular domain (custom re-annotation)</p><h5>Start</h5><p>18</p><h5>End</h5><p>289</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "description": "Predicted heparin-binding site",
+        "end": 140,
+        "score": 0.87,
+        "start": 132,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>Predicted heparin-binding site</p><h5>Start</h5><p>132</p><h5>End</h5><p>140</p>",
+        "type": "BINDING",
+      },
+      {
+        "description": "Acidic-rich linker region",
+        "end": 340,
+        "score": 0.6,
+        "start": 290,
+        "tooltipContent": "<h5>Type</h5><p>REGION</p><h5>Description</h5><p>Acidic-rich linker region</p><h5>Start</h5><p>290</p><h5>End</h5><p>340</p>",
+        "type": "REGION",
+      },
+      {
+        "description": "Lab-observed loss-of-function point mutation",
+        "end": 614,
+        "score": 0.75,
+        "start": 614,
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p><h5>Description</h5><p>Lab-observed loss-of-function point mutation</p><h5>Start</h5><p>614</p><h5>End</h5><p>614</p>",
+        "type": "MUTAGEN",
+      },
+    ],
+    "hotspots-hotspots": [
+      {
+        "description": "Extracellular domain (custom re-annotation)",
+        "end": 289,
+        "score": 0.95,
+        "start": 18,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Extracellular domain (custom re-annotation)</p><h5>Start</h5><p>18</p><h5>End</h5><p>289</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "description": "Predicted heparin-binding site",
+        "end": 140,
+        "score": 0.87,
+        "start": 132,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>Predicted heparin-binding site</p><h5>Start</h5><p>132</p><h5>End</h5><p>140</p>",
+        "type": "BINDING",
+      },
+      {
+        "description": "Acidic-rich linker region",
+        "end": 340,
+        "score": 0.6,
+        "start": 290,
+        "tooltipContent": "<h5>Type</h5><p>REGION</p><h5>Description</h5><p>Acidic-rich linker region</p><h5>Start</h5><p>290</p><h5>End</h5><p>340</p>",
+        "type": "REGION",
+      },
+      {
+        "description": "Lab-observed loss-of-function point mutation",
+        "end": 614,
+        "score": 0.75,
+        "start": 614,
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p><h5>Description</h5><p>Lab-observed loss-of-function point mutation</p><h5>Start</h5><p>614</p><h5>End</h5><p>614</p>",
+        "type": "MUTAGEN",
+      },
+    ],
+  },
+  "hasData": true,
+}
+`;
+
+exports[`golden: examples/csv > resolution (expected to change with the refactor) 1`] = `
+{
+  "hotspots-hotspots": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": null,
+        "format": "csv",
+        "from": "file",
+        "inline": false,
+        "shape": "feature",
+        "url": "./hotspots.csv",
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden: examples/extend-default > payloads (must survive the refactor byte-identically) 1`] = `
+{
+  "data": {
+    "ALPHAFOLD_CONFIDENCE": undefined,
+    "ALPHAMISSENSE_PATHOGENICITY": undefined,
+    "ANTIGEN": [
+      {
+        "begin": 1,
+        "description": "Fixture domain",
+        "end": 770,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "DOMAIN",
+      },
+    ],
+    "ANTIGEN-antigen": [
+      {
+        "begin": 1,
+        "description": "Fixture domain",
+        "end": 770,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "DOMAIN",
+      },
+    ],
+    "DOMAINS": [
+      {
+        "begin": 1,
+        "description": "Fixture domain",
+        "end": 770,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "DOMAIN",
+      },
+    ],
+    "DOMAINS-InterPro representative domain": [],
+    "DOMAINS-domain": [
+      {
+        "begin": 1,
+        "description": "Fixture domain",
+        "end": 770,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "DOMAIN",
+      },
+    ],
+    "DOMAINS-motif": [],
+    "DOMAINS-region": [],
+    "DOMAINS-repeat": [],
+    "DOMAINS-zn_fing": [],
+    "EPITOPE": [
+      {
+        "begin": 1,
+        "description": "Fixture domain",
+        "end": 770,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "DOMAIN",
+      },
+    ],
+    "EPITOPE-epitope": [
+      {
+        "begin": 1,
+        "description": "Fixture domain",
+        "end": 770,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "DOMAIN",
+      },
+    ],
+    "MOLECULE_PROCESSING": [],
+    "MOLECULE_PROCESSING-chain": [],
+    "MOLECULE_PROCESSING-init_met": [],
+    "MOLECULE_PROCESSING-peptide": [],
+    "MOLECULE_PROCESSING-propep": [],
+    "MOLECULE_PROCESSING-signal": [],
+    "MOLECULE_PROCESSING-transit": [],
+    "MUTAGENESIS": [
+      {
+        "begin": 1,
+        "description": "Fixture domain",
+        "end": 770,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "DOMAIN",
+      },
+    ],
+    "MUTAGENESIS-mutagen": [],
+    "MUTAGENESIS-othermutagen": [
+      {
+        "begin": 1,
+        "description": "Fixture domain",
+        "end": 770,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "DOMAIN",
+      },
+    ],
+    "MY_LAB": [
+      {
+        "description": "Custom re-annotation of the extracellular domain",
+        "end": 289,
+        "score": 0.9,
+        "start": 18,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Custom re-annotation of the extracellular domain</p><h5>Start</h5><p>18</p><h5>End</h5><p>289</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "description": "Lab-observed candidate binding residue",
+        "end": 614,
+        "score": 0.72,
+        "start": 614,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>Lab-observed candidate binding residue</p><h5>Start</h5><p>614</p><h5>End</h5><p>614</p>",
+        "type": "BINDING",
+      },
+    ],
+    "MY_LAB-hotspots": [
+      {
+        "description": "Custom re-annotation of the extracellular domain",
+        "end": 289,
+        "score": 0.9,
+        "start": 18,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Custom re-annotation of the extracellular domain</p><h5>Start</h5><p>18</p><h5>End</h5><p>289</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "description": "Lab-observed candidate binding residue",
+        "end": 614,
+        "score": 0.72,
+        "start": 614,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>Lab-observed candidate binding residue</p><h5>Start</h5><p>614</p><h5>End</h5><p>614</p>",
+        "type": "BINDING",
+      },
+    ],
+    "PROTEOMICS": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "PROTEOMICS-hpp": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "PROTEOMICS-non_unique": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "PROTEOMICS-proteomics-ptm": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "PROTEOMICS-unique": [],
+    "PTM": [],
+    "PTM-carbohyd": [],
+    "PTM-crosslnk": [],
+    "PTM-disulfid": [],
+    "PTM-lipid": [],
+    "PTM-mod_res": [],
+    "RNA_EDITING": undefined,
+    "SEQUENCE_INFORMATION": [],
+    "SEQUENCE_INFORMATION-compbias": [],
+    "SEQUENCE_INFORMATION-conflict": [],
+    "SEQUENCE_INFORMATION-non_cons": [],
+    "SEQUENCE_INFORMATION-non_std": [],
+    "SEQUENCE_INFORMATION-non_ter": [],
+    "SEQUENCE_INFORMATION-unsure": [],
+    "SITES": [],
+    "SITES-act_site": [],
+    "SITES-binding": [],
+    "SITES-ca_bind": [],
+    "SITES-dna_bind": [],
+    "SITES-metal": [],
+    "SITES-np_bind": [],
+    "SITES-site": [],
+    "STRUCTURE_COVERAGE": [],
+    "TOPOLOGY": [],
+    "TOPOLOGY-intramem": [],
+    "TOPOLOGY-topo_dom": [],
+    "TOPOLOGY-transmem": [],
+    "VARIATION": undefined,
+    "VARIATION-variation": {
+      "sequence": undefined,
+      "variants": [
+        {
+          "accession": undefined,
+          "begin": 1,
+          "description": "Fixture domain",
+          "end": 770,
+          "hasPredictions": undefined,
+          "start": 1,
+          "tooltipContent": "<h5>Position</h5><p>1</p>",
+          "type": "DOMAIN",
+          "variant": "",
+          "xrefNames": [],
+        },
+      ],
+    },
+    "VARIATION-variation__unfiltered": {
+      "sequence": undefined,
+      "variants": [
+        {
+          "accession": undefined,
+          "begin": 1,
+          "description": "Fixture domain",
+          "end": 770,
+          "hasPredictions": undefined,
+          "start": 1,
+          "tooltipContent": "<h5>Position</h5><p>1</p>",
+          "type": "DOMAIN",
+          "variant": "",
+          "xrefNames": [],
+        },
+      ],
+    },
+  },
+  "hasData": true,
+}
+`;
+
+exports[`golden: examples/extend-default > resolution (expected to change with the refactor) 1`] = `
+{
+  "ALPHAFOLD_CONFIDENCE-alphafold_confidence": {
+    "component": "nightingale-colored-sequence",
+    "kind": "alphafold-confidence",
+    "sources": [
+      {
+        "adapter": "alphafold-prediction-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": null,
+        "url": [
+          "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
+          "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
+        ],
+      },
+    ],
+  },
+  "ALPHAMISSENSE_PATHOGENICITY-alphamissense_pathogenicity": {
+    "component": "nightingale-colored-sequence",
+    "kind": "alphamissense-pathogenicity",
+    "sources": [
+      {
+        "adapter": "alphamissense-average-csv",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": null,
+        "url": [
+          "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
+          "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
+        ],
+      },
+    ],
+  },
+  "ALPHAMISSENSE_PATHOGENICITY-alphamissense_pathogenicity_heatmap": {
+    "component": "nightingale-sequence-heatmap",
+    "kind": "alphamissense-heatmap",
+    "sources": [
+      {
+        "adapter": "alphamissense-full-csv",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": null,
+        "url": [
+          "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
+          "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
+        ],
+      },
+    ],
+  },
+  "ANTIGEN-antigen": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/antigen/{accession}",
+      },
+    ],
+  },
+  "DOMAINS-InterPro representative domain": {
+    "component": "nightingale-track-canvas",
+    "kind": "interpro-features",
+    "sources": [
+      {
+        "adapter": "interpro-entries-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/{accession}?type=domain&page_size=100",
+      },
+    ],
+  },
+  "DOMAINS-domain": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "DOMAINS-motif": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "DOMAINS-region": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "DOMAINS-repeat": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "DOMAINS-zn_fing": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "EPITOPE-epitope": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/epitope/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-chain": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-init_met": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-peptide": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-propep": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-signal": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-transit": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MUTAGENESIS-mutagen": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MUTAGENESIS-othermutagen": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/mutagenesis/{accession}",
+      },
+    ],
+  },
+  "MY_LAB-hotspots": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": null,
+        "format": "csv",
+        "from": "file",
+        "inline": false,
+        "shape": "feature",
+        "url": "./hotspots.csv",
+      },
+    ],
+  },
+  "PROTEOMICS-hpp": {
+    "component": "nightingale-track-canvas",
+    "kind": "peptides",
+    "sources": [
+      {
+        "adapter": "uniprot-proteomics-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteomics/hpp/{accession}",
+      },
+    ],
+  },
+  "PROTEOMICS-non_unique": {
+    "component": "nightingale-track-canvas",
+    "kind": "peptides",
+    "sources": [
+      {
+        "adapter": "uniprot-proteomics-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/{accession}",
+      },
+    ],
+  },
+  "PROTEOMICS-proteomics-ptm": {
+    "component": "nightingale-track-canvas",
+    "kind": "peptides",
+    "sources": [
+      {
+        "adapter": "uniprot-proteomics-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/{accession}",
+      },
+    ],
+  },
+  "PROTEOMICS-unique": {
+    "component": "nightingale-track-canvas",
+    "kind": "peptides",
+    "sources": [
+      {
+        "adapter": "uniprot-proteomics-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/{accession}",
+      },
+    ],
+  },
+  "PTM-carbohyd": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "PTM-crosslnk": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "PTM-disulfid": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "PTM-lipid": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "PTM-mod_res": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "PTM-mod_res_ls": {
+    "component": "nightingale-track-canvas",
+    "kind": "peptides-ptm",
+    "sources": [
+      {
+        "adapter": "uniprot-proteomics-ptm-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/{accession}",
+      },
+    ],
+  },
+  "RNA_EDITING-RNA Editing": {
+    "component": "nightingale-variation-canvas",
+    "kind": "rna-editing",
+    "sources": [
+      {
+        "adapter": "uniprot-rna-editing-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "variation",
+        "url": "https://www.ebi.ac.uk/proteins/api/rna-editing/{accession}",
+      },
+    ],
+  },
+  "RNA_EDITING-rna_editing_graph": {
+    "component": "nightingale-linegraph-track",
+    "kind": "rna-editing-counts",
+    "sources": [
+      {
+        "adapter": "uniprot-rna-editing-counts-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "point",
+        "url": "https://www.ebi.ac.uk/proteins/api/rna-editing/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-compbias": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-conflict": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-non_cons": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-non_std": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-non_ter": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-unsure": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-act_site": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-binding": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-ca_bind": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-dna_bind": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-metal": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-np_bind": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-site": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "STRUCTURE_COVERAGE-pdbe_cover": {
+    "component": "nightingale-track-canvas",
+    "kind": "structure-coverage",
+    "sources": [
+      {
+        "adapter": "uniprot-proteins-pdb-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
+      },
+    ],
+  },
+  "TOPOLOGY-intramem": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "TOPOLOGY-topo_dom": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "TOPOLOGY-transmem": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "VARIATION-variation": {
+    "component": "nightingale-variation-canvas",
+    "kind": "variants",
+    "sources": [
+      {
+        "adapter": "uniprot-variation-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "variation",
+        "url": "https://www.ebi.ac.uk/proteins/api/variation/{accession}",
+      },
+    ],
+  },
+  "VARIATION-variation_graph": {
+    "component": "nightingale-linegraph-track",
+    "kind": "variant-counts",
+    "sources": [
+      {
+        "adapter": "uniprot-variation-counts-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "point",
+        "url": "https://www.ebi.ac.uk/proteins/api/variation/{accession}",
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden: examples/inline-data > payloads (must survive the refactor byte-identically) 1`] = `
+{
+  "data": {
+    "MY_ANNOTATIONS": [
+      {
+        "description": "ATP binding",
+        "end": 52,
+        "start": 45,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>ATP binding</p><h5>Start</h5><p>45</p><h5>End</h5><p>52</p>",
+        "type": "BINDING",
+      },
+      {
+        "description": "Mg2+ binding",
+        "end": 128,
+        "start": 120,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>Mg2+ binding</p><h5>Start</h5><p>120</p><h5>End</h5><p>128</p>",
+        "type": "BINDING",
+      },
+    ],
+    "MY_ANNOTATIONS-binding_sites": [
+      {
+        "description": "ATP binding",
+        "end": 52,
+        "start": 45,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>ATP binding</p><h5>Start</h5><p>45</p><h5>End</h5><p>52</p>",
+        "type": "BINDING",
+      },
+      {
+        "description": "Mg2+ binding",
+        "end": 128,
+        "start": 120,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>Mg2+ binding</p><h5>Start</h5><p>120</p><h5>End</h5><p>128</p>",
+        "type": "BINDING",
+      },
+    ],
+  },
+  "hasData": true,
+}
+`;
+
+exports[`golden: examples/inline-data > resolution (expected to change with the refactor) 1`] = `
+{
+  "MY_ANNOTATIONS-binding_sites": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "inline",
+        "inline": true,
+        "shape": "feature",
+        "url": null,
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden: examples/json > payloads (must survive the refactor byte-identically) 1`] = `
+{
+  "data": {
+    "MY_LAB": [
+      {
+        "description": "Extracellular domain (custom re-annotation)",
+        "end": 289,
+        "score": 0.95,
+        "start": 18,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Extracellular domain (custom re-annotation)</p><h5>Start</h5><p>18</p><h5>End</h5><p>289</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "description": "Predicted transmembrane-adjacent binding motif",
+        "end": 723,
+        "score": 0.7,
+        "start": 700,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>Predicted transmembrane-adjacent binding motif</p><h5>Start</h5><p>700</p><h5>End</h5><p>723</p>",
+        "type": "BINDING",
+      },
+      {
+        "description": "Custom-called hotspot region",
+        "end": 713,
+        "score": 0.62,
+        "start": 672,
+        "tooltipContent": "<h5>Type</h5><p>REGION</p><h5>Description</h5><p>Custom-called hotspot region</p><h5>Start</h5><p>672</p><h5>End</h5><p>713</p>",
+        "type": "REGION",
+      },
+    ],
+    "MY_LAB-hotspots": [
+      {
+        "description": "Extracellular domain (custom re-annotation)",
+        "end": 289,
+        "score": 0.95,
+        "start": 18,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Extracellular domain (custom re-annotation)</p><h5>Start</h5><p>18</p><h5>End</h5><p>289</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "description": "Predicted transmembrane-adjacent binding motif",
+        "end": 723,
+        "score": 0.7,
+        "start": 700,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>Predicted transmembrane-adjacent binding motif</p><h5>Start</h5><p>700</p><h5>End</h5><p>723</p>",
+        "type": "BINDING",
+      },
+      {
+        "description": "Custom-called hotspot region",
+        "end": 713,
+        "score": 0.62,
+        "start": 672,
+        "tooltipContent": "<h5>Type</h5><p>REGION</p><h5>Description</h5><p>Custom-called hotspot region</p><h5>Start</h5><p>672</p><h5>End</h5><p>713</p>",
+        "type": "REGION",
+      },
+    ],
+    "UNIPROT_DOMAINS": [],
+    "UNIPROT_DOMAINS-domain": [],
+  },
+  "hasData": true,
+}
+`;
+
+exports[`golden: examples/json > resolution (expected to change with the refactor) 1`] = `
+{
+  "MY_LAB-hotspots": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": null,
+        "format": "json",
+        "from": "file",
+        "inline": false,
+        "shape": "feature",
+        "url": "./hotspots.json",
+      },
+    ],
+  },
+  "UNIPROT_DOMAINS-domain": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden: examples/linegraph > payloads (must survive the refactor byte-identically) 1`] = `
+{
+  "data": {
+    "read_depth": [
+      {
+        "color": "#3d4451",
+        "name": "value",
+        "range": [
+          356,
+          1319,
+        ],
+        "tooltipContent": "<h5>Name</h5><p>value</p>",
+        "values": [
+          {
+            "position": 1,
+            "value": 412,
+          },
+          {
+            "position": 30,
+            "value": 688,
+          },
+          {
+            "position": 60,
+            "value": 905,
+          },
+          {
+            "position": 90,
+            "value": 1044,
+          },
+          {
+            "position": 120,
+            "value": 1131,
+          },
+          {
+            "position": 150,
+            "value": 1096,
+          },
+          {
+            "position": 180,
+            "value": 1172,
+          },
+          {
+            "position": 210,
+            "value": 1240,
+          },
+          {
+            "position": 240,
+            "value": 1198,
+          },
+          {
+            "position": 270,
+            "value": 1085,
+          },
+          {
+            "position": 300,
+            "value": 967,
+          },
+          {
+            "position": 330,
+            "value": 1023,
+          },
+          {
+            "position": 360,
+            "value": 1154,
+          },
+          {
+            "position": 390,
+            "value": 1287,
+          },
+          {
+            "position": 420,
+            "value": 1319,
+          },
+          {
+            "position": 450,
+            "value": 1252,
+          },
+          {
+            "position": 480,
+            "value": 1108,
+          },
+          {
+            "position": 510,
+            "value": 994,
+          },
+          {
+            "position": 540,
+            "value": 1061,
+          },
+          {
+            "position": 570,
+            "value": 1183,
+          },
+          {
+            "position": 600,
+            "value": 1229,
+          },
+          {
+            "position": 630,
+            "value": 1147,
+          },
+          {
+            "position": 660,
+            "value": 1012,
+          },
+          {
+            "position": 690,
+            "value": 873,
+          },
+          {
+            "position": 720,
+            "value": 701,
+          },
+          {
+            "position": 750,
+            "value": 488,
+          },
+          {
+            "position": 770,
+            "value": 356,
+          },
+        ],
+      },
+    ],
+    "read_depth-read_depth": [
+      {
+        "color": "#3d4451",
+        "name": "value",
+        "range": [
+          356,
+          1319,
+        ],
+        "tooltipContent": "<h5>Name</h5><p>value</p>",
+        "values": [
+          {
+            "position": 1,
+            "value": 412,
+          },
+          {
+            "position": 30,
+            "value": 688,
+          },
+          {
+            "position": 60,
+            "value": 905,
+          },
+          {
+            "position": 90,
+            "value": 1044,
+          },
+          {
+            "position": 120,
+            "value": 1131,
+          },
+          {
+            "position": 150,
+            "value": 1096,
+          },
+          {
+            "position": 180,
+            "value": 1172,
+          },
+          {
+            "position": 210,
+            "value": 1240,
+          },
+          {
+            "position": 240,
+            "value": 1198,
+          },
+          {
+            "position": 270,
+            "value": 1085,
+          },
+          {
+            "position": 300,
+            "value": 967,
+          },
+          {
+            "position": 330,
+            "value": 1023,
+          },
+          {
+            "position": 360,
+            "value": 1154,
+          },
+          {
+            "position": 390,
+            "value": 1287,
+          },
+          {
+            "position": 420,
+            "value": 1319,
+          },
+          {
+            "position": 450,
+            "value": 1252,
+          },
+          {
+            "position": 480,
+            "value": 1108,
+          },
+          {
+            "position": 510,
+            "value": 994,
+          },
+          {
+            "position": 540,
+            "value": 1061,
+          },
+          {
+            "position": 570,
+            "value": 1183,
+          },
+          {
+            "position": 600,
+            "value": 1229,
+          },
+          {
+            "position": 630,
+            "value": 1147,
+          },
+          {
+            "position": 660,
+            "value": 1012,
+          },
+          {
+            "position": 690,
+            "value": 873,
+          },
+          {
+            "position": 720,
+            "value": 701,
+          },
+          {
+            "position": 750,
+            "value": 488,
+          },
+          {
+            "position": 770,
+            "value": 356,
+          },
+        ],
+      },
+    ],
+  },
+  "hasData": true,
+}
+`;
+
+exports[`golden: examples/linegraph > resolution (expected to change with the refactor) 1`] = `
+{
+  "read_depth-read_depth": {
+    "component": "nightingale-linegraph-track",
+    "kind": "linegraph",
+    "sources": [
+      {
+        "adapter": null,
+        "format": "json",
+        "from": "inline",
+        "inline": true,
+        "shape": "point",
+        "url": null,
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden: examples/linegraph-csv > payloads (must survive the refactor byte-identically) 1`] = `
+{
+  "data": {
+    "read_depth": [
+      {
+        "color": "#3d4451",
+        "name": "value",
+        "range": [
+          356,
+          1319,
+        ],
+        "tooltipContent": "<h5>Name</h5><p>value</p>",
+        "values": [
+          {
+            "position": 1,
+            "value": 412,
+          },
+          {
+            "position": 30,
+            "value": 688,
+          },
+          {
+            "position": 60,
+            "value": 905,
+          },
+          {
+            "position": 90,
+            "value": 1044,
+          },
+          {
+            "position": 120,
+            "value": 1131,
+          },
+          {
+            "position": 150,
+            "value": 1096,
+          },
+          {
+            "position": 180,
+            "value": 1172,
+          },
+          {
+            "position": 210,
+            "value": 1240,
+          },
+          {
+            "position": 240,
+            "value": 1198,
+          },
+          {
+            "position": 270,
+            "value": 1085,
+          },
+          {
+            "position": 300,
+            "value": 967,
+          },
+          {
+            "position": 330,
+            "value": 1023,
+          },
+          {
+            "position": 360,
+            "value": 1154,
+          },
+          {
+            "position": 390,
+            "value": 1287,
+          },
+          {
+            "position": 420,
+            "value": 1319,
+          },
+          {
+            "position": 450,
+            "value": 1252,
+          },
+          {
+            "position": 480,
+            "value": 1108,
+          },
+          {
+            "position": 510,
+            "value": 994,
+          },
+          {
+            "position": 540,
+            "value": 1061,
+          },
+          {
+            "position": 570,
+            "value": 1183,
+          },
+          {
+            "position": 600,
+            "value": 1229,
+          },
+          {
+            "position": 630,
+            "value": 1147,
+          },
+          {
+            "position": 660,
+            "value": 1012,
+          },
+          {
+            "position": 690,
+            "value": 873,
+          },
+          {
+            "position": 720,
+            "value": 701,
+          },
+          {
+            "position": 750,
+            "value": 488,
+          },
+          {
+            "position": 770,
+            "value": 356,
+          },
+        ],
+      },
+    ],
+    "read_depth-read_depth": [
+      {
+        "color": "#3d4451",
+        "name": "value",
+        "range": [
+          356,
+          1319,
+        ],
+        "tooltipContent": "<h5>Name</h5><p>value</p>",
+        "values": [
+          {
+            "position": 1,
+            "value": 412,
+          },
+          {
+            "position": 30,
+            "value": 688,
+          },
+          {
+            "position": 60,
+            "value": 905,
+          },
+          {
+            "position": 90,
+            "value": 1044,
+          },
+          {
+            "position": 120,
+            "value": 1131,
+          },
+          {
+            "position": 150,
+            "value": 1096,
+          },
+          {
+            "position": 180,
+            "value": 1172,
+          },
+          {
+            "position": 210,
+            "value": 1240,
+          },
+          {
+            "position": 240,
+            "value": 1198,
+          },
+          {
+            "position": 270,
+            "value": 1085,
+          },
+          {
+            "position": 300,
+            "value": 967,
+          },
+          {
+            "position": 330,
+            "value": 1023,
+          },
+          {
+            "position": 360,
+            "value": 1154,
+          },
+          {
+            "position": 390,
+            "value": 1287,
+          },
+          {
+            "position": 420,
+            "value": 1319,
+          },
+          {
+            "position": 450,
+            "value": 1252,
+          },
+          {
+            "position": 480,
+            "value": 1108,
+          },
+          {
+            "position": 510,
+            "value": 994,
+          },
+          {
+            "position": 540,
+            "value": 1061,
+          },
+          {
+            "position": 570,
+            "value": 1183,
+          },
+          {
+            "position": 600,
+            "value": 1229,
+          },
+          {
+            "position": 630,
+            "value": 1147,
+          },
+          {
+            "position": 660,
+            "value": 1012,
+          },
+          {
+            "position": 690,
+            "value": 873,
+          },
+          {
+            "position": 720,
+            "value": 701,
+          },
+          {
+            "position": 750,
+            "value": 488,
+          },
+          {
+            "position": 770,
+            "value": 356,
+          },
+        ],
+      },
+    ],
+  },
+  "hasData": true,
+}
+`;
+
+exports[`golden: examples/linegraph-csv > resolution (expected to change with the refactor) 1`] = `
+{
+  "read_depth-read_depth": {
+    "component": "nightingale-linegraph-track",
+    "kind": "linegraph",
+    "sources": [
+      {
+        "adapter": null,
+        "format": "csv",
+        "from": "file",
+        "inline": false,
+        "shape": "point",
+        "url": "./depth.csv",
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden: examples/tsv > payloads (must survive the refactor byte-identically) 1`] = `
+{
+  "data": {
+    "MY_LAB": [
+      {
+        "description": "Kunitz-type protease inhibitor domain (custom)",
+        "end": 501,
+        "score": 0.93,
+        "start": 345,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Kunitz-type protease inhibitor domain (custom)</p><h5>Start</h5><p>345</p><h5>End</h5><p>501</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "description": "Predicted copper-binding motif",
+        "end": 600,
+        "score": 0.81,
+        "start": 551,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>Predicted copper-binding motif</p><h5>Start</h5><p>551</p><h5>End</h5><p>600</p>",
+        "type": "BINDING",
+      },
+      {
+        "description": "Juxtamembrane regulatory region",
+        "end": 650,
+        "score": 0.55,
+        "start": 601,
+        "tooltipContent": "<h5>Type</h5><p>REGION</p><h5>Description</h5><p>Juxtamembrane regulatory region</p><h5>Start</h5><p>601</p><h5>End</h5><p>650</p>",
+        "type": "REGION",
+      },
+    ],
+    "MY_LAB-hotspots": [
+      {
+        "description": "Kunitz-type protease inhibitor domain (custom)",
+        "end": 501,
+        "score": 0.93,
+        "start": 345,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Kunitz-type protease inhibitor domain (custom)</p><h5>Start</h5><p>345</p><h5>End</h5><p>501</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "description": "Predicted copper-binding motif",
+        "end": 600,
+        "score": 0.81,
+        "start": 551,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>Predicted copper-binding motif</p><h5>Start</h5><p>551</p><h5>End</h5><p>600</p>",
+        "type": "BINDING",
+      },
+      {
+        "description": "Juxtamembrane regulatory region",
+        "end": 650,
+        "score": 0.55,
+        "start": 601,
+        "tooltipContent": "<h5>Type</h5><p>REGION</p><h5>Description</h5><p>Juxtamembrane regulatory region</p><h5>Start</h5><p>601</p><h5>End</h5><p>650</p>",
+        "type": "REGION",
+      },
+    ],
+  },
+  "hasData": true,
+}
+`;
+
+exports[`golden: examples/tsv > resolution (expected to change with the refactor) 1`] = `
+{
+  "MY_LAB-hotspots": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": null,
+        "format": "tsv",
+        "from": "file",
+        "inline": false,
+        "shape": "feature",
+        "url": "./hotspots.tsv",
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden: examples/variation-csv > payloads (must survive the refactor byte-identically) 1`] = `
+{
+  "data": {
+    "cohort_variants": [
+      {
+        "variants": [
+          {
+            "accession": "D672N",
+            "consequence": "missense",
+            "consequenceType": "missense",
+            "description": "Observed in 3 of 48 cohort samples",
+            "end": 672,
+            "hasPredictions": false,
+            "start": 672,
+            "tooltipContent": "<h5>Wild type</h5><p>D</p><h5>Consequence</h5><p>missense</p>",
+            "variant": "N",
+            "wildType": "D",
+            "xrefNames": [],
+          },
+          {
+            "accession": "A673V",
+            "consequence": "missense",
+            "consequenceType": "missense",
+            "description": "Observed in 1 of 48 cohort samples",
+            "end": 673,
+            "hasPredictions": false,
+            "start": 673,
+            "tooltipContent": "<h5>Wild type</h5><p>A</p><h5>Consequence</h5><p>missense</p>",
+            "variant": "V",
+            "wildType": "A",
+            "xrefNames": [],
+          },
+          {
+            "accession": "K692N",
+            "consequence": "missense",
+            "consequenceType": "missense",
+            "description": "Recurrent in early-onset subgroup",
+            "end": 692,
+            "hasPredictions": false,
+            "start": 692,
+            "tooltipContent": "<h5>Wild type</h5><p>K</p><h5>Consequence</h5><p>missense</p>",
+            "variant": "N",
+            "wildType": "K",
+            "xrefNames": [],
+          },
+          {
+            "accession": "I714M",
+            "consequence": "missense",
+            "consequenceType": "missense",
+            "description": "Single carrier; low coverage",
+            "end": 714,
+            "hasPredictions": false,
+            "start": 714,
+            "tooltipContent": "<h5>Wild type</h5><p>I</p><h5>Consequence</h5><p>missense</p>",
+            "variant": "M",
+            "wildType": "I",
+            "xrefNames": [],
+          },
+          {
+            "accession": "V717G",
+            "consequence": "missense",
+            "consequenceType": "missense",
+            "description": "Known pathogenic substitution",
+            "end": 717,
+            "hasPredictions": false,
+            "start": 717,
+            "tooltipContent": "<h5>Wild type</h5><p>V</p><h5>Consequence</h5><p>missense</p>",
+            "variant": "G",
+            "wildType": "V",
+            "xrefNames": [],
+          },
+          {
+            "accession": "T723*",
+            "consequence": "stop_gained",
+            "consequenceType": "stop_gained",
+            "description": "Premature stop in one carrier",
+            "end": 723,
+            "hasPredictions": false,
+            "start": 723,
+            "tooltipContent": "<h5>Wild type</h5><p>T</p><h5>Consequence</h5><p>stop_gained</p>",
+            "variant": "*",
+            "wildType": "T",
+            "xrefNames": [],
+          },
+        ],
+      },
+    ],
+    "cohort_variants-cohort_variants": {
+      "variants": [
+        {
+          "accession": "D672N",
+          "consequence": "missense",
+          "consequenceType": "missense",
+          "description": "Observed in 3 of 48 cohort samples",
+          "end": 672,
+          "hasPredictions": false,
+          "start": 672,
+          "tooltipContent": "<h5>Wild type</h5><p>D</p><h5>Consequence</h5><p>missense</p>",
+          "variant": "N",
+          "wildType": "D",
+          "xrefNames": [],
+        },
+        {
+          "accession": "A673V",
+          "consequence": "missense",
+          "consequenceType": "missense",
+          "description": "Observed in 1 of 48 cohort samples",
+          "end": 673,
+          "hasPredictions": false,
+          "start": 673,
+          "tooltipContent": "<h5>Wild type</h5><p>A</p><h5>Consequence</h5><p>missense</p>",
+          "variant": "V",
+          "wildType": "A",
+          "xrefNames": [],
+        },
+        {
+          "accession": "K692N",
+          "consequence": "missense",
+          "consequenceType": "missense",
+          "description": "Recurrent in early-onset subgroup",
+          "end": 692,
+          "hasPredictions": false,
+          "start": 692,
+          "tooltipContent": "<h5>Wild type</h5><p>K</p><h5>Consequence</h5><p>missense</p>",
+          "variant": "N",
+          "wildType": "K",
+          "xrefNames": [],
+        },
+        {
+          "accession": "I714M",
+          "consequence": "missense",
+          "consequenceType": "missense",
+          "description": "Single carrier; low coverage",
+          "end": 714,
+          "hasPredictions": false,
+          "start": 714,
+          "tooltipContent": "<h5>Wild type</h5><p>I</p><h5>Consequence</h5><p>missense</p>",
+          "variant": "M",
+          "wildType": "I",
+          "xrefNames": [],
+        },
+        {
+          "accession": "V717G",
+          "consequence": "missense",
+          "consequenceType": "missense",
+          "description": "Known pathogenic substitution",
+          "end": 717,
+          "hasPredictions": false,
+          "start": 717,
+          "tooltipContent": "<h5>Wild type</h5><p>V</p><h5>Consequence</h5><p>missense</p>",
+          "variant": "G",
+          "wildType": "V",
+          "xrefNames": [],
+        },
+        {
+          "accession": "T723*",
+          "consequence": "stop_gained",
+          "consequenceType": "stop_gained",
+          "description": "Premature stop in one carrier",
+          "end": 723,
+          "hasPredictions": false,
+          "start": 723,
+          "tooltipContent": "<h5>Wild type</h5><p>T</p><h5>Consequence</h5><p>stop_gained</p>",
+          "variant": "*",
+          "wildType": "T",
+          "xrefNames": [],
+        },
+      ],
+    },
+  },
+  "hasData": true,
+}
+`;
+
+exports[`golden: examples/variation-csv > resolution (expected to change with the refactor) 1`] = `
+{
+  "cohort_variants-cohort_variants": {
+    "component": "nightingale-variation-canvas",
+    "kind": "variants",
+    "sources": [
+      {
+        "adapter": null,
+        "format": "csv",
+        "from": "file",
+        "inline": false,
+        "shape": "variation",
+        "url": "./my-variants.csv",
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden: kind × source resolution matrix > resolves every kind against every source form 1`] = `
+{
+  "alphafold-confidence": {
+    "extensionless URL": "alphafold-prediction-json",
+    "file .bed": "alphafold-prediction-json [kind-format-mismatch]",
+    "file .csv": "alphafold-prediction-json [kind-format-mismatch]",
+    "file .json": "alphafold-prediction-json [kind-format-mismatch]",
+    "file .tsv": "alphafold-prediction-json [kind-format-mismatch]",
+    "hosted .csv": "alphafold-prediction-json [kind-format-mismatch]",
+    "hosted .json": "alphafold-prediction-json [kind-format-mismatch]",
+    "inline": "alphafold-prediction-json",
+  },
+  "alphamissense-heatmap": {
+    "extensionless URL": "alphamissense-full-csv",
+    "file .bed": "alphamissense-full-csv [kind-format-mismatch]",
+    "file .csv": "alphamissense-full-csv [kind-format-mismatch]",
+    "file .json": "alphamissense-full-csv [kind-format-mismatch]",
+    "file .tsv": "alphamissense-full-csv [kind-format-mismatch]",
+    "hosted .csv": "alphamissense-full-csv [kind-format-mismatch]",
+    "hosted .json": "alphamissense-full-csv [kind-format-mismatch]",
+    "inline": "alphamissense-full-csv",
+  },
+  "alphamissense-pathogenicity": {
+    "extensionless URL": "alphamissense-average-csv",
+    "file .bed": "alphamissense-average-csv [kind-format-mismatch]",
+    "file .csv": "alphamissense-average-csv [kind-format-mismatch]",
+    "file .json": "alphamissense-average-csv [kind-format-mismatch]",
+    "file .tsv": "alphamissense-average-csv [kind-format-mismatch]",
+    "hosted .csv": "alphamissense-average-csv [kind-format-mismatch]",
+    "hosted .json": "alphamissense-average-csv [kind-format-mismatch]",
+    "inline": "alphamissense-average-csv",
+  },
+  "features": {
+    "extensionless URL": "uniprot-features-json",
+    "file .bed": "feature/bed",
+    "file .csv": "feature/csv",
+    "file .json": "feature/json",
+    "file .tsv": "feature/tsv",
+    "hosted .csv": "feature/csv",
+    "hosted .json": "feature/json",
+    "inline": "uniprot-features-json",
+  },
+  "interpro-features": {
+    "extensionless URL": "interpro-entries-json",
+    "file .bed": "feature/bed",
+    "file .csv": "feature/csv",
+    "file .json": "feature/json",
+    "file .tsv": "feature/tsv",
+    "hosted .csv": "feature/csv",
+    "hosted .json": "feature/json",
+    "inline": "interpro-entries-json",
+  },
+  "linegraph": {
+    "extensionless URL": "point/json",
+    "file .bed": "point/bed [kind-format-mismatch]",
+    "file .csv": "point/csv",
+    "file .json": "point/json",
+    "file .tsv": "point/tsv",
+    "hosted .csv": "point/csv",
+    "hosted .json": "point/json",
+    "inline": "point/json",
+  },
+  "peptides": {
+    "extensionless URL": "uniprot-proteomics-json",
+    "file .bed": "feature/bed",
+    "file .csv": "feature/csv",
+    "file .json": "feature/json",
+    "file .tsv": "feature/tsv",
+    "hosted .csv": "feature/csv",
+    "hosted .json": "feature/json",
+    "inline": "uniprot-proteomics-json",
+  },
+  "peptides-ptm": {
+    "extensionless URL": "uniprot-proteomics-ptm-json",
+    "file .bed": "feature/bed",
+    "file .csv": "feature/csv",
+    "file .json": "feature/json",
+    "file .tsv": "feature/tsv",
+    "hosted .csv": "feature/csv",
+    "hosted .json": "feature/json",
+    "inline": "uniprot-proteomics-ptm-json",
+  },
+  "rna-editing": {
+    "extensionless URL": "uniprot-rna-editing-json",
+    "file .bed": "variation/bed [kind-format-mismatch]",
+    "file .csv": "variation/csv",
+    "file .json": "variation/json",
+    "file .tsv": "variation/tsv",
+    "hosted .csv": "variation/csv",
+    "hosted .json": "variation/json",
+    "inline": "uniprot-rna-editing-json",
+  },
+  "rna-editing-counts": {
+    "extensionless URL": "uniprot-rna-editing-counts-json",
+    "file .bed": "point/bed [kind-format-mismatch]",
+    "file .csv": "point/csv",
+    "file .json": "point/json",
+    "file .tsv": "point/tsv",
+    "hosted .csv": "point/csv",
+    "hosted .json": "point/json",
+    "inline": "uniprot-rna-editing-counts-json",
+  },
+  "structure-coverage": {
+    "extensionless URL": "uniprot-proteins-pdb-json",
+    "file .bed": "feature/bed",
+    "file .csv": "feature/csv",
+    "file .json": "feature/json",
+    "file .tsv": "feature/tsv",
+    "hosted .csv": "feature/csv",
+    "hosted .json": "feature/json",
+    "inline": "uniprot-proteins-pdb-json",
+  },
+  "variant-counts": {
+    "extensionless URL": "uniprot-variation-counts-json",
+    "file .bed": "point/bed [kind-format-mismatch]",
+    "file .csv": "point/csv",
+    "file .json": "point/json",
+    "file .tsv": "point/tsv",
+    "hosted .csv": "point/csv",
+    "hosted .json": "point/json",
+    "inline": "uniprot-variation-counts-json",
+  },
+  "variants": {
+    "extensionless URL": "uniprot-variation-json",
+    "file .bed": "variation/bed [kind-format-mismatch]",
+    "file .csv": "variation/csv",
+    "file .json": "variation/json",
+    "file .tsv": "variation/tsv",
+    "hosted .csv": "variation/csv",
+    "hosted .json": "variation/json",
+    "inline": "uniprot-variation-json",
+  },
+}
+`;
+
+exports[`golden: src/default-config.yaml > payloads (must survive the refactor byte-identically) 1`] = `
+{
+  "data": {
+    "ALPHAFOLD_CONFIDENCE": undefined,
+    "ALPHAMISSENSE_PATHOGENICITY": undefined,
+    "ANTIGEN": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "ANTIGEN-antigen": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "DOMAINS": [],
+    "DOMAINS-InterPro representative domain": [],
+    "DOMAINS-domain": [],
+    "DOMAINS-motif": [],
+    "DOMAINS-region": [],
+    "DOMAINS-repeat": [],
+    "DOMAINS-zn_fing": [],
+    "EPITOPE": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "EPITOPE-epitope": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "MOLECULE_PROCESSING": [],
+    "MOLECULE_PROCESSING-chain": [],
+    "MOLECULE_PROCESSING-init_met": [],
+    "MOLECULE_PROCESSING-peptide": [],
+    "MOLECULE_PROCESSING-propep": [],
+    "MOLECULE_PROCESSING-signal": [],
+    "MOLECULE_PROCESSING-transit": [],
+    "MUTAGENESIS": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "MUTAGENESIS-mutagen": [],
+    "MUTAGENESIS-othermutagen": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "PROTEOMICS": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "PROTEOMICS-hpp": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "PROTEOMICS-non_unique": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "PROTEOMICS-proteomics-ptm": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "PROTEOMICS-unique": [],
+    "PTM": [],
+    "PTM-carbohyd": [],
+    "PTM-crosslnk": [],
+    "PTM-disulfid": [],
+    "PTM-lipid": [],
+    "PTM-mod_res": [],
+    "RNA_EDITING": undefined,
+    "SEQUENCE_INFORMATION": [],
+    "SEQUENCE_INFORMATION-compbias": [],
+    "SEQUENCE_INFORMATION-conflict": [],
+    "SEQUENCE_INFORMATION-non_cons": [],
+    "SEQUENCE_INFORMATION-non_std": [],
+    "SEQUENCE_INFORMATION-non_ter": [],
+    "SEQUENCE_INFORMATION-unsure": [],
+    "SITES": [],
+    "SITES-act_site": [],
+    "SITES-binding": [],
+    "SITES-ca_bind": [],
+    "SITES-dna_bind": [],
+    "SITES-metal": [],
+    "SITES-np_bind": [],
+    "SITES-site": [],
+    "STRUCTURE_COVERAGE": [],
+    "TOPOLOGY": [],
+    "TOPOLOGY-intramem": [],
+    "TOPOLOGY-topo_dom": [],
+    "TOPOLOGY-transmem": [],
+    "VARIATION": undefined,
+    "VARIATION-variation": {
+      "sequence": undefined,
+      "variants": [
+        {
+          "accession": undefined,
+          "begin": 1,
+          "category": "PROTEOMICS",
+          "description": "Fixture domain",
+          "end": 770,
+          "hasPredictions": undefined,
+          "residuesToHighlight": undefined,
+          "start": 1,
+          "tooltipContent": "<h5>Position</h5><p>1</p>",
+          "type": "non_unique",
+          "variant": "",
+          "xrefNames": [],
+        },
+      ],
+    },
+    "VARIATION-variation__unfiltered": {
+      "sequence": undefined,
+      "variants": [
+        {
+          "accession": undefined,
+          "begin": 1,
+          "category": "PROTEOMICS",
+          "description": "Fixture domain",
+          "end": 770,
+          "hasPredictions": undefined,
+          "residuesToHighlight": undefined,
+          "start": 1,
+          "tooltipContent": "<h5>Position</h5><p>1</p>",
+          "type": "non_unique",
+          "variant": "",
+          "xrefNames": [],
+        },
+      ],
+    },
+  },
+  "hasData": true,
+}
+`;
+
+exports[`golden: src/default-config.yaml > resolution (expected to change with the refactor) 1`] = `
+{
+  "ALPHAFOLD_CONFIDENCE-alphafold_confidence": {
+    "component": "nightingale-colored-sequence",
+    "kind": "alphafold-confidence",
+    "sources": [
+      {
+        "adapter": "alphafold-prediction-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": null,
+        "url": [
+          "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
+          "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
+        ],
+      },
+    ],
+  },
+  "ALPHAMISSENSE_PATHOGENICITY-alphamissense_pathogenicity": {
+    "component": "nightingale-colored-sequence",
+    "kind": "alphamissense-pathogenicity",
+    "sources": [
+      {
+        "adapter": "alphamissense-average-csv",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": null,
+        "url": [
+          "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
+          "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
+        ],
+      },
+    ],
+  },
+  "ALPHAMISSENSE_PATHOGENICITY-alphamissense_pathogenicity_heatmap": {
+    "component": "nightingale-sequence-heatmap",
+    "kind": "alphamissense-heatmap",
+    "sources": [
+      {
+        "adapter": "alphamissense-full-csv",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": null,
+        "url": [
+          "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
+          "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
+        ],
+      },
+    ],
+  },
+  "ANTIGEN-antigen": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/antigen/{accession}",
+      },
+    ],
+  },
+  "DOMAINS-InterPro representative domain": {
+    "component": "nightingale-track-canvas",
+    "kind": "interpro-features",
+    "sources": [
+      {
+        "adapter": "interpro-entries-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/{accession}?type=domain&page_size=100",
+      },
+    ],
+  },
+  "DOMAINS-domain": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "DOMAINS-motif": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "DOMAINS-region": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "DOMAINS-repeat": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "DOMAINS-zn_fing": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "EPITOPE-epitope": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/epitope/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-chain": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-init_met": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-peptide": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-propep": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-signal": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-transit": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MUTAGENESIS-mutagen": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MUTAGENESIS-othermutagen": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/mutagenesis/{accession}",
+      },
+    ],
+  },
+  "PROTEOMICS-hpp": {
+    "component": "nightingale-track-canvas",
+    "kind": "peptides",
+    "sources": [
+      {
+        "adapter": "uniprot-proteomics-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteomics/hpp/{accession}",
+      },
+    ],
+  },
+  "PROTEOMICS-non_unique": {
+    "component": "nightingale-track-canvas",
+    "kind": "peptides",
+    "sources": [
+      {
+        "adapter": "uniprot-proteomics-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/{accession}",
+      },
+    ],
+  },
+  "PROTEOMICS-proteomics-ptm": {
+    "component": "nightingale-track-canvas",
+    "kind": "peptides",
+    "sources": [
+      {
+        "adapter": "uniprot-proteomics-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/{accession}",
+      },
+    ],
+  },
+  "PROTEOMICS-unique": {
+    "component": "nightingale-track-canvas",
+    "kind": "peptides",
+    "sources": [
+      {
+        "adapter": "uniprot-proteomics-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/{accession}",
+      },
+    ],
+  },
+  "PTM-carbohyd": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "PTM-crosslnk": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "PTM-disulfid": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "PTM-lipid": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "PTM-mod_res": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "PTM-mod_res_ls": {
+    "component": "nightingale-track-canvas",
+    "kind": "peptides-ptm",
+    "sources": [
+      {
+        "adapter": "uniprot-proteomics-ptm-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/{accession}",
+      },
+    ],
+  },
+  "RNA_EDITING-RNA Editing": {
+    "component": "nightingale-variation-canvas",
+    "kind": "rna-editing",
+    "sources": [
+      {
+        "adapter": "uniprot-rna-editing-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "variation",
+        "url": "https://www.ebi.ac.uk/proteins/api/rna-editing/{accession}",
+      },
+    ],
+  },
+  "RNA_EDITING-rna_editing_graph": {
+    "component": "nightingale-linegraph-track",
+    "kind": "rna-editing-counts",
+    "sources": [
+      {
+        "adapter": "uniprot-rna-editing-counts-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "point",
+        "url": "https://www.ebi.ac.uk/proteins/api/rna-editing/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-compbias": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-conflict": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-non_cons": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-non_std": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-non_ter": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-unsure": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-act_site": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-binding": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-ca_bind": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-dna_bind": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-metal": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-np_bind": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-site": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "STRUCTURE_COVERAGE-pdbe_cover": {
+    "component": "nightingale-track-canvas",
+    "kind": "structure-coverage",
+    "sources": [
+      {
+        "adapter": "uniprot-proteins-pdb-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
+      },
+    ],
+  },
+  "TOPOLOGY-intramem": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "TOPOLOGY-topo_dom": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "TOPOLOGY-transmem": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "VARIATION-variation": {
+    "component": "nightingale-variation-canvas",
+    "kind": "variants",
+    "sources": [
+      {
+        "adapter": "uniprot-variation-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "variation",
+        "url": "https://www.ebi.ac.uk/proteins/api/variation/{accession}",
+      },
+    ],
+  },
+  "VARIATION-variation_graph": {
+    "component": "nightingale-linegraph-track",
+    "kind": "variant-counts",
+    "sources": [
+      {
+        "adapter": "uniprot-variation-counts-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "point",
+        "url": "https://www.ebi.ac.uk/proteins/api/variation/{accession}",
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden: starter-kit/config.yaml > payloads (must survive the refactor byte-identically) 1`] = `
+{
+  "data": {
+    "hotspots": [
+      {
+        "description": "Extracellular domain (custom re-annotation)",
+        "end": 289,
+        "score": 0.95,
+        "start": 18,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Extracellular domain (custom re-annotation)</p><h5>Start</h5><p>18</p><h5>End</h5><p>289</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "description": "Predicted heparin-binding site",
+        "end": 140,
+        "score": 0.87,
+        "start": 132,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>Predicted heparin-binding site</p><h5>Start</h5><p>132</p><h5>End</h5><p>140</p>",
+        "type": "BINDING",
+      },
+      {
+        "description": "Acidic-rich linker region",
+        "end": 340,
+        "score": 0.6,
+        "start": 290,
+        "tooltipContent": "<h5>Type</h5><p>REGION</p><h5>Description</h5><p>Acidic-rich linker region</p><h5>Start</h5><p>290</p><h5>End</h5><p>340</p>",
+        "type": "REGION",
+      },
+      {
+        "description": "Lab-observed loss-of-function point mutation",
+        "end": 614,
+        "score": 0.75,
+        "start": 614,
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p><h5>Description</h5><p>Lab-observed loss-of-function point mutation</p><h5>Start</h5><p>614</p><h5>End</h5><p>614</p>",
+        "type": "MUTAGEN",
+      },
+    ],
+    "hotspots-hotspots": [
+      {
+        "description": "Extracellular domain (custom re-annotation)",
+        "end": 289,
+        "score": 0.95,
+        "start": 18,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Extracellular domain (custom re-annotation)</p><h5>Start</h5><p>18</p><h5>End</h5><p>289</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "description": "Predicted heparin-binding site",
+        "end": 140,
+        "score": 0.87,
+        "start": 132,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>Predicted heparin-binding site</p><h5>Start</h5><p>132</p><h5>End</h5><p>140</p>",
+        "type": "BINDING",
+      },
+      {
+        "description": "Acidic-rich linker region",
+        "end": 340,
+        "score": 0.6,
+        "start": 290,
+        "tooltipContent": "<h5>Type</h5><p>REGION</p><h5>Description</h5><p>Acidic-rich linker region</p><h5>Start</h5><p>290</p><h5>End</h5><p>340</p>",
+        "type": "REGION",
+      },
+      {
+        "description": "Lab-observed loss-of-function point mutation",
+        "end": 614,
+        "score": 0.75,
+        "start": 614,
+        "tooltipContent": "<h5>Type</h5><p>MUTAGEN</p><h5>Description</h5><p>Lab-observed loss-of-function point mutation</p><h5>Start</h5><p>614</p><h5>End</h5><p>614</p>",
+        "type": "MUTAGEN",
+      },
+    ],
+  },
+  "hasData": true,
+}
+`;
+
+exports[`golden: starter-kit/config.yaml > resolution (expected to change with the refactor) 1`] = `
+{
+  "hotspots-hotspots": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": null,
+        "format": "csv",
+        "from": "file",
+        "inline": false,
+        "shape": "feature",
+        "url": "./data/hotspots.csv",
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden: starter-kit/recipes/extend-uniprot.yaml > payloads (must survive the refactor byte-identically) 1`] = `
+{
+  "data": {
+    "ALPHAFOLD_CONFIDENCE": undefined,
+    "ALPHAMISSENSE_PATHOGENICITY": undefined,
+    "ANTIGEN": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "ANTIGEN-antigen": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "DOMAINS": [],
+    "DOMAINS-InterPro representative domain": [],
+    "DOMAINS-domain": [],
+    "DOMAINS-motif": [],
+    "DOMAINS-region": [],
+    "DOMAINS-repeat": [],
+    "DOMAINS-zn_fing": [],
+    "EPITOPE": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "EPITOPE-epitope": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "MOLECULE_PROCESSING": [],
+    "MOLECULE_PROCESSING-chain": [],
+    "MOLECULE_PROCESSING-init_met": [],
+    "MOLECULE_PROCESSING-peptide": [],
+    "MOLECULE_PROCESSING-propep": [],
+    "MOLECULE_PROCESSING-signal": [],
+    "MOLECULE_PROCESSING-transit": [],
+    "MUTAGENESIS": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "MUTAGENESIS-mutagen": [],
+    "MUTAGENESIS-othermutagen": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Description</h5><p>Fixture domain</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "MY_LAB": [
+      {
+        "description": "Custom re-annotation of the extracellular domain",
+        "end": 289,
+        "score": 0.9,
+        "start": 18,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Custom re-annotation of the extracellular domain</p><h5>Start</h5><p>18</p><h5>End</h5><p>289</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "description": "Lab-observed candidate binding residue",
+        "end": 614,
+        "score": 0.72,
+        "start": 614,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>Lab-observed candidate binding residue</p><h5>Start</h5><p>614</p><h5>End</h5><p>614</p>",
+        "type": "BINDING",
+      },
+    ],
+    "MY_LAB-hotspots": [
+      {
+        "description": "Custom re-annotation of the extracellular domain",
+        "end": 289,
+        "score": 0.9,
+        "start": 18,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Custom re-annotation of the extracellular domain</p><h5>Start</h5><p>18</p><h5>End</h5><p>289</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "description": "Lab-observed candidate binding residue",
+        "end": 614,
+        "score": 0.72,
+        "start": 614,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>Lab-observed candidate binding residue</p><h5>Start</h5><p>614</p><h5>End</h5><p>614</p>",
+        "type": "BINDING",
+      },
+    ],
+    "PROTEOMICS": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "PROTEOMICS-hpp": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "PROTEOMICS-non_unique": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "PROTEOMICS-proteomics-ptm": [
+      {
+        "begin": 1,
+        "category": "PROTEOMICS",
+        "description": "Fixture domain",
+        "end": 770,
+        "residuesToHighlight": undefined,
+        "start": 1,
+        "tooltipContent": "<h5>Type</h5><p>non_unique</p><h5>Start</h5><p>1</p><h5>End</h5><p>770</p>",
+        "type": "non_unique",
+      },
+    ],
+    "PROTEOMICS-unique": [],
+    "PTM": [],
+    "PTM-carbohyd": [],
+    "PTM-crosslnk": [],
+    "PTM-disulfid": [],
+    "PTM-lipid": [],
+    "PTM-mod_res": [],
+    "RNA_EDITING": undefined,
+    "SEQUENCE_INFORMATION": [],
+    "SEQUENCE_INFORMATION-compbias": [],
+    "SEQUENCE_INFORMATION-conflict": [],
+    "SEQUENCE_INFORMATION-non_cons": [],
+    "SEQUENCE_INFORMATION-non_std": [],
+    "SEQUENCE_INFORMATION-non_ter": [],
+    "SEQUENCE_INFORMATION-unsure": [],
+    "SITES": [],
+    "SITES-act_site": [],
+    "SITES-binding": [],
+    "SITES-ca_bind": [],
+    "SITES-dna_bind": [],
+    "SITES-metal": [],
+    "SITES-np_bind": [],
+    "SITES-site": [],
+    "STRUCTURE_COVERAGE": [],
+    "TOPOLOGY": [],
+    "TOPOLOGY-intramem": [],
+    "TOPOLOGY-topo_dom": [],
+    "TOPOLOGY-transmem": [],
+    "VARIATION": undefined,
+    "VARIATION-variation": {
+      "sequence": undefined,
+      "variants": [
+        {
+          "accession": undefined,
+          "begin": 1,
+          "category": "PROTEOMICS",
+          "description": "Fixture domain",
+          "end": 770,
+          "hasPredictions": undefined,
+          "residuesToHighlight": undefined,
+          "start": 1,
+          "tooltipContent": "<h5>Position</h5><p>1</p>",
+          "type": "non_unique",
+          "variant": "",
+          "xrefNames": [],
+        },
+      ],
+    },
+    "VARIATION-variation__unfiltered": {
+      "sequence": undefined,
+      "variants": [
+        {
+          "accession": undefined,
+          "begin": 1,
+          "category": "PROTEOMICS",
+          "description": "Fixture domain",
+          "end": 770,
+          "hasPredictions": undefined,
+          "residuesToHighlight": undefined,
+          "start": 1,
+          "tooltipContent": "<h5>Position</h5><p>1</p>",
+          "type": "non_unique",
+          "variant": "",
+          "xrefNames": [],
+        },
+      ],
+    },
+  },
+  "hasData": true,
+}
+`;
+
+exports[`golden: starter-kit/recipes/extend-uniprot.yaml > resolution (expected to change with the refactor) 1`] = `
+{
+  "ALPHAFOLD_CONFIDENCE-alphafold_confidence": {
+    "component": "nightingale-colored-sequence",
+    "kind": "alphafold-confidence",
+    "sources": [
+      {
+        "adapter": "alphafold-prediction-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": null,
+        "url": [
+          "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
+          "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
+        ],
+      },
+    ],
+  },
+  "ALPHAMISSENSE_PATHOGENICITY-alphamissense_pathogenicity": {
+    "component": "nightingale-colored-sequence",
+    "kind": "alphamissense-pathogenicity",
+    "sources": [
+      {
+        "adapter": "alphamissense-average-csv",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": null,
+        "url": [
+          "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
+          "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
+        ],
+      },
+    ],
+  },
+  "ALPHAMISSENSE_PATHOGENICITY-alphamissense_pathogenicity_heatmap": {
+    "component": "nightingale-sequence-heatmap",
+    "kind": "alphamissense-heatmap",
+    "sources": [
+      {
+        "adapter": "alphamissense-full-csv",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": null,
+        "url": [
+          "https://alphafold.ebi.ac.uk/api/prediction/{accession}",
+          "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
+        ],
+      },
+    ],
+  },
+  "ANTIGEN-antigen": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/antigen/{accession}",
+      },
+    ],
+  },
+  "DOMAINS-InterPro representative domain": {
+    "component": "nightingale-track-canvas",
+    "kind": "interpro-features",
+    "sources": [
+      {
+        "adapter": "interpro-entries-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/interpro/wwwapi/entry/all/protein/uniprot/{accession}?type=domain&page_size=100",
+      },
+    ],
+  },
+  "DOMAINS-domain": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "DOMAINS-motif": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "DOMAINS-region": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "DOMAINS-repeat": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "DOMAINS-zn_fing": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "EPITOPE-epitope": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/epitope/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-chain": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-init_met": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-peptide": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-propep": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-signal": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MOLECULE_PROCESSING-transit": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MUTAGENESIS-mutagen": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "MUTAGENESIS-othermutagen": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/mutagenesis/{accession}",
+      },
+    ],
+  },
+  "MY_LAB-hotspots": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": null,
+        "format": "csv",
+        "from": "file",
+        "inline": false,
+        "shape": "feature",
+        "url": "./data/hotspots-extends.csv",
+      },
+    ],
+  },
+  "PROTEOMICS-hpp": {
+    "component": "nightingale-track-canvas",
+    "kind": "peptides",
+    "sources": [
+      {
+        "adapter": "uniprot-proteomics-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteomics/hpp/{accession}",
+      },
+    ],
+  },
+  "PROTEOMICS-non_unique": {
+    "component": "nightingale-track-canvas",
+    "kind": "peptides",
+    "sources": [
+      {
+        "adapter": "uniprot-proteomics-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/{accession}",
+      },
+    ],
+  },
+  "PROTEOMICS-proteomics-ptm": {
+    "component": "nightingale-track-canvas",
+    "kind": "peptides",
+    "sources": [
+      {
+        "adapter": "uniprot-proteomics-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/{accession}",
+      },
+    ],
+  },
+  "PROTEOMICS-unique": {
+    "component": "nightingale-track-canvas",
+    "kind": "peptides",
+    "sources": [
+      {
+        "adapter": "uniprot-proteomics-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteomics/nonPtm/{accession}",
+      },
+    ],
+  },
+  "PTM-carbohyd": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "PTM-crosslnk": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "PTM-disulfid": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "PTM-lipid": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "PTM-mod_res": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "PTM-mod_res_ls": {
+    "component": "nightingale-track-canvas",
+    "kind": "peptides-ptm",
+    "sources": [
+      {
+        "adapter": "uniprot-proteomics-ptm-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteomics/ptm/{accession}",
+      },
+    ],
+  },
+  "RNA_EDITING-RNA Editing": {
+    "component": "nightingale-variation-canvas",
+    "kind": "rna-editing",
+    "sources": [
+      {
+        "adapter": "uniprot-rna-editing-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "variation",
+        "url": "https://www.ebi.ac.uk/proteins/api/rna-editing/{accession}",
+      },
+    ],
+  },
+  "RNA_EDITING-rna_editing_graph": {
+    "component": "nightingale-linegraph-track",
+    "kind": "rna-editing-counts",
+    "sources": [
+      {
+        "adapter": "uniprot-rna-editing-counts-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "point",
+        "url": "https://www.ebi.ac.uk/proteins/api/rna-editing/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-compbias": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-conflict": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-non_cons": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-non_std": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-non_ter": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SEQUENCE_INFORMATION-unsure": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-act_site": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-binding": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-ca_bind": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-dna_bind": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-metal": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-np_bind": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "SITES-site": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "STRUCTURE_COVERAGE-pdbe_cover": {
+    "component": "nightingale-track-canvas",
+    "kind": "structure-coverage",
+    "sources": [
+      {
+        "adapter": "uniprot-proteins-pdb-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
+      },
+    ],
+  },
+  "TOPOLOGY-intramem": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "TOPOLOGY-topo_dom": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "TOPOLOGY-transmem": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": "uniprot-features-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "feature",
+        "url": "https://www.ebi.ac.uk/proteins/api/features/{accession}",
+      },
+    ],
+  },
+  "VARIATION-variation": {
+    "component": "nightingale-variation-canvas",
+    "kind": "variants",
+    "sources": [
+      {
+        "adapter": "uniprot-variation-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "variation",
+        "url": "https://www.ebi.ac.uk/proteins/api/variation/{accession}",
+      },
+    ],
+  },
+  "VARIATION-variation_graph": {
+    "component": "nightingale-linegraph-track",
+    "kind": "variant-counts",
+    "sources": [
+      {
+        "adapter": "uniprot-variation-counts-json",
+        "format": null,
+        "from": "url",
+        "inline": false,
+        "shape": "point",
+        "url": "https://www.ebi.ac.uk/proteins/api/variation/{accession}",
+      },
+    ],
+  },
+}
+`;
+
+exports[`golden: starter-kit/recipes/tsv.yaml > payloads (must survive the refactor byte-identically) 1`] = `
+{
+  "data": {
+    "MY_LAB": [
+      {
+        "description": "Kunitz-type protease inhibitor domain (custom)",
+        "end": 501,
+        "score": 0.93,
+        "start": 345,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Kunitz-type protease inhibitor domain (custom)</p><h5>Start</h5><p>345</p><h5>End</h5><p>501</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "description": "Predicted copper-binding motif",
+        "end": 600,
+        "score": 0.81,
+        "start": 551,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>Predicted copper-binding motif</p><h5>Start</h5><p>551</p><h5>End</h5><p>600</p>",
+        "type": "BINDING",
+      },
+      {
+        "description": "Juxtamembrane regulatory region",
+        "end": 650,
+        "score": 0.55,
+        "start": 601,
+        "tooltipContent": "<h5>Type</h5><p>REGION</p><h5>Description</h5><p>Juxtamembrane regulatory region</p><h5>Start</h5><p>601</p><h5>End</h5><p>650</p>",
+        "type": "REGION",
+      },
+    ],
+    "MY_LAB-hotspots": [
+      {
+        "description": "Kunitz-type protease inhibitor domain (custom)",
+        "end": 501,
+        "score": 0.93,
+        "start": 345,
+        "tooltipContent": "<h5>Type</h5><p>DOMAIN</p><h5>Description</h5><p>Kunitz-type protease inhibitor domain (custom)</p><h5>Start</h5><p>345</p><h5>End</h5><p>501</p>",
+        "type": "DOMAIN",
+      },
+      {
+        "description": "Predicted copper-binding motif",
+        "end": 600,
+        "score": 0.81,
+        "start": 551,
+        "tooltipContent": "<h5>Type</h5><p>BINDING</p><h5>Description</h5><p>Predicted copper-binding motif</p><h5>Start</h5><p>551</p><h5>End</h5><p>600</p>",
+        "type": "BINDING",
+      },
+      {
+        "description": "Juxtamembrane regulatory region",
+        "end": 650,
+        "score": 0.55,
+        "start": 601,
+        "tooltipContent": "<h5>Type</h5><p>REGION</p><h5>Description</h5><p>Juxtamembrane regulatory region</p><h5>Start</h5><p>601</p><h5>End</h5><p>650</p>",
+        "type": "REGION",
+      },
+    ],
+  },
+  "hasData": true,
+}
+`;
+
+exports[`golden: starter-kit/recipes/tsv.yaml > resolution (expected to change with the refactor) 1`] = `
+{
+  "MY_LAB-hotspots": {
+    "component": "nightingale-track-canvas",
+    "kind": "features",
+    "sources": [
+      {
+        "adapter": null,
+        "format": "tsv",
+        "from": "file",
+        "inline": false,
+        "shape": "feature",
+        "url": "./data/hotspots.tsv",
+      },
+    ],
+  },
+}
+`;

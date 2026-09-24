@@ -1,5 +1,23 @@
 # Generic-format adapters — design
 
+> **Superseded — historical record.** The four adapters this document designs
+> (`features-csv`, `features-tsv`, `features-json`, `bed`) no longer exist as
+> named adapters. Their *behaviour* does: a track's `kind` declares which
+> records it needs and the source declares its encoding, and the pair is
+> composed at load time. The column conventions, coordinate rules and error
+> discipline below are still accurate and still enforced — only the naming and
+> the resolution path changed.
+>
+> For the current design see **"Shape and format (normative)"** in
+> [`config-approach.md`](./config-approach.md); for why it changed, see
+> [`adapter-model-decision.md`](./adapter-model-decision.md).
+>
+> Kept because it records the reasoning behind the record shapes themselves —
+> why a feature record carries `type`/`start`/`end`, why BED's 0-based
+> half-open coordinates are converted on read, and what was deliberately left
+> out of scope.
+
+
 Design for the four generic-format data adapters that let authors point a
 ProtVista track at a CSV / TSV / JSON / BED file without writing
 JavaScript. **Implemented and shipped** — `src/schema/adapters/{features-csv,features-tsv,features-json,bed}.ts`,
@@ -38,12 +56,20 @@ What the feature adds:
   `.csv → features-csv`, `.tsv → features-tsv`, `.json → features-json`,
   `.bed → bed` — applied when an author writes `data: ./hits.csv` and
   doesn't pin an `adapter:` explicitly.
-- A `cannot-infer-adapter` validation issue code (in
-  `src/schema/errors.ts`) for the case where the shorthand lands on an
-  unknown extension. Helper functions `hasKnownExtension` and
-  `extensionOf` in `src/schema/validate.ts` to back the check.
-- The matching extension-shorthand bullets in the spec's
-  `TrackConfig.data` JSDoc.
+
+  These four are also the `features` kind's file formats.
+
+  **Superseded, pre-hackathon.** The per-kind *family* table this describes is
+  being replaced by the shape/format split — see "Shape and format
+  (normative)" in [`config-approach.md`](./config-approach.md) and the decision
+  record in [`adapter-model-decision.md`](./adapter-model-decision.md). The
+  author-facing behaviour below is unchanged (`kind: features` +
+  `./hits.csv` still reads a feature CSV); what changes is that
+  `features-csv` and the other nine `<shape>-<format>` adapter names are
+  deleted rather than resolved through a family table. `format: csv` becomes
+  the way to state an encoding no extension implies, and the `bed` decoder
+  declares that it emits feature records, so `kind: variants` at a `.bed` file
+  is rejected by shape rather than by body type.
 
 What stays out of scope:
 

@@ -4,9 +4,9 @@
 accession: P05067
 rows:
   # On a track that declares `kind: linegraph`, the file extension picks the
-  # matching parser (`.csv` → `linegraph-csv`, `.tsv` → `linegraph-tsv`)
-  # rather than falling back to the generic feature adapters. A bare
-  # `data: ./x.csv` on a track with *no* `kind` still means `features-csv`.
+  # encoding (`.csv`, `.tsv`) while the kind fixes the records as
+  # `{ position, value }` points. A bare `data: ./x.csv` on a track with *no*
+  # `kind` means feature records instead — the kind is what decides.
   #
   # The header row must contain `position` and `value`; either order, extra
   # columns ignored. A malformed cell fails with the row and column named.

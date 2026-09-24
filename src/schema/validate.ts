@@ -45,17 +45,72 @@ import type {
   TrackConfig,
   DataSourceDescriptor,
   ColorScaleConfig,
+  DataFormat,
+  ShapeName,
 } from './types.js';
 import { isGroupConfig } from './discriminate.js';
 import type { Registry } from './registry.js';
 import { RENDERABLE_COMPONENT_NAMES } from './components.js';
 import { isPlainObject, isSet } from './shape.js';
-import { dataFileFormatForPath } from './file-formats.js';
-import type {
-  ValidationIssue,
-  ValidationResult,
-  ValidationIssueCode,
+import {
+  DATA_FORMATS,
+  DATA_FORMAT_NAMES,
+  formatForPath,
+} from './file-formats.js';
+import { formatCanProduce } from './adapters/pipeline.js';
+import { descriptorFrom } from './normalize.js';
+import { shapeLabel } from './shapes.js';
+import {
+  isError,
+  type ValidationIssue,
+  type ValidationResult,
+  type ValidationIssueCode,
 } from './errors.js';
+
+/**
+ * Adapter names that existed until the shape/format split, mapped to what to
+ * write instead.
+ *
+ * These were the cross-product of a record shape and a file format, and both
+ * halves are now stated directly: the track's `kind` gives the records, and
+ * the extension — or `format:` — gives the encoding. A config copied from
+ * documentation written before the change gets told exactly that, rather than
+ * being sent to `registerAdapter()` to reimplement something built in.
+ */
+const REMOVED_ADAPTERS: Record<string, string> = {
+  'features-csv': "Removed: use format: csv (the track's kind gives the records).",
+  'features-tsv': "Removed: use format: tsv (the track's kind gives the records).",
+  'features-json': "Removed: use format: json (the track's kind gives the records).",
+  bed: "Removed: use format: bed (the track's kind gives the records).",
+  linegraph: 'Removed: use kind: linegraph, which reads { position, value } records.',
+  'linegraph-csv': 'Removed: use kind: linegraph with format: csv.',
+  'linegraph-tsv': 'Removed: use kind: linegraph with format: tsv.',
+  variation: 'Removed: use kind: variants, which reads { position, variant } records.',
+  'variation-csv': 'Removed: use kind: variants with format: csv.',
+  'variation-tsv': 'Removed: use kind: variants with format: tsv.',
+};
+
+/**
+ * Kinds renamed when the naming rule was applied, mapped to what to write
+ * instead.
+ *
+ * A kind keeps a plain domain word only if an author can bring data to it; a
+ * kind that reads one provider's feed carries that provider's name. Each of
+ * these four read a single feed under a name that promised a generality they
+ * never had, so the hint says which feed rather than only which spelling —
+ * an author who wanted their own scores needs to know no rename will give
+ * them one.
+ */
+const REMOVED_KINDS: Record<string, string> = {
+  'confidence-score':
+    "Renamed to 'alphafold-confidence': it reads AlphaFold's pLDDT and nothing else.",
+  'pathogenicity-score':
+    "Renamed to 'alphamissense-pathogenicity': it reads AlphaMissense's average scores and nothing else.",
+  'pathogenicity-heatmap':
+    "Renamed to 'alphamissense-heatmap': it reads AlphaMissense's full substitution matrix and nothing else.",
+  'features-interpro':
+    "Renamed to 'interpro-features': it reads InterPro's entries and nothing else.",
+};
 
 // ─────────────────────────────────────────────────────────────
 // Ajv instance (memoised)
@@ -144,7 +199,10 @@ export function validateConfig(
   checkAccessionPlaceholders(c, issues);
   checkRows(c, registry, issues);
 
-  return { valid: issues.length === 0, issues };
+  // `valid` tracks error-severity issues only: a warning names something
+  // legal (an explicit `format:` overriding an extension) and must not make
+  // the config unloadable.
+  return { valid: !issues.some(isError), issues };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -420,13 +478,14 @@ function checkRows(
   registry: Registry,
   issues: ValidationIssue[]
 ): void {
-  const sourceKeys = new Set(Object.keys(c.sources ?? {}));
+  const sources = c.sources ?? {};
+  const sourceKeys = new Set(Object.keys(sources));
   // Each row is either a group (its child tracks are checked under the
   // group's component) or a standalone track (checked with no parent
   // group — it must carry its own rendering path).
   for (const entry of c.rows) {
     if (!isGroupConfig(entry)) {
-      checkTrack(undefined, entry, sourceKeys, registry, issues);
+      checkTrack(undefined, entry, sourceKeys, sources, registry, issues);
       continue;
     }
     const group = entry;
@@ -438,7 +497,7 @@ function checkRows(
       });
     }
     for (const track of group.tracks) {
-      checkTrack(group, track, sourceKeys, registry, issues);
+      checkTrack(group, track, sourceKeys, sources, registry, issues);
     }
   }
 }
@@ -447,6 +506,7 @@ function checkTrack(
   group: GroupConfig | undefined,
   track: TrackConfig,
   sourceKeys: Set<string>,
+  sources: Record<string, string>,
   registry: Registry,
   issues: ValidationIssue[]
 ): void {
@@ -467,7 +527,12 @@ function checkTrack(
   if (track.kind !== undefined && !registry.hasSemanticKind(track.kind)) {
     issues.push({
       path: trackPath,
-      message: `Unknown semantic kind: '${track.kind}' in track ${trackPath}. Valid values: ${listQuoted(registry.listSemanticKinds())}. Register custom kinds with registerSemanticKind().`,
+      message:
+        `Unknown semantic kind: '${track.kind}' in track ${trackPath}. ` +
+        (REMOVED_KINDS[track.kind]
+          ? `${REMOVED_KINDS[track.kind]} `
+          : '') +
+        `Valid values: ${listQuoted(registry.listSemanticKinds())}. Register custom kinds with registerSemanticKind().`,
       code: 'unknown-semantic-kind',
     });
   } else if (track.kind !== undefined && !track.component) {
@@ -517,6 +582,10 @@ function checkTrack(
     }
   }
 
+  // Runs for every track: the shape/format rules need a `kind`, but the
+  // encoding rules apply to a kindless track that states a `format:` too.
+  checkKindReadsFileFormat(trackPath, track, sources, registry, issues);
+
   // Track has no rendering path: no `kind`, no track-level
   // `component`, and no parent-group `component` to inherit. A
   // standalone track (no parent group) has no group component to fall
@@ -543,6 +612,218 @@ function checkTrack(
   for (const descriptor of collectDescriptors(track)) {
     checkDescriptor(trackPath, descriptor, sourceKeys, registry, issues);
   }
+}
+
+/**
+ * A `kind:` owns adapter selection for its track (see `expandDescriptor`):
+ * the kind's family member for the file's extension, or the kind's own
+ * canonical adapter when the family has no member for it. That second case is
+ * right for a domain kind pointed at its API's JSON dump (`kind:
+ * alphafold-confidence` + `./plddt.json` → `alphafold-prediction-json`) but wrong
+ * when the file is a format that adapter cannot read at all: the body would be
+ * fetched as text and handed to a JSON parser, or vice versa, and the track
+ * would come up empty with nothing to point at.
+ *
+ * Reject that pairing here, naming the kinds that *do* read the format, so the
+ * author gets the answer at config time instead of an empty track at runtime.
+ * An explicit `adapter:` opts out — it overrides the kind's selection, so the
+ * author has already said what parses this file.
+ *
+ * Runs for a kindless track too. The rules that need a shape stop early there,
+ * but the ones that don't — an override worth mentioning, several sources that
+ * no format can read — apply to any track that states an encoding, and a
+ * kindless track states one exactly the same way.
+ */
+function checkKindReadsFileFormat(
+  trackPath: string,
+  track: TrackConfig,
+  sources: Record<string, string>,
+  registry: Registry,
+  issues: ValidationIssue[]
+): void {
+  const kind = track.kind;
+  // An unknown kind is already reported, and its shape is unknowable; saying
+  // anything more about its sources would be guesswork.
+  const def = kind === undefined ? undefined : registry.getSemanticKind(kind);
+  if (kind !== undefined && def === undefined) return;
+  const shape = def?.shape;
+
+  for (const d of collectDescriptors(track)) {
+    // An explicit `adapter:` overrides shape/format resolution entirely —
+    // the author has said what reads this source.
+    if (!isShorthand(d) && d.adapter !== undefined) continue;
+
+    const declared = isShorthand(d) ? undefined : d.format;
+    const value = descriptorPath(d, sources);
+    const fromExt = value === undefined ? undefined : formatForPath(value);
+
+    // Inline text with no `format:` is reported per-descriptor in
+    // `checkDescriptor`, which runs whether or not the track has a `kind`.
+    if (
+      !isShorthand(d) &&
+      descriptorFrom(d) === 'inline' &&
+      typeof d.inlineData === 'string' &&
+      declared === undefined
+    ) {
+      continue;
+    }
+
+    // An explicit `format:` overriding the file's own extension is legal —
+    // a misnamed file is exactly why `format:` exists — but say so, since
+    // the author may not have intended it.
+    if (
+      declared !== undefined &&
+      fromExt !== undefined &&
+      fromExt.name !== declared
+    ) {
+      issues.push({
+        path: trackPath,
+        severity: 'warning',
+        message:
+          `Track ${trackPath} declares format: ${declared} for '${value}', whose ` +
+          `extension says ${fromExt.name}. The explicit format wins and the file ` +
+          `is read as ${declared.toUpperCase()}.`,
+        code: 'format-overrides-extension',
+      });
+    }
+
+    // Several sources on one descriptor, read through a format. A format
+    // decodes one body — `runPipeline` takes one, and the loader would drop
+    // the rest — so this is the one descriptor shape the shape/format pair
+    // cannot resolve. Say so here rather than fetching every body as JSON and
+    // handing the first to whatever the kind's provider adapter is.
+    //
+    // Several sources remain the point of a multi-input provider adapter
+    // (`kind: alphafold-confidence` takes two responses), so this fires only
+    // where the author asked for records: an explicit `format:`, extensions
+    // that all name one format, or a shape with no provider adapter to fall
+    // back on. A kind with both a shape and an adapter (`kind: variants`)
+    // sends a list with neither to its adapter, which reads every response.
+    const count = sourceCount(d);
+    const reading = declared ?? commonFormat(d, sources);
+    const readsRecords =
+      declared !== undefined ||
+      (shape !== undefined &&
+        (reading !== undefined || def?.adapter === undefined));
+    if (count > 1 && readsRecords) {
+      issues.push({
+        path: trackPath,
+        message:
+          `Track ${trackPath} lists ${count} sources, but reads them as ` +
+          `${reading === undefined ? 'its own records' : `${reading.toUpperCase()} records`}. ` +
+          `A format reads one file at a time. Use one source per track, or set an ` +
+          `explicit 'adapter:' that takes several responses.`,
+        code: 'multi-source-format',
+      });
+      continue;
+    }
+
+    const format = declared ?? fromExt?.name;
+    if (format === undefined) continue;
+
+    // The remaining rules compare the format against the records the track
+    // draws, which only a `kind` names.
+    if (kind === undefined) continue;
+
+    // A kind with no shape has no bring-your-own-data path at all: its
+    // adapter takes a provider response, and in the AlphaFold/AlphaMissense
+    // cases two of them plus a further fetch, which no single file provides.
+    if (shape === undefined) {
+      const byod = registry
+        .listSemanticKinds()
+        .filter((k) => registry.getSemanticKind(k)?.shape !== undefined);
+      issues.push({
+        path: trackPath,
+        message:
+          `Semantic kind '${kind}' in track ${trackPath} reads its provider's feed and ` +
+          `cannot read a file. Kinds that accept your own data: ${listQuoted(new Set(byod))}. ` +
+          `To use this source anyway, set an explicit 'adapter:' on the data descriptor.`,
+        code: 'kind-format-mismatch',
+      });
+      continue;
+    }
+
+    // Most formats are containers and carry whatever records the track asks
+    // for. BED is not: it encodes feature semantics, so it can only produce
+    // feature records.
+    if (!formatCanProduce(format, shape)) {
+      const emits = DATA_FORMATS[format].emitsShape as ShapeName;
+      const alternatives = registry
+        .listSemanticKinds()
+        .filter((k) => registry.getSemanticKind(k)?.shape === emits);
+      issues.push({
+        path: trackPath,
+        message:
+          `${format.toUpperCase()} files carry ${shapeLabel(emits)}; kind '${kind}' in ` +
+          `track ${trackPath} draws ${shapeLabel(shape)}. Use a kind that draws ` +
+          `${shapeLabel(emits)} (${listQuoted(new Set(alternatives))}), or convert the file.`,
+        code: 'kind-format-mismatch',
+      });
+    }
+  }
+}
+
+/**
+ * The file path or URL a descriptor points at, with a `source:` key resolved
+ * through the sources map — the same value `expandDescriptor` reads the
+ * format off, so the validator and the resolver can't read one config two
+ * ways. `undefined` for inline / custom / multi-source descriptors.
+ */
+function descriptorPath(
+  d: DataSourceDescriptor | { __shorthand: string },
+  sources: Record<string, string>
+): string | undefined {
+  if (isShorthand(d)) {
+    const raw = d.__shorthand;
+    return Object.prototype.hasOwnProperty.call(sources, raw)
+      ? sources[raw]
+      : raw;
+  }
+  if (typeof d.url === 'string') return d.url;
+  if (
+    typeof d.source === 'string' &&
+    Object.prototype.hasOwnProperty.call(sources, d.source)
+  ) {
+    return sources[d.source];
+  }
+  return undefined;
+}
+
+/**
+ * The format every source on a descriptor shares, or `undefined` when they
+ * disagree or none has a recognised extension. Used only to phrase the
+ * multi-source message, so a mixed list simply says less rather than guessing.
+ */
+function commonFormat(
+  d: DataSourceDescriptor | { __shorthand: string },
+  sources: Record<string, string>
+): DataFormat | undefined {
+  if (isShorthand(d)) return undefined;
+  const raw = Array.isArray(d.url)
+    ? d.url
+    : Array.isArray(d.source)
+      ? d.source.map((k) =>
+          Object.prototype.hasOwnProperty.call(sources, k) ? sources[k] : k
+        )
+      : [];
+  const names = raw.map((v) => formatForPath(v)?.name);
+  const first = names[0];
+  return first !== undefined && names.every((n) => n === first)
+    ? first
+    : undefined;
+}
+
+/**
+ * How many sources one descriptor names. A string shorthand and a scalar
+ * `url:` / `source:` name one; the list forms name as many as they list.
+ */
+function sourceCount(
+  d: DataSourceDescriptor | { __shorthand: string }
+): number {
+  if (isShorthand(d)) return 1;
+  if (Array.isArray(d.url)) return d.url.length;
+  if (Array.isArray(d.source)) return d.source.length;
+  return 1;
 }
 
 function collectDescriptors(
@@ -587,11 +868,36 @@ function checkDescriptor(
     });
   }
 
+  // Inline text needs a `format:`; there is no content-sniffing, so this
+  // cannot be resolved by guessing.
+  //
+  // Asked of the resolved `from` rather than the written one: `from:` defaults
+  // to `inline` whenever `inlineData` is set, and `data: { inlineData: "…" }`
+  // is the form most authors write. Checked here rather than beside the
+  // kind/format rules because a track with no `kind` at all has the same
+  // problem — its text would reach the component undecoded.
+  if (
+    descriptorFrom(d) === 'inline' &&
+    typeof d.inlineData === 'string' &&
+    d.format === undefined
+  ) {
+    issues.push({
+      path: trackPath,
+      message:
+        `Inline data in track ${trackPath} is text, but no 'format' says how to read it. ` +
+        `Add format: ${DATA_FORMAT_NAMES.join(' | ')}, or write the records as a list instead.`,
+      code: 'missing-format',
+    });
+  }
+
   // Unknown adapter.
   if (d.adapter !== undefined && !registry.hasAdapter(d.adapter)) {
     issues.push({
       path: trackPath,
-      message: `Unknown adapter: ${d.adapter} in track ${trackPath}. Did you forget to call registerAdapter()?`,
+      message:
+        `Unknown adapter: ${d.adapter} in track ${trackPath}. ` +
+        (REMOVED_ADAPTERS[d.adapter] ??
+          'Did you forget to call registerAdapter()?'),
       code: 'unknown-adapter',
     });
   }
@@ -620,9 +926,9 @@ function checkDescriptor(
  *   - the value is not a URL, not a known data-file path, and not a
  *     known sources key → "Unknown source key".
  *
- * A `./hits.csv`-style path to a known generic format (see
- * `dataFileFormatForPath`) is accepted here; normalize.ts resolves it
- * to `from: 'file'` with the extension's built-in adapter. An
+ * A `./hits.csv`-style path whose extension names a known format (see
+ * `formatForPath`) is accepted here; normalize.ts resolves it to
+ * `from: 'file'` and reads the encoding off the extension. An
  * unrecognised extension (`./x.gff`) still falls through to the
  * unknown-source-key error.
  *
@@ -641,9 +947,9 @@ function checkStringShorthand(
   if (/^https?:\/\//i.test(value)) return;
 
   // Rule 3: a path to a known data file (`./hits.csv`, `../x.tsv`) is OK
-  // — normalize.ts resolves it to `from: file` with the extension's
-  // built-in adapter, so it will load without an "Unknown adapter" error.
-  if (dataFileFormatForPath(value)) return;
+  // — normalize.ts resolves it to `from: file` and reads the format off the
+  // extension, so it loads without an "Unknown source key" error.
+  if (formatForPath(value)) return;
 
   // Rule 4 fell through: treat as sources-key reference, surface
   // "Unknown source key" with the registered keys list.

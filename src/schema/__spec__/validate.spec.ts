@@ -13,7 +13,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateConfig } from '../validate.js';
 import { createRegistry } from '../registry.js';
-import type { ProtvistaViewerConfig } from '../types.js';
+import type { ProtvistaViewerConfig, TrackConfig } from '../types.js';
 import type { ValidationIssue } from '../errors.js';
 
 const freshRegistry = () => {
@@ -239,6 +239,32 @@ describe('validateConfig — unknown adapter / kind / component', () => {
       "Unknown semantic kind: 'not-a-real-kind'"
     );
     expect(issue!.message).toContain('registerSemanticKind()');
+  });
+
+  it.each([
+    ['confidence-score', 'alphafold-confidence'],
+    ['pathogenicity-score', 'alphamissense-pathogenicity'],
+    ['pathogenicity-heatmap', 'alphamissense-heatmap'],
+    ['features-interpro', 'interpro-features'],
+  ])('points %s at its new name', (written, renamed) => {
+    // Kinds are the author-facing vocabulary this rename touched, so a config
+    // written against the old names deserves the same pointed hint a removed
+    // adapter name gets — not just an alphabetical list to search.
+    const cfg = {
+      rows: [
+        {
+          id: 'X',
+          tracks: [
+            { id: 'y', kind: written, data: { url: 'https://example.org/x' } },
+          ],
+        },
+      ],
+    } as ProtvistaViewerConfig;
+    const issue = issueByCode(
+      validateConfig(cfg, freshRegistry()).issues,
+      'unknown-semantic-kind'
+    );
+    expect(issue!.message).toContain(`Renamed to '${renamed}'`);
   });
 
   it('flags an unknown `component` on a track', () => {
@@ -496,6 +522,262 @@ describe('validateConfig — from: inline without inlineData', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// Semantic: kind vs file format
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * A `kind:` owns adapter selection, so a kind pointed at a file format its
+ * family cannot read would fetch the body and hand it to an adapter expecting
+ * a different one. That used to resolve to a generic feature adapter and draw
+ * an empty track with nothing to point at; it is now a config-time error.
+ */
+describe('validateConfig — kind vs file format', () => {
+  const withData = (
+    kind: string,
+    data: TrackConfig['data'],
+    sources?: Record<string, string>
+  ): ProtvistaViewerConfig => ({
+    rows: [{ id: 'X', tracks: [{ id: 'y', kind, data }] }],
+    ...(sources ? { sources } : {}),
+  });
+
+  it('flags a provider-only kind pointed at a delimited file', () => {
+    // `alphamissense-pathogenicity` has no family: its adapter needs two
+    // inputs and a secondary fetch, so no single file can feed it.
+    const result = validateConfig(
+      withData('alphamissense-pathogenicity', './am.csv'),
+      freshRegistry()
+    );
+    expect(result.valid).toBe(false);
+    const issue = result.issues.find((i) => i.code === 'kind-format-mismatch');
+    expect(issue).toBeDefined();
+    expect(issue?.path).toBe('X/y');
+    // The message has to name the offending kind, the format, and a way
+    // forward — it is the author's only signal that the pairing is wrong.
+    expect(issue?.message).toContain("'alphamissense-pathogenicity'");
+    expect(issue?.message).toContain("reads its provider's feed");
+    expect(issue?.message).toContain("'features'");
+    expect(issue?.message).toContain("adapter:");
+  });
+
+  it('flags the same mismatch behind a sources key', () => {
+    const result = validateConfig(
+      withData('alphamissense-pathogenicity', 'am', {
+        am: 'https://lab.test/am.csv',
+      }),
+      freshRegistry()
+    );
+    expect(
+      result.issues.some((i) => i.code === 'kind-format-mismatch')
+    ).toBe(true);
+  });
+
+  it('accepts a format the kind’s family declares', () => {
+    for (const data of ['./hits.csv', './hits.tsv', './hits.json', './x.bed']) {
+      const result = validateConfig(withData('features', data), freshRegistry());
+      expect(
+        result.issues.filter((i) => i.code === 'kind-format-mismatch'),
+        `unexpected mismatch for ${data}`
+      ).toEqual([]);
+    }
+  });
+
+  it('flags a provider-only kind pointed at a file of any format', () => {
+    // Previously only a *text* file was flagged: a `.json` matched the
+    // adapter's body type, so the check passed and the track failed at load
+    // instead. That was never right — all three shapeless kinds read two API
+    // responses plus a further fetch, which no single file can provide,
+    // whatever its encoding. Declaring a shape is what makes a kind readable
+    // from a file, so its absence is the whole answer.
+    const result = validateConfig(
+      withData('alphafold-confidence', './plddt.json'),
+      freshRegistry()
+    );
+    const issue = result.issues.find((i) => i.code === 'kind-format-mismatch');
+    expect(issue?.message).toContain("reads its provider's feed");
+  });
+
+  it('names both shapes when a format cannot carry the kind’s records', () => {
+    // The diagnostic the redesign exists for: no adapter name, no body type,
+    // just the file and the track.
+    const result = validateConfig(
+      withData('variants', './regions.bed'),
+      freshRegistry()
+    );
+    const issue = result.issues.find((i) => i.code === 'kind-format-mismatch');
+    expect(issue?.message).toBe(
+      "BED files carry feature records (type, start, end); kind 'variants' in " +
+        'track X/y draws variation records (position, variant). Use a kind that ' +
+        'draws feature records (type, start, end) (\'features\', ' +
+        "'interpro-features', 'peptides', 'peptides-ptm', 'structure-coverage'), " +
+        'or convert the file.'
+    );
+  });
+
+  it('warns, without failing, when an explicit format overrides the extension', () => {
+    const result = validateConfig(
+      withData('features', { from: 'file', url: './hits.txt', format: 'csv' }),
+      freshRegistry()
+    );
+    const issue = result.issues.find(
+      (i) => i.code === 'format-overrides-extension'
+    );
+    expect(issue).toBeUndefined(); // `.txt` is not a known format — nothing to override
+    expect(result.valid).toBe(true);
+  });
+
+  it('warns when the declared format and a known extension disagree', () => {
+    const result = validateConfig(
+      withData('features', { from: 'file', url: './hits.csv', format: 'tsv' }),
+      freshRegistry()
+    );
+    const issue = result.issues.find(
+      (i) => i.code === 'format-overrides-extension'
+    );
+    expect(issue?.severity).toBe('warning');
+    expect(issue?.message).toContain('read as TSV');
+    // A warning names something legal: the config still loads.
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects inline text with no format to read it by', () => {
+    const result = validateConfig(
+      withData('linegraph', {
+        from: 'inline',
+        inlineData: 'position,value\n1,412\n',
+      }),
+      freshRegistry()
+    );
+    const issue = result.issues.find((i) => i.code === 'missing-format');
+    expect(issue?.message).toContain("no 'format' says how to read it");
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects inline text written in the shorthand form too', () => {
+    // `from:` defaults to `inline` whenever `inlineData` is set, and that is
+    // the form most authors write. Keying the check on the literal `from:`
+    // let this config through validation and failed it at load time — the
+    // one place the diagnostic exists to pre-empt.
+    const result = validateConfig(
+      withData('linegraph', { inlineData: 'position,value\n1,412\n' }),
+      freshRegistry()
+    );
+    const issue = result.issues.find((i) => i.code === 'missing-format');
+    expect(issue?.message).toContain("no 'format' says how to read it");
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects inline text on a track with no kind at all', () => {
+    const result = validateConfig(
+      {
+        rows: [
+          {
+            id: 'X',
+            tracks: [
+              {
+                id: 'y',
+                component: 'nightingale-track-canvas',
+                data: { inlineData: 'type,start,end,description\nA,1,2,x\n' },
+              },
+            ],
+          },
+        ],
+      } as ProtvistaViewerConfig,
+      freshRegistry()
+    );
+    expect(
+      result.issues.some((i) => i.code === 'missing-format')
+    ).toBe(true);
+  });
+
+  it('accepts inline records written as a list', () => {
+    // Only *text* needs a format; a list is already decoded.
+    const result = validateConfig(
+      withData('linegraph', { inlineData: [{ position: 1, value: 412 }] }),
+      freshRegistry()
+    );
+    expect(result.issues.filter((i) => i.code === 'missing-format')).toEqual([]);
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects several sources read through a format', () => {
+    // A format decodes one body: `runPipeline` takes one and the loader drops
+    // the rest. This used to resolve to the kind's provider adapter and fetch
+    // both files as JSON, with nothing said about it.
+    const result = validateConfig(
+      withData('features', { from: 'file', url: ['./a.csv', './b.csv'] }),
+      freshRegistry()
+    );
+    const issue = result.issues.find((i) => i.code === 'multi-source-format');
+    expect(issue?.message).toBe(
+      'Track X/y lists 2 sources, but reads them as CSV records. A format ' +
+        'reads one file at a time. Use one source per track, or set an ' +
+        "explicit 'adapter:' that takes several responses."
+    );
+    expect(result.valid).toBe(false);
+  });
+
+  it('leaves a multi-input provider adapter alone', () => {
+    // The three shipped AlphaFold/AlphaMissense tracks name two sources on
+    // purpose — their adapters take two responses.
+    const result = validateConfig(
+      withData('alphafold-confidence', { source: ['af', 'proteins'] }, {
+        af: 'https://af.test/{accession}',
+        proteins: 'https://ebi.test/{accession}',
+      }),
+      freshRegistry()
+    );
+    expect(
+      result.issues.filter((i) => i.code === 'multi-source-format')
+    ).toEqual([]);
+  });
+
+  it('leaves a formatless source list on a kind with a provider adapter alone', () => {
+    // `kind: variants` has a shape *and* a provider adapter. With no format
+    // and no extension to read records by, the list goes to the adapter,
+    // which takes every response, so the config loads.
+    const result = validateConfig(
+      withData('variants', { source: ['variation', 'proteins'] }, {
+        variation: 'https://ebi.test/variation/{accession}',
+        proteins: 'https://ebi.test/proteins/{accession}',
+      }),
+      freshRegistry()
+    );
+    expect(
+      result.issues.filter((i) => i.code === 'multi-source-format')
+    ).toEqual([]);
+  });
+
+  it('accepts several sources behind an explicit adapter', () => {
+    const result = validateConfig(
+      withData('features', {
+        from: 'file',
+        url: ['./a.csv', './b.csv'],
+        adapter: 'uniprot-features-json',
+      }),
+      freshRegistry()
+    );
+    expect(
+      result.issues.filter((i) => i.code === 'multi-source-format')
+    ).toEqual([]);
+  });
+
+  it('accepts a mismatch the author resolved with an explicit adapter', () => {
+    const result = validateConfig(
+      withData('alphamissense-pathogenicity', {
+        from: 'file',
+        url: './am.csv',
+        adapter: 'uniprot-features-json',
+      }),
+      freshRegistry()
+    );
+    expect(
+      result.issues.filter((i) => i.code === 'kind-format-mismatch')
+    ).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
 // Semantic: colorScale
 // ─────────────────────────────────────────────────────────────
 
@@ -531,7 +813,7 @@ describe('validateConfig — colorScale', () => {
           tracks: [
             {
               id: 'y',
-              kind: 'confidence-score',
+              kind: 'alphafold-confidence',
               data: 'https://example.org/x',
               rendering: { colorScale: { theme: 'alphafold-ramp' } },
             },
@@ -860,3 +1142,32 @@ function issueByCode(
 ): ValidationIssue | undefined {
   return issues.find((i) => i.code === code);
 }
+
+describe('validateConfig — adapters removed by the shape/format split', () => {
+  it.each([
+    ['features-csv', 'format: csv'],
+    ['linegraph-tsv', 'kind: linegraph with format: tsv'],
+    ['variation', 'kind: variants'],
+  ])('tells an author what to write instead of %s', (name, replacement) => {
+    // A config copied from documentation written before the change should
+    // learn the replacement, not be sent to registerAdapter() to reimplement
+    // something that is still built in.
+    const result = validateConfig(
+      {
+        accession: 'P05067',
+        rows: [
+          {
+            id: 'X',
+            tracks: [
+              { id: 'y', kind: 'features', data: { url: './x', adapter: name } },
+            ],
+          },
+        ],
+      },
+      freshRegistry()
+    );
+    const issue = result.issues.find((i) => i.code === 'unknown-adapter');
+    expect(issue?.message).toContain('Removed:');
+    expect(issue?.message).toContain(replacement);
+  });
+});

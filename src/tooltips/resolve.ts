@@ -450,7 +450,7 @@ function formatNumber(value: number): string {
 function formatScore(value: unknown, kind: string): string {
   if (typeof value !== 'number') return String(value);
   if (!Number.isFinite(value)) return String(value);
-  if (kind === 'confidence-score') {
+  if (kind === 'alphafold-confidence') {
     return Number.isInteger(value)
       ? String(value)
       : Number(value.toFixed(1)).toString();
@@ -459,8 +459,11 @@ function formatScore(value: unknown, kind: string): string {
 }
 
 function scoreLabel(kind: string): string {
-  if (kind === 'confidence-score') return 'pLDDT';
-  if (kind.startsWith('pathogenicity')) return 'Pathogenicity score';
+  if (kind === 'alphafold-confidence') return 'pLDDT';
+  // Both AlphaMissense kinds (`-pathogenicity`, `-heatmap`) score the same
+  // quantity, so they share one label. Prefix-matched on the provider rather
+  // than listed, so a future AlphaMissense kind inherits it.
+  if (kind.startsWith('alphamissense-')) return 'Pathogenicity score';
   return 'Score';
 }
 

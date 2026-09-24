@@ -1,7 +1,8 @@
 # Bring-your-own CSV file as a SINGLE STANDALONE TRACK — one row, no
 # group wrapper. A `rows:` entry that has `data:` (and no `tracks:`) is a
 # standalone track, so a single-track viewer needs no group at all. The
-# `.csv` extension on `data:` infers the `features-csv` adapter — no
+# `.csv` extension says how the records are encoded; `kind: features` says
+# what they are. No
 # explicit `adapter:` needed.
 accession: P05067
 rows:

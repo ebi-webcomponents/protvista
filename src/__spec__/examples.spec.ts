@@ -47,7 +47,7 @@ import { render } from 'lit';
 
 import { loadConfig } from '../schema/load.js';
 import type { NormalizedConfig } from '../schema/normalize.js';
-import { loadProtvistaData } from '../load-data.js';
+import { loadProtvistaData, hasRenderableRows } from '../load-data.js';
 import { createRegistry } from '../schema/registry.js';
 import { CSS_PREFIX } from '../styles/css-prefix.js';
 // Side-effect import: registers the `protvista-uniprot` custom
@@ -232,15 +232,18 @@ describe.each(discoverExamples())('example: $name', ({ dir, configPath }) => {
 
     // Precise signal: each track the example itself owns (its own
     // CSV/TSV/JSON/BED file, or inline data) must independently have
-    // parsed into a non-empty array — not merely "some sibling track
+    // parsed into something renderable — not merely "some sibling track
     // in this config produced data."
+    //
+    // Uses the loader's own predicate rather than a bare `Array.isArray`:
+    // adapters emit more than one wrapper (a variation payload is
+    // `{ variants: [...] }`), and a test that recognised fewer shapes than
+    // the `hasData` gate does would pass examples the viewer blanks out.
     for (const { key } of findLocalTracks(config)) {
-      const payload = result.data[key];
-      expect(Array.isArray(payload), `${key} should be an array`).toBe(true);
       expect(
-        (payload as unknown[]).length,
-        `${key} should be non-empty`
-      ).toBeGreaterThan(0);
+        hasRenderableRows(result.data[key]),
+        `${key} should have parsed into non-empty renderable rows`
+      ).toBe(true);
     }
   });
 

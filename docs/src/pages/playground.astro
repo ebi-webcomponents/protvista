@@ -335,6 +335,11 @@ const versionTooltip = isPrerelease
       #errors li {
         margin: 0.15rem 0;
       }
+      /* A warning names something legal — an explicit `format:` overriding a
+         file's extension — so it must not read as a failure. */
+      #errors li[data-severity='warning'] {
+        color: var(--muted);
+      }
       .preset-desc {
         flex: none;
         margin: 0;

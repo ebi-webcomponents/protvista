@@ -36,7 +36,7 @@ rows:
 
 A bench scientist writes only domain-level concepts (`kind: features`, the `my_hotspots` source-key) — never Nightingale component names, adapter names, or JavaScript. See [Example 4](#example-4-extending-the-ebi-default--one-line-one-new-track) for the full behaviour.
 
-> **Note.** Generic-format adapters let an author point a track at a local file with a `data: ./hotspots.csv` shorthand. **CSV, TSV, JSON, and BED all ship today** (`features-csv` / `features-tsv` / `features-json` / `bed`, pre-registered out of the box) — see [`specs/generic-format-adapters.md`](./generic-format-adapters.md). BED is 0-based half-open per its spec; the `bed` adapter shifts coordinates to the viewer's 1-based inclusive convention (`start = bedStart + 1`, `end = bedEnd`). For a format not yet covered, the BYO-data path goes through a hosted URL or a `registerAdapter()`-supplied custom adapter pinned with `adapter: <name>` on the descriptor.
+> **Note.** An author points a track at a local file with a `data: ./hotspots.csv` shorthand. **CSV, TSV, JSON, and BED all ship today** — no adapter is named or registered for any of them: the track's `kind` says which records it needs and the extension says how they are encoded (see "Shape and format" below). BED is 0-based half-open per its spec; reading it converts coordinates to the viewer's 1-based inclusive convention (`start = bedStart + 1`, `end = bedEnd`), and because that conversion is part of the format, BED can only carry feature records. For a feed no format describes, the BYO-data path goes through a hosted URL or a `registerAdapter()`-supplied custom adapter pinned with `adapter: <name>` on the descriptor.
 
 ## Non-Goals
 
@@ -254,7 +254,7 @@ interface TrackConfig {
    * a small, stable vocabulary of biological data kinds. The
    * runtime maps each semantic kind to a concrete Nightingale
    * component and data adapter, and may apply default rendering
-   * presets (e.g. the AlphaFold colour ramp for `confidence-score`).
+   * presets (e.g. the AlphaFold colour ramp for `alphafold-confidence`).
    *
    * Authors should prefer this field over the low-level `component`
    * and `adapter` fields — the semantic vocabulary shields configs
@@ -284,17 +284,33 @@ interface TrackConfig {
    *   - matches a key in root `sources`  → from: url, source: <value>
    *   - starts with http:// or https://  → from: url, url: <value>
    *
-   * Adapter inference: the track's semantic `kind` selects the
-   * canonical adapter.
+   * Source resolution, in order; the first match wins:
    *
-   * File-path shorthand against generic-format adapters resolves the
-   * adapter from the extension: `./hits.csv → features-csv`,
-   * `./hits.tsv → features-tsv`, `./hits.json → features-json` (all
-   * pre-registered and shipping today; `.bed → bed` is a planned
-   * addition — see `specs/generic-format-adapters.md`). For a format
-   * not yet covered, authors use the object form with an explicit
-   * `from: 'file'` plus a `registerAdapter()`-supplied `adapter:` they
-   * pin themselves.
+   *   1. an explicit `adapter:` — a named transform, nothing else
+   *      consulted;
+   *   2. an explicit `format:` — decode that way, validate against the
+   *      kind's shape;
+   *   3. a recognised extension on the resolved URL — same, by its
+   *      format;
+   *   4. the kind's provider adapter, if it declares one;
+   *   5. the kind's shape read as JSON, if it declares one;
+   *   6. otherwise a validation error.
+   *
+   * So `kind: features` + `./hits.csv` reads feature records encoded as
+   * CSV, and a hosted file resolves exactly as the local one does. 4
+   * before 5 keeps a formatless UniProt URL on the provider adapter
+   * while a bring-your-own-data-native kind (`linegraph`) still works
+   * against an extensionless URL serving its records. A provider
+   * endpoint whose URL happens to end in a known extension is the one
+   * case this misreads; pin `adapter:` there.
+   *
+   * A track with no `kind` at all has no shape to validate against, so
+   * a known extension means the feature record — the one thing
+   * `./x.csv` has always meant there. A `kind` pointed at a format that
+   * cannot carry its records is a validation error
+   * (`kind-format-mismatch`), not a silently empty track. For a feed no
+   * format describes, authors use the object form with an explicit
+   * `from: 'file'` plus a `registerAdapter()`-supplied `adapter:`.
    *
    * The array form is normalized internally; runtime code always
    * sees `DataSourceDescriptor[]`.
@@ -449,11 +465,18 @@ interface DataSourceDescriptor {
   inlineData?: unknown;
 
   /**
-   * Named adapter that transforms the raw response into the shape
-   * the Nightingale track component expects. If omitted, the raw
-   * response is passed directly to the track; when `data` is a
-   * string shorthand, the adapter is inferred from file extension
-   * or the parent track's semantic `kind`.
+   * How this source's bytes are encoded — `csv | tsv | json | bed`.
+   * Write it only when nothing can infer it: inline text, or a URL
+   * with no recognised extension. It states the encoding and nothing
+   * else; the track's `kind` decides what the records mean.
+   */
+  format?: DataFormat;
+
+  /**
+   * Named transform for this source. Highest precedence: set it and
+   * neither `format` nor the track's `kind` is consulted. The escape
+   * hatch for a bespoke feed — the built-ins it can name are the
+   * provider adapters plus anything `registerAdapter()` has added.
    */
   adapter?: AdapterName;
 }
@@ -565,7 +588,7 @@ type SemanticKind =
   /** Generic UniProt-style features. Combine with `filter` to subset by type. */
   | 'features'
   /** InterPro domain hits (representative). */
-  | 'features-interpro'
+  | 'interpro-features'
   /** Natural or disease-associated variants with detail panel. */
   | 'variants'
   /** Per-position variant count (line graph). */
@@ -581,11 +604,11 @@ type SemanticKind =
   /** PDB structure coverage intervals. */
   | 'structure-coverage'
   /** AlphaFold per-residue confidence (pLDDT). Includes default colour ramp. */
-  | 'confidence-score'
+  | 'alphafold-confidence'
   /** AlphaMissense per-residue pathogenicity. Includes default colour ramp. */
-  | 'pathogenicity-score'
+  | 'alphamissense-pathogenicity'
   /** AlphaMissense per-position × amino-acid heatmap. */
-  | 'pathogenicity-heatmap'
+  | 'alphamissense-heatmap'
   /** Generic line graph of author-supplied `{ position, value }` records. Not tied to any UniProt API. */
   | 'linegraph';
 
@@ -638,19 +661,263 @@ type KnownAdapterName =
   | 'interpro-entries-json'
   | 'alphafold-prediction-json'
   | 'alphamissense-average-csv'
-  | 'alphamissense-full-csv'
-  // ── Generic (bring-your-own-data; shape-validating) ──
-  | 'features-csv'
-  | 'features-tsv'
-  | 'features-json'
-  | 'bed'
-  | 'linegraph';
+  | 'alphamissense-full-csv';
 
 /** Open string — adapters registered via `registerAdapter()` are also valid. */
 type AdapterName = KnownAdapterName | (string & {});
 ```
 
-**Generic kinds.** `linegraph` renders with `nightingale-linegraph-track` and expects `{ position, value }[]` (both numbers). Use this kind for generic linegraph rendering when your data isn't one of the UniProt-specific variant-count sources. Keep using `variant-counts` for UniProt variation-API input. The `linegraph` adapter is a *generic* shape-validating adapter, distinct from `uniprot-variation-counts-json`, which also feeds `nightingale-linegraph-track` but applies UniProt-specific transforms; kinds and adapters are separate registries, so `kind: linegraph` and `adapter: linegraph` coexist. The field names `{ position, value }` were chosen over `{ x, y }` to match the sequence vocabulary (`position`, `begin`, `end`, `score`); future generic kinds converge on it. The names `track`, `colored-sequence`, `heatmap`, and `variation` are reserved for future generic kinds and are not registered.
+**Naming rule: a plain domain word means your data is welcome.** A kind's name is the author's only clue about whether their own file will work on it, so the vocabulary encodes the answer:
+
+- A kind named with a **plain domain word** (`features`, `variants`, `peptides`, `linegraph`) accepts an author-supplied file. Each declares the *record shape* it draws, so every format that can carry those records feeds it — `kind: variants` draws variants whether they come from the UniProt API or from `./my-variants.csv`.
+- A kind named for **the provider it reads** (`alphafold-confidence`, `alphamissense-pathogenicity`, `alphamissense-heatmap`, `interpro-features`) says whose feed it draws by default, rather than implying a generic capability. `alphafold-confidence` was `confidence-score` until the rule was applied — a name that read as "any confidence score" when it meant one product's pLDDT.
+
+  The prefix is not the same claim as "no file works here". The three AlphaFold/AlphaMissense kinds take two API responses and then fetch a further URL, so nothing an author can supply stands in, and they declare no record shape. `interpro-features` is the other case: it draws ordinary feature records, so `kind: interpro-features` with a `./domains.csv` reads that file like any other feature source — the prefix is there because the default feed is InterPro's and the plain word `features` already means UniProt's.
+
+The two halves are independent, and only one is a promise about your data: **a declared record shape is what means your file will work**, whatever the kind is called.
+
+The rule is enforced by a drift test (`adapter-reference.spec.ts`): a built-in kind that declares no record shape must start with a provider prefix. A kind that later gains a shape — and with it a bring-your-own-data path — should shed the prefix; a name change is the honest signal that the capability changed.
+
+**Record shapes.** Three shapes cover every kind, chosen so that what a track *draws* determines what its file must contain:
+
+| Shape | Required fields | Formats | Kinds |
+| --- | --- | --- | --- |
+| Feature record | `type`, `start`, `end` (optional `description`, `score`) | `.csv` `.tsv` `.json` `.bed` | `features`, `interpro-features`, `peptides`, `peptides-ptm`, `structure-coverage` |
+| Point record | `position`, `value` (both numbers) | `.csv` `.tsv` `.json` | `linegraph`, `variant-counts`, `rna-editing-counts` |
+| Variation record | `position`, `variant` (optional `wildType`, `description`, `consequence`) | `.csv` `.tsv` `.json` | `variants`, `rna-editing` |
+
+Field names follow the sequence vocabulary (`position`, `begin`, `end`, `score`) rather than a chart vocabulary (`{ x, y }`); future shapes converge on it. Each shape is validated at adapter time, with errors naming the offending row index and field, so a malformed file is a readable message rather than an empty track.
+
+`linegraph` is the one kind that is bring-your-own-data by nature rather than by extension — it has no provider feed at all, which is why it keeps a bare adapter name (`adapter: linegraph`) alongside `kind: linegraph`; kinds and adapters are separate registries. The `variation` adapter family is likewise distinct from `uniprot-variation-json`, which feeds the same component but applies UniProt-specific transforms.
+
+A variation payload is the one shape the viewer completes: `nightingale-variation-canvas` needs the protein `sequence` to lay out its residue rows, and an author's file has none, so the viewer injects the sequence it already fetched for `accession`. The reserved names `track`, `colored-sequence`, and `heatmap` remain unregistered; `variation` is now taken by the adapter family above, and needs no generic *kind* because `variants` itself accepts author data.
+
+### Shape and format (normative)
+
+> **Status.** Implemented. Replaced the per-kind adapter *family* table and the
+> ten `<shape>-<format>` adapter names, which are deleted rather than
+> deprecated. Rationale and the rejected alternative are in
+> [`adapter-model-decision.md`](./adapter-model-decision.md).
+
+A track's data is described by two independent facts, each with one owner:
+
+- **Shape** — *which records* the track needs. The **kind** owns this. A file
+  cannot change what a track draws.
+- **Format** — *how those records are encoded*. The **source** owns this,
+  normally via its file extension.
+
+The adapter for a source is computed from the pair. There are no
+`<shape>-<format>` adapter names: `features-csv`, `linegraph-tsv`,
+`variation-json` and the rest are **removed**, not deprecated. The published
+`5.0.0-beta.2` uses the old vocabulary; a beta is where contracts change, and
+the validator names the replacement for every removed adapter and renamed
+kind, which teaches the new name rather than letting an alias hide it.
+`adapter:` names a provider or consumer-registered *transform* only.
+
+#### `format`
+
+```typescript
+type DataFormat = 'csv' | 'tsv' | 'json' | 'bed';
+```
+
+`format` states **how the bytes are encoded** — nothing else. It is not
+compression (`.csv.gz` is out of scope), not a schema version, and not a
+dialect (delimiter, quoting and number grammar are fixed per format).
+
+Authors write it only when nothing can infer it: inline text, or a URL with no
+recognised extension. `data: ./hits.csv` needs no `format:`.
+
+#### Resolution order
+
+Normative, in order; the first match wins:
+
+1. an explicit `adapter:` on the descriptor;
+2. an explicit `format:` on the descriptor → decode by that format, validate
+   against the kind's shape;
+3. a recognised file extension on the resolved URL → same, by the extension's
+   format;
+4. the kind's `adapter` (its provider transform), if it declares one;
+5. the kind's shape with `format: json`, if it declares a shape;
+6. otherwise a validation error.
+
+Steps 4 and 5 are ordered so a kind with both — `features` reading the UniProt
+API — treats a formatless source as the provider's response, while a
+bring-your-own-data-native kind (`linegraph`) still works against an
+extensionless URL serving its records.
+
+**Disagreement.** An explicit `format:` overrides a recognised extension
+(`./x.csv` with `format: tsv` decodes as TSV). This is legal — a misnamed file
+is exactly why `format:` exists — but it is reported as a **validation issue of
+severity `warning`**, code `format-overrides-extension`, naming both values.
+
+> This requires a severity concept the validator does not yet have.
+> `ValidationIssue` gains `severity: 'error' | 'warning'` (absent = `error`,
+> preserving every existing issue's meaning), and `ValidationResult.valid`
+> becomes "no issue of severity `error`". A `console.warn` is explicitly **not
+> acceptable** here: console-only diagnostics are a known failure mode in this
+> codebase, invisible to the `protvista-error` event, the ⚠ badge, and CI.
+
+#### Kind registry entries
+
+```typescript
+interface SemanticKindDefinition {
+  component: ComponentName;
+  /** Which records a file on this track must contain. Omit for a kind that
+   *  can only read its provider's feed. */
+  shape?: ShapeName;
+  /** Provider transform for this kind's canonical source. Omit for a kind
+   *  that exists only to render author-supplied records. */
+  adapter?: AdapterName;
+  rendering?: RenderingOptions;
+}
+```
+
+All four combinations are defined:
+
+| `shape` | `adapter` | Meaning | Example |
+| --- | --- | --- | --- |
+| ✓ | ✓ | Reads its provider's feed *or* your file. | `features`, `variants` |
+| ✓ | — | Bring-your-own-data only; no provider feed exists. | `linegraph` |
+| — | ✓ | Provider feed only; a file source is a config error. | `alphafold-confidence` |
+| — | — | **Illegal.** The kind can never produce data. | — |
+
+The illegal combination is rejected at registration time — `registerSemanticKind()`
+throws `InvalidSemanticKindError`, listing the kind name and the two fields.
+This is a programming error in the registering code, not an author error, so it
+fails loudly at registration rather than surfacing per-config.
+
+`registerSemanticKind()` accepting `shape` is a deliberate public-API addition:
+a consumer-defined kind gets the whole file / inline / `format:` path for free,
+rather than bring-your-own-data being a privilege of built-ins.
+
+#### Shapes
+
+A shape is a record contract plus the metadata error messages are built from:
+
+```typescript
+interface ShapeDefinition {
+  name: ShapeName;                    // 'feature' | 'point' | 'variation'
+  /** Author-facing description, used verbatim in errors:
+   *  "feature records (type, start, end)". */
+  label: string;
+  requiredFields: readonly string[];
+  optionalFields: readonly string[];
+  /** Whether the renderer's representation differs from the records —
+   *  `point` wraps into series, `variation` into `{ variants }`, `feature`
+   *  is the records themselves. Decides whether inline / `setTrackData()`
+   *  payloads need adapting at all. */
+  wraps: boolean;
+}
+```
+
+`label` is load-bearing: without it the improved diagnostics below degrade to
+naming adapters and body types, which is the failure this redesign exists to
+end.
+
+**`point`**, derived from the shipped parsers (`rowsToPointRecords`, and the
+JSON path in `linegraph`) rather than restated:
+
+- Required: `position`, `value`. Both numbers; no optional fields.
+- JSON: own properties only (an inherited field does not satisfy a
+  requirement); `typeof === 'number'`; finite — `NaN` and `Infinity` are
+  rejected, and a numeric *string* (`"47"`) is rejected.
+- Delimited: each cell parsed by `parseDecimal` —
+  `/^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$/`, so hex/binary/octal literals
+  and `Infinity` are rejected, as is an empty cell.
+- Extra columns and extra object keys are ignored, in both transports.
+- File order is rendered order: rows are neither sorted nor de-duplicated.
+- Rejected with a row-and-column-named error: a ragged row, a duplicate header
+  column, a missing required column.
+- `label`: `point records (position, value)`.
+
+`feature` and `variation` follow the tables earlier in this section, with the
+same discipline.
+
+**Unrecognised fields are permitted and preserved**, in every transport. A
+`dataTooltip` may reference any field by path, so dropping unknown keys
+silently breaks author-authored tooltips — an author who adds a `gene` column
+to see it on hover is doing the expected thing, not an unexpected one. A
+delimited cell is preserved as the **string** it was: unknown columns are
+carried through uncoerced, which keeps them useful without guessing a type.
+This was a behaviour change for the JSON feature decoder, which previously
+kept exactly its five documented fields and dropped the rest.
+
+Preserved fields are therefore *not* warned about — that would fire on every
+correct config. What is worth reporting is a **near miss**: an unrecognised
+field within edit distance 1 of a known one is almost always a typo, and its
+symptom (a blank tooltip) points nowhere.
+
+> `./my-variants.csv` (parsed as CSV): column `descripton` is not a known field — did you mean
+> `description`? It has been kept, and is available to `dataTooltip`.
+
+This is a **data-time** diagnostic, not a config-time one: the validator is
+synchronous and never sees a payload. It is reported through the track error
+surface (the ⚠ badge and the `protvista-error` event), which is also where an
+adapter's row-and-field errors belong — see the note in
+`generic-format-adapters.md` that they currently reach the console only.
+
+#### Formats and the shapes they can produce
+
+A decoder normally produces rows that any shape can validate. `bed` is
+different: it carries feature semantics (0-based half-open, converted on read),
+so it declares the shape it emits.
+
+```typescript
+interface FormatDefinition {
+  name: DataFormat;
+  ext: string;
+  body: 'text' | 'json';
+  /** Set when the format itself determines the records. A kind whose shape
+   *  differs is a config error. Generalises to GFF/GTF/VCF later. */
+  emitsShape?: ShapeName;
+}
+```
+
+`bed` declares `emitsShape: 'feature'`. `kind: variants` at a `.bed` file is
+therefore rejected with the shapes named on both sides:
+
+> BED files carry feature records (type, start, end); `kind: variants` draws
+> variation records (position, variant). Use `kind: features` for this file, or
+> convert it.
+
+A kind with no shape, pointed at any file, is rejected the same way:
+
+> `kind: alphafold-confidence` reads the AlphaFold prediction feed and cannot
+> read a file. It needs two API responses plus a further fetch, which no single
+> file provides.
+
+For the ~10 days after the grid names are deleted, an `adapter:` naming one of
+them reports the replacement rather than a bare unknown-adapter error:
+`adapter: 'features-csv'` → *"removed; use `format: csv` (the kind decides the
+records)"*.
+
+#### Inline data
+
+`inlineData` carries the author's records, against the kind's shape:
+
+- a **sequence** is already records — validated against the shape, wrapped if
+  the shape wraps, and otherwise passed through unchanged;
+- a **string** is encoded text and requires `format:`. There is no
+  content-sniffing: a pasted block with no `format:` is a validation error
+  naming the legal values.
+
+`setTrackData()` follows the same contract, and additionally accepts a payload
+already in the renderer's representation — the two are structurally disjoint,
+so neither has to be guessed at. (Implemented ahead of this section; see
+`load-data-authored-records.spec.ts`.)
+
+#### What `registerAdapter()` means afterwards
+
+`registerAdapter()` registers a **transform**: a function from one or more
+fetched bodies to a renderer payload. Every built-in adapter that survives is a
+provider transform (`uniprot-*`, `interpro-*`, `alphafold-*`, `alphamissense-*`).
+Authors reach one only by naming it explicitly, which remains the escape hatch
+for a bespoke feed.
+
+Decoding and shape validation are deliberately **not** extensible in this
+change. `registerFormat()` and `registerShape()` are reserved names for that
+extension; the `FormatDefinition` / `ShapeDefinition` records above are shaped
+to be registry entries when it happens, so adding them later is additive.
 
 ### Escape-Hatch API (Programmatic — 20% advanced use cases)
 
@@ -862,7 +1129,7 @@ a panel, but the wording and affordance differ:
 
 Deep integration with structural viewers like MolStar, and with the emerging [SeqViewSpec (SVS)](https://molstar.org/mol-view-spec) standard being drafted by the Mol\* team, is an explicit non-goal for this grant. Following discussion with the Mol\*/SVS developers, ProtVista will not reshape its configuration schema, event model, or runtime around SVS at this time. SVS is a moving upstream specification, and committing to a preemptive shape during the grant would risk churn with no proportionate user benefit. Broader cross-viewer alignment remains a worthwhile long-term goal and will be revisited post-grant, on whatever the then-current SVS draft recommends.
 
-Within the grant, ProtVista is free to cherry-pick individual concepts from SVS where they serve the low-friction-authoring goal on their own merits — independent of any eventual full-protocol adoption. The semantic `kind` field in this spec is one such borrowed idea: it gives config authors a stable, domain-level vocabulary (`"variants"`, `"confidence-score"`, and so on) that survives renderer changes, which is valuable whether or not SVS ever ships. Further individual SVS concepts will be evaluated case by case against the same criterion: does this make ProtVista easier for a bench scientist to use today?
+Within the grant, ProtVista is free to cherry-pick individual concepts from SVS where they serve the low-friction-authoring goal on their own merits — independent of any eventual full-protocol adoption. The semantic `kind` field in this spec is one such borrowed idea: it gives config authors a stable, domain-level vocabulary (`"variants"`, `"alphafold-confidence"`, and so on) that survives renderer changes, which is valuable whether or not SVS ever ships. Further individual SVS concepts will be evaluated case by case against the same criterion: does this make ProtVista easier for a bench scientist to use today?
 
 The existing `nightingale-structure` component continues to provide 1D↔3D coordination via its internal SIFTS path, unchanged by this spec.
 
@@ -879,7 +1146,7 @@ All examples in this spec are shown in YAML form first with the JSON equivalent 
 
 Accessibility is a grant-level commitment (see the OMP) and is baked into the schema's built-in vocabulary rather than left to individual config authors:
 
-- **Colour-blind-safe defaults.** The built-in colour themes referenced from `colorScale.theme` — `alphafold-ramp` (pLDDT confidence) and `alphamissense-ramp` (pathogenicity) — are published as accessibility-reviewed palettes. Authors who rely on semantic kinds (`confidence-score`, `pathogenicity-score`) or name a built-in theme get WCAG-compliant colouring for free. Explicit `stops:` escape-hatch gradients remain authorable, but shift the accessibility responsibility to the author and should be used only when no built-in theme fits.
+- **Colour-blind-safe defaults.** The built-in colour themes referenced from `colorScale.theme` — `alphafold-ramp` (pLDDT confidence) and `alphamissense-ramp` (pathogenicity) — are published as accessibility-reviewed palettes. Authors who rely on semantic kinds (`alphafold-confidence`, `alphamissense-pathogenicity`) or name a built-in theme get WCAG-compliant colouring for free. Explicit `stops:` escape-hatch gradients remain authorable, but shift the accessibility responsibility to the author and should be used only when no built-in theme fits.
 - **Keyboard-accessible legends.** Colour-scale legends rendered from `ColorScaleConfig` are keyboard-focusable and announce their `label` via `aria-label`. The `label` field on `ColorStop` is the accessible name — authors who register custom themes via `registerTheme()` should supply labels for every stop, not only for legend clarity but for screen-reader output.
 - **Tooltip semantics.** Track- and group-level `description` fields render as plain-text native HTML `title` attributes — no Markdown, no HTML — so screen readers pick them up via the browser's default a11y path. Track- and group-level `label` fields render through `@markdoc/markdoc` restricted to an inline surface (emphasis, code, links, and the `{% help %}` help-popover tag); block-level markup is rejected so a label stays a single semantic line, and link `href`s pass the same URL allowlist as tooltip content. Per-datapoint `dataTooltip` content flows through `@markdoc/markdoc` to produce HTML preserving the Markdown's semantic structure (headings, emphasis, lists) rather than flattening to a styled `<div>`. Field interpolations are HTML-escaped at the boundary so those semantic tags stay intact for screen readers. Per-datapoint tooltips are displayed as click-triggered popovers (not hover-triggered) with `role="tooltip"` and `tabindex="-1"`. Focus moves into the popover on open and is restored to the previously-focused element on close (Escape key, outside click, or scroll). The popover is dismissed by Escape, outside-click, or any document scroll.
 - **Library defaults are compact.** The built-in `tooltipDefaults` registry ships small declarative specs per `SemanticKind`, while the no-spec fallback now surfaces a little more of the adapted payload. Product-specific rich rendering (evidence icons, taxonomy lookups, React overlays, …) still lives in consumer code via the Nightingale `change`-event pattern paired with `notooltip` on the element.
@@ -1037,7 +1304,7 @@ rows:
       - id: alphafold_confidence
         # Markdown link in the label — external links open in a new tab
         label: '[AlphaFold Confidence](https://alphafold.ebi.ac.uk/entry/{accession})'
-        kind: confidence-score
+        kind: alphafold-confidence
         data:
           source: [alphafoldPrediction, proteins] # two-URL adapter
         description: AlphaFold prediction confidence
@@ -1066,7 +1333,7 @@ rows:
 
 **Expected output (viewer behaviour):**
 
-The AlphaFold group has no `rendering` block because `kind: "confidence-score"` carries the AlphaFold colour ramp as a default preset — authors get the canonical appearance for free. The adapter (resolved from the semantic kind) receives two raw responses (from `alphafoldPrediction` and `proteins`) and produces a coloured-sequence string. The Variation group is similarly terse: `data: variation` is string shorthand that resolves via `sources`; `filterUI: nightingale-filter` attaches the variant filter widget. Labels carry their own rich rendering: the AlphaFold track label is a Markdown link (`{accession}` interpolated, opens alphafold.ebi.ac.uk in a new tab) and the group labels use the `{% help %}` tag to drive the in-page help popover. Authors only write domain language (`"variants"`, `"confidence-score"`) — never Nightingale component names or adapter names.
+The AlphaFold group has no `rendering` block because `kind: "alphafold-confidence"` carries the AlphaFold colour ramp as a default preset — authors get the canonical appearance for free. The adapter (resolved from the semantic kind) receives two raw responses (from `alphafoldPrediction` and `proteins`) and produces a coloured-sequence string. The Variation group is similarly terse: `data: variation` is string shorthand that resolves via `sources`; `filterUI: nightingale-filter` attaches the variant filter widget. Labels carry their own rich rendering: the AlphaFold track label is a Markdown link (`{accession}` interpolated, opens alphafold.ebi.ac.uk in a new tab) and the group labels use the `{% help %}` tag to drive the in-page help popover. Authors only write domain language (`"variants"`, `"alphafold-confidence"`) — never Nightingale component names or adapter names.
 
 ### Example 4: Extending the EBI default — one line, one new track
 
@@ -1099,7 +1366,7 @@ At load time the loader `fetch()`-es the URL in `extends`, parses it as YAML, me
 
 **Bring-your-own file — point the track at a spreadsheet:**
 
-Instead of a hosted `sources` URL, the same track can point straight at a local delimited file. The `.csv` / `.tsv` / `.bed` extension infers the pre-registered `features-csv` / `features-tsv` / `bed` adapter, so no `adapter:` and no `registerAdapter()` glue is needed:
+Instead of a hosted `sources` URL, the same track can point straight at a local delimited file. The `.csv` / `.tsv` / `.bed` extension gives the encoding and `kind: features` gives the records, so no `adapter:` and no `registerAdapter()` glue is needed:
 
 ```yaml
 rows:
@@ -1111,7 +1378,7 @@ rows:
         data: ./hotspots.csv # header: type,start,end,description[,score]
 ```
 
-At load time the loader recognises `./hotspots.csv` as a file source, fetches it as **text** (not JSON), runs `features-csv` to turn the rows into feature records, and renders them on `nightingale-track-canvas` exactly as a URL-sourced `kind: features` track would. A `.tsv` file behaves identically via `features-tsv`. The header row must be `type,start,end,description[,score]`; `start`/`end`/`score` are coerced to numbers.
+At load time the loader recognises `./hotspots.csv` as a file source, fetches it as **text** (not JSON), decodes the rows into the feature records `kind: features` declares, and renders them on `nightingale-track-canvas` exactly as a URL-sourced `kind: features` track would. A `.tsv` file behaves identically. The header row must be `type,start,end,description[,score]`; `start`/`end`/`score` are coerced to numbers.
 
 A `.json` file behaves the same via `features-json`, except the body is fetched as **JSON** (not text): the file must be an array of feature objects — `[{ "type": "DOMAIN", "start": 10, "end": 25, "description": "…", "score": 0.9 }, …]`. The start coordinate may be given as either `start` or `begin` (normalised to `start`); `description` and `score` are optional. A malformed record throws a descriptive, record-and-field-named error (e.g. `features-json: record 2, field "start": expected a number, got string`), which the loader turns into an empty track plus a console warning rather than crashing the viewer.
 
@@ -1129,10 +1396,10 @@ A `.bed` file behaves the same way via the `bed` adapter, with two format-specif
 | The top-level **sequence** is **missing** (HTTP `4xx`, or a `2xx` body with no `sequence` field — the accession has no entry)      | A `role="alert"` panel shows _"No UniProt entry found for '<accession>'. Check that the accession is correct."_ — no Retry (a 404 is deterministic). The `protvista-error` `phase: 'sequence'` event still fires. Unlike a *missing track* (which hides silently), the mount can't hide itself, so a panel is always shown here.                                                                                                                                                            |
 | A `source` (or bare `url`) value is not a URL, not a file path, and does not match any key in `sources`                           | Config validation fails at load time: `"Unknown source key: '<value>' in track <groupId>/<trackId>. Known sources: ..."`. Viewer does not mount.                                                                                                                                                                                                                                                                                                                                        |
 | `adapter` name does not match any built-in or registered adapter                                                                  | Config validation fails: `"Unknown adapter: <name> in track <groupId>/<trackId>. Did you forget to call registerAdapter()?"`.                                                                                                                                                                                                                                                                                                                                                           |
-| A bring-your-own **CSV/TSV** file has a malformed header or row (a missing/duplicate required column, a non-numeric coordinate, or a ragged row) | The `features-csv` / `features-tsv` adapter throws a descriptive error naming the offending row (by 1-based line number, header = line 1) and — where meaningful — the column: e.g. `features-csv: row 3, column "start": expected a number, got "abc"`, `features-csv: missing required header column "end"`, or `features-csv: row 4 is ragged — expected 4 columns, got 3`. The loader's per-track `try/catch` catches the throw, emits a developer `console.warn` (so the author can find and fix the file), and renders **that one track empty**; the rest of the viewer renders normally. Because a semantically-malformed file still fetches as valid *text*, this does **not** currently raise the fetch-level ⚠ badge / `protvista-error` surface — promoting adapter throws to track errors is a follow-up. |
-| A bring-your-own **JSON** file has a malformed record (not an array, an element that isn't an object, a missing/non-string `type`, a non-numeric `start`/`begin`/`end`, or a present-but-wrong-typed `description`/`score`) | The `features-json` adapter throws a descriptive error naming the offending 0-based array index and — where meaningful — the field: e.g. `features-json: record 2, field "start": expected a number, got string`, `features-json: record 0, field "type": expected a string, got number`, or `features-json: record 1 is not an object (got string)`. A top-level body that isn't an array is treated more leniently — a `console.warn` and an empty track, not a throw. Otherwise the same per-track `try/catch` / `console.warn` / empty-track / no-⚠-badge behavior as CSV/TSV applies. |
-| A bring-your-own **BED** file has a malformed line (fewer than 3 tab-separated columns, a non-numeric coordinate/score, or an inverted `chromEnd < chromStart` interval) | The `bed` adapter throws a descriptive error naming the offending line by 1-based physical line number and the BED column: e.g. `bed: line 3: non-numeric start coordinate "abc" (BED column 2).`, `bed: line 1: expected at least 3 tab-separated columns (chrom, start, end), got 2.`, or `bed: line 1: end (4) is before start (5) (BED columns 2–3).`. Blank lines and `track` / `browser` / `#` comment lines are skipped, not errors; a legal **zero-length** feature (`chromStart == chromEnd`, an insertion point) is kept and rendered as a single-base point (`start == end`) rather than treated as inverted. Handled exactly like the CSV/TSV case above: the loader's per-track `try/catch` logs a `console.warn` and renders **that one track empty** while the rest of the viewer renders normally; it does not (yet) raise the fetch-level ⚠ badge / `protvista-error` surface. |
-| A `data:` string shorthand is a file path with an **unrecognised extension** (e.g. `./notes.gff`)                                   | Not a known generic format, so it falls through to the sources-key rule: config validation fails with `"Unknown source key: './notes.gff' in track <groupId>/<trackId>. Known sources: ..."`. Use a hosted URL, a supported extension (`.csv` / `.tsv` / `.json` / `.bed`), or the object form with an explicit `adapter:`.                                                                                                                                                                                    |
+| A bring-your-own **CSV/TSV** file has a malformed header or row (a missing/duplicate required column, a non-numeric coordinate, or a ragged row) | The decoder throws a descriptive error naming the author's own file, the reading applied to it, the offending row (by 1-based line number, header = line 1) and — where meaningful — the column: e.g. `./hits.csv (parsed as CSV): row 3, column "start": expected a number, got "abc"`, `./hits.csv (parsed as CSV): missing required header column "end"`, or `./hits.csv (parsed as CSV): row 4 is ragged — expected 4 columns, got 3`. The loader's per-track `try/catch` catches the throw, emits a developer `console.warn` (so the author can find and fix the file), and renders **that one track empty**; the rest of the viewer renders normally. Because a semantically-malformed file still fetches as valid *text*, this does **not** currently raise the fetch-level ⚠ badge / `protvista-error` surface — promoting adapter throws to track errors is a follow-up. |
+| A bring-your-own **JSON** file has a malformed record (not an array, an element that isn't an object, a missing/non-string `type`, a non-numeric `start`/`begin`/`end`, or a present-but-wrong-typed `description`/`score`) | The decoder throws a descriptive error naming the file, the offending 0-based array index and — where meaningful — the field: e.g. `./hits.json (parsed as JSON): record 2, field "start": expected a number, got string`, `./hits.json (parsed as JSON): record 0, field "type": expected a string, got number`, or `./hits.json (parsed as JSON): record 1 is not an object (got string)`. A top-level body that isn't an array is treated more leniently — a `console.warn` and an empty track, not a throw. Otherwise the same per-track `try/catch` / `console.warn` / empty-track / no-⚠-badge behavior as CSV/TSV applies. |
+| A bring-your-own **BED** file has a malformed line (fewer than 3 tab-separated columns, a non-numeric coordinate/score, or an inverted `chromEnd < chromStart` interval) | The `bed` adapter throws a descriptive error naming the offending line by 1-based physical line number and the BED column: e.g. `./regions.bed (parsed as BED): line 3: non-numeric start coordinate "abc" (BED column 2).`, `./regions.bed (parsed as BED): line 1: expected at least 3 tab-separated columns (chrom, start, end), got 2.`, or `./regions.bed (parsed as BED): line 1: end (4) is before start (5) (BED columns 2–3).`. Blank lines and `track` / `browser` / `#` comment lines are skipped, not errors; a legal **zero-length** feature (`chromStart == chromEnd`, an insertion point) is kept and rendered as a single-base point (`start == end`) rather than treated as inverted. Handled exactly like the CSV/TSV case above: the loader's per-track `try/catch` logs a `console.warn` and renders **that one track empty** while the rest of the viewer renders normally; it does not (yet) raise the fetch-level ⚠ badge / `protvista-error` surface. |
+| A `data:` string shorthand is a file path with an **unrecognised extension** (e.g. `./notes.gff`)                                   | Not a known generic format, so it falls through to the sources-key rule: config validation fails with `"Unknown source key: './notes.gff' in track <groupId>/<trackId>. Known sources: ..."`. Use a hosted URL, a supported extension (`.csv` / `.tsv` / `.json` / `.bed`), or the object form with an explicit `format:`.                                                                                                                                                                                    |
 | `kind` (semantic) value is not in the semantic-kind vocabulary and is not registered                                              | Config validation fails: `"Unknown semantic kind: '<value>' in track <groupId>/<trackId>. Valid values: .... Register custom kinds with registerSemanticKind()."`.                                                                                                                                                                                                                                                                                                                      |
 | A track has no `kind`, no `component`, and the parent group has no `component`                                                    | Config validation fails: `"Track <groupId>/<trackId> has no 'kind' or 'component'. Set a semantic 'kind' (e.g. 'features') or provide 'component' explicitly."`.                                                                                                                                                                                                                                                                                                                        |
 | A `dataTooltip` template references a field that does not exist on the adapter's output                                           | That placeholder renders as an empty string. The viewer does not fail.                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -1224,17 +1491,17 @@ The grant deliverable (P1 — the config schema) has no external cross-project d
 - [x] The schema file declares a stable `$id` URI (`https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json`) and `default-config.yaml` references it via `$schema`, so editors (VS Code, etc.) can resolve the schema and provide autocomplete and inline validation once the Pages deploy on `next` has published it.
 - [x] All 15 existing UniProt groups render correctly when driven by the new config format (parity test against the hardcoded `config.ts`).
 - [x] Every track in the published default config uses the semantic `kind` field (no raw `component` + `adapter` pairs at the track level).
-- [x] Semantic kinds `confidence-score` and `pathogenicity-score` apply the canonical AlphaFold / AlphaMissense colour ramps automatically when `rendering.colorScale` is not specified.
+- [x] Semantic kinds `alphafold-confidence` and `alphamissense-pathogenicity` apply the canonical AlphaFold / AlphaMissense colour ramps automatically when `rendering.colorScale` is not specified.
 - [x] Explicit `component` on a track or `adapter` on a data source override the semantic-kind resolution.
 - [x] `filterUI: "nightingale-filter"` attaches the variant filter widget.
 - [x] `dataTooltip` accepts the three authoring forms — shorthand string, `kind: fields`, and `kind: markdown` — and renders correctly for each data point on the track. Markdown is rendered via `@markdoc/markdoc`; `{% $field %}` placeholders reference fields on the adapter's output and are HTML-escaped before substitution.
 - [x] YAML configs load and validate equivalently to JSON configs. A round-trip (JSON → YAML → JSON) on the default config is lossless.
-- [x] Adapter names follow the `<source>-<format>` convention. A config author can tell at a glance which adapter is tied to which API.
-- [x] Built-in themes `alphafold-ramp` and `alphamissense-ramp` are defined once, used by default in `confidence-score` / `pathogenicity-score` semantic kinds, and available to any track via `colorScale.theme`.
+- [x] Adapter names follow the `<source>-<format>` convention. A config author can tell at a glance which adapter is tied to which API. Every remaining adapter is a provider transform; bring-your-own-data files need none.
+- [x] Built-in themes `alphafold-ramp` and `alphamissense-ramp` are defined once, used by default in `alphafold-confidence` / `alphamissense-pathogenicity` semantic kinds, and available to any track via `colorScale.theme`.
 - [x] An external-lab adopter can write a ten-line config using `extends:` pointing at a URL or local file path to a base config and add one extra track, with the base viewer inherited intact.
 - [x] `accession` can be supplied via config, HTML attribute, or `setConfig()`. The HTML attribute takes precedence over the config value. A config with `{accession}` placeholders but no accession from any source fails validation with a clear message.
-- [x] Generic-format adapters `features-csv`, `features-tsv`, `features-json`, and `bed` are pre-registered on every fresh registry. A track that points at `./x.csv` / `./x.tsv` / `./x.json` / `./x.bed` loads end to end — inferring the adapter from the extension, fetching the file as text (CSV/TSV/BED) or JSON, and rendering on `nightingale-track-canvas` — without consumer-side adapter registration.
-- [x] File-extension shorthand (`./hits.csv` → `features-csv`, `./hits.tsv` → `features-tsv`, `./hits.json` → `features-json`, `./regions.bed` → `bed`) maps to the matching pre-registered adapter; a malformed file makes the adapter throw a descriptive error naming the offending row/record/line (and, where applicable, the column/field), which the loader logs while rendering that track empty.
+- [x] The CSV, TSV, JSON and BED formats are built in. A track that points at `./x.csv` / `./x.tsv` / `./x.json` / `./x.bed` loads end to end — reading the format off the extension, fetching the file as text (CSV/TSV/BED) or JSON, decoding it into the records the track's `kind` draws, and rendering on `nightingale-track-canvas` — without consumer-side adapter registration.
+- [x] File-extension shorthand (`./hits.csv` → CSV, `./hits.tsv` → TSV, `./hits.json` → JSON, `./regions.bed` → BED) states the source's encoding; the track's `kind` states the records, and the pair selects the reading. A malformed file makes the decoder throw a descriptive error naming the file, the reading applied to it, and the offending row/record/line (and, where applicable, the column/field), which the loader logs while rendering that track empty.
 - [x] BED coordinates are converted from 0-based half-open to the viewer's 1-based inclusive convention (`start = bedStart + 1`, `end = bedEnd`) — a BED interval `100 200` renders as `start: 101, end: 200`.
 
 ## Tests

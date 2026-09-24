@@ -90,8 +90,10 @@ viewer.registerTheme('my-ramp', [
   being resolved.
 - **Names must be unique.** Registering a name twice throws a
   `RegistryCollisionError`. Built-in **kinds** and **themes** can't be overridden;
-  built-in **adapters** may be overridden once (so you can swap our `features-csv`
-  for your own column layout).
+  built-in **adapters** may be overridden once, so you can swap a provider
+  transform such as `uniprot-features-json` for one that reads a different
+  feed. Reading your *own* file needs no adapter at all — see
+  [Load your own data](/protvista/your-data).
 - **Errors surface through `protvista-error`.** Listen for it to catch misuse and
   load failures — see [Troubleshoot errors](/protvista/troubleshooting).
 

@@ -9,12 +9,16 @@
 interface Renderable {
   message: string;
   code?: string;
+  /** Absent means `'error'`, matching `ValidationIssue.severity`. */
+  severity?: 'error' | 'warning';
 }
 
 export interface DiagnosticsView {
   /**
    * Replace the list with the current config diagnostics and update the
-   * summary. Returns whether the config is valid (no diagnostics).
+   * summary. Returns whether the config is valid — that is, whether it is
+   * free of *errors*. A warning is listed but does not make the config
+   * unloadable, so it must not hold the preview back.
    */
   showConfig(diagnostics: readonly Renderable[]): boolean;
   /**
@@ -28,25 +32,43 @@ export function createDiagnosticsView(
   summary: HTMLElement,
   list: HTMLElement
 ): DiagnosticsView {
-  const setSummary = (count: number): void => {
+  const setSummary = (count: number, errors = count): void => {
+    if (count === 0) {
+      summary.textContent = 'No problems — config is valid.';
+      return;
+    }
+    // Warnings alone leave the config loadable, and the summary is the line
+    // an author reads before deciding whether to hit Run.
     summary.textContent =
-      count === 0
-        ? 'No problems — config is valid.'
+      errors === 0
+        ? `${count} warning${count === 1 ? '' : 's'} — config is valid.`
         : `${count} problem${count === 1 ? '' : 's'} found:`;
   };
 
-  const item = (message: string, code?: string): HTMLLIElement => {
+  const item = (
+    message: string,
+    code?: string,
+    severity?: 'error' | 'warning'
+  ): HTMLLIElement => {
     const li = document.createElement('li');
     li.textContent = message;
     if (code) li.dataset.code = code;
+    // Only warnings are marked: the list is styled as errors by default, so
+    // an unmarked row keeps exactly the appearance it had.
+    if (severity === 'warning') li.dataset.severity = 'warning';
     return li;
   };
 
   return {
     showConfig(diagnostics) {
-      setSummary(diagnostics.length);
-      list.replaceChildren(...diagnostics.map((d) => item(d.message, d.code)));
-      return diagnostics.length === 0;
+      const errors = diagnostics.filter(
+        (d) => (d.severity ?? 'error') === 'error'
+      ).length;
+      setSummary(diagnostics.length, errors);
+      list.replaceChildren(
+        ...diagnostics.map((d) => item(d.message, d.code, d.severity))
+      );
+      return errors === 0;
     },
 
     appendRuntime(issues, phase) {

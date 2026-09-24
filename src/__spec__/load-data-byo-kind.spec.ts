@@ -17,8 +17,20 @@ import { describe, it, expect, vi } from 'vitest';
 import { loadConfig } from '../schema/load.js';
 import { loadProtvistaData, type AdapterMap } from '../load-data.js';
 import { linegraph } from '../schema/adapters/linegraph.js';
-import { linegraphCsv } from '../schema/adapters/linegraph-csv.js';
-import { linegraphTsv } from '../schema/adapters/linegraph-tsv.js';
+
+import { runPipeline } from '../schema/adapters/pipeline.js';
+
+/**
+ * The grid adapters these tests were written against are gone: a source now
+ * resolves to a (shape, format) pair and `runPipeline` composes it. The
+ * assertions below are unchanged — same parsers, same messages — so they are
+ * re-pointed rather than rewritten, with the source name the loader would
+ * pass so the error text is what an author actually sees.
+ */
+const linegraphCsv = (body: unknown) =>
+  runPipeline('point', 'csv', body, { source: './depth.csv' });
+const linegraphTsv = (body: unknown) =>
+  runPipeline('point', 'tsv', body, { source: './depth.tsv' });
 
 const adapters: AdapterMap = {
   linegraph,
@@ -235,17 +247,17 @@ describe('loadProtvistaData — kind: linegraph', () => {
     ]);
   });
 
-  it('reports hasData for a .json file path that names the adapter explicitly', async () => {
-    // The documented escape hatch: a `.json` extension would otherwise infer
-    // `features-json`, so the adapter has to be named. Different normalize
-    // branch (explicit `adapter:` over inferred), same gate.
+  it('reports hasData for a .json file path whose format is stated outright', async () => {
+    // `format:` is the replacement for what used to need an adapter name
+    // here: the extension already implies JSON, so this pins the explicit
+    // branch of normalize rather than the inferred one. Same gate.
     const config = await loadConfig({
       rows: [
         {
           id: 'depth',
           label: 'Read depth',
           kind: 'linegraph',
-          data: { url: './depth.json', adapter: 'linegraph' },
+          data: { url: './depth.json', format: 'json' },
         },
       ],
     });

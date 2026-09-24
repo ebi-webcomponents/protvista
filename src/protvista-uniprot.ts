@@ -58,7 +58,7 @@ import type {
   NormalizedTrack,
 } from './schema/normalize.js';
 import { renderingToAttrs } from './renderer/render-helpers.js';
-import { KIND_SELECTED_BYO_DATA_ADAPTERS } from './schema/file-formats.js';
+import { isAuthoredSource } from './schema/normalize.js';
 import {
   type LayoutPatch,
   type DisplayRow,
@@ -222,9 +222,7 @@ const hasRenderableData = (value: unknown): boolean => {
  * into "12 values". Those tracks show the bare number instead.
  */
 const showsSeriesLabel = (tracks: readonly NormalizedTrack[]): boolean =>
-  !tracks.some((t) =>
-    t.data?.some((d) => KIND_SELECTED_BYO_DATA_ADAPTERS.has(d.adapter ?? ''))
-  );
+  !tracks.some((t) => t.data?.some((d) => isAuthoredSource(d)));
 
 /**
  * How long a just-moved row stays highlighted. Long enough to find the row
@@ -1036,11 +1034,10 @@ class ProtvistaUniprot extends LitElement {
           fetchErrors.set(url, { url, kind: 'http', status: response.status });
           return null;
         }
-        // Delimited generic-format bodies (features-csv / features-tsv / bed)
-        // are handed to their adapter as raw text; everything else — including
-        // the JSON-body generic-format adapter (features-json) — is parsed
-        // as JSON. `response.text()` does not reject on content, so the
-        // parse-failure branch below only guards the JSON path.
+        // Delimited bodies (CSV / TSV / BED) reach their decoder as raw text;
+        // everything else — JSON files included — is parsed as JSON.
+        // `response.text()` does not reject on content, so the parse-failure
+        // branch below only guards the JSON path.
         if (responseType === 'text') {
           try {
             return await response.text();
@@ -1191,8 +1188,68 @@ class ProtvistaUniprot extends LitElement {
     return this.querySelector<T>(`#${CSS.escape(id)}`);
   }
 
+  /**
+   * Give every variation payload the protein sequence it needs to render.
+   *
+   * `nightingale-variation-canvas` builds one row per residue and indexes
+   * variants by `start - 1`, so `processVariants` returns `null` — drawing
+   * nothing, silently — unless the payload carries `sequence`. The UniProt
+   * adapters get it from their own API response; an author's
+   * `./my-variants.csv` has no sequence in it, so the viewer supplies the one
+   * it already fetched for the sequence track.
+   *
+   * Runs on every update rather than once at load: the sequence and a track's
+   * data arrive from independent fetches, so a payload can land first. It
+   * mutates the stored payload in place — assigning a fresh object would
+   * defeat the `element.data !== data` guard below and re-run `processData`
+   * on every render.
+   */
+  private _fillVariationSequence() {
+    if (!this.sequence) return;
+    for (const payload of Object.values(this.data)) {
+      if (!payload || typeof payload !== 'object') continue;
+      const p = payload as { variants?: unknown; sequence?: unknown };
+      if (!Array.isArray(p.variants)) continue;
+      if (typeof p.sequence === 'string' && p.sequence !== '') continue;
+      p.sequence = this.sequence;
+    }
+  }
+
+  /**
+   * Hand one payload to one Nightingale element, containing any throw.
+   *
+   * A component's `data` setter runs its own processing synchronously, so a
+   * payload it cannot read throws right here — `nightingale-linegraph-track`
+   * spreads `d.range` and raises `TypeError: undefined is not iterable` on a
+   * shape it did not expect. Without this guard that throw escapes the
+   * `Object.entries(this.data)` walk below, so **one** malformed track leaves
+   * every track after it in the iteration blank, with a stack trace that
+   * names neither.
+   *
+   * Contained per element, the blast radius is the one track that is actually
+   * wrong, and the message names it.
+   */
+  private _assignComponentData(
+    element: NightingaleTrackCanvas,
+    payload: unknown,
+    key: string
+  ) {
+    try {
+      element.data = payload as never;
+    } catch (error) {
+      console.error(
+        `[protvista] track '${key}' could not render the data it was given ` +
+          `(${(error as Error)?.message ?? error}). The other tracks are ` +
+          `unaffected. If this track's data came from setTrackData(), check ` +
+          `it matches the record shape documented for its kind.`,
+        error
+      );
+    }
+  }
+
   async _loadDataInComponents() {
     await frame();
+    this._fillVariationSequence();
     Object.entries(this.data).forEach(([id, data]) => {
       // `__unfiltered` baselines are inert filter state, not renderable
       // track/group payloads — skip them so this walk's "every key maps
@@ -1203,7 +1260,7 @@ class ProtvistaUniprot extends LitElement {
       );
       // set data if it hasn't changed
       if (element && element.data !== data) {
-        element.data = data;
+        this._assignComponentData(element, data, id);
       }
       const currentGroup = this.config?.rows.find((c) => c.id === id);
       if (
@@ -1232,7 +1289,11 @@ class ProtvistaUniprot extends LitElement {
             `${CSS_PREFIX}-track-${id}-${track.id}`
           );
           if (elementTrack) {
-            elementTrack.data = this.data[`${id}-${track.id}`];
+            this._assignComponentData(
+              elementTrack,
+              this.data[`${id}-${track.id}`],
+              `${id}-${track.id}`
+            );
           }
         }
       }
@@ -1430,7 +1491,26 @@ class ProtvistaUniprot extends LitElement {
   async _init() {
     if (!this.config) {
       try {
-        this._applyConfig(await this.resolveViewerConfig());
+        const loaded = await this.resolveViewerConfig();
+        this._applyConfig(loaded);
+        // Issues on a config that still validated — warnings. Reported
+        // through the same seam as a failure so they reach the
+        // `protvista-error` event. A console-only warning would not, which
+        // is the whole reason warnings are issues and not `console.warn`
+        // calls. Never promoted to the panel, even under `strict`: `strict`
+        // makes broken states fail loudly, and a warning names something
+        // legal that loads as written. Listeners tell it from a failure by
+        // each issue's `severity: 'warning'`.
+        if (loaded.issues.length > 0) {
+          const n = loaded.issues.length;
+          this.reportError('config', {
+            consoleLevel: 'warn',
+            message: `[protvista-uniprot] Config loaded with ${n} warning${n === 1 ? '' : 's'}.`,
+            consoleArgs: [loaded.issues.map((i) => `${i.path}: ${i.message}`)],
+            issues: loaded.issues,
+            skipPanel: true,
+          });
+        }
       } catch (err) {
         // Validation / parse errors are surfaced on the console so
         // authors see the full `ConfigValidationError.issues[]` list

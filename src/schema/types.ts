@@ -325,7 +325,7 @@ export interface TrackConfig {
    * This is the primary way to declare a track's behaviour. The
    * runtime maps each semantic kind to a concrete Nightingale
    * component and data adapter, and may apply default rendering
-   * presets (e.g. the AlphaFold colour ramp for `confidence-score`).
+   * presets (e.g. the AlphaFold colour ramp for `alphafold-confidence`).
    *
    * Authors should prefer `kind` over the low-level `component` and
    * `adapter` fields — the semantic vocabulary shields configs from
@@ -355,20 +355,48 @@ export interface TrackConfig {
    *   - path to a known data file        → { from: file, url: <value> }
    *     (`./x.csv`, `./x.tsv`, `./x.json`, `./x.bed`)
    *
-   * Adapter inference (most specific first): an explicit `adapter:`
-   * wins; otherwise a known data-file extension on the URL (`./x.csv`
-   * → `features-csv`, `./x.tsv` → `features-tsv`, `./x.json` →
-   * `features-json`, `./x.bed` → `bed`); otherwise the track's semantic
-   * `kind` selects the canonical adapter.
+   * How a source is read:
    *
-   * Generic-format file adapters: CSV, TSV, JSON, and BED all ship today
-   * (`features-csv` / `features-tsv` / `features-json` / `bed`,
-   * pre-registered). For a format not yet covered, register a
-   * custom adapter via `registerAdapter()` and pin it with
-   * `adapter: <name>` on the descriptor.
+   * The track's `kind` says what the records *mean* (`kind: variants`
+   * draws variation records); the source says how its bytes are
+   * *encoded*. Nothing has to reconcile the two, because neither names
+   * a parser — the pair selects one:
+   *
+   *   kind: variants
+   *   data: ./my-variants.csv     # records from the kind, CSV from the path
+   *
+   * The encoding is resolved in this order:
+   *
+   *   1. an explicit `adapter:` — a named transform; nothing else is
+   *      consulted;
+   *   2. an explicit `format:` — `csv` | `tsv` | `json` | `bed`;
+   *   3. the resolved URL's extension (`./x.csv`, and equally
+   *      `https://host/x.csv`, so a track keeps working when you move
+   *      the file to a server);
+   *   4. the kind's provider adapter, if it has one — this is what
+   *      reads a formatless UniProt URL;
+   *   5. the kind's own records as JSON, for a kind with no provider
+   *      feed (`linegraph`);
+   *   6. nothing resolves — a config validation error saying so.
+   *
+   * Write `format:` where nothing can infer the encoding: inline text,
+   * a URL with no extension, or a misnamed file (the override is
+   * reported as a warning, not silently obeyed).
+   *
+   * A format that cannot produce the records a kind draws is a config
+   * validation error naming both sides (`kind-format-mismatch`) — BED
+   * carries feature records, so `kind: variants` at a `./x.bed` is
+   * rejected at config time rather than rendering empty. A kind that
+   * reads only its provider's feed (`kind: alphafold-confidence`)
+   * accepts no file at all, and says which kinds do.
+   *
+   * On a track with no `kind`, a stated encoding means feature records
+   * — the one thing `./x.csv` has always meant there.
    *
    * The array form is normalized internally; runtime code always sees
-   * `DataSourceDescriptor[]`.
+   * `DataSourceDescriptor[]`. Several sources feed a multi-input
+   * provider adapter; a descriptor that reads its records through a
+   * format names one source, since a format reads one file at a time.
    */
   data: string | DataSourceDescriptor | DataSourceDescriptor[];
 
@@ -491,11 +519,27 @@ export interface DataSourceDescriptor {
   inlineData?: unknown;
 
   /**
+   * How this source's bytes are encoded. Write it only when nothing can
+   * infer it — inline text, or a URL with no recognised extension. A file
+   * path (`./hits.csv`) implies its format already.
+   *
+   * It states the encoding and nothing else: the track's `kind` decides what
+   * the records mean and which component draws them, so `format: json` on a
+   * `kind: variants` track means "a JSON array of variation records".
+   *
+   * An explicit `format` overrides a recognised extension — that is what
+   * makes a misnamed file loadable — and the mismatch is reported as a
+   * warning-severity validation issue naming both values.
+   */
+  format?: DataFormat;
+
+  /**
    * Named adapter that transforms the raw response into the shape
-   * the Nightingale track component expects. If omitted, the raw
-   * response is passed directly to the track; when `data` is a
-   * string shorthand, the adapter is inferred from the parent
-   * track's semantic `kind`.
+   * the Nightingale track component expects. Highest precedence: set it and
+   * neither `format` nor the track's `kind` is consulted. This is the escape
+   * hatch for a bespoke provider feed — the built-in transforms it can name
+   * are the provider ones (`uniprot-*`, `interpro-*`, `alphafold-*`,
+   * `alphamissense-*`) plus anything `registerAdapter()` has added.
    */
   adapter?: AdapterName;
 }
@@ -528,7 +572,7 @@ export interface RenderingOptions {
    *
    * Maps numeric values to colours via a gradient with named stops.
    * If omitted, the Nightingale component's built-in default is used.
-   * Semantic kinds `confidence-score` and `pathogenicity-score`
+   * Semantic kinds `alphafold-confidence` and `alphamissense-pathogenicity`
    * carry canonical defaults (`"alphafold-ramp"` /
    * `"alphamissense-ramp"`) for free.
    */
@@ -591,7 +635,7 @@ export type KnownSemanticKind =
   /** Generic UniProt-style features. Combine with `filter` to subset by type. */
   | 'features'
   /** InterPro domain hits (representative). */
-  | 'features-interpro'
+  | 'interpro-features'
   /** Natural or disease-associated variants with detail panel. */
   | 'variants'
   /** Per-position variant count (line graph). */
@@ -607,11 +651,11 @@ export type KnownSemanticKind =
   /** PDB structure coverage intervals. */
   | 'structure-coverage'
   /** AlphaFold per-residue confidence (pLDDT). Includes default colour ramp. */
-  | 'confidence-score'
+  | 'alphafold-confidence'
   /** AlphaMissense per-residue pathogenicity. Includes default colour ramp. */
-  | 'pathogenicity-score'
+  | 'alphamissense-pathogenicity'
   /** AlphaMissense per-position × amino-acid heatmap. */
-  | 'pathogenicity-heatmap'
+  | 'alphamissense-heatmap'
   /** Generic line graph of author-supplied `{ position, value }` records. Not tied to any UniProt API. */
   | 'linegraph';
 
@@ -655,12 +699,11 @@ export type ComponentName = KnownComponentName | (string & {});
  * Most authors never name an adapter directly — the semantic `kind`
  * field resolves to one automatically.
  *
- * Generic-format adapters for bring-your-own-data files use the
- * `features-<format>` naming (except `bed`, which keeps its well-known
- * format name). `features-csv`, `features-tsv`, `features-json`, and
- * `bed` all ship today (point a track at `./x.csv` / `./x.tsv` /
- * `./x.json` / `./x.bed`). Authors with a bespoke format still register a
- * custom adapter via `registerAdapter()` and pin it with
+ * Every name below is a *provider* transform: it takes one API's
+ * response shape and nothing else. Bring-your-own-data files need no
+ * adapter at all — a `kind` and an encoding select the reading between
+ * them (see `TrackConfig.data`). Authors with a bespoke format register
+ * a custom adapter via `registerAdapter()` and pin it with
  * `adapter: <name>` on the descriptor.
  */
 export type KnownAdapterName =
@@ -675,21 +718,25 @@ export type KnownAdapterName =
   | 'interpro-entries-json'
   | 'alphafold-prediction-json'
   | 'alphamissense-average-csv'
-  | 'alphamissense-full-csv'
-  /** CSV with columns: `type,start,end,description[,score]`. */
-  | 'features-csv'
-  /** TSV (tab-separated) with the same columns as `features-csv`. */
-  | 'features-tsv'
-  /** JSON array of feature-shaped records with the same fields as `features-csv`. */
-  | 'features-json'
-  /** Standard BED (tab-separated). 0-based half-open → shifted to 1-based inclusive. */
-  | 'bed'
-  /** Generic bring-your-own-data line graph: JSON array of `{ position, value }`. Selected by `kind: linegraph`, never inferred from a file extension. */
-  | 'linegraph'
-  /** The CSV form of `linegraph`: header `position,value`. Selected by a `.csv` path on a `kind: linegraph` track. */
-  | 'linegraph-csv'
-  /** The TSV form of `linegraph`: header `position<TAB>value`. Selected by a `.tsv` path on a `kind: linegraph` track. */
-  | 'linegraph-tsv';
+  | 'alphamissense-full-csv';
+
+/**
+ * How a source's bytes are encoded — *not* what its records mean, which the
+ * track's `kind` decides. Authors write it only when nothing can infer it:
+ * inline text, or a URL with no recognised extension.
+ *
+ * Not compression (`.csv.gz` is out of scope), not a schema version, and not
+ * a dialect — delimiter, quoting and number grammar are fixed per format.
+ */
+export type DataFormat = 'csv' | 'tsv' | 'json' | 'bed';
+
+/**
+ * Which records a track needs — the other half of the pair that decides how a
+ * source is read. A track's `kind` declares its shape; the shape's fields,
+ * author-facing label, and whether its records need wrapping for the renderer
+ * live in `./shapes.ts`.
+ */
+export type ShapeName = 'feature' | 'point' | 'variation';
 
 /** Open-ended `AdapterName`. Adapters registered via `registerAdapter()` also type-check. */
 export type AdapterName = KnownAdapterName | (string & {});
@@ -887,7 +934,21 @@ export interface ProtvistaRuntimeAPI {
  */
 export interface SemanticKindDefinition {
   component: ComponentName;
-  adapter: AdapterName;
+  /**
+   * Which records a file on this track must contain. Declare it and the kind
+   * gets the whole bring-your-own-data path — `./x.csv`, `./x.json`,
+   * `format:`, inline records, `setTrackData()` — for free.
+   *
+   * Omit it for a kind that can only read its provider's feed, and name the
+   * kind for that provider so authors are not invited to try (see the naming
+   * rule in `specs/config-approach.md`).
+   */
+  shape?: ShapeName;
+  /**
+   * Transform for this kind's canonical provider source. Omit for a kind that
+   * exists only to render author-supplied records (`linegraph`).
+   */
+  adapter?: AdapterName;
   rendering?: RenderingOptions;
 }
 

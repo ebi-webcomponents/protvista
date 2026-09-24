@@ -103,4 +103,25 @@ rows:
     // With the playground's accession injected → clean.
     expect(await computeDiagnostics(text, 'P05067')).toEqual([]);
   });
+
+  it('carries a warning through as a warning', async () => {
+    // `format-overrides-extension` names something legal. Mapping every
+    // issue to `severity: 'error'` told the author in the gutter that a
+    // config which loads fine does not — and held the preview back.
+    const text = `accession: P05067
+rows:
+  - id: MY_ANNOTATIONS
+    tracks:
+      - id: sites
+        kind: features
+        data:
+          from: file
+          url: ./hits.tsv
+          format: csv
+`;
+    const diagnostics = await computeDiagnostics(text);
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].code).toBe('format-overrides-extension');
+    expect(diagnostics[0].severity).toBe('warning');
+  });
 });

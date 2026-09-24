@@ -371,3 +371,127 @@ export function rowsToPointRecords(
 
   return records;
 }
+
+/** One parsed residue change, matching the shape `variation` records carry. */
+export interface VariationRecord {
+  position: number;
+  variant: string;
+  wildType?: string;
+  description?: string;
+  consequence?: string;
+}
+
+/**
+ * Header columns a delimited (CSV/TSV) variation file must declare.
+ * `wildType`, `description`, and `consequence` are accepted as optional
+ * extra columns. Exported so the generated adapter reference can be pinned
+ * to the parser's actual requirement by a drift test, exactly as
+ * {@link REQUIRED_COLUMNS} and {@link POINT_COLUMNS} are for the other two
+ * record shapes.
+ */
+export const VARIATION_COLUMNS = ['position', 'variant'] as const;
+
+/** The optional columns a variation file may add. */
+export const VARIATION_OPTIONAL_COLUMNS = [
+  'wildType',
+  'description',
+  'consequence',
+] as const;
+
+/**
+ * Turn tokenized rows (header + data) into `VariationRecord`s.
+ *
+ * The third sibling of {@link rowsToFeatureRecords} / {@link rowsToPointRecords},
+ * with the same discipline: the header must contain `position` and `variant`
+ * (in any order, no duplicates), every data row must have exactly as many
+ * fields as the header, and `position` is coerced through
+ * {@link parseDecimal}. Extra columns beyond the documented optional ones are
+ * permitted and ignored.
+ *
+ * `variant` is a string, not a number — it is the residue (or residues) the
+ * position changes to, `*` for a stop, `-` for a deletion. It is required to
+ * be non-empty because an empty cell would silently render as "no change".
+ *
+ * Errors name the offending row by 1-based line number (header = line 1) and
+ * the column, e.g.
+ * `variation-csv: row 3, column "position": expected a number, got "abc"`.
+ */
+export function rowsToVariationRecords(
+  rows: string[][],
+  opts: { formatLabel: string }
+): VariationRecord[] {
+  const { formatLabel } = opts;
+
+  if (rows.length === 0) return [];
+
+  const header = rows[0];
+  const index = new Map<string, number>();
+  header.forEach((name, i) => {
+    const key = name.trim();
+    if (index.has(key)) {
+      throw new Error(
+        `${formatLabel}: duplicate header column "${key}". ` +
+          `Each column name must be unique.`
+      );
+    }
+    index.set(key, i);
+  });
+
+  for (const col of VARIATION_COLUMNS) {
+    if (!index.has(col)) {
+      throw new Error(
+        `${formatLabel}: missing required header column "${col}". ` +
+          `Header must contain ${VARIATION_COLUMNS.join(', ')}.`
+      );
+    }
+  }
+
+  const records: VariationRecord[] = [];
+  for (let r = 1; r < rows.length; r++) {
+    const cells = rows[r];
+    const line = r + 1; // header is line 1
+
+    if (isBlankRow(cells)) continue;
+
+    if (cells.length !== header.length) {
+      throw new Error(
+        `${formatLabel}: row ${line} is ragged — expected ${header.length} ` +
+          `columns, got ${cells.length}.`
+      );
+    }
+
+    const cell = (col: string): string | undefined => {
+      const i = index.get(col);
+      return i === undefined ? undefined : cells[i].trim();
+    };
+
+    const rawPosition = cells[index.get('position') as number];
+    const position = parseDecimal(rawPosition);
+    if (position === null) {
+      throw new Error(
+        `${formatLabel}: row ${line}, column "position": expected a number, ` +
+          `got "${rawPosition}".`
+      );
+    }
+
+    const variant = cell('variant') ?? '';
+    if (variant === '') {
+      throw new Error(
+        `${formatLabel}: row ${line}, column "variant": expected the residue ` +
+          `the position changes to (e.g. "K", "*" for a stop, "-" for a ` +
+          `deletion); got an empty cell.`
+      );
+    }
+
+    const record: VariationRecord = { position, variant };
+    for (const col of VARIATION_OPTIONAL_COLUMNS) {
+      const v = cell(col);
+      if (v !== undefined && v !== '') {
+        record[col] = v;
+      }
+    }
+    records.push(record);
+  }
+
+  return records;
+}
