@@ -125,6 +125,31 @@ describe('loadProtvistaData — kind: linegraph', () => {
     }
   );
 
+  it('picks the delimited variant for a sources: key that names a .csv', async () => {
+    // `data: depth` resolves to its URL only after the adapter used to be
+    // chosen, so the extension went unseen and the CSV was fetched as JSON.
+    const config = await loadConfig({
+      accession: 'P05067',
+      sources: { depth: './depth.csv' },
+      rows: [
+        { id: 'depth', label: 'Read depth', kind: 'linegraph', data: 'depth' },
+      ],
+    });
+    const fetchOne = vi.fn(async () => 'position,value\n1,412\n2,688\n');
+
+    const result = await loadProtvistaData(
+      'P05067',
+      config,
+      fetchOne,
+      resolveAdapter
+    );
+
+    expect(fetchOne).toHaveBeenCalledWith('./depth.csv', 'text');
+    const track = result.data['depth-depth'] as Array<Record<string, unknown>>;
+    expect(track[0]).toMatchObject({ name: 'value', range: [412, 688] });
+    expect(result.hasData).toBe(true);
+  });
+
   it('runs the adapter on from: inline data, not just fetched data', async () => {
     // Inline data normally skips the adapter because it is already written in
     // the component's representation. A kind-selected bring-your-own-data

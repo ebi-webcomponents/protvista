@@ -542,18 +542,12 @@ function expandDescriptor(
   // Such a kind may still offer per-extension siblings parsing the identical
   // columns out of delimited text (`./depth.csv` → `linegraph-csv`), so the
   // extension chooses *within* the kind's family rather than away from it.
-  const format =
-    typeof d.url === 'string' ? dataFileFormatForPath(d.url) : undefined;
-  const kindOutranksExt =
-    kindAdapter !== undefined &&
-    KIND_SELECTED_BYO_DATA_ADAPTERS.has(kindAdapter);
-  const fromKind =
-    kindAdapter !== undefined && format !== undefined
-      ? (BYO_ADAPTER_VARIANTS[kindAdapter]?.[format.ext] ?? kindAdapter)
-      : kindAdapter;
-  const adapter =
-    d.adapter ??
-    (kindOutranksExt ? fromKind : (format?.adapter ?? kindAdapter));
+  //
+  // That in-family choice reads the extension off the `source:`-resolved URL
+  // as well, so `data: depth` with `sources: { depth: ./depth.csv }` parses
+  // as CSV just like `data: ./depth.csv` does. Cross-family inference stays
+  // on an author-written `url:` only: a built-in kind whose `sources:` entry
+  // happens to end in `.json` keeps its canonical adapter.
 
   // Resolve `source:` to concrete URL(s) via the sources map. Both
   // fields stay on the descriptor so the validator can still produce
@@ -563,6 +557,23 @@ function expandDescriptor(
   if (resolvedUrl === undefined && d.source !== undefined && from === 'url') {
     resolvedUrl = resolveSource(d.source, sources);
   }
+
+  const format =
+    typeof d.url === 'string' ? dataFileFormatForPath(d.url) : undefined;
+  const resolvedFormat =
+    typeof resolvedUrl === 'string'
+      ? dataFileFormatForPath(resolvedUrl)
+      : undefined;
+  const kindOutranksExt =
+    kindAdapter !== undefined &&
+    KIND_SELECTED_BYO_DATA_ADAPTERS.has(kindAdapter);
+  const fromKind =
+    kindAdapter !== undefined && resolvedFormat !== undefined
+      ? (BYO_ADAPTER_VARIANTS[kindAdapter]?.[resolvedFormat.ext] ?? kindAdapter)
+      : kindAdapter;
+  const adapter =
+    d.adapter ??
+    (kindOutranksExt ? fromKind : (format?.adapter ?? kindAdapter));
 
   const out: NormalizedDataSource = { from };
   if (d.source !== undefined) out.source = d.source;
