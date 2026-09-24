@@ -43,19 +43,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Before setup-node — `cache: pnpm` needs pnpm on PATH to find the store.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: yarn
+          cache: pnpm
 
-      - run: yarn install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
 
       # Some environments block cdn.playwright.dev. Skip rather than fail: this
       # job is advisory, and a missing browser is not a code problem.
       - name: Install Playwright browser
         id: browser
         continue-on-error: true
-        run: npx playwright install --with-deps chromium chromium-headless-shell
+        run: pnpm exec playwright install --with-deps chromium chromium-headless-shell
 
       # Drifted images are advisory; a harness that cannot capture at all is
       # not. Font rasterisation differs between the machine that generated the
@@ -72,7 +75,7 @@ jobs:
         if: steps.browser.outcome == 'success'
         run: |
           set +e
-          yarn screenshots:check
+          pnpm screenshots:check
           code=$?
           set -e
           if [ "$code" = 2 ]; then
@@ -105,25 +108,28 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
+      # Before setup-node — `cache: pnpm` needs pnpm on PATH to find the store.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: yarn
+          cache: pnpm
 
-      - run: yarn install --frozen-lockfile
-      - run: npx playwright install --with-deps chromium chromium-headless-shell
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium chromium-headless-shell
 
       - name: Capture
         run: |
           if [ -n "${{ inputs.only }}" ]; then
-            yarn screenshots --only="${{ inputs.only }}"
+            pnpm screenshots --only="${{ inputs.only }}"
           else
-            yarn screenshots
+            pnpm screenshots
           fi
 
       # Guards the relationship between the images and the prose beside them.
       - name: Verify the docs still agree with the manifest
-        run: yarn vitest run --project unit scripts/screenshots/screenshots-doc.spec.mjs
+        run: pnpm exec vitest run --project unit scripts/screenshots/screenshots-doc.spec.mjs
 
       - name: Open a pull request
         uses: peter-evans/create-pull-request@v7

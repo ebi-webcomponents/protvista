@@ -326,7 +326,7 @@ AI-assisted maintenance.
 ## Testing & acceptance
 
 - **Visual parity.** With zero consumer CSS, snapshot and a manual
-  render (`yarn start`) show no visual change from baseline. This is
+  render (`pnpm start`) show no visual change from baseline. This is
   the primary safety check — defaults must equal today's literals.
 - **Customisation works.** A test fixture sets `--protvista-color-accent`
   and a `::part(row-active)` rule and asserts the override takes
@@ -338,7 +338,7 @@ AI-assisted maintenance.
 - **Single token source.** Grep gate: no raw UI colour hex literals
   outside `tokens.ts` in the three UI style sources (data-domain files
   excluded).
-- `yarn test` (lint + types + unit) green; snapshots updated with a
+- `pnpm test` (lint + types + unit) green; snapshots updated with a
   reviewed, intentional diff.
 
 ## Acceptance criteria

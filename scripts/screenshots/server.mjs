@@ -6,8 +6,25 @@
  * screenshot would not be a picture of what users get.
  */
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { createServer } from 'node:net';
+import { dirname, resolve } from 'node:path';
+
+/**
+ * The astro CLI as `[node, entry]`, resolved from the package's own `bin`
+ * field rather than from `node_modules/.bin` or from `pnpm` on PATH. pnpm's
+ * `.bin` entries are /bin/sh wrappers `node` cannot execute, and a bare `pnpm`
+ * spawn needs `pnpm.cmd` on Windows and fails wherever pnpm is not on PATH
+ * (e.g. `node scripts/screenshots/capture.mjs` without corepack). Running the
+ * entry under the current node works anywhere node does.
+ */
+export function astroCommand() {
+  const pkgPath = createRequire(import.meta.url).resolve('astro/package.json');
+  const { bin } = JSON.parse(readFileSync(pkgPath, 'utf8'));
+  const entry = typeof bin === 'string' ? bin : bin.astro;
+  return [process.execPath, resolve(dirname(pkgPath), entry)];
+}
 
 /** An OS-assigned free port, so concurrent runs cannot collide. */
 function freePort() {
@@ -36,14 +53,15 @@ async function waitFor(url, { tries = 120, everyMs = 500 } = {}) {
 export async function startServer() {
   if (!existsSync('site/index.html')) {
     throw new Error(
-      'site/ is not built — run `yarn site:build` first (capture.mjs does this ' +
+      'site/ is not built — run `pnpm site:build` first (capture.mjs does this ' +
         'for you unless --no-build).'
     );
   }
   const port = await freePort();
+  const [node, astro] = astroCommand();
   const child = spawn(
-    'node',
-    ['node_modules/.bin/astro', 'preview', '--root', 'docs', '--port', String(port)],
+    node,
+    [astro, 'preview', '--root', 'docs', '--port', String(port)],
     { stdio: 'ignore' }
   );
 

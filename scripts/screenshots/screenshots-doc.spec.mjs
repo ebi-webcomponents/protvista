@@ -46,7 +46,7 @@ describe('documentation screenshots match their manifest', () => {
     const missing = shots.map((s) => outPath(s.id)).filter((p) => !exists(p));
     expect(
       missing,
-      'run `yarn screenshots` to regenerate the missing image(s)'
+      'run `pnpm screenshots` to regenerate the missing image(s)'
     ).toEqual([]);
   });
 
@@ -152,7 +152,7 @@ describe('the seed list and the recorded fixtures agree', () => {
     const missing = SEED_URLS.filter((url) => !index[url]);
     expect(
       missing,
-      'run `yarn screenshots --refresh-fixtures` to record the missing url(s)'
+      'run `pnpm screenshots --refresh-fixtures` to record the missing url(s)'
     ).toEqual([]);
   });
 

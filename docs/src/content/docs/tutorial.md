@@ -54,7 +54,7 @@ needs them), and will not run on its own.
 ```sh
 git clone https://github.com/ebi-webcomponents/protvista
 cd protvista
-yarn install && yarn build
+pnpm install && pnpm build
 # then copy the contents of dist/ next to your HTML page
 ```
 

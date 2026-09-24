@@ -5,16 +5,16 @@ regenerates the lot, from the code in your working tree, with no network beyond
 a local preview server.
 
 ```sh
-yarn screenshots                      # regenerate everything
-yarn screenshots --only=home-hero     # one or more, comma-separated
-yarn screenshots --check              # report drift, write nothing (CI)
-yarn screenshots --assert-clean       # capture twice, fail if not identical
-yarn screenshots --no-build           # reuse the existing site/ build
-yarn screenshots --refresh-fixtures   # re-record the pinned payloads (rare)
-yarn screenshots --record-missing     # pin whatever this run found unpinned
+pnpm screenshots                      # regenerate everything
+pnpm screenshots --only=home-hero     # one or more, comma-separated
+pnpm screenshots --check              # report drift, write nothing (CI)
+pnpm screenshots --assert-clean       # capture twice, fail if not identical
+pnpm screenshots --no-build           # reuse the existing site/ build
+pnpm screenshots --refresh-fixtures   # re-record the pinned payloads (rare)
+pnpm screenshots --record-missing     # pin whatever this run found unpinned
 ```
 
-Chromium is required: `npx playwright install chromium`. Some sandboxes block
+Chromium is required: `pnpm exec playwright install chromium`. Some sandboxes block
 that download; the CI check job skips rather than fails in that case.
 
 ## Exit codes
@@ -92,7 +92,7 @@ would otherwise be reported only after the image had been written.
 
 1. Add an entry to `manifest.mjs`: `id`, `url`, `viewport`, `expectGroups`,
    `alt`, `caption`, and the `doc` that will display it.
-2. Run `yarn screenshots --only=<id>`. If `expectGroups` is wrong the run tells
+2. Run `pnpm screenshots --only=<id>`. If `expectGroups` is wrong the run tells
    you the actual set — paste it in. **Measure, never guess.**
 3. Reference the image from the doc, matching the manifest's alt and caption:
 
@@ -105,7 +105,7 @@ would otherwise be reported only after the image had been written.
    From `docs/src/content/docs/blog/` it is `../../../assets/…`. The splash
    hero is different: it goes in `index.md` frontmatter under `hero.image`.
 
-4. `yarn test` — `scripts/screenshots/screenshots-doc.spec.mjs` checks the doc and the
+4. `pnpm test` — `scripts/screenshots/screenshots-doc.spec.mjs` checks the doc and the
    manifest agree.
 
 ### Manifest options beyond the basics
@@ -201,7 +201,7 @@ would otherwise be reported only after the image had been written.
 ## Refreshing fixtures
 
 ```sh
-yarn screenshots --refresh-fixtures
+pnpm screenshots --refresh-fixtures
 ```
 
 Deliberate and rare. The payloads are ~6 MB raw across ~30 URLs, so a
@@ -213,13 +213,13 @@ the release rather than of an arbitrary Tuesday.
 If a capture reports an unpinned URL, pin what the run found:
 
 ```sh
-yarn screenshots --record-missing --no-build   # then re-run to capture
+pnpm screenshots --record-missing --no-build   # then re-run to capture
 node scripts/screenshots/record-cli.mjs "https://example.org/new/endpoint"
 ```
 
 Recording pins the URL for capture but does not seed it: add it to `SEED_URLS`
 in `seeds.mjs` too, with a note on which consumer asks for it, or the next
-`yarn test` fails it as a fixture `--refresh-fixtures` will never renew.
+`pnpm test` fails it as a fixture `--refresh-fixtures` will never renew.
 
 Read the URL before recording it. **An unpinned URL that appears without the
 fixtures having changed means the code changed what the viewer fetches** — a

@@ -8,7 +8,7 @@ Today the post reads as a CSV walkthrough. It needs to lead with what the v5 ref
 
 The merge of `origin/next` (`1fd4f3e`) is clean — the post survived untouched, the `Blog` sidebar entry and home-page blurb both survived next's deletion of them, and `customize-layout.md` arrived under How-to.
 
-**Verification limits, stated plainly.** `node_modules` is not installed, so I could not run `yarn docs:build` or `yarn test`; every code claim below I verified by reading the merged tree directly. Every external claim now comes from a primary source read in full: the SSI editorial style guide and contributors guide, the RSMF Terms and Conditions PDF, The Open Source Way and Red Hat on release announcements, and the live hackathon event page. The only source that eluded me is the SSI blogging page, which 404s on both hosts — its content appears folded into the contributors guide.
+**Verification limits, stated plainly.** `node_modules` is not installed, so I could not run `pnpm docs:build` or `pnpm test`; every code claim below I verified by reading the merged tree directly. Every external claim now comes from a primary source read in full: the SSI editorial style guide and contributors guide, the RSMF Terms and Conditions PDF, The Open Source Way and Red Hat on release announcements, and the live hackathon event page. The only source that eluded me is the SSI blogging page, which 404s on both hosts — its content appears folded into the contributors guide.
 
 **Release gating.** "Are live" is only true once `protvista-uniprot@5.0.0` reaches npm (latest published is 4.9.3). The post keeps v5, so it publishes at or after that release — see **Release sequence** below. Pages deploys from `next` only (docs/pages-site.md), so the post goes live when `blog-post` reaches `next`.
 
@@ -67,7 +67,7 @@ Keep this benefit-led, as you asked. Worth knowing while writing it: the RSMF st
 
 **Two claims to keep honest:**
 - **No WebGL.** The proposal says "Adopting Canvas and WebGL"; canvas shipped. `webgl` appears only in `docs/architecture-audit.md` and `docs/architecture.md`, nowhere in `src/`. The post says canvas, with no hedging. **Agreed framing for grant reporting** (kept out of the post): benchmarking showed canvas already met the performance goal for dense annotation tracks, so WebGL was not needed — which is precisely the risk-mitigation clause in the application ("if certain refactoring tasks or new features (e.g. WebGL integration) prove more challenging than expected, we will prioritise core functionalities"). The bundle-size and `render` figures from the benchmark run are the evidence for that, which is a further reason to do the comparison today.
-- **Percentages are available after all** — correcting an earlier error in this plan. `14632a3` (29 April 2026) is an ancestor of `main`, not `next`, so `bench/baselines/summary-14632a3.md` and `bundle-size-14632a3.json` **are** the v4 baseline. The "before" exists; only the "after" is missing. v4 bundle: **4,655,449 bytes raw / 1,162,894 gzipped**. Run `yarn bench:bundle` on `next` and the delta is quotable. Caveat on what is comparable: bundle size fully (same script, machine-independent); the component marks `fetch-and-parse` / `render` / `total` broadly (they time the component lifecycle, not the page); Lighthouse page scores **not** apples-to-apples, because `main` measured `index.html` via `vite.demo.config.mjs` while `next` measures the bare `bench.html` via `vite.bench.config.mjs`. Lead with bundle size and the `render` mark. `bench/README.md`'s own rule: treat any single-metric delta under ~5% as noise.
+- **Percentages are available after all** — correcting an earlier error in this plan. `14632a3` (29 April 2026) is an ancestor of `main`, not `next`, so `bench/baselines/summary-14632a3.md` and `bundle-size-14632a3.json` **are** the v4 baseline. The "before" exists; only the "after" is missing. v4 bundle: **4,655,449 bytes raw / 1,162,894 gzipped**. Run `pnpm bench:bundle` on `next` and the delta is quotable. Caveat on what is comparable: bundle size fully (same script, machine-independent); the component marks `fetch-and-parse` / `render` / `total` broadly (they time the component lifecycle, not the page); Lighthouse page scores **not** apples-to-apples, because `main` measured `index.html` via `vite.demo.config.mjs` while `next` measures the bare `bench.html` via `vite.bench.config.mjs`. Lead with bundle size and the `render` mark. `bench/README.md`'s own rule: treat any single-metric delta under ~5% as noise.
 
 ## 4. SSI house style corrections
 
@@ -117,7 +117,7 @@ Nothing is published yet, so this is also the moment to rename the file to a slu
 
 The blog post is gated on the npm publish. The one blocker that stood in front of it is now cleared.
 
-**Blocker: the `./config` subpath — DONE (commit `ceb360e`).** UniProt's variant tab does `import { filterConfig } from 'protvista-uniprot'` without importing the component. On 4.9.3 the bundler tree-shook the component away; on 5.0.0 that chunk would grow by roughly 1.16 MB gzipped. As planned, the fix landed **before** 5.0.0, built on a branch off `next` (parent `9ee0563`) and merged into `blog-post` (`d5c2865`), so it stays independently shippable with the release. It was cheap because `ClinicalSignificance` in `src/filter-config.ts` was used only as a type; that import is now `import type`, so the module has no runtime dependency and the `./config` subpath tree-shakes the element away. Verified green with deps installed: `tsc`, `eslint`, the new `config-subpath-purity` + updated `package-contract` specs, and the full `yarn validate` (build, `publint --strict`, `attw`, tarball contract, sourcemaps). A source-graph spec (`src/__spec__/config-subpath-purity.spec.ts`) fails if the subpath ever reaches a custom-element registration.
+**Blocker: the `./config` subpath — DONE (commit `ceb360e`).** UniProt's variant tab does `import { filterConfig } from 'protvista-uniprot'` without importing the component. On 4.9.3 the bundler tree-shook the component away; on 5.0.0 that chunk would grow by roughly 1.16 MB gzipped. As planned, the fix landed **before** 5.0.0, built on a branch off `next` (parent `9ee0563`) and merged into `blog-post` (`d5c2865`), so it stays independently shippable with the release. It was cheap because `ClinicalSignificance` in `src/filter-config.ts` was used only as a type; that import is now `import type`, so the module has no runtime dependency and the `./config` subpath tree-shakes the element away. Verified green with deps installed: `tsc`, `eslint`, the new `config-subpath-purity` + updated `package-contract` specs, and the full `pnpm validate` (build, `publint --strict`, `attw`, tarball contract, sourcemaps). A source-graph spec (`src/__spec__/config-subpath-purity.spec.ts`) fails if the subpath ever reaches a custom-element registration.
 
 **Discovered while verifying — the built element entry is code-split, so the "copy one file" docs break.** `dist/protvista-uniprot.mjs` is not a single self-contained file: Vite v8 emits it with sibling chunks — `errors.js` and (new, from `ceb360e`) the shared `filter-config.js` imported statically, `format.js` / `js-yaml.js` lazily. This predates `ceb360e` (the static `./errors.js` import was already there under the single-entry build; `ceb360e` only added `filter-config.js`), so it is not caused by the subpath work — but it means `docs/.../tutorial.md` and `embed.md`, which tell readers to *"copy `dist/protvista-uniprot.mjs` next to your page,"* produce an immediate load failure (the browser 404s the sibling chunks). npm/bundler and jsDelivr/CDN consumers are unaffected — `publint`/`attw`/`validate` stay green because they test bundler/CDN resolution, not a bare file copy. **Decision: keep the split** (it honours the code's own lazy `import()`s — the old single-entry build was silently eager-loading the ~55 KB `js-yaml` for everyone — and it is where the docs point post-publish anyway) rather than forcing a single inlined bundle, which would eager-load `js-yaml`, duplicate `filter-config`, and add a second build config. **Fix applied now:** `tutorial.md` and `embed.md` updated to copy the whole `dist/` contents (pre-publish) and to load from the pinned jsDelivr URL once 5.0 is on npm; `CHANGELOG.md` notes the code-split bundle for direct consumers.
 
@@ -125,21 +125,21 @@ The blog post is gated on the npm publish. The one blocker that stood in front o
 
 ```bash
 git checkout next && git pull
-yarn install --frozen-lockfile
-yarn test && yarn validate
+pnpm install --frozen-lockfile
+pnpm test && pnpm validate
 npm publish --dry-run
 npm publish                        # prepack builds; prepublishOnly runs test:pack
 npm dist-tag ls protvista-uniprot  # expect next: 5.0.0, latest: 4.9.3
 ```
 
-Use `npm`, not `yarn publish` — yarn classic prompts for a version bump, and `test:pack` packs with npm deliberately (b167afd).
+Use `npm`, not `pnpm publish` — pnpm layers its own git checks on top, and `test:pack` packs with npm deliberately (b167afd).
 
 **Then, in order:**
 1. Cut the GitHub release tagged `v5.0.0`. That fires `publish-starter-kit.yml`, which sees 5.0.0 on npm and strips the "does not work yet" banner from the template repo automatically.
-2. `yarn cdn:clear` if jsDelivr has cached the 404.
+2. `pnpm cdn:clear` if jsDelivr has cached the 404.
 3. `CHANGELOG.md`: `## Unreleased` → `## 5.0.0`, and rewrite the "Consequence worth knowing" paragraph now the subpath exists.
 4. **Two docs statements go stale on publish:** `docs/src/content/docs/embed.md:57` and `tutorial.md:26` both say the published release is 4.9.3 and predates the config work. Both files now carry a "once 5.0 is on npm, load from the jsDelivr CDN" line (added with the code-split fix above); at publish, promote that CDN load to the primary instruction and drop the build-from-source stopgap.
-5. `yarn bench:bundle` on `next` for the v4-versus-v5 figure (see §3).
+5. `pnpm bench:bundle` on `next` for the v4-versus-v5 figure (see §3).
 6. Blog post.
 
 ## 8. Files and verification
@@ -156,9 +156,9 @@ Use `npm`, not `yarn publish` — yarn classic prompts for a version bump, and `
 **Prerequisite:** fast-forward this clone to the host's merge (`git fetch /run/sandbox/source blog-post`, then merge to `1fd4f3e`).
 
 **Verification** (needs deps — run on the host):
-1. `yarn docs:build` — post and index build; Starlight resolves every internal link. All targets and anchors already verified to exist; base `/protvista` is correct.
-2. `yarn test` — confirms no drift test is disturbed (`adapter-reference.spec.ts`, `starter-kit.spec.ts`, `tutorial-doc.spec.ts`).
-3. `yarn start`, open `/protvista/blog/` — index lists the post; open the post and read it against a live viewer: enter Customize, hide a group, confirm "N hidden" counts tracks, reload to confirm the layout restores, copy the `?layout=` URL into a fresh tab.
+1. `pnpm docs:build` — post and index build; Starlight resolves every internal link. All targets and anchors already verified to exist; base `/protvista` is correct.
+2. `pnpm test` — confirms no drift test is disturbed (`adapter-reference.spec.ts`, `starter-kit.spec.ts`, `tutorial-doc.spec.ts`).
+3. `pnpm start`, open `/protvista/blog/` — index lists the post; open the post and read it against a live viewer: enter Customize, hide a group, confirm "N hidden" counts tracks, reload to confirm the layout restores, copy the `?layout=` URL into a fresh tab.
 4. Paste the post's `hotspots.csv` block into the playground's CSV preset to confirm it parses under the corrected column contract.
 5. Word count and a read-aloud pass for the active-voice and contraction changes.
 

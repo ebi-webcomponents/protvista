@@ -5,7 +5,7 @@
  * Writes bench/results/bundle-size.json:
  *   { commit, shortSha, capturedAt, files: [{ file, raw, gzip }], total }
  *
- * Run after `yarn build`. The `bench:bundle` script in package.json
+ * Run after `pnpm build`. The `bench:bundle` script in package.json
  * does both in one go.
  */
 import {
@@ -26,7 +26,7 @@ const outDir = join(root, 'bench/results');
 
 if (!existsSync(distDir)) {
   console.error(
-    `error: ${relative(root, distDir)} does not exist. Run \`yarn build\` first.`
+    `error: ${relative(root, distDir)} does not exist. Run \`pnpm build\` first.`
   );
   process.exit(1);
 }

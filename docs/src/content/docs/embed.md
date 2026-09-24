@@ -44,7 +44,7 @@ beta with nothing to install:
 Pin the exact version, as above: `@beta` and `@5` would move under you as the
 beta develops.
 
-To host the file yourself instead, run `yarn install && yarn build` in a clone of
+To host the file yourself instead, run `pnpm install && pnpm build` in a clone of
 the [repository](https://github.com/ebi-webcomponents/protvista), copy the
 **contents** of `dist/` next to your page, and point the tag at your own copy
 (`src="./protvista-uniprot.mjs"`). Copy the whole folder: the build is split up,

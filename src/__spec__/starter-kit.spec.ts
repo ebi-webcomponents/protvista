@@ -8,7 +8,7 @@
  * gate. A published template has no access to this toolchain, so
  * without these tests the only thing standing between a schema change
  * and a broken onboarding repo would be a cross-repo sync job noticing
- * after the fact. Here, breaking the kit fails `yarn test:unit` in the
+ * after the fact. Here, breaking the kit fails `pnpm test:unit` in the
  * PR that breaks it.
  *
  * Each of `config.yaml` and `recipes/*.yaml` gets the same three-stage

@@ -148,7 +148,7 @@ rows:
 
 :::caution
 `/src/default-config.yaml` resolves only when the page is served from the
-repository root (e.g. the dev server, `yarn start`). A deployed site does not
+repository root (e.g. the dev server, `pnpm start`). A deployed site does not
 serve `src/`, so an embedder who copies this verbatim gets a 404. For anything
 beyond local development, point `extends` at your own hosted copy of the config,
 or at the published package on a CDN:

@@ -175,7 +175,7 @@ describe('source authors ESM-resolvable relative specifiers', () => {
 });
 
 // Gate on the Vite bundle rather than on `dist/` existing: these mean
-// something only after a real `yarn build`. Nothing in CI builds before
+// something only after a real `pnpm build`. Nothing in CI builds before
 // testing, so treat a green run here as evidence only when you built first.
 describe.skipIf(!pkg.module || !existsSync(resolve(root, pkg.module)))(
   'package.json entry points resolve against a built dist/',
