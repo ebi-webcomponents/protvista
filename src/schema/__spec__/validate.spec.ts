@@ -732,6 +732,22 @@ describe('validateConfig — kind vs file format', () => {
     ).toEqual([]);
   });
 
+  it('leaves a formatless source list on a kind with a provider adapter alone', () => {
+    // `kind: variants` has a shape *and* a provider adapter. With no format
+    // and no extension to read records by, the list goes to the adapter,
+    // which takes every response, so the config loads.
+    const result = validateConfig(
+      withData('variants', { source: ['variation', 'proteins'] }, {
+        variation: 'https://ebi.test/variation/{accession}',
+        proteins: 'https://ebi.test/proteins/{accession}',
+      }),
+      freshRegistry()
+    );
+    expect(
+      result.issues.filter((i) => i.code === 'multi-source-format')
+    ).toEqual([]);
+  });
+
   it('accepts several sources behind an explicit adapter', () => {
     const result = validateConfig(
       withData('features', {

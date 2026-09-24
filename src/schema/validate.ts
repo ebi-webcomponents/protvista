@@ -695,10 +695,17 @@ function checkKindReadsFileFormat(
     //
     // Several sources remain the point of a multi-input provider adapter
     // (`kind: alphafold-confidence` takes two responses), so this fires only
-    // where records would be read from the sources themselves.
+    // where the author asked for records: an explicit `format:`, extensions
+    // that all name one format, or a shape with no provider adapter to fall
+    // back on. A kind with both a shape and an adapter (`kind: variants`)
+    // sends a list with neither to its adapter, which reads every response.
     const count = sourceCount(d);
-    if (count > 1 && (declared !== undefined || shape !== undefined)) {
-      const reading = declared ?? commonFormat(d, sources);
+    const reading = declared ?? commonFormat(d, sources);
+    const readsRecords =
+      declared !== undefined ||
+      (shape !== undefined &&
+        (reading !== undefined || def?.adapter === undefined));
+    if (count > 1 && readsRecords) {
       issues.push({
         path: trackPath,
         message:
