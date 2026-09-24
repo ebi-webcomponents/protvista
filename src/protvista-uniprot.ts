@@ -1349,9 +1349,12 @@ class ProtvistaUniprot extends LitElement {
         this._applyConfig(loaded);
         // Issues on a config that still validated — warnings. Reported
         // through the same seam as a failure so they reach the
-        // `protvista-error` event and, under `strict`, the panel. A
-        // console-only warning would reach neither, which is the whole
-        // reason warnings are issues and not `console.warn` calls.
+        // `protvista-error` event. A console-only warning would not, which
+        // is the whole reason warnings are issues and not `console.warn`
+        // calls. Never promoted to the panel, even under `strict`: `strict`
+        // makes broken states fail loudly, and a warning names something
+        // legal that loads as written. Listeners tell it from a failure by
+        // each issue's `severity: 'warning'`.
         if (loaded.issues.length > 0) {
           const n = loaded.issues.length;
           this.reportError('config', {
@@ -1359,7 +1362,7 @@ class ProtvistaUniprot extends LitElement {
             message: `[protvista-uniprot] Config loaded with ${n} warning${n === 1 ? '' : 's'}.`,
             consoleArgs: [loaded.issues.map((i) => `${i.path}: ${i.message}`)],
             issues: loaded.issues,
-            panelSummary: `Config loaded with ${n} warning${n === 1 ? '' : 's'}`,
+            skipPanel: true,
           });
         }
       } catch (err) {

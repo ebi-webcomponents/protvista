@@ -18,7 +18,9 @@ viewer.addEventListener('protvista-error', (event) => {
   const { phase, issues, context } = event.detail;
 
   if (phase === 'config') {
-    console.error('Config problem:', issues);
+    const errors = issues.filter((i) => i.severity !== 'warning');
+    if (errors.length) console.error('Config problem:', errors);
+    else console.warn('Config loaded with warnings:', issues);
   } else if (phase === 'track-fetch') {
     console.warn(
       `Track ${context.groupId}/${context.trackId} failed`,
@@ -32,7 +34,7 @@ viewer.addEventListener('protvista-error', (event) => {
 
 | `phase` | Fires when | Useful `context` |
 | --- | --- | --- |
-| `config` | The config fails to parse or validate. `detail.issues` lists what's wrong. | — |
+| `config` | The config fails to parse or validate, or it loads with warnings. `detail.issues` lists what's wrong, and a warning's issue has `severity: 'warning'`. | — |
 | `sequence` | No usable sequence was found for the accession. | `accession`, plus (on a fetch failure) `errorKind` / `status` / `url` |
 | `track-fetch` | A track's URL failed in a way that breaks it — a network error, a 5xx response, or an unparseable body. A 4xx is treated as "missing, not broken" and does *not* fire this event. | `groupId`, `trackId`, `url`, `status`, `errorKind` |
 | `set-track-data` | Misuse of the `setTrackData()` programmatic API. | `groupId`, `trackId` |
