@@ -25,6 +25,11 @@ import loaderStyles from './styles/loader-styles';
 const alphaFoldLinkUrl = 'https://alphafold.ebi.ac.uk/search/text/';
 const foldseekUrl = `https://search.foldseek.com/search`;
 const uniprotKBUrl = 'https://www.uniprot.org/uniprotkb/';
+const pdbUrls = [
+  { name: 'PDBe', link: 'https://www.ebi.ac.uk/pdbe/entry/pdb/' },
+  { name: 'RCSB-PDB', link: 'https://www.rcsb.org/structure/' },
+  { name: 'PDBj', link: 'https://pdbj.org/mine/summary/' },
+];
 
 const sourceMethods = new Map([
   ['AlphaFold DB', 'Predicted'],
@@ -496,7 +501,14 @@ class ProtvistaUniprotStructure extends LitElement {
 
     return html`
       ${source === 'PDB'
-        ? html` <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${id}">PDBe</a> `
+        ? html`
+            ${pdbUrls
+              .map(
+                (pdbLink) =>
+                  html`<a href="${pdbLink.link}${id}">${pdbLink.name}</a>`
+              )
+              .reduce((prev, curr) => html`${prev} · ${curr}`)}
+          `
         : nothing}
       ${source === 'AlphaFold DB' && this.accession
         ? html`<a href="${alphaFoldLinkUrl}${this.accession}">AlphaFold</a>`
