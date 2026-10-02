@@ -2,9 +2,9 @@
  * `linegraph` — built-in adapter for bring-your-own-data line graphs.
  *
  * Validates an author-supplied JSON array of `{ position, value }` records
- * (both finite numbers) and wraps them in a single series — fixed stroke,
- * `range` fitted to the data's own extent — consumed by
- * `nightingale-linegraph-track`.
+ * (`position` a whole number, `value` any finite number) and wraps them in
+ * a single series — fixed stroke, `range` fitted to the data's own extent —
+ * consumed by `nightingale-linegraph-track`.
  *
  * The series name is a placeholder, not a unit: the track pluralises a series
  * name into its hover readout (`12 variants`), which only reads correctly for
@@ -133,6 +133,13 @@ export const linegraph: AdapterFunction = (raw, labelArg) => {
           `${label}: row ${i}: expected 'position' and 'value' (both numbers); got ${rowRendering} — '${f}' is not a finite number.`
         );
       }
+    }
+    // A position is a residue coordinate, so it must be a whole number;
+    // `value` stays any finite number.
+    if (!Number.isInteger(rec.position)) {
+      throw new Error(
+        `${label}: row ${i}: expected 'position' and 'value' (both numbers); got ${rowRendering} — 'position' is not a whole number.`
+      );
     }
     values.push({
       position: rec.position as number,

@@ -20,6 +20,10 @@
  * `formatLabel` is threaded through rather than derived so a caller can name
  * the input in the author's own terms: the file path they wrote, or "inline
  * data" when there is no path to name.
+ *
+ * A caller may also pass a `coordinates` sink to collect each decoded row's
+ * coordinates and row number, for the sequence-bounds warning
+ * (`./coordinates`), without touching the payload.
  */
 
 import type { DataFormat, ShapeName } from '../types.js';
@@ -30,11 +34,14 @@ import {
   rowsToFeatureRecords,
   rowsToPointRecords,
   rowsToVariationRecords,
+  type FeatureRecord,
+  type PointRecord,
 } from './dsv.js';
 import { featuresJson } from './features-json.js';
 import { linegraph, toSeries } from './linegraph.js';
 import { variation, toVariants } from './variation.js';
 import { bed } from './bed.js';
+import type { CoordinateRow } from './coordinates.js';
 
 /** Raised when a format cannot produce the records a shape requires. */
 export class ShapeFormatMismatchError extends Error {
@@ -87,21 +94,71 @@ function wrap(shape: ShapeName, records: unknown[]): unknown {
   }
 }
 
-/** Decode delimited text into records of `shape`. */
+/**
+ * Decode delimited text into records of `shape`. `rowNumbers`, when given,
+ * receives each record's row number in record order.
+ */
 function fromDelimited(
   shape: ShapeName,
   text: string,
   delimiter: string,
-  formatLabel: string
+  formatLabel: string,
+  rowNumbers?: number[]
 ): unknown[] {
   const rows = parseDelimited(text, delimiter);
   switch (shape) {
     case 'feature':
-      return rowsToFeatureRecords(rows, { formatLabel });
+      return rowsToFeatureRecords(rows, { formatLabel, rowNumbers });
     case 'point':
-      return rowsToPointRecords(rows, { formatLabel });
+      return rowsToPointRecords(rows, { formatLabel, rowNumbers });
     case 'variation':
-      return rowsToVariationRecords(rows, { formatLabel });
+      return rowsToVariationRecords(rows, { formatLabel, rowNumbers });
+  }
+}
+
+/**
+ * One decoded record's coordinates, as the bounds check reads them: a
+ * feature's `start` then `end`, or a point/variation record's `position`.
+ */
+function coordinateRow(
+  shape: ShapeName,
+  row: number,
+  record: unknown
+): CoordinateRow {
+  if (shape === 'feature') {
+    const r = record as FeatureRecord;
+    return {
+      row,
+      fields: [
+        ['start', r.start],
+        ['end', r.end],
+      ],
+    };
+  }
+  return { row, fields: [['position', (record as PointRecord).position]] };
+}
+
+/**
+ * Read the coordinates back from a validated JSON payload. The validators
+ * throw on any bad row and otherwise emit one record per input element, in
+ * order, so index *i* is the author's row *i*.
+ */
+function jsonCoordinates(shape: ShapeName, payload: unknown): CoordinateRow[] {
+  switch (shape) {
+    case 'feature':
+      // `featuresJson` has already normalised `begin` to `start`.
+      return (payload as FeatureRecord[]).map((r, i) =>
+        coordinateRow(shape, i, r)
+      );
+    case 'point':
+      return (
+        (payload as Array<{ values?: PointRecord[] }>)[0]?.values ?? []
+      ).map((r, i) => coordinateRow(shape, i, r));
+    case 'variation':
+      // `toVariants` sets `start = position`.
+      return (payload as { variants: Array<{ start: number }> }).variants.map(
+        (v, i) => ({ row: i, fields: [['position', v.start]] })
+      );
   }
 }
 
@@ -162,6 +219,12 @@ export interface PipelineOptions {
   formatLabel?: string;
   /** The file path or URL this body came from; omitted for inline data. */
   source?: string;
+  /**
+   * When given, receives one entry per decoded record, in decode order: the
+   * record's row number (as its decoder numbers rows) and its coordinates,
+   * taken before any `filter:`. The returned payload is identical either way.
+   */
+  coordinates?: CoordinateRow[];
 }
 
 /**
@@ -181,11 +244,20 @@ export function runPipeline(
     throw new ShapeFormatMismatchError(shape, format);
   }
   const formatLabel = opts.formatLabel ?? sourceLabel(opts.source, format);
+  const sink = opts.coordinates;
+  const rowNumbers: number[] = [];
+  const collect = (records: unknown[]) =>
+    records.forEach((r, i) =>
+      sink?.push(coordinateRow(shape, rowNumbers[i], r))
+    );
 
   if (format === 'bed') {
     // BED decodes straight to feature records — its coordinate conversion is
-    // part of reading the format, not of shaping it.
-    return bed(body, formatLabel);
+    // part of reading the format, not of shaping it. `bed` is synchronous;
+    // `AdapterFunction` just types it loosely.
+    const records = bed(body, formatLabel, rowNumbers) as FeatureRecord[];
+    collect(records);
+    return records;
   }
 
   const delimiter = DELIMITERS[format];
@@ -197,8 +269,18 @@ export function runPipeline(
       );
       return wrap(shape, []);
     }
-    return wrap(shape, fromDelimited(shape, body, delimiter, formatLabel));
+    const records = fromDelimited(
+      shape,
+      body,
+      delimiter,
+      formatLabel,
+      rowNumbers
+    );
+    collect(records);
+    return wrap(shape, records);
   }
 
-  return fromJson(shape, body, formatLabel);
+  const payload = fromJson(shape, body, formatLabel);
+  if (sink) for (const row of jsonCoordinates(shape, payload)) sink.push(row);
+  return payload;
 }

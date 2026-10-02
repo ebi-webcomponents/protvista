@@ -131,6 +131,14 @@ describe('variation adapter', () => {
     );
   });
 
+  it('rejects a position that is not a whole number', () => {
+    expect(() => variation([{ position: 2.5, variant: 'K' }])).toThrow(
+      new Error(
+        "variation: row 0: expected 'position' (a number) and 'variant' (a string); got { position: 2.5, variant: 'K' } — 'position' is not a whole number."
+      )
+    );
+  });
+
   it('rejects a non-string optional field', () => {
     expect(() =>
       variation([{ position: 1, variant: 'A', description: 3 }])
@@ -189,6 +197,22 @@ describe('variation-csv / variation-tsv', () => {
 
   it('treats a non-text body as empty rather than throwing', () => {
     expect(variationCsv({ not: 'text' })).toEqual({ variants: [] });
+  });
+
+  it('rejects a fractional position, naming the row and column', () => {
+    expect(() => variationCsv('position,variant\n4.5,K\n')).toThrow(
+      new Error(
+        './my-variants.csv (parsed as CSV): row 2, column "position": expected a whole number, got "4.5".'
+      )
+    );
+  });
+
+  it('rejects a fractional position in TSV too', () => {
+    expect(() => variationTsv('position\tvariant\n4.5\tK\n')).toThrow(
+      new Error(
+        './my-variants.tsv (parsed as TSV): row 2, column "position": expected a whole number, got "4.5".'
+      )
+    );
   });
 });
 

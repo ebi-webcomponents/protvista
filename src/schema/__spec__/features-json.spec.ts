@@ -9,8 +9,10 @@
  *     than masking it);
  *   - `description` / `score` omitted when absent, `null`, or (for
  *     `description`) empty — but a present, wrong-typed value throws;
- *   - `isFiniteNumber` accepting negative/float coordinates and rejecting
- *     `NaN` / `Infinity`, and retaining a falsy `score: 0`;
+ *   - `isFiniteNumber` rejecting `NaN` / `Infinity`, and retaining a falsy
+ *     `score: 0`;
+ *   - coordinates held to whole numbers (negative integers still accepted)
+ *     and `end` not preceding `start` (equal endpoints accepted);
  *   - strict, record/field-named errors on malformed input (non-string
  *     `type`, non-number `start` / `end` / `score`, non-object element);
  *   - the non-array guard throwing, naming the type it got.
@@ -71,10 +73,59 @@ describe('features-json adapter', () => {
     );
   });
 
-  it('accepts negative and floating-point coordinates', () => {
+  it('accepts negative integer coordinates (bounds are checked against the sequence later)', () => {
     expect(
+      featuresJson([{ type: 'DOMAIN', start: -5, end: 3 }])
+    ).toEqual([{ type: 'DOMAIN', start: -5, end: 3 }]);
+  });
+
+  it('rejects a fractional coordinate with a record/field-named error', () => {
+    expect(() =>
       featuresJson([{ type: 'DOMAIN', start: -5, end: 3.14 }])
-    ).toEqual([{ type: 'DOMAIN', start: -5, end: 3.14 }]);
+    ).toThrow(
+      new Error(
+        'features-json: record 0, field "end": expected a whole number, got 3.14.'
+      )
+    );
+  });
+
+  it('rejects a fractional start', () => {
+    expect(() =>
+      featuresJson([{ type: 'DOMAIN', start: 18.5, end: 20 }])
+    ).toThrow(
+      new Error(
+        'features-json: record 0, field "start": expected a whole number, got 18.5.'
+      )
+    );
+  });
+
+  it('names a fractional begin as "start"', () => {
+    expect(() =>
+      featuresJson([{ type: 'DOMAIN', begin: 1.5, end: 20 }])
+    ).toThrow(/record 0, field "start": expected a whole number, got 1\.5\./);
+  });
+
+  it('throws a record-named error when end is before start', () => {
+    expect(() =>
+      featuresJson([
+        { type: 'DOMAIN', start: 1, end: 2 },
+        { type: 'DOMAIN', start: 5, end: 4 },
+      ])
+    ).toThrow(
+      new Error('features-json: record 1: end (4) is before start (5).')
+    );
+  });
+
+  it('accepts a single-residue feature (start === end)', () => {
+    expect(featuresJson([{ type: 'DOMAIN', start: 7, end: 7 }])).toEqual([
+      { type: 'DOMAIN', start: 7, end: 7 },
+    ]);
+  });
+
+  it('reports a fraction before an inverted interval', () => {
+    expect(() =>
+      featuresJson([{ type: 'DOMAIN', start: 9.5, end: 3 }])
+    ).toThrow(/field "start": expected a whole number/);
   });
 
   it('retains a falsy score of 0', () => {

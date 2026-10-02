@@ -60,7 +60,7 @@ const SHAPE_FIELDS: Record<ShapeName, readonly FieldDoc[]> = {
   point: [
     {
       name: 'position',
-      type: 'number',
+      type: 'integer',
       required: true,
       notes: '1-based residue position.',
     },
@@ -74,7 +74,7 @@ const SHAPE_FIELDS: Record<ShapeName, readonly FieldDoc[]> = {
   variation: [
     {
       name: 'position',
-      type: 'number',
+      type: 'integer',
       required: true,
       notes: '1-based position of the changed residue.',
     },

@@ -22,6 +22,10 @@
  * `description: 42`, `score: "high"`) throws rather than being silently
  * dropped — both fields are held to the same type contract.
  *
+ * Coordinates must be whole numbers (negative integers are accepted here;
+ * bounds are checked against the sequence later), and `end` may not precede
+ * `start` — equal endpoints are a single residue — matching BED.
+ *
  * Malformed input throws a descriptive, record/field-named error (naming
  * the offending array index and field); the loader's per-track try/catch
  * turns that into the track's `⚠` badge and `protvista-error` event rather
@@ -103,6 +107,28 @@ export const featuresJson: AdapterFunction = (raw, labelArg) => {
       throw new Error(
         `${label}: record ${i}, field "end": expected a number, ` +
           `got ${describe(r.end)}.`
+      );
+    }
+    // Coordinates are residue positions, so they must be whole numbers, and
+    // `end` may not precede `start` (equal endpoints — a single residue — are
+    // fine), matching BED. A `begin`-given record is still reported as
+    // "start", as above. Negative integers pass here; bounds are checked
+    // against the sequence later.
+    if (!Number.isInteger(rawStart)) {
+      throw new Error(
+        `${label}: record ${i}, field "start": expected a whole number, ` +
+          `got ${rawStart}.`
+      );
+    }
+    if (!Number.isInteger(r.end)) {
+      throw new Error(
+        `${label}: record ${i}, field "end": expected a whole number, ` +
+          `got ${r.end}.`
+      );
+    }
+    if (r.end < rawStart) {
+      throw new Error(
+        `${label}: record ${i}: end (${r.end}) is before start (${rawStart}).`
       );
     }
 

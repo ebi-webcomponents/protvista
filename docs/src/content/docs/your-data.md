@@ -30,8 +30,8 @@ A `features` track draws a list of **feature records**. Each record has:
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `type` | yes | A label/category for the feature (e.g. `DOMAIN`, `BINDING`). Also what `filter:` matches on. |
-| `start` | yes | 1-based start position (inclusive). |
-| `end` | yes | 1-based end position (inclusive). |
+| `start` | yes | 1-based start position (inclusive), a whole number. |
+| `end` | yes | 1-based end position (inclusive), a whole number no less than `start`. |
 | `description` | no | Free text shown on hover/click. |
 | `score` | no | A number, typically 0–1, for quality or confidence. |
 
@@ -196,7 +196,7 @@ shape.
 
 ## A line graph of your own values
 
-The `kind: linegraph` setting draws a line graph from a JSON array of `{ position, value }` records (both numbers).
+The `kind: linegraph` setting draws a line graph from a JSON array of `{ position, value }` records: `position` is a whole number, `value` any number.
 
 ```yaml
 accession: P05067
@@ -283,7 +283,7 @@ position,wildType,variant,description,consequence
 
 | Field | Required | Meaning |
 | --- | --- | --- |
-| `position` | yes | 1-based position of the changed residue. |
+| `position` | yes | 1-based position of the changed residue, a whole number. |
 | `variant` | yes | The residue it changes to. `*` for a stop, `-` for a deletion. |
 | `wildType` | no | The original residue. Shown on hover and used to label the change. |
 | `description` | no | Free text shown on hover/click. |

@@ -97,6 +97,27 @@ describe('linegraph-csv / linegraph-tsv', () => {
     );
   });
 
+  it('rejects a fractional position, naming the row and column', () => {
+    expect(() => linegraphCsv('position,value\n1,4\n2.5,7\n')).toThrow(
+      new Error(
+        './depth.csv (parsed as CSV): row 3, column "position": expected a whole number, got "2.5".'
+      )
+    );
+  });
+
+  it('keeps a fractional value', () => {
+    const series = linegraphCsv('position,value\n1,0.25\n') as Array<{
+      values: unknown[];
+    }>;
+    expect(series[0].values).toEqual([{ position: 1, value: 0.25 }]);
+  });
+
+  it('reports a non-number value before a fractional position', () => {
+    expect(() => linegraphCsv('position,value\n1.5,abc\n')).toThrow(
+      /column "value": expected a number, got "abc"/
+    );
+  });
+
   it('rejects a ragged row by line number', () => {
     expect(() => linegraphCsv('position,value\n1,412\n2\n')).toThrow(
       './depth.csv (parsed as CSV): row 3 is ragged — expected 2 columns, got 1.'

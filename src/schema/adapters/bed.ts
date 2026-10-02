@@ -57,6 +57,10 @@
  * loader's per-track try/catch turns that into the track's parse-failure
  * surface (a `console.warn` + an empty track) rather than crashing the
  * viewer — matching the delimited adapters.
+ *
+ * An optional third argument, a `number[]`, receives each returned record's
+ * physical line number in record order, for the sequence-bounds warning
+ * (see `./coordinates`). The pipeline passes it; direct calls need not.
  */
 
 import type { AdapterFunction } from '../types.js';
@@ -74,10 +78,11 @@ const NON_NEGATIVE_INT = /^\d+$/;
 /** Lines the BED spec allows as non-data: comments and browser/track headers. */
 const HEADER_LINE = /^(?:track|browser|#)/i;
 
-export const bed: AdapterFunction = (raw, labelArg) => {
+export const bed: AdapterFunction = (raw, labelArg, rowsArg) => {
   // Default prefix for direct calls; the pipeline passes the author's own
   // source instead, so an error names their file rather than the format.
   const label = typeof labelArg === 'string' ? labelArg : 'bed';
+  const rowNumbers = Array.isArray(rowsArg) ? (rowsArg as number[]) : undefined;
   if (typeof raw !== 'string') {
     console.warn(
       '[protvista] bed adapter: expected a text body; got ' +
@@ -154,6 +159,7 @@ export const bed: AdapterFunction = (raw, labelArg) => {
     // BED6 strand and any further columns are dropped.
 
     records.push(record);
+    rowNumbers?.push(lineNo);
   }
 
   return records;

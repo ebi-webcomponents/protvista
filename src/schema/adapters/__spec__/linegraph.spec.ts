@@ -157,6 +157,21 @@ describe('linegraph adapter', () => {
       "linegraph: row 0: expected 'position' and 'value' (both numbers); got {} — 'position' is missing."
     );
   });
+
+  it('throws when position is not a whole number', () => {
+    expect(() => linegraph([{ position: 1.5, value: 3 }])).toThrow(
+      new Error(
+        "linegraph: row 0: expected 'position' and 'value' (both numbers); got { position: 1.5, value: 3 } — 'position' is not a whole number."
+      )
+    );
+  });
+
+  it('accepts a fractional value', () => {
+    const series = linegraph([{ position: 2, value: 0.5 }]) as Array<{
+      values: unknown;
+    }>;
+    expect(series[0].values).toEqual([{ position: 2, value: 0.5 }]);
+  });
 });
 
 describe('linegraph kind registration', () => {

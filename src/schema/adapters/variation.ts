@@ -129,6 +129,12 @@ export const variation: AdapterFunction = (raw, labelArg) => {
         }.`
       );
     }
+    // A position is a residue coordinate, so it must be a whole number.
+    if (!Number.isInteger(position)) {
+      throw new Error(
+        `${label}: row ${i}: expected 'position' (a number) and 'variant' (a string); got ${rowRendering()} — 'position' is not a whole number.`
+      );
+    }
 
     const variant = own('variant');
     if (variant === undefined) {

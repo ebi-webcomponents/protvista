@@ -2999,6 +2999,7 @@ exports[`loadProtvistaData baseline (schema-driven default config) > produces a 
     },
   },
   "skipWarnings": [],
+  "trackCoordinates": {},
   "trackFailures": {},
   "trackUrls": {
     "ALPHAFOLD_CONFIDENCE-alphafold_confidence": [

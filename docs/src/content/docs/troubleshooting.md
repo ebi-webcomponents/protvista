@@ -52,6 +52,7 @@ viewer.addEventListener('protvista-error', (event) => {
 | `sequence` | No usable sequence was found for the accession. | `accession`, plus (on a fetch failure) `errorKind` / `status` / `url` |
 | `track-fetch` | A track's data failed in a way that breaks it — a network error, a 5xx response, an unparseable body, a malformed file the decoder rejected, a 4xx on a path or URL to your own data, or a payload the track could not draw. A 4xx from a *provider endpoint* is treated as "missing, not broken" and does *not* fire this event. | `groupId`, `trackId`, `url`, `status`, `errorKind` |
 | `set-track-data` | Misuse of the `setTrackData()` programmatic API. | `groupId`, `trackId` |
+| `track-data` | A bring-your-own-data track has rows whose coordinates fall outside the entry's sequence — a start below 1, or a position past the last residue. The track still renders; `detail.issues` holds one issue with `code: 'coordinate-out-of-range'` and `severity: 'warning'`. | `groupId`, `trackId`, `url` (file and URL tracks) |
 
 ### Where a failure shows up
 
@@ -68,6 +69,7 @@ disagree.
 | `error` | track | any | yes | yes | under `strict` | yes |
 | `warning` | viewer | `set-track-data` | yes | yes | under `strict` | — |
 | `warning` | viewer | any | yes | yes | never | — |
+| `warning` | track | `track-data` | yes | yes | never | no |
 | `warning` | track | any | yes | yes | under `strict` | yes |
 | `info` | viewer | any | yes | no | never | — |
 | `info` | track | any | yes | no | never | no |
@@ -89,6 +91,10 @@ Reading it:
   warning describes something that happened as written; an ignored API call
   describes something the caller asked for that did not happen, which is what
   `strict` exists to make loud.
+- A **`track-data`** warning — rows whose coordinates fall outside the
+  sequence — goes the other way for a track. The rows loaded and render as
+  written, so it takes neither the `⚠` badge nor the panel; the event and the
+  console line carry it.
 - **`info`** is an expected absence, not a failure: a provider endpoint
   answering 404 for an entity with no data of this kind, or a `from: custom`
   track nobody injected data into. It gets a console line and no user surface.
@@ -170,6 +176,30 @@ number, got "abc"` — and fires a `track-fetch` event with `errorKind:
 'adapter'` and the identical text. The rest of the viewer keeps working; only
 that one track degrades. No Retry is offered, because re-running the same
 decoder over the same bytes gives the same answer: fix the file.
+
+### Common coordinate mistakes
+
+ProtVista expects 1-based, inclusive positions on the entry's canonical
+sequence. Three mistakes account for most wrong-looking tracks:
+
+- **0-based coordinates** (BED habits, Python ranges). A `start` of 0 is the
+  giveaway, and every feature is shifted by one. ProtVista reports this as a
+  `track-data` warning but never shifts your data for you. BED files are the
+  exception: they are 0-based by definition and converted automatically.
+- **Isoform numbering.** Positions from another isoform can run past the
+  canonical sequence's last residue. This is also reported as a `track-data`
+  warning, naming the first row that falls outside.
+- **Inverted intervals** (`end` before `start`) and fractional coordinates
+  (`18.5`). The file is rejected when it loads, as a
+  [malformed file](#a-data-file-is-malformed): the track renders empty and its
+  `⚠` badge names the row, for example
+  `./x.csv (parsed as CSV): row 3: end (4) is before start (5).`
+
+A `track-data` warning reads like this:
+
+```
+./hits.csv (parsed as CSV): 12 of 340 rows fall outside P05067 (770 residues); first: row 7, end 812. Coordinates must be 1-based positions on this protein's canonical sequence — check for 0-based coordinates (start 0) or isoform numbering.
+```
 
 ### Features are all black, or show a ?
 

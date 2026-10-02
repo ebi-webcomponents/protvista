@@ -63,8 +63,10 @@ type El = HTMLElement & {
   _groupErrors: Set<string>;
   _init(): Promise<void>;
   _loadData(only?: Set<string>): Promise<void>;
+  setConfig(config: unknown): Promise<void>;
   setTrackData(groupId: string, trackId: string, data: unknown): void;
   render(): unknown;
+  requestUpdate(): void;
   updateComplete: Promise<boolean>;
 };
 
@@ -2723,6 +2725,420 @@ describe('routing matrix — viewer-scoped failures', () => {
     el.setTrackData('g', 'nope', [{ type: 'DOMAIN' }]);
 
     expect(el._mountError).toBeNull();
+  });
+});
+
+// ── track-data coordinate warning ─────────────────────────────────
+
+describe('track-data coordinate warning', () => {
+  const HITS_CSV =
+    'type,start,end,description\nDOMAIN,1,10,a\nDOMAIN,5,812,b\nDOMAIN,0,20,c\n';
+  const EXPECTED =
+    "./hits.csv (parsed as CSV): 2 of 3 rows fall outside P05067 (770 residues); first: row 3, end 812. Coordinates must be 1-based positions on this protein's canonical sequence — check for 0-based coordinates (start 0) or isoform numbering.";
+  const CONFIG = {
+    rows: [
+      { id: 'g', tracks: [{ id: 'y', kind: 'features', data: './hits.csv' }] },
+    ],
+  };
+
+  type Res = { ok: boolean; status: number; json?: () => Promise<unknown> };
+
+  /**
+   * The entry (sequence) route returns a 770-residue protein unless
+   * `entry` overrides it; a URL naming a key of `files` returns that
+   * file's text; otherwise `hits.csv` returns `csv`; everything else is an
+   * empty 200.
+   */
+  function stubRoutes(
+    opts: {
+      csv?: string;
+      entry?: (url: string) => Promise<Res>;
+      files?: Record<string, () => Promise<string>>;
+    } = {}
+  ) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: unknown) => {
+        const url = String(input);
+        if (url.includes('/proteins/api/proteins/')) {
+          if (opts.entry) return (await opts.entry(url)) as unknown as Response;
+          return entryOf(770) as unknown as Response;
+        }
+        const file = Object.keys(opts.files ?? {}).find((name) =>
+          url.includes(name)
+        );
+        if (file) {
+          const text = await opts.files![file]();
+          return {
+            ok: true,
+            status: 200,
+            text: async () => text,
+          } as unknown as Response;
+        }
+        if (url.includes('hits.csv')) {
+          const csv = opts.csv ?? HITS_CSV;
+          return {
+            ok: true,
+            status: 200,
+            text: async () => csv,
+          } as unknown as Response;
+        }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({}),
+        } as unknown as Response;
+      })
+    );
+  }
+
+  /** An entry response carrying a `length`-residue sequence. */
+  const entryOf = (length: number): Res => ({
+    ok: true,
+    status: 200,
+    json: async () => ({ sequence: { sequence: 'A'.repeat(length) } }),
+  });
+
+  /** A promise held open until `release()` is called. */
+  function gate() {
+    let release!: () => void;
+    const wait = new Promise<void>((resolve) => (release = resolve));
+    return { wait, release };
+  }
+
+  /** Let every pending fetch and promise callback run. */
+  const settle = () => new Promise((resolve) => setTimeout(resolve));
+
+  function mountCollecting(props: Partial<El>) {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const el = mountEl({ accession: 'P05067', ...props });
+    const events: ErrorEvent[] = [];
+    el.addEventListener('protvista-error', (e) => events.push(e as ErrorEvent));
+    const trackData = () =>
+      events.filter((e) => e.detail.phase === 'track-data');
+    return { el, events, trackData, warn };
+  }
+
+  it('fires phase:track-data with a coordinate-out-of-range warning for a CSV file', async () => {
+    stubRoutes();
+    const { el, trackData, warn } = mountCollecting({ viewerConfig: CONFIG });
+
+    await vi.waitFor(() => expect(trackData()).toHaveLength(1));
+    const [ev] = trackData();
+    expect(ev.detail.issues).toEqual([
+      {
+        path: 'g/y',
+        code: 'coordinate-out-of-range',
+        severity: 'warning',
+        message: EXPECTED,
+      },
+    ]);
+    expect(ev.detail.context).toEqual({
+      accession: 'P05067',
+      groupId: 'g',
+      trackId: 'y',
+      url: './hits.csv',
+    });
+    expect(warn).toHaveBeenCalledWith(`[protvista-uniprot] ${EXPECTED}`);
+    expect(el._mountError).toBeNull();
+    // The track still renders every row as authored.
+    expect(el.data['g-y']).toHaveLength(3);
+  });
+
+  it('checks when the data arrives before the sequence', async () => {
+    const sequence = gate();
+    stubRoutes({
+      entry: async () => {
+        await sequence.wait;
+        return entryOf(770);
+      },
+    });
+    const { el, trackData } = mountCollecting({ viewerConfig: CONFIG });
+
+    await vi.waitFor(() => expect(el.data['g-y']).toBeDefined());
+    expect(el.sequence).toBeUndefined();
+    expect(trackData()).toHaveLength(0);
+
+    sequence.release();
+    await vi.waitFor(() => expect(trackData()).toHaveLength(1));
+  });
+
+  it('stays off the mount panel under strict', async () => {
+    stubRoutes();
+    const { el, trackData } = mountCollecting({
+      viewerConfig: { ...CONFIG, strict: true },
+    });
+
+    await vi.waitFor(() => expect(trackData()).toHaveLength(1));
+    await el.updateComplete;
+    expect(el._mountError).toBeNull();
+    expect(el.querySelector(PANEL)).toBeNull();
+  });
+
+  it('uses the bare track id as the path for a standalone row', async () => {
+    stubRoutes();
+    const { trackData } = mountCollecting({
+      viewerConfig: {
+        rows: [{ id: 'solo', kind: 'features', data: './hits.csv' }],
+      },
+    });
+
+    await vi.waitFor(() => expect(trackData()).toHaveLength(1));
+    const [ev] = trackData();
+    expect(ev.detail.issues[0].path).toBe('solo');
+    expect(ev.detail.context.trackId).toBe('solo');
+  });
+
+  it('fires once per data load: not on re-render, again on reload', async () => {
+    stubRoutes();
+    const { el, trackData } = mountCollecting({ viewerConfig: CONFIG });
+
+    await vi.waitFor(() => expect(trackData()).toHaveLength(1));
+    el.requestUpdate();
+    await el.updateComplete;
+    expect(trackData()).toHaveLength(1);
+
+    await el._loadData();
+    expect(trackData()).toHaveLength(2);
+  });
+
+  it('fires nothing when every row is within the sequence', async () => {
+    stubRoutes({ csv: 'type,start,end,description\nDOMAIN,1,10,a\n' });
+    const { el, trackData } = mountCollecting({ viewerConfig: CONFIG });
+
+    await vi.waitFor(() => {
+      expect(el.data['g-y']).toBeDefined();
+      expect(el.sequence).toBeDefined();
+    });
+    expect(trackData()).toHaveLength(0);
+  });
+
+  it('fires nothing when no sequence loads', async () => {
+    stubRoutes({
+      entry: async () => ({ ok: false, status: 404, json: async () => ({}) }),
+    });
+    const { el, events, trackData } = mountCollecting({ viewerConfig: CONFIG });
+
+    await vi.waitFor(() => {
+      expect(events.some((e) => e.detail.phase === 'sequence')).toBe(true);
+      expect(el.data['g-y']).toBeDefined();
+    });
+    expect(trackData()).toHaveLength(0);
+  });
+
+  it('fires nothing for setTrackData() payloads', async () => {
+    stubRoutes();
+    const { el, trackData } = mountCollecting({
+      viewerConfig: {
+        rows: [
+          {
+            id: 'g',
+            tracks: [{ id: 'y', kind: 'features', data: { from: 'custom' } }],
+          },
+        ],
+      },
+      customTrackData: { 'g-y': [{ type: 'DOMAIN', start: 0, end: 900 }] },
+    });
+
+    await vi.waitFor(() => {
+      expect(el.data['g-y']).toBeDefined();
+      expect(el.sequence).toBeDefined();
+    });
+    expect(trackData()).toHaveLength(0);
+  });
+
+  it('omits url from the context for inline data', async () => {
+    stubRoutes();
+    const { trackData } = mountCollecting({
+      viewerConfig: {
+        rows: [
+          {
+            id: 'g',
+            tracks: [
+              {
+                id: 'y',
+                kind: 'features',
+                data: { inlineData: [{ type: 'DOMAIN', start: 0, end: 5 }] },
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    await vi.waitFor(() => expect(trackData()).toHaveLength(1));
+    const [ev] = trackData();
+    expect(ev.detail.issues[0].message).toMatch(
+      /^inline data \(parsed as JSON\): 1 of 1 rows fall outside P05067/
+    );
+    expect(ev.detail.context).not.toHaveProperty('url');
+  });
+
+  it('does not check data a setConfig() replaced before the sequence arrived', async () => {
+    const sequence = gate();
+    const newCsv = gate();
+    stubRoutes({
+      entry: async () => {
+        await sequence.wait;
+        return entryOf(770);
+      },
+      files: {
+        'old.csv': async () => HITS_CSV,
+        'new.csv': async () => {
+          await newCsv.wait;
+          return 'type,start,end,description\nDOMAIN,1,10,a\n';
+        },
+      },
+    });
+    const configFor = (data: string) => ({
+      rows: [{ id: 'g', tracks: [{ id: 'y', kind: 'features', data }] }],
+    });
+    const { el, trackData } = mountCollecting({
+      viewerConfig: configFor('./old.csv'),
+    });
+    await vi.waitFor(() => expect(el.data['g-y']).toBeDefined());
+
+    // The new config is in place and its data is still loading when the
+    // sequence lands: old.csv's rows must not be checked against it.
+    await el.setConfig(configFor('./new.csv'));
+    sequence.release();
+    await vi.waitFor(() => expect(el.sequence).toBeDefined());
+    expect(trackData()).toHaveLength(0);
+
+    newCsv.release();
+    await vi.waitFor(() => expect(el.data['g-y']).toBeDefined());
+    await settle();
+    expect(trackData()).toHaveLength(0);
+  });
+
+  it('fires once when a mount Retry reloads data still waiting for the sequence', async () => {
+    let entryCalls = 0;
+    let csvCalls = 0;
+    const sequence = gate();
+    const csv = gate();
+    stubRoutes({
+      entry: async () => {
+        if (entryCalls++ === 0) {
+          return { ok: false, status: 503, json: async () => ({}) };
+        }
+        await sequence.wait;
+        return entryOf(770);
+      },
+      files: {
+        'hits.csv': async () => {
+          if (csvCalls++ > 0) await csv.wait;
+          return HITS_CSV;
+        },
+      },
+    });
+    const { el, trackData } = mountCollecting({ viewerConfig: CONFIG });
+    const retry = await vi.waitFor(() => {
+      const btn = el.querySelector<HTMLButtonElement>(
+        `${PANEL} .${CSS_PREFIX}-error-retry`
+      );
+      if (!btn) throw new Error('retry not ready');
+      return btn;
+    });
+    await vi.waitFor(() => expect(el.data['g-y']).toBeDefined());
+
+    // The retry's sequence lands before its re-fetched data.
+    retry.click();
+    sequence.release();
+    await vi.waitFor(() => expect(el.sequence).toBeDefined());
+    expect(trackData()).toHaveLength(0);
+
+    csv.release();
+    await vi.waitFor(() => expect(trackData()).toHaveLength(1));
+    await settle();
+    expect(trackData()).toHaveLength(1);
+  });
+
+  it('does not check rows a reload dropped before the sequence arrived', async () => {
+    let csvCalls = 0;
+    const sequence = gate();
+    stubRoutes({
+      entry: async () => {
+        await sequence.wait;
+        return entryOf(770);
+      },
+      files: {
+        // The reload's data fails layer 1, so the track has no rows.
+        'hits.csv': async () =>
+          csvCalls++ === 0
+            ? HITS_CSV
+            : 'type,start,end,description\nDOMAIN,5,4,a\n',
+      },
+    });
+    const { el, trackData } = mountCollecting({ viewerConfig: CONFIG });
+    await vi.waitFor(() => expect(el.data['g-y']).toBeDefined());
+
+    await el._loadData();
+    sequence.release();
+    await vi.waitFor(() => expect(el.sequence).toBeDefined());
+    await settle();
+    expect(trackData()).toHaveLength(0);
+  });
+
+  it('checks a new accession against its own sequence, not the previous one', async () => {
+    const next = gate();
+    stubRoutes({
+      entry: async (url) => {
+        if (url.includes('P12345')) {
+          await next.wait;
+          return entryOf(1200);
+        }
+        return entryOf(770);
+      },
+    });
+    const { el, trackData } = mountCollecting({ viewerConfig: CONFIG });
+    await vi.waitFor(() => expect(trackData()).toHaveLength(1));
+
+    // P12345's data commits while P05067's sequence is still stored.
+    const load = vi.spyOn(el, '_loadData');
+    el.accession = 'P12345';
+    await vi.waitFor(() => expect(load).toHaveBeenCalled());
+    await load.mock.results[0].value;
+    expect(trackData()).toHaveLength(1);
+
+    next.release();
+    await vi.waitFor(() => expect(trackData()).toHaveLength(2));
+    expect(trackData()[1].detail.issues[0].message).toContain(
+      '1 of 3 rows fall outside P12345 (1200 residues); first: row 4, start 0.'
+    );
+  });
+
+  it("ignores a superseded accession's sequence that arrives late", async () => {
+    let csvCalls = 0;
+    const first = gate();
+    const csv = gate();
+    stubRoutes({
+      entry: async (url) => {
+        if (url.includes('P12345')) return entryOf(100);
+        await first.wait;
+        return entryOf(1000);
+      },
+      files: {
+        'hits.csv': async () => {
+          if (csvCalls++ > 0) await csv.wait;
+          return HITS_CSV;
+        },
+      },
+    });
+    const { el, trackData } = mountCollecting({ viewerConfig: CONFIG });
+    await vi.waitFor(() => expect(el.data['g-y']).toBeDefined());
+
+    el.accession = 'P12345';
+    await vi.waitFor(() => expect(el.sequence).toHaveLength(100));
+
+    first.release();
+    await settle();
+    expect(el.sequence).toHaveLength(100);
+
+    csv.release();
+    await vi.waitFor(() => expect(trackData()).toHaveLength(1));
+    expect(trackData()[0].detail.issues[0].message).toContain(
+      '2 of 3 rows fall outside P12345 (100 residues)'
+    );
   });
 });
 

@@ -183,6 +183,72 @@ describe('features-csv adapter', () => {
     );
     warn.mockRestore();
   });
+
+  it('throws a row-named error when end is before start', () => {
+    const csv = 'type,start,end,description\nDOMAIN,1,5,a\nDOMAIN,5,4,b';
+    expect(() => featuresCsv(csv)).toThrow(
+      new Error(
+        './hits.csv (parsed as CSV): row 3: end (4) is before start (5).'
+      )
+    );
+  });
+
+  it('accepts a single-residue feature (start === end)', () => {
+    const csv = 'type,start,end,description\nDOMAIN,7,7,x';
+    expect(featuresCsv(csv)).toEqual([
+      { type: 'DOMAIN', start: 7, end: 7, description: 'x' },
+    ]);
+  });
+
+  it('rejects a fractional start with a row+column-named error', () => {
+    const csv = 'type,start,end,description\nDOMAIN,18.5,20,x';
+    expect(() => featuresCsv(csv)).toThrow(
+      new Error(
+        './hits.csv (parsed as CSV): row 2, column "start": expected a whole number, got "18.5".'
+      )
+    );
+  });
+
+  it('rejects a fractional end', () => {
+    const csv = 'type,start,end,description\nDOMAIN,18,20.25,x';
+    expect(() => featuresCsv(csv)).toThrow(
+      new Error(
+        './hits.csv (parsed as CSV): row 2, column "end": expected a whole number, got "20.25".'
+      )
+    );
+  });
+
+  it('reports a non-number before a fraction, and a fraction before an inverted interval', () => {
+    expect(() =>
+      featuresCsv('type,start,end,description\nDOMAIN,1.5,abc,x')
+    ).toThrow(/column "end": expected a number, got "abc"/);
+    expect(() =>
+      featuresCsv('type,start,end,description\nDOMAIN,9.5,3,x')
+    ).toThrow(/column "start": expected a whole number/);
+  });
+
+  it('accepts an integer written with an exponent', () => {
+    const csv = 'type,start,end,description\nDOMAIN,1e1,1e2,x';
+    expect(featuresCsv(csv)).toEqual([
+      { type: 'DOMAIN', start: 10, end: 100, description: 'x' },
+    ]);
+  });
+
+  it('accepts zero and negative integer coordinates (bounds are checked later)', () => {
+    expect(featuresCsv('type,start,end,description\nDOMAIN,0,5,x')).toEqual([
+      { type: 'DOMAIN', start: 0, end: 5, description: 'x' },
+    ]);
+    expect(featuresCsv('type,start,end,description\nDOMAIN,-3,5,x')).toEqual([
+      { type: 'DOMAIN', start: -3, end: 5, description: 'x' },
+    ]);
+  });
+
+  it('keeps a fractional score', () => {
+    const csv = 'type,start,end,description,score\nDOMAIN,1,5,x,0.87';
+    expect(featuresCsv(csv)).toEqual([
+      { type: 'DOMAIN', start: 1, end: 5, description: 'x', score: 0.87 },
+    ]);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -218,6 +284,15 @@ describe('features-tsv adapter', () => {
       expect.stringContaining('expected a text body')
     );
     warn.mockRestore();
+  });
+
+  it('throws a row-named error when end is before start', () => {
+    const tsv = 'type\tstart\tend\tdescription\nDOMAIN\t5\t4\tb';
+    expect(() => featuresTsv(tsv)).toThrow(
+      new Error(
+        './hits.tsv (parsed as TSV): row 2: end (4) is before start (5).'
+      )
+    );
   });
 });
 

@@ -102,13 +102,15 @@ export interface RoutingRule {
    * When set, the rule governs only this phase and is matched ahead of the
    * unqualified row for the same (severity, scope).
    *
-   * One phase needs this. Two viewer-scoped warnings disagree about `strict`
+   * Two phases need this. Two viewer-scoped warnings disagree about `strict`
    * for a reason severity and scope cannot express: a config warning names
    * something legal that *loaded as written*, so promoting it would hide a
    * working viewer, while a rejected `setTrackData()` call names something the
    * caller asked for that *did not happen*, which is exactly what `strict` is
    * for. Qualifying the narrower case keeps that distinction in the table
-   * instead of back in a conditional at the call site.
+   * instead of back in a conditional at the call site. A `track-data` warning
+   * is the track-scoped counterpart of a config warning: the row's data loaded
+   * and renders as written, so it takes neither the badge nor the panel.
    */
   phase?: ErrorPhase;
   event: boolean;
@@ -168,6 +170,16 @@ export const ROUTING_TABLE: readonly RoutingRule[] = [
     badge: false,
     rationale:
       'Names something legal that loaded as written — a panel would hide a working viewer.',
+  },
+  {
+    severity: 'warning',
+    scope: 'track',
+    phase: 'track-data',
+    event: true,
+    panel: 'never',
+    badge: false,
+    rationale:
+      'Coordinates outside the sequence still render as authored — a badge or panel would mark a working row as broken.',
   },
   {
     severity: 'warning',

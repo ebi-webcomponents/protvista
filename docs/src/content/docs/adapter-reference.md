@@ -38,8 +38,8 @@ Readable as: `csv`, `tsv`, `json`, `bed` — by file extension, or with an expli
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `type` | string | Yes | Feature category label (e.g. DOMAIN, BINDING). Drives `filter:` and colour grouping. |
-| `start` | number | Yes | 1-based start position (inclusive). |
-| `end` | number | Yes | 1-based end position (inclusive). |
+| `start` | integer | Yes | 1-based start position (inclusive). |
+| `end` | integer | Yes | 1-based end position (inclusive). Must not be less than `start`. |
 | `description` | string | No | Free text shown in the default tooltip. Omitted when empty. |
 | `score` | number | No | Optional numeric score. Omitted when empty. |
 
@@ -51,7 +51,7 @@ Readable as: `csv`, `tsv`, `json` — by file extension, or with an explicit `fo
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `position` | number | Yes | 1-based residue position. |
+| `position` | integer | Yes | 1-based residue position. |
 | `value` | number | Yes | The number plotted at that position. Any finite value. |
 
 ### variation records (position, variant)
@@ -62,7 +62,7 @@ Readable as: `csv`, `tsv`, `json` — by file extension, or with an explicit `fo
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `position` | number | Yes | 1-based position of the changed residue. |
+| `position` | integer | Yes | 1-based position of the changed residue. |
 | `variant` | string | Yes | The residue it changes to. `*` for a stop, `-` for a deletion. |
 | `wildType` | string | No | The original residue. Shown on hover. |
 | `description` | string | No | Free text shown on hover/click. |

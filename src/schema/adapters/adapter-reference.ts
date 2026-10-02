@@ -43,7 +43,7 @@ import type {
 /** One documented field of a generic bring-your-own-data payload. */
 export interface FieldDoc {
   name: string;
-  type: 'string' | 'number';
+  type: 'string' | 'number' | 'integer';
   /** Required in the emitted feature record (the shape the track renders). */
   required: boolean;
   notes?: string;
@@ -99,15 +99,15 @@ export const FEATURE_RECORD_FIELDS: readonly FieldDoc[] = [
   },
   {
     name: 'start',
-    type: 'number',
+    type: 'integer',
     required: true,
     notes: '1-based start position (inclusive).',
   },
   {
     name: 'end',
-    type: 'number',
+    type: 'integer',
     required: true,
-    notes: '1-based end position (inclusive).',
+    notes: '1-based end position (inclusive). Must not be less than `start`.',
   },
   {
     name: 'description',

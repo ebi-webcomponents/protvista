@@ -10,6 +10,9 @@
  *     the delimited body reaches the decoder as raw text, not parsed
  *     JSON), while ordinary API tracks still fetch as `'json'`;
  *   • the decoded feature records land on the track's data slot.
+ *
+ * It also pins the failure path: a malformed JSON file renders empty with a
+ * file/record-named track failure.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -234,5 +237,27 @@ describe('loadProtvistaData — from: file (features-json)', () => {
     const fetchOne = vi.fn(async () => []);
     const result = await loadProtvistaData('P05067', config, fetchOne, resolveAdapter);
     expect(result.hasData).toBe(false);
+  });
+
+  it('renders a JSON file with an inverted interval empty, naming the file and record', async () => {
+    const config = await loadConfig({
+      rows: [
+        {
+          id: 'MY',
+          tracks: [{ id: 'hits', kind: 'features', data: './features.json' }],
+        },
+      ],
+    });
+    const fetchOne = vi.fn(async () => [{ type: 'DOMAIN', start: 5, end: 4 }]);
+    const result = await loadProtvistaData(
+      'P05067',
+      config,
+      fetchOne,
+      resolveAdapter
+    );
+    expect(result.data['MY-hits']).toBeUndefined();
+    expect(result.trackFailures['MY-hits'].message).toBe(
+      './features.json (parsed as JSON): record 0: end (4) is before start (5).'
+    );
   });
 });

@@ -16,13 +16,13 @@
       "description": "Feature category label (e.g. DOMAIN, BINDING). Drives `filter:` and colour grouping."
     },
     "start": {
-      "type": "number",
+      "type": "integer",
       "description": "1-based start position (inclusive).",
       "$comment": "features-json also accepts `begin` as an alias for `start`; `start` wins when both are present."
     },
     "end": {
-      "type": "number",
-      "description": "1-based end position (inclusive)."
+      "type": "integer",
+      "description": "1-based end position (inclusive). Must not be less than `start`."
     },
     "description": {
       "type": "string",

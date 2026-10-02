@@ -51,7 +51,8 @@ export const isError = (issue: ValidationIssue): boolean =>
 
 /**
  * Closed set of validation issue codes. Every semantic check in
- * `validateConfig` emits one of these; structural Ajv errors are
+ * `validateConfig` emits one of these (`coordinate-out-of-range` is the
+ * exception, emitted at runtime); structural Ajv errors are
  * bucketed under `schema` so consumers can distinguish structural
  * from semantic failures without string-matching the message.
  */
@@ -124,6 +125,13 @@ export type ValidationIssueCode =
    * the flag does nothing. A `severity: 'warning'`.
    */
   | 'detail-only-standalone'
+  /**
+   * An authored track has rows whose coordinates fall below 1 or past the
+   * entry's sequence length. Emitted at runtime, once the sequence loads —
+   * not by `validateConfig`, which never sees the data. Reported on
+   * `phase: 'track-data'` at `severity: 'warning'`; the track still renders.
+   */
+  | 'coordinate-out-of-range'
   // ── Extends resolution ─────────────────────────────────
   /** The `extends` chain forms a cycle (a → b → a). */
   | 'circular-extends'
