@@ -4,7 +4,9 @@ title: Troubleshoot errors
 
 When something doesn't load, ProtVista tells you in two places: the browser
 console, and a single `protvista-error` event you can listen for. This page
-covers both, plus the most common causes.
+covers both, plus the most common causes. The full list of events the viewer
+dispatches — including `protvista-error`'s neighbours `protvista-event` and
+`protvista-layout-change` — is on the [Events](/protvista/events) page.
 
 ## The `protvista-error` event
 
