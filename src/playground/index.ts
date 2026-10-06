@@ -77,6 +77,7 @@ import {
   isDevPreset,
   type Preset,
 } from './presets.js';
+import { configFileName } from './format.js';
 import {
   readHash,
   writeHash,
@@ -957,3 +958,35 @@ void run();
 
 // Make the divider between the editor and preview panes draggable.
 initSplitter($<HTMLElement>('panels'), $<HTMLElement>('splitter'));
+
+// ── Share & export ────────────────────────────────────────────
+// Copy link shares the URL hash (which already holds the whole state);
+// Download config saves the editor text byte-for-byte with an extension
+// that matches format detection.
+const shareStatus = $<HTMLElement>('share-status');
+
+$<HTMLButtonElement>('copy-link').addEventListener('click', () => {
+  void navigator.clipboard.writeText(location.href).then(
+    () => {
+      shareStatus.textContent = 'Link copied';
+    },
+    () => {
+      shareStatus.textContent = 'Could not copy the link';
+    },
+  );
+});
+
+$<HTMLButtonElement>('download-config').addEventListener('click', () => {
+  const text = editor.getText();
+  const url = URL.createObjectURL(new Blob([text]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = configFileName(text);
+  link.hidden = true;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  // Revoke on the next tick: some browsers still resolve the blob URL
+  // while handling the click.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+});

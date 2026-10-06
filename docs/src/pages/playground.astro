@@ -88,6 +88,20 @@ const versionTooltip = isPrerelease
         >
       </div>
 
+      <div class="field share-export">
+        <button id="copy-link" type="button" title="Copy a shareable link to this setup">
+          Copy link
+        </button>
+        <button
+          id="download-config"
+          type="button"
+          title="Download the editor text as config.json or config.yaml"
+        >
+          Download config
+        </button>
+        <span id="share-status" role="status" aria-live="polite"></span>
+      </div>
+
       <button id="run" type="button" title="Update the preview (Ctrl/Cmd+Enter)">
         <span aria-hidden="true">▶</span> Run
       </button>
