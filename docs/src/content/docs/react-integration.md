@@ -2,7 +2,7 @@
 title: React host integration
 ---
 
-When you need a tooltip the config can't express — a React component, evidence badges, taxonomy lookups, links into your app's own routing, or any stateful UI — you own it in the host. The library hands you an event; you render the overlay.
+When you need a tooltip the config can't express — a React component, evidence badges, taxonomy lookups, links into your app's own routing, or any stateful UI — you own it in the host. The library hands you an event; you render the overlay. For every event the viewer itself dispatches (`protvista-event`, `protvista-error`, `row-click`, …) see the [Events](/protvista/events) reference.
 
 There are exactly two paths for the per-datapoint tooltip, and nothing in between:
 
