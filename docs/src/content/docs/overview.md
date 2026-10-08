@@ -3,6 +3,16 @@ title: Overview
 description: What ProtVista is, who it's for, and where to go next.
 ---
 
+Key jargon:
+**Render** - Displaying data to user.
+**Adapter** - Converting data into a format ProtVista can use.
+**Attribute** - Settings/piece of data attached to an element.
+**Payload** - Data sent or received in a request.
+**Schema** - Description of what type of data can be allocated where.
+**Mount** - Adding a component to a page.
+**Intent** - What you want a system to do.
+**Representation** - Way something is shown/described.
+
 ProtVista is a web component — a custom HTML element, `<protvista-uniprot>` —
 that draws protein sequence features as horizontal **tracks** aligned to the
 amino-acid sequence: domains, variants, binding sites, structure coverage,
