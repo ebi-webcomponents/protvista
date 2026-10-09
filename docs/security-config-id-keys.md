@@ -25,19 +25,15 @@ under a **bare** `groupId`:
 
 ```ts
 // src/load-data.ts — group-aggregate assignment
-data[groupId] =
-  group.component === 'nightingale-linegraph-track' ||
-  group.component === 'nightingale-colored-sequence'
-    ? groupData[0]
-    : groupData.flat();
+data[groupId] = aggregatePayload(group, (track) => dataByTrack.get(track));
 ```
 
 The schema places no character constraint on ids —
 `src/schema/schema.json` declares both group and track `id` as
 `{ "type": "string", "minLength": 1 }` with no `pattern`, and
 `src/schema/normalize.ts` validates only for **duplicate** ids, not for
-dangerous id *values*. With the null-prototype map now in place, a group whose `id` is `__proto__`
-creates an ordinary own `data['__proto__']` property.
+dangerous id *values*. With the null-prototype map now in place, a group
+whose `id` is `__proto__` creates an ordinary own `data['__proto__']` property.
 
 ## Mechanics — what actually happens
 
@@ -59,8 +55,8 @@ remediation 1, the loader also uses a null-prototype map, so `__proto__` and
 ### Related hazard: key-namespace collisions
 
 Because keys are string-concatenated without a reserved separator, unconstrained
-ids can still permit silent collisions that corrupt rendering (not a security risk,
-but the same root cause):
+ids can still permit silent collisions that corrupt rendering (not a security
+risk, but the same root cause):
 
 - A group `id` containing `-` (e.g. `X-y`) collides with group `X`'s track `y`
   at `data['X-y']`.
