@@ -1,6 +1,6 @@
 ---
 title: Escape hatches
-description: "ProtVista provides the following registration methods ('registerAdapter', 'registerSemanticKind','registerTheme', and 'registerComponent') and the 'setTrackData()' method to define custom data parsers, track types, colour scales, and custom component extensions."
+description: "ProtVista provides the following registration methods ('registerAdapter', 'registerSemanticKind', 'registerTheme', and 'registerComponent') to define custom data parsers, track types, colour scales, and custom component extensions, and the 'setTrackData()' method to hand over data you loaded yourself."
 ---
 
 Most needs are met by writing a config. When you need to go further — a data

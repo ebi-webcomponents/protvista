@@ -1,6 +1,6 @@
 ---
 title: Authoring dataTooltip
-description: "'dataTooltip' configures per-datapoint tooltips using three forms: a 'bare-string' for simple one-line templates, a 'fields' form for a flat property sheet of labelled rows, or a 'markdown' form for full templates with prose and conditional logic, while  falling back to a default when fields are missing or empty."
+description: "'dataTooltip' configures per-datapoint tooltips using three forms: a 'bare-string' for simple one-line templates, a 'fields' form for a flat property sheet of labelled rows, or a 'markdown' form for full templates with prose and conditional logic, while falling back to a default when a record has none of the fields."
 ---
 
 `dataTooltip` controls the per-datapoint tooltip shown when a user clicks a feature on a track. It has three authoring forms, listed here from least to most expressive. Pick the simplest one that works — the rendering pipeline is the same for all three.

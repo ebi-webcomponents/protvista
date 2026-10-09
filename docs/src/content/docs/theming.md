@@ -1,6 +1,6 @@
 ---
 title: Theming ProtVista
-description: "ProtVista allows easily customization with its viewer interface using plain CSS custom properties, structural parts, and config-based themes while keeping functional data colors separate."
+description: "ProtVista allows easy customization of its viewer interface using plain CSS custom properties, structural parts, and config-based themes while keeping functional data colors separate."
 ---
 
 ![Two ProtVista viewers side by side showing the same track. The left has default grey row labels; the right has the same labels tinted pale green by a theme block.](../../assets/screenshots/theming-comparison.png)

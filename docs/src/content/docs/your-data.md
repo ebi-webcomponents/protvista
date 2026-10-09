@@ -1,6 +1,6 @@
 ---
 title: Load your own data
-description: "How to load your data format to ProtVista - choose formats, manage your data accordingly."
+description: "How to load your own data into ProtVista: choose a format (CSV, TSV, JSON or BED) and give your data the shape a track needs."
 ---
 
 ProtVista isn't limited to UniProt. Most tracks can read your own annotations
@@ -530,16 +530,6 @@ If your file doesn't match the feature-record columns — different headings, a
 bespoke format — you can register your own parser with `registerAdapter` and
 name it on the track. See [Escape hatches](/protvista/escape-hatches).
 
-## Where to go next
-
-- [Configuration vs data](/protvista/configuration-vs-data) — the boundary this page sits on.
-- [Adapter reference](/protvista/adapter-reference) — exact payload shapes.
-- [Feature type and shape vocabulary](/protvista/type-and-shape-vocabulary) — what each `type` looks like, and every `shape`.
-- [Proteins outside UniProt](/protvista/sequence-only) — your own sequence instead of an accession.
-- [Troubleshoot errors](/protvista/troubleshooting) — when a track won't load.
-
-_Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._
-
 ## Ask an AI to write your config
 
 Give the assistant your protein accession, the tracks you want, your data
@@ -561,3 +551,13 @@ Always paste the config into the [playground](https://ebi-webcomponents.github.i
 and load your sample file with **Load data file…**. Check the listed errors
 and warnings, confirm that the requested tracks appear in the right order,
 and test any tooltips, links and visibility controls before using it on your page.
+
+## Where to go next
+
+- [Configuration vs data](/protvista/configuration-vs-data) — the boundary this page sits on.
+- [Adapter reference](/protvista/adapter-reference) — exact payload shapes.
+- [Feature type and shape vocabulary](/protvista/type-and-shape-vocabulary) — what each `type` looks like, and every `shape`.
+- [Proteins outside UniProt](/protvista/sequence-only) — your own sequence instead of an accession.
+- [Troubleshoot errors](/protvista/troubleshooting) — when a track won't load.
+
+_Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

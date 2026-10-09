@@ -1,6 +1,6 @@
 ---
 title: Troubleshoot errors
-description: "Explaining 'provista-error' event and what each detail and phase means, describing common problems and solutions."
+description: "Explaining the 'protvista-error' event and what each detail and phase means, describing common problems and solutions."
 ---
 
 When something doesn't load, ProtVista tells you in three places:

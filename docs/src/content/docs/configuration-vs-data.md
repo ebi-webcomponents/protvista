@@ -41,7 +41,7 @@ flowchart TB
 
 The actual payload each track consumes. For a built-in kind that's a UniProt API response the adapter transforms; for bring-your-own-data it's a file whose fields you author. The per-adapter shapes are documented in the [adapter reference](/protvista/adapter-reference). Bring-your-own-data authors mainly need the generic feature record (`type`, `start`, `end`, `description`, optional `score`; in JSON `description` is optional too); a machine-readable schema is served at [`feature-record.schema.json`](https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json).
 
-The bridge between your configuration and the data provider is the pairing of **data** and **kind**: your config declares **where** the raw information lives and **which** rules apply to translate it into a renderable payload—either by mapping to a built-in adapter via its semantic kind or by processing a custom format directly.
+The bridge between your configuration and the data provider is the pairing of **data** and **kind**: your config declares **where** the raw information lives and **which** rules apply to translate it into a renderable payload—either by mapping to a built-in adapter via its semantic kind or, for a custom format, through an adapter you register and name with `adapter:`.
 
 ## A paired example
 
