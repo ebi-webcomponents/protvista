@@ -548,16 +548,13 @@ so it can read the instructions and examples directly. You can also provide
 the [documentation index](https://ebi-webcomponents.github.io/protvista/llms.txt)
 and the [config schema](https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json).
 
-In our small set of tests, the documentation index worked for all three
-prompts with one assistant. Adding the schema did not guarantee success:
-one answer used an unresolved preset name, `default`, in `extends`.
-Re-testing that prompt with the full Config authoring documentation produced
-a working config without hand edits. Results varied between assistants,
-so these tests do not establish one best context for every request.
-
-Other failures included missing required fields such as `rows` and `id`,
-and references to source names that had not been declared. Check these
-against the documentation rather than assuming the generated config is correct.
+Providing the config schema does not guarantee a working config.
+For example, an AI may use an unresolved preset name such as `default`
+in `extends`, omit required fields, or reference an undeclared source.
+Provide the full Config authoring documentation alongside your request
+so the assistant has the instructions and examples available.
+Treat any AI-generated config as a draft: results vary by prompt and
+assistant, so always verify the output in the playground.
 
 Always paste the config into the [playground](https://ebi-webcomponents.github.io/protvista/playground/)
 and load your sample file with **Load data file…**. Check the listed errors
