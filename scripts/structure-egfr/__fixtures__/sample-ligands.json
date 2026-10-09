@@ -1,0 +1,31 @@
+[
+  {
+    "name": "AFATINIB",
+    "accession": "0WN",
+    "residues": [
+      {
+        "startIndex": 718,
+        "endIndex": 718,
+        "startCode": "LEU",
+        "endCode": "LEU",
+        "indexType": "UNIPROT",
+        "interactingPDBEntries": [
+          { "pdbId": "4g5j", "entityId": 1, "chainIds": "A" },
+          { "pdbId": "4g5p", "entityId": 1, "chainIds": "A" }
+        ],
+        "allPDBEntries": ["4g5j", "4g5p"]
+      },
+      {
+        "startIndex": 797,
+        "endIndex": 797,
+        "startCode": "CYS",
+        "endCode": "CYS",
+        "indexType": "UNIPROT",
+        "interactingPDBEntries": [
+          { "pdbId": "4g5j", "entityId": 1, "chainIds": "A" }
+        ],
+        "allPDBEntries": ["4g5j"]
+      }
+    ]
+  }
+]
