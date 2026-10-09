@@ -1,0 +1,155 @@
+$schema: https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json
+version: '1.0'
+accession: P00533
+
+sources:
+  features: https://www.ebi.ac.uk/proteins/api/features/{accession}
+  proteins: https://www.ebi.ac.uk/proteins/api/proteins/{accession}
+  alphafoldPrediction: https://alphafold.ebi.ac.uk/api/prediction/{accession}
+
+theme:
+  labelColor: '#0f172a'
+  accentColor: '#0284c7'
+
+rows:
+  # 1. PDBe Co-crystal Drug Contacts (Top priority for structural biology & drug discovery)
+  - id: DRUG_CONTACTS
+    label: PDBe Co-crystal Drug Contacts
+    tracks:
+      - id: osimertinib
+        label: Osimertinib (3rd-gen TKI)
+        kind: features
+        filter: OSIMERTINIB
+        data: ./drug-contacts.csv
+        description: 3rd-generation irreversible mutant-selective TKI (covalent to Cys797)
+        rendering:
+          color: '#e11d48'
+        dataTooltip: '**{% $type %}** ({% $start %}): {% $description %}'
+
+      - id: gefitinib
+        label: Gefitinib (1st-gen TKI)
+        kind: features
+        filter: GEFITINIB
+        data: ./drug-contacts.csv
+        description: 1st-generation ATP-competitive reversible TKI
+        rendering:
+          color: '#0284c7'
+        dataTooltip: '**{% $type %}** ({% $start %}): {% $description %}'
+
+      - id: erlotinib
+        label: Erlotinib (1st-gen TKI)
+        kind: features
+        filter: ERLOTINIB
+        data: ./drug-contacts.csv
+        description: 1st-generation ATP-competitive reversible TKI
+        rendering:
+          color: '#0d9488'
+        dataTooltip: '**{% $type %}** ({% $start %}): {% $description %}'
+
+      - id: afatinib
+        label: Afatinib (2nd-gen TKI)
+        kind: features
+        filter: AFATINIB
+        data: ./drug-contacts.csv
+        description: 2nd-generation irreversible ErbB family blocker
+        rendering:
+          color: '#7c3aed'
+        dataTooltip: '**{% $type %}** ({% $start %}): {% $description %}'
+
+      - id: dacomitinib
+        label: Dacomitinib (2nd-gen TKI)
+        kind: features
+        filter: DACOMITINIB
+        data: ./drug-contacts.csv
+        description: 2nd-generation irreversible pan-HER TKI
+        rendering:
+          color: '#9333ea'
+        dataTooltip: '**{% $type %}** ({% $start %}): {% $description %}'
+
+      - id: lapatinib
+        label: Lapatinib (Dual TKI)
+        kind: features
+        filter: LAPATINIB
+        data: ./drug-contacts.csv
+        description: Dual EGFR/ErbB2 reversible inhibitor (binds inactive conformation)
+        rendering:
+          color: '#d97706'
+        dataTooltip: '**{% $type %}** ({% $start %}): {% $description %}'
+
+      - id: neratinib
+        label: Neratinib (Pan-HER TKI)
+        kind: features
+        filter: NERATINIB
+        data: ./drug-contacts.csv
+        description: Irreversible pan-HER tyrosine kinase inhibitor
+        rendering:
+          color: '#b45309'
+        dataTooltip: '**{% $type %}** ({% $start %}): {% $description %}'
+
+      - id: amp_pnp
+        label: AMP-PNP (ATP Pocket Reference)
+        kind: features
+        filter: AMP_PNP
+        data: ./drug-contacts.csv
+        description: Non-hydrolyzable ATP analogue mapping canonical kinase pocket
+        rendering:
+          color: '#64748b'
+        dataTooltip: '**{% $type %}** ({% $start %}): {% $description %}'
+
+  # 2. Canonical Domain Architecture
+  - id: DOMAINS
+    label: Domains & Transmembrane Topology
+    tracks:
+      - id: domain
+        label: Protein Domains
+        kind: features
+        filter: DOMAIN
+        data: features
+        description: Receptor L, furin-like cysteine-rich, and protein kinase domains
+      - id: transmem
+        label: Transmembrane Region
+        kind: features
+        filter: TRANSMEM
+        data: features
+        description: Helical transmembrane anchor segment
+
+  # 3. PDBe 3D Structure Coverage
+  - id: STRUCTURE_COVERAGE
+    label: PDBe 3D Structure Coverage
+    tracks:
+      - id: pdbe_cover
+        label: PDBe Coverage
+        kind: structure-coverage
+        data: proteins
+        description: Experimentally solved 3D structures in the Protein Data Bank
+
+  # 4. AlphaFold Model Confidence (pLDDT)
+  - id: ALPHAFOLD_CONFIDENCE
+    label: AlphaFold Model Confidence (pLDDT)
+    rendering:
+      colorScale:
+        theme: alphafold-ramp
+    tracks:
+      - id: alphafold_confidence
+        label: '[AlphaFold Confidence](https://alphafold.ebi.ac.uk/entry/{accession})'
+        kind: alphafold-confidence
+        data:
+          source: [alphafoldPrediction, proteins]
+        description: Per-residue pLDDT confidence scores from AlphaFold2
+
+  # 5. Critical Functional Sites & Active Center
+  - id: SITES
+    label: Catalytic & Active Sites
+    tracks:
+      - id: active_site
+        label: Active Sites & ATP Binding
+        kind: features
+        filter: ACT_SITE
+        data: features
+        description: Catalytic residues essential for kinase activity
+      - id: binding_site
+        label: Binding Sites
+        kind: features
+        filter: BINDING
+        data: features
+        description: Documented substrate and cofactor binding residues

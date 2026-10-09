@@ -1,0 +1,161 @@
+type,start,end,description,drug,ccd,residue,n_structures,pdb_ids,url
+AFATINIB,718,718,"Afatinib contacts Leu718 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Leu718,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,726,726,"Afatinib contacts Val726 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Val726,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,728,728,"Afatinib contacts Lys728 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Lys728,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,743,743,"Afatinib contacts Ala743 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Ala743,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,745,745,"Afatinib contacts Lys745 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Lys745,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,766,766,"Afatinib contacts Met766 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Met766,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,788,788,"Afatinib contacts Leu788 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Leu788,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,790,790,"Afatinib contacts Thr790 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Thr790,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,791,791,"Afatinib contacts Gln791 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Gln791,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,792,792,"Afatinib contacts Leu792 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Leu792,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,793,793,"Afatinib contacts Met793 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Met793,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,794,794,"Afatinib contacts Pro794 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Pro794,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,796,796,"Afatinib contacts Gly796 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Gly796,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,797,797,"Afatinib contacts Cys797 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Cys797,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,800,800,"Afatinib contacts Asp800 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Asp800,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,844,844,"Afatinib contacts Leu844 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Leu844,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,854,854,"Afatinib contacts Thr854 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Thr854,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AFATINIB,855,855,"Afatinib contacts Asp855 in 2 PDB entries (4g5j, 4g5p)",Afatinib,0WN,Asp855,2,4g5j 4g5p,https://www.ebi.ac.uk/pdbe/entry/pdb/4g5j
+AMP_PNP,718,718,"AMP-PNP (ATP analogue) contacts Leu718 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Leu718,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,719,719,"AMP-PNP (ATP analogue) contacts Gly719 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Gly719,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,720,720,"AMP-PNP (ATP analogue) contacts Ser720 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Ser720,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,721,721,"AMP-PNP (ATP analogue) contacts Gly721 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Gly721,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,722,722,"AMP-PNP (ATP analogue) contacts Ala722 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Ala722,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,723,723,"AMP-PNP (ATP analogue) contacts Phe723 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Phe723,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,724,724,"AMP-PNP (ATP analogue) contacts Gly724 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Gly724,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,726,726,"AMP-PNP (ATP analogue) contacts Val726 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Val726,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,743,743,"AMP-PNP (ATP analogue) contacts Ala743 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Ala743,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,745,745,"AMP-PNP (ATP analogue) contacts Lys745 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Lys745,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,790,790,"AMP-PNP (ATP analogue) contacts Thr790 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Thr790,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,791,791,"AMP-PNP (ATP analogue) contacts Gln791 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Gln791,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,792,792,"AMP-PNP (ATP analogue) contacts Leu792 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Leu792,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,793,793,"AMP-PNP (ATP analogue) contacts Met793 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Met793,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,797,797,"AMP-PNP (ATP analogue) contacts Cys797 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Cys797,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,837,837,"AMP-PNP (ATP analogue) contacts Asp837 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Asp837,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,841,841,"AMP-PNP (ATP analogue) contacts Arg841 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Arg841,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,842,842,"AMP-PNP (ATP analogue) contacts Asn842 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Asn842,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,844,844,"AMP-PNP (ATP analogue) contacts Leu844 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Leu844,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,855,855,"AMP-PNP (ATP analogue) contacts Asp855 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Asp855,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+AMP_PNP,858,858,"AMP-PNP (ATP analogue) contacts Leu858 in 35 PDB entries (2eb3, 2gs7, 2itn, 2itv, 2itx, …)",AMP-PNP (ATP analogue),ANP,Leu858,35,2eb3 2gs7 2itn 2itv 2itx 3gt8 3vjn 3vjo 4riw 4rix 4riy 4zse 5cnn 5cno 5d41 5x2a 6duk 6p1d 6p1l 6p8q 6wak 6wxn 6xl4 7jxk 7jxm 7jxp 7jxq 7k1i 7ltx 8dsw 8fv3 8fv4 8gb4 8to3 8to4,https://www.ebi.ac.uk/pdbe/entry/pdb/2eb3
+DACOMITINIB,718,718,"Dacomitinib contacts Leu718 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Leu718,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+DACOMITINIB,726,726,"Dacomitinib contacts Val726 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Val726,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+DACOMITINIB,743,743,"Dacomitinib contacts Ala743 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Ala743,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+DACOMITINIB,745,745,"Dacomitinib contacts Lys745 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Lys745,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+DACOMITINIB,766,766,"Dacomitinib contacts Met766 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Met766,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+DACOMITINIB,788,788,"Dacomitinib contacts Leu788 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Leu788,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+DACOMITINIB,790,790,"Dacomitinib contacts Thr790 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Thr790,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+DACOMITINIB,791,791,"Dacomitinib contacts Gln791 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Gln791,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+DACOMITINIB,792,792,"Dacomitinib contacts Leu792 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Leu792,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+DACOMITINIB,793,793,"Dacomitinib contacts Met793 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Met793,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+DACOMITINIB,794,794,"Dacomitinib contacts Pro794 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Pro794,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+DACOMITINIB,796,796,"Dacomitinib contacts Gly796 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Gly796,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+DACOMITINIB,797,797,"Dacomitinib contacts Cys797 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Cys797,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+DACOMITINIB,800,800,"Dacomitinib contacts Asp800 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Asp800,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+DACOMITINIB,844,844,"Dacomitinib contacts Leu844 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Leu844,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+DACOMITINIB,854,854,"Dacomitinib contacts Thr854 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Thr854,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+DACOMITINIB,855,855,"Dacomitinib contacts Asp855 in 2 PDB entries (4i23, 4i24)",Dacomitinib,1C9,Asp855,2,4i23 4i24,https://www.ebi.ac.uk/pdbe/entry/pdb/4i23
+ERLOTINIB,718,718,"Erlotinib contacts Leu718 in 2 PDB entries (1m17, 4hjo)",Erlotinib,AQ4,Leu718,2,1m17 4hjo,https://www.ebi.ac.uk/pdbe/entry/pdb/1m17
+ERLOTINIB,726,726,"Erlotinib contacts Val726 in 2 PDB entries (1m17, 4hjo)",Erlotinib,AQ4,Val726,2,1m17 4hjo,https://www.ebi.ac.uk/pdbe/entry/pdb/1m17
+ERLOTINIB,743,743,"Erlotinib contacts Ala743 in 2 PDB entries (1m17, 4hjo)",Erlotinib,AQ4,Ala743,2,1m17 4hjo,https://www.ebi.ac.uk/pdbe/entry/pdb/1m17
+ERLOTINIB,745,745,"Erlotinib contacts Lys745 in 2 PDB entries (1m17, 4hjo)",Erlotinib,AQ4,Lys745,2,1m17 4hjo,https://www.ebi.ac.uk/pdbe/entry/pdb/1m17
+ERLOTINIB,762,762,"Erlotinib contacts Glu762 in 2 PDB entries (1m17, 4hjo)",Erlotinib,AQ4,Glu762,2,1m17 4hjo,https://www.ebi.ac.uk/pdbe/entry/pdb/1m17
+ERLOTINIB,788,788,"Erlotinib contacts Leu788 in 2 PDB entries (1m17, 4hjo)",Erlotinib,AQ4,Leu788,2,1m17 4hjo,https://www.ebi.ac.uk/pdbe/entry/pdb/1m17
+ERLOTINIB,790,790,"Erlotinib contacts Thr790 in 2 PDB entries (1m17, 4hjo)",Erlotinib,AQ4,Thr790,2,1m17 4hjo,https://www.ebi.ac.uk/pdbe/entry/pdb/1m17
+ERLOTINIB,791,791,"Erlotinib contacts Gln791 in 2 PDB entries (1m17, 4hjo)",Erlotinib,AQ4,Gln791,2,1m17 4hjo,https://www.ebi.ac.uk/pdbe/entry/pdb/1m17
+ERLOTINIB,792,792,"Erlotinib contacts Leu792 in 2 PDB entries (1m17, 4hjo)",Erlotinib,AQ4,Leu792,2,1m17 4hjo,https://www.ebi.ac.uk/pdbe/entry/pdb/1m17
+ERLOTINIB,793,793,"Erlotinib contacts Met793 in 2 PDB entries (1m17, 4hjo)",Erlotinib,AQ4,Met793,2,1m17 4hjo,https://www.ebi.ac.uk/pdbe/entry/pdb/1m17
+ERLOTINIB,794,794,"Erlotinib contacts Pro794 in 2 PDB entries (1m17, 4hjo)",Erlotinib,AQ4,Pro794,2,1m17 4hjo,https://www.ebi.ac.uk/pdbe/entry/pdb/1m17
+ERLOTINIB,796,796,"Erlotinib contacts Gly796 in 2 PDB entries (1m17, 4hjo)",Erlotinib,AQ4,Gly796,2,1m17 4hjo,https://www.ebi.ac.uk/pdbe/entry/pdb/1m17
+ERLOTINIB,844,844,"Erlotinib contacts Leu844 in 2 PDB entries (1m17, 4hjo)",Erlotinib,AQ4,Leu844,2,1m17 4hjo,https://www.ebi.ac.uk/pdbe/entry/pdb/1m17
+ERLOTINIB,854,854,"Erlotinib contacts Thr854 in 2 PDB entries (1m17, 4hjo)",Erlotinib,AQ4,Thr854,2,1m17 4hjo,https://www.ebi.ac.uk/pdbe/entry/pdb/1m17
+ERLOTINIB,855,855,"Erlotinib contacts Asp855 in 2 PDB entries (1m17, 4hjo)",Erlotinib,AQ4,Asp855,2,1m17 4hjo,https://www.ebi.ac.uk/pdbe/entry/pdb/1m17
+GEFITINIB,718,718,"Gefitinib contacts Leu718 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Leu718,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,719,719,"Gefitinib contacts Gly719 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Gly719,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,726,726,"Gefitinib contacts Val726 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Val726,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,743,743,"Gefitinib contacts Ala743 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Ala743,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,745,745,"Gefitinib contacts Lys745 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Lys745,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,766,766,"Gefitinib contacts Met766 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Met766,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,788,788,"Gefitinib contacts Leu788 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Leu788,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,790,790,"Gefitinib contacts Thr790 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Thr790,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,791,791,"Gefitinib contacts Gln791 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Gln791,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,792,792,"Gefitinib contacts Leu792 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Leu792,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,793,793,"Gefitinib contacts Met793 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Met793,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,794,794,"Gefitinib contacts Pro794 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Pro794,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,796,796,"Gefitinib contacts Gly796 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Gly796,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,797,797,"Gefitinib contacts Cys797 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Cys797,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,800,800,"Gefitinib contacts Asp800 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Asp800,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,844,844,"Gefitinib contacts Leu844 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Leu844,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,854,854,"Gefitinib contacts Thr854 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Thr854,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+GEFITINIB,855,855,"Gefitinib contacts Asp855 in 6 PDB entries (2ito, 2ity, 2itz, 3ug2, 4i22, …)",Gefitinib,IRE,Asp855,6,2ito 2ity 2itz 3ug2 4i22 4wkq,https://www.ebi.ac.uk/pdbe/entry/pdb/2ito
+LAPATINIB,718,718,Lapatinib contacts Leu718 in 1 PDB entry (1xkk),Lapatinib,FMM,Leu718,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,726,726,Lapatinib contacts Val726 in 1 PDB entry (1xkk),Lapatinib,FMM,Val726,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,743,743,Lapatinib contacts Ala743 in 1 PDB entry (1xkk),Lapatinib,FMM,Ala743,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,745,745,Lapatinib contacts Lys745 in 1 PDB entry (1xkk),Lapatinib,FMM,Lys745,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,766,766,Lapatinib contacts Met766 in 1 PDB entry (1xkk),Lapatinib,FMM,Met766,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,775,775,Lapatinib contacts Cys775 in 1 PDB entry (1xkk),Lapatinib,FMM,Cys775,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,776,776,Lapatinib contacts Arg776 in 1 PDB entry (1xkk),Lapatinib,FMM,Arg776,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,777,777,Lapatinib contacts Leu777 in 1 PDB entry (1xkk),Lapatinib,FMM,Leu777,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,788,788,Lapatinib contacts Leu788 in 1 PDB entry (1xkk),Lapatinib,FMM,Leu788,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,790,790,Lapatinib contacts Thr790 in 1 PDB entry (1xkk),Lapatinib,FMM,Thr790,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,791,791,Lapatinib contacts Gln791 in 1 PDB entry (1xkk),Lapatinib,FMM,Gln791,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,792,792,Lapatinib contacts Leu792 in 1 PDB entry (1xkk),Lapatinib,FMM,Leu792,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,793,793,Lapatinib contacts Met793 in 1 PDB entry (1xkk),Lapatinib,FMM,Met793,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,797,797,Lapatinib contacts Cys797 in 1 PDB entry (1xkk),Lapatinib,FMM,Cys797,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,799,799,Lapatinib contacts Leu799 in 1 PDB entry (1xkk),Lapatinib,FMM,Leu799,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,800,800,Lapatinib contacts Asp800 in 1 PDB entry (1xkk),Lapatinib,FMM,Asp800,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,841,841,Lapatinib contacts Arg841 in 1 PDB entry (1xkk),Lapatinib,FMM,Arg841,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,844,844,Lapatinib contacts Leu844 in 1 PDB entry (1xkk),Lapatinib,FMM,Leu844,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,854,854,Lapatinib contacts Thr854 in 1 PDB entry (1xkk),Lapatinib,FMM,Thr854,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,855,855,Lapatinib contacts Asp855 in 1 PDB entry (1xkk),Lapatinib,FMM,Asp855,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,856,856,Lapatinib contacts Phe856 in 1 PDB entry (1xkk),Lapatinib,FMM,Phe856,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+LAPATINIB,1002,1002,Lapatinib contacts Met1002 in 1 PDB entry (1xkk),Lapatinib,FMM,Met1002,1,1xkk,https://www.ebi.ac.uk/pdbe/entry/pdb/1xkk
+NERATINIB,718,718,"Neratinib contacts Leu718 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Leu718,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,726,726,"Neratinib contacts Val726 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Val726,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,743,743,"Neratinib contacts Ala743 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Ala743,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,745,745,"Neratinib contacts Lys745 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Lys745,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,759,759,"Neratinib contacts Ile759 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Ile759,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,762,762,"Neratinib contacts Glu762 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Glu762,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,763,763,"Neratinib contacts Ala763 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Ala763,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,766,766,"Neratinib contacts Met766 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Met766,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,777,777,"Neratinib contacts Leu777 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Leu777,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,788,788,"Neratinib contacts Leu788 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Leu788,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,789,789,"Neratinib contacts Ile789 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Ile789,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,790,790,"Neratinib contacts Thr790 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Thr790,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,791,791,"Neratinib contacts Gln791 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Gln791,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,792,792,"Neratinib contacts Leu792 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Leu792,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,793,793,"Neratinib contacts Met793 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Met793,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,794,794,"Neratinib contacts Pro794 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Pro794,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,796,796,"Neratinib contacts Gly796 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Gly796,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,797,797,"Neratinib contacts Cys797 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Cys797,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,800,800,"Neratinib contacts Asp800 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Asp800,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,844,844,"Neratinib contacts Leu844 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Leu844,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,854,854,"Neratinib contacts Thr854 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Thr854,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,855,855,"Neratinib contacts Asp855 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Asp855,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+NERATINIB,856,856,"Neratinib contacts Phe856 in 2 PDB entries (2jiv, 3w2q)",Neratinib,HKI,Phe856,2,2jiv 3w2q,https://www.ebi.ac.uk/pdbe/entry/pdb/2jiv
+OSIMERTINIB,718,718,"Osimertinib contacts Leu718 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Leu718,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,719,719,"Osimertinib contacts Gly719 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Gly719,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,720,720,"Osimertinib contacts Ser720 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Ser720,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,723,723,"Osimertinib contacts Phe723 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Phe723,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,726,726,"Osimertinib contacts Val726 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Val726,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,743,743,"Osimertinib contacts Ala743 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Ala743,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,745,745,"Osimertinib contacts Lys745 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Lys745,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,750,750,"Osimertinib contacts Ala750 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Ala750,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,751,751,"Osimertinib contacts Thr751 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Thr751,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,752,752,"Osimertinib contacts Ser752 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Ser752,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,753,753,"Osimertinib contacts Pro753 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Pro753,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,756,756,"Osimertinib contacts Asn756 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Asn756,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,790,790,"Osimertinib contacts Thr790 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Thr790,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,791,791,"Osimertinib contacts Gln791 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Gln791,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,792,792,"Osimertinib contacts Leu792 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Leu792,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,793,793,"Osimertinib contacts Met793 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Met793,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,794,794,"Osimertinib contacts Pro794 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Pro794,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,796,796,"Osimertinib contacts Gly796 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Gly796,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,797,797,"Osimertinib contacts Cys797 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Cys797,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,799,799,"Osimertinib contacts Leu799 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Leu799,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,800,800,"Osimertinib contacts Asp800 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Asp800,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,804,804,"Osimertinib contacts Glu804 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Glu804,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,841,841,"Osimertinib contacts Arg841 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Arg841,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,844,844,"Osimertinib contacts Leu844 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Leu844,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,854,854,"Osimertinib contacts Thr854 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Thr854,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
+OSIMERTINIB,855,855,"Osimertinib contacts Asp855 in 10 PDB entries (4zau, 6jwl, 6jx0, 6jx4, 6jxt, …)",Osimertinib,YY3,Asp855,10,4zau 6jwl 6jx0 6jx4 6jxt 6lud 7jxm 7jxp 7jxw 7k1h,https://www.ebi.ac.uk/pdbe/entry/pdb/4zau
