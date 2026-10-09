@@ -39,6 +39,9 @@ export const SKELETON = `
       <input id="data-file" type="file" hidden />
       <span id="local-note">Read in your browser — never uploaded. Only the file name goes into the config.</span>
     </div>
+    <button id="copy-link" type="button">Copy link</button>
+    <button id="download-config" type="button">Download config</button>
+    <span id="share-status" role="status" aria-live="polite"></span>
     <button id="run" type="button">Run</button>
   </header>
   <p id="preset-desc"></p>

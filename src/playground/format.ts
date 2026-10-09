@@ -11,3 +11,14 @@ export function detectFormat(text: string): 'json' | 'yaml' {
   const first = text.trimStart().charAt(0);
   return first === '{' || first === '[' ? 'json' : 'yaml';
 }
+
+/**
+ * File name for a download of *text* as the playground config.
+ *
+ * JSON when {@link detectFormat} says JSON, YAML otherwise — kept next to
+ * the detector so the extension can never drift from the highlighting
+ * language. Pure: no DOM, no side effects.
+ */
+export function configFileName(text: string): string {
+  return detectFormat(text) === 'json' ? 'config.json' : 'config.yaml';
+}
