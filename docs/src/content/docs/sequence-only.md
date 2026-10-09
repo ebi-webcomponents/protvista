@@ -1,5 +1,6 @@
 ---
 title: Proteins outside UniProt
+description: "You can use ProtVista without a UniProt accession by providing your own custom protein sequence—via a FASTA file, inline text, or raw residues—to visualize custom annotation tracks entirely independently of UniProt."
 ---
 
 ProtVista normally starts from a UniProt accession: it fetches the entry's
