@@ -538,3 +538,28 @@ name it on the track. See [Escape hatches](/protvista/escape-hatches).
 - [Troubleshoot errors](/protvista/troubleshooting) — when a track won't load.
 
 _Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._
+
+## Ask an AI to write your config
+
+Give the assistant your protein accession, the tracks you want, your data
+file name and its column headers, and any tooltip or colour requirements.
+Attach the [Config authoring documentation](https://ebi-webcomponents.github.io/protvista/_llms-txt/config-authoring.txt)
+so it can read the instructions and examples directly. You can also provide
+the [documentation index](https://ebi-webcomponents.github.io/protvista/llms.txt)
+and the [config schema](https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json).
+
+In our small set of tests, the documentation index worked for all three
+prompts with one assistant. Adding the schema did not guarantee success:
+one answer used an unresolved preset name, `default`, in `extends`.
+Re-testing that prompt with the full Config authoring documentation produced
+a working config without hand edits. Results varied between assistants,
+so these tests do not establish one best context for every request.
+
+Other failures included missing required fields such as `rows` and `id`,
+and references to source names that had not been declared. Check these
+against the documentation rather than assuming the generated config is correct.
+
+Always paste the config into the [playground](https://ebi-webcomponents.github.io/protvista/playground/)
+and load your sample file with **Load data file…**. Check the listed errors
+and warnings, confirm that the requested tracks appear in the right order,
+and test any tooltips, links and visibility controls before using it on your page.
