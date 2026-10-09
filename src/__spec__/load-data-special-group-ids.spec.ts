@@ -36,7 +36,7 @@ describe('loader group IDs that shadow object properties', () => {
         {}
       );
 
-      expect(Object.hasOwn(result.data, groupId)).toBe(true);
+      expect(Object.prototype.hasOwnProperty.call(result.data, groupId)).toBe(true);
       expect(Object.getPrototypeOf(result.data)).toBe(null);
       expect(result.data[groupId]).toMatchObject([
         { type: 'DOMAIN', start: 1, end: 9 },
