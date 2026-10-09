@@ -1,0 +1,15 @@
+# Isoform rows: one row per isoform. A gap is a part of the canonical sequence the isoform lacks.
+# Requires fields: sequence, ft_var_seq, cc_alternative_products
+accession: P05067
+sources:
+  uniprotEntry: https://rest.uniprot.org/uniprotkb/{accession}.json?fields=sequence,ft_var_seq,cc_alternative_products
+rows:
+  - id: isoforms
+    label: Isoforms
+    kind: features
+    data:
+      source: uniprotEntry
+      adapter: uniprot-isoforms-json
+    description: One row per isoform; a gap is a part of the canonical sequence the isoform lacks
+    rendering:
+      height: 160

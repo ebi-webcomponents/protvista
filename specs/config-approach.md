@@ -742,7 +742,8 @@ type KnownAdapterName =
   | 'interpro-entries-json'
   | 'alphafold-prediction-json'
   | 'alphamissense-average-csv'
-  | 'alphamissense-full-csv';
+  | 'alphamissense-full-csv'
+  | 'uniprot-isoforms-json';
 
 /** Open string — adapters registered via `registerAdapter()` are also valid. */
 type AdapterName = KnownAdapterName | (string & {});

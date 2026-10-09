@@ -76,4 +76,49 @@ at a `./x.csv` — and the config is rejected before anything loads, with a
 message naming the kinds that *do* read that format. See
 [Load your own data](/protvista/your-data) for each shape's columns.
 
+## Isoform rows
+
+A `features` track can also draw one row per isoform of a reviewed UniProt
+entry, on the canonical sequence's coordinates. Point it at the entry and name
+the built-in adapter `uniprot-isoforms-json`:
+
+```yaml
+sources:
+  uniprotEntry: https://rest.uniprot.org/uniprotkb/{accession}.json?fields=sequence,ft_var_seq,cc_alternative_products
+rows:
+  - id: isoforms
+    label: Isoforms
+    kind: features
+    data:
+      source: uniprotEntry
+      adapter: uniprot-isoforms-json
+    rendering:
+      height: 160
+```
+
+Each isoform UniProt lists gets a row: the canonical in blue, the others in
+grey. A gap in a row is a stretch of the canonical sequence that the isoform lacks. A darker mark is a canonical residue the isoform replaces with different ones; at an insertion, it marks the residue the new ones are added
+next to. Hover a row to see its changes, e.g. `P05067-4 (APP695): 289: E → V; 290-364: missing`.
+
+An External isoform, which UniProt describes in another entry, gets no row,
+and neither does one whose sequence UniProt doesn't know ("Not described").
+The canonical row's tooltip names them.
+
+Use the canonical accession, such as `P10636`. An isoform's own entry
+(`P10636-8`) has no alternative sequences, so the track stays empty.
+
+Ask for at least the fields above: the adapter needs the sequence, the
+alternative sequences (`ft_var_seq`) and the "Alternative products" comment
+(`cc_alternative_products`). UniProt rejects an unknown field name, such as
+`features`, with an error.
+
+The rows share the track's height, 40 px unless you set one, so give the
+track about 15 px per isoform. Leave `layout` unset: the default,
+`non-overlapping`, keeps each isoform on its own row.
+
+The track runs only when a config names the adapter, so the default UniProt
+view makes no extra request. The `isoforms-app` example in the repository's
+`examples/` folder is this config for APP (P05067), and the playground offers
+it as **APP isoforms** under **Community views**.
+
 _Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

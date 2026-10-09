@@ -33,6 +33,7 @@ import { rnaEditingGraphAdapter } from './rna-editing-graph-adapter.js';
 import { alphafoldConfidenceAdapter } from './alphafold-confidence-adapter.js';
 import { alphamissensePathogenicityAdapter } from './alphamissense-pathogenicity-adapter.js';
 import { alphamissenseHeatmapAdapter } from './alphamissense-heatmap-adapter.js';
+import { uniprotIsoformsAdapter } from './uniprot-isoforms-adapter.js';
 
 export const BUILTIN_ADAPTERS: ReadonlyArray<
   readonly [KnownAdapterName, AdapterFunction]
@@ -54,4 +55,5 @@ export const BUILTIN_ADAPTERS: ReadonlyArray<
   ['alphafold-prediction-json', alphafoldConfidenceAdapter],
   ['alphamissense-average-csv', alphamissensePathogenicityAdapter],
   ['alphamissense-full-csv', alphamissenseHeatmapAdapter],
+  ['uniprot-isoforms-json', uniprotIsoformsAdapter],
 ];

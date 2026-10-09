@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>F8 spike: isoform rows</title>
+    <!--
+      Spike page for hackathon project F8 (isoform support). Adapted from
+      starter-kit/index.html: same CDN build, same loading notice. The spike
+      scripts import the bare specifier 'protvista-uniprot' (they were first
+      bundled with esbuild); this import map points it at the jsDelivr build,
+      so no bundling step is needed.
+    -->
+    <script type="importmap">
+      {
+        "imports": {
+          "protvista-uniprot": "https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.5/dist/protvista-uniprot.mjs"
+        }
+      }
+    </script>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        line-height: 1.5;
+        margin: 0 auto;
+        max-width: 72rem;
+        padding: 1.5rem;
+      }
+      .kit-notice {
+        border-left: 4px solid #b34700;
+        background: #fff4ec;
+        padding: 0.75rem 1rem;
+        margin: 1rem 0;
+      }
+      .kit-notice h2 {
+        margin: 0 0 0.25rem;
+        font-size: 1rem;
+      }
+      .kit-notice p {
+        margin: 0.25rem 0;
+        overflow-wrap: anywhere;
+      }
+      .kit-samples {
+        color: #444;
+        font-size: 0.875rem;
+      }
+      protvista-uniprot {
+        display: block;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Isoform rows (F8 spike)</h1>
+
+    <p class="kit-samples">
+      Proteins:
+      <a href="?acc=P05067">APP P05067</a> (11 rows: the canonical and 10
+      isoforms) · <a href="?acc=P10636">tau P10636</a> (9) ·
+      <a href="?acc=P42771">CDKN2A P42771</a> (4; its 2 External ARF isoforms
+      are skipped) · or add <code>?acc=</code> with any reviewed accession.
+      Expand the <strong>Isoforms</strong> row to see the canonical in blue
+      and one grey row per isoform: gaps are missing residues, dark ticks
+      mark replaced or inserted ones. Also:
+      <a href="gold.html">tau-441 projection</a>
+    </p>
+
+    <div
+      id="status"
+      class="kit-notice"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <h2>Loading the viewer…</h2>
+      <p>
+        Fetching the component from the CDN. It is a few megabytes the first
+        time, then your browser caches it.
+      </p>
+    </div>
+
+    <script type="module">
+      // The spike script below appends <protvista-uniprot> to the end of
+      // <body> once the component has loaded.
+      const MODULE = './main.js';
+      const BUNDLE_URL = JSON.parse(
+        document.querySelector('script[type="importmap"]').textContent
+      ).imports['protvista-uniprot'];
+
+      const status = document.getElementById('status');
+
+      // textContent throughout: an error message can contain a URL or markup
+      // from elsewhere, and none of it should ever be parsed as HTML.
+      function fail(heading, ...paragraphs) {
+        status.textContent = '';
+        const h2 = document.createElement('h2');
+        h2.textContent = heading;
+        status.append(h2);
+        for (const text of paragraphs) {
+          const p = document.createElement('p');
+          p.textContent = text;
+          status.append(p);
+        }
+      }
+
+      if (location.protocol === 'file:') {
+        fail(
+          'Open this page through a web server',
+          'Browsers block ES modules on file:// pages, so the spike scripts cannot load this way.',
+          'In this folder, run  python3 -m http.server 8000 --bind 127.0.0.1  ' +
+            '(Windows:  py -m http.server 8000 --bind 127.0.0.1 ), then open ' +
+            'http://localhost:8000/'
+        );
+      } else {
+        try {
+          // Loads the spike script, which imports 'protvista-uniprot'
+          // (resolved by the import map above) and mounts the viewer.
+          await import(MODULE);
+          await Promise.race([
+            customElements.whenDefined('protvista-uniprot'),
+            new Promise((_, reject) =>
+              setTimeout(
+                () =>
+                  reject(
+                    new Error(
+                      'the file loaded but never registered <protvista-uniprot>'
+                    )
+                  ),
+                15000
+              )
+            ),
+          ]);
+          status.textContent = '';
+          status.className = '';
+        } catch (error) {
+          fail(
+            'Could not load the viewer',
+            'The browser could not load ' + MODULE + ' or the component from: ' + BUNDLE_URL,
+            'The usual causes are no internet connection, or a network ' +
+              'that blocks cdn.jsdelivr.net.',
+            'Browser message: ' + String(error)
+          );
+        }
+      }
+    </script>
+  </body>
+</html>

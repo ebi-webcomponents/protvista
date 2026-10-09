@@ -813,7 +813,8 @@ export type KnownAdapterName =
   | 'interpro-entries-json'
   | 'alphafold-prediction-json'
   | 'alphamissense-average-csv'
-  | 'alphamissense-full-csv';
+  | 'alphamissense-full-csv'
+  | 'uniprot-isoforms-json';
 
 /**
  * How a source's bytes are encoded — *not* what its records mean, which the

@@ -1,0 +1,5 @@
+{
+  "label": "APP isoforms",
+  "description": "One row per isoform of APP, with gaps where an isoform lacks part of the canonical sequence. Type another reviewed accession to see its isoforms.",
+  "length": 770
+}

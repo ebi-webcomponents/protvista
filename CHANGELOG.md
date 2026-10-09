@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added `uniprot-isoforms-json` adapter and "APP isoforms" community view. The adapter is opt-in and makes no new requests unless named in a config.
+
 ### Fixed: `rendering.height` and `rendering.layout` take effect
 
 The config schema accepted `rendering.height` and `rendering.layout`, but the
