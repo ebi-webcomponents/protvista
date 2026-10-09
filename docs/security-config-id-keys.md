@@ -2,7 +2,7 @@
 
 This note documents a **low-severity, defense-in-depth** hardening item in the
 data loader: config-supplied group/track `id`s are written verbatim as keys into
-a plain-object map without a character allowlist. It was surfaced during the
+an object-keyed map without a character allowlist. It was surfaced during the
 security review of the *"de-hardcode the variation filter baseline"* change (the
 `transformedVariants` → `__unfiltered` refactor that resolved
 [`architecture-audit.md` B3 / #156](./architecture-audit.md)). The finding is
@@ -12,10 +12,10 @@ than as an exploitable vulnerability report (see [Disclosure](#disclosure)).
 ## Summary
 
 `loadProtvistaData` accumulates fetched/adapted per-track and per-group data into
-a plain object:
+a null-prototype object:
 
 ```ts
-const data: Record<string, unknown> = {}; // src/load-data.ts
+const data: Record<string, unknown> = Object.create(null); // src/load-data.ts
 ```
 
 Keys are derived from config `id`s. Per-track keys are **composite**
@@ -36,8 +36,8 @@ The schema places no character constraint on ids —
 `src/schema/schema.json` declares both group and track `id` as
 `{ "type": "string", "minLength": 1 }` with no `pattern`, and
 `src/schema/normalize.ts` validates only for **duplicate** ids, not for
-dangerous id *values*. So a group whose `id` is `__proto__` produces
-`data['__proto__'] = <array>`.
+dangerous id *values*. With the null-prototype map now in place, a group whose `id` is `__proto__`
+creates an ordinary own `data['__proto__']` property.
 
 ## Mechanics — what actually happens
 
@@ -48,20 +48,18 @@ and does not mutate the shared `Object.prototype`. There is no recursive,
 attacker-keyed deep merge anywhere in the pipeline (`obj[userKey1][userKey2] = v`),
 which is what a real prototype-pollution vector requires.
 
-Consequences of a `__proto__` group id are therefore limited and contained:
-
-1. The affected group's aggregate value lands in the prototype slot instead of a
-   readable own key, so that one group renders incorrectly (an availability /
-   integrity bug for a hostile config, not a cross-object compromise).
-2. The reparenting is on the loader's transient local `data`. The component then
-   does `this.data = { ...this.data, ...data }`, which copies own-enumerable
-   properties only, so the reparenting is discarded at that boundary and never
-   reaches `this.data`.
+Before remediation 1, a `__proto__` group ID changed the prototype of the
+loader's transient local `data` rather than producing an own group aggregate,
+so the affected group's aggregate could be lost. This did not modify the global
+`Object.prototype`. The element-side data merge was already null-prototype;
+its object-spread operations copy own-enumerable properties only. After
+remediation 1, the loader also uses a null-prototype map, so `__proto__` and
+`constructor` are preserved as normal own keys.
 
 ### Related hazard: key-namespace collisions
 
 Because keys are string-concatenated without a reserved separator, unconstrained
-ids also permit silent collisions that corrupt rendering (not a security risk,
+ids can still permit silent collisions that corrupt rendering (not a security risk,
 but the same root cause):
 
 - A group `id` containing `-` (e.g. `X-y`) collides with group `X`'s track `y`
@@ -83,12 +81,13 @@ exfiltration; no code execution.
 
 Any (or all) of the following close the class:
 
-1. **Null-prototype loader map** — immune to the `__proto__` setter:
+1. **Null-prototype loader map — done** — immune to the `__proto__` setter:
    ```ts
    const data: Record<string, unknown> = Object.create(null);
    ```
-   Cheapest fix. Confirm downstream `Object.entries(this.data)` / object spreads
-   still behave (they do — those operate on own properties).
+   Implemented in `src/load-data.ts`, with regression coverage for reserved
+   property-name group IDs. Downstream `Object.entries` / object spreads still
+   operate on own properties.
 2. **Schema id allowlist** — add a `pattern` to the group/track `id` schema in
    `src/schema/schema.json`, e.g. `"pattern": "^[A-Za-z0-9_-]+$"`, rejecting
    `__proto__`-style ids and separator characters at load time. Back it with a
