@@ -1,5 +1,6 @@
 ---
 title: Author a config
+description: "Write the short YAML or JSON file that tells the viewer which tracks to show, and where their data comes from."
 ---
 
 A **config** is a small document that describes what the viewer should show: the
