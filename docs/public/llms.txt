@@ -1,14 +1,25 @@
 # ProtVista
 
 > ProtVista is a web component (`<protvista-uniprot>`) that displays protein
-> sequence features as interactive tracks. Point it at a UniProt accession, or
-> drive it with a declarative YAML/JSON config and load your own CSV/TSV/JSON/BED
-> data. No framework required.
+> sequence features as interactive tracks (A web component is a reusable piece of website functionality; 
+> ProtVista shows important information of a protein, such as its domains and sites, in an interactable visual format). 
+> Point it at a UniProt accession, or drive it with a declarative YAML/JSON config 
+> and load your own CSV/TSV/JSON/BED
+> data (A UniProt accession is an ID for a protein entry in the UniProt database; 
+> alternatively, you can use a configuration file (in YAML or JSON format) to tell ProtVista what 
+> to display and provide your own data in file formats such as CSV, TSV, JSON, or BED) (The supported formats depend
+> on the type of track and the structure of your data). No framework required 
+> (You don't need a Javascript framework; it can work as a standalone component on a web page).
 
 Authors describe *what to show* in a config of high-level concepts (rows, tracks,
-and a `kind` per track); ProtVista maps each `kind` to the right renderer and data
-adapter. Configuration is the "Intent"; the data a provider or file supplies is
-the "Representation". Documentation is licensed CC BY 4.0.
+and a `kind` per track) (You tell ProtVista what you want to display using a configuration)
+; ProtVista maps each `kind` to the right renderer and data
+adapter (ProtVista automatically chooses the appropriate renderer (which displays the information) and data adapter 
+(which prepares data to be used by ProtVista) based on the track's kind). 
+Configuration is the "Intent"; the data a provider or file supplies is the "Representation" 
+(The configuration/intent describes what you want to show;
+the representation is the data provided by a service/file that ProtVista uses to display that information). 
+Documentation is licensed CC BY 4.0.
 
 ## Full text
 
@@ -20,33 +31,33 @@ Generated from the pages at every docs build, so they can't drift from them:
 
 ## User guide
 
-- [Tutorial](https://ebi-webcomponents.github.io/protvista/tutorial): the guided end-to-end path — add the component, point it at an accession, add your own track from a CSV, `extends` the default viewer, and theme it.
-- [Overview and audience router](https://ebi-webcomponents.github.io/protvista/overview): where to start as a researcher, data owner, or developer.
-- [Embed the viewer](https://ebi-webcomponents.github.io/protvista/embed): load the component (module script or npm) and the key attributes (`accession`, `config-src`, `viewerConfig`, `notooltip`, …).
-- [Author a config](https://ebi-webcomponents.github.io/protvista/configure): `accession`, `sources`, `rows`/`tracks`, `kind`, `data`, `filter`; the minimal config and `extends`.
-- [Load your own data](https://ebi-webcomponents.github.io/protvista/your-data): the feature record (`type`, `start`, `end`, `description?`, `score?`); CSV/TSV/JSON/BED by file extension; inline data; the page-relative path caveat.
-- [Troubleshoot errors](https://ebi-webcomponents.github.io/protvista/troubleshooting): the `protvista-error` event, its phases (`config`, `sequence`, `track-fetch`, `set-track-data`) and context; visitor notices and author mode (`quiet-notices`, `show-warnings` / `showWarnings`); common causes.
-- [Escape hatches](https://ebi-webcomponents.github.io/protvista/escape-hatches): `registerAdapter` / `registerSemanticKind` / `registerTheme` / `registerComponent` on the element, called before mount.
+- [Tutorial](https://ebi-webcomponents.github.io/protvista/tutorial): the guided end-to-end path — add the component, point it at an accession, add your own track from a CSV, `extends` the default viewer, and theme it (A step-by-step lesson that takes you through all the main steps of setting up ProtVista).
+- [Overview and audience router](https://ebi-webcomponents.github.io/protvista/overview): where to start as a researcher, data owner, or developer (A starting guide that directs you to the most relevant documentation).
+- [Embed the viewer](https://ebi-webcomponents.github.io/protvista/embed): load the component (module script or npm) and the key attributes (`accession`, `config-src`, `viewerConfig`, `notooltip`, …) (Essentially, walks through how to add (load) ProtVista to a website and how to use ProtVista's attributes to configure settings).
+- [Author a config](https://ebi-webcomponents.github.io/protvista/configure): `accession`, `sources`, `rows`/`tracks`, `kind`, `data`, `filter`; the minimal config and `extends` (Explains how to write the configuration that tells ProtVista what to display, including which protein to show (accession), where information comes from (sources), how to organize visual elements (rows and tracks), what each track displays (kind), what information it uses (data), and which items to include (filter)).
+- [Load your own data](https://ebi-webcomponents.github.io/protvista/your-data): the feature record (`type`, `start`, `end`, `description?`, `score?`); CSV/TSV/JSON/BED by file extension; inline data; the page-relative path caveat (Explains how to give your own protein-related features, with each feature record detailing feature type (type), start and end positions (start and end), and optional details like a description or score).
+- [Troubleshoot errors](https://ebi-webcomponents.github.io/protvista/troubleshooting): the `protvista-error` event, its phases (`config`, `sequence`, `track-fetch`, `set-track-data`) and context; visitor notices and author mode (`quiet-notices`, `show-warnings` / `showWarnings`); common causes (Explains how to identify and diagnose problems. A protvista-error indicates something has gone wrong, and the phase indicates where the problem happened).
+- [Escape hatches](https://ebi-webcomponents.github.io/protvista/escape-hatches): `registerAdapter` / `registerSemanticKind` / `registerTheme` / `registerComponent` on the element, called before mount (Covers advanced customization options for devs who need to extend ProtVista beyond normal features).
 
 ## Reference
 
-- [Built-in track kinds](https://ebi-webcomponents.github.io/protvista/track-kinds): the 13 kinds (`features`, `interpro-features`, `variants`, `variant-counts`, `rna-editing`, `rna-editing-counts`, `peptides`, `peptides-ptm`, `structure-coverage`, `linegraph`, `alphafold-confidence`, `alphamissense-pathogenicity`, `alphamissense-heatmap`) and what each draws. A kind named with a plain domain word reads an author-supplied file as readily as a provider API; a kind named for its provider (`alphafold-*`, `alphamissense-*`) reads that feed only.
-- [Adapter reference](https://ebi-webcomponents.github.io/protvista/adapter-reference): the three record shapes an author can supply (feature, point, variation), which kinds draw each, the four encodings that can carry them (csv, tsv, json, bed), and the provider transforms behind the provider-named kinds (generated from source, drift-tested). Bringing your own data names no adapter: the `kind` gives the records, the file extension — or `format:` — gives the encoding.
-- [Feature type and shape vocabulary](https://ebi-webcomponents.github.io/protvista/type-and-shape-vocabulary): the 45 recognised `type` values with their default colour/shape, what an unrecognised `type` renders as (a black rectangle, with no warning in the viewer), the 22 `rendering.shape` values (3 of which are declared but not drawn), and a worked custom-type example (generated from Nightingale, drift-tested).
-- [Theme the viewer](https://ebi-webcomponents.github.io/protvista/theming): CSS custom properties (`--protvista-*`) and `::part`.
-- [Author tooltips](https://ebi-webcomponents.github.io/protvista/data-tooltip): the three `dataTooltip` forms.
-- [Config JSON Schema](https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json): machine-readable schema for viewer configs.
-- [Feature record JSON Schema](https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json): machine-readable schema for bring-your-own feature records.
+- [Built-in track kinds](https://ebi-webcomponents.github.io/protvista/track-kinds): the 13 kinds (`features`, `interpro-features`, `variants`, `variant-counts`, `rna-editing`, `rna-editing-counts`, `peptides`, `peptides-ptm`, `structure-coverage`, `linegraph`, `alphafold-confidence`, `alphamissense-pathogenicity`, `alphamissense-heatmap`) and what each draws. A kind named with a plain domain word reads an author-supplied file as readily as a provider API; a kind named for its provider (`alphafold-*`, `alphamissense-*`) reads that feed only (Lists the 13 types of tracks ProtVista can display and explains what information each one visualizes).
+- [Adapter reference](https://ebi-webcomponents.github.io/protvista/adapter-reference): the three record shapes an author can supply (feature, point, variation), which kinds draw each, the four encodings that can carry them (csv, tsv, json, bed), and the provider transforms behind the provider-named kinds (generated from source, drift-tested). Bringing your own data names no adapter: the `kind` gives the records, the file extension — or `format:` — gives the encoding (Explains the three basic structures your data can use: feature (a region or element of a protein), point (information associated with a single position), or variation (a change in the protein sequence)).
+- [Feature type and shape vocabulary](https://ebi-webcomponents.github.io/protvista/type-and-shape-vocabulary): the 45 recognised `type` values with their default colour/shape, what an unrecognised `type` renders as (a black rectangle, with no warning in the viewer), the 22 `rendering.shape` values (3 of which are declared but not drawn), and a worked custom-type example (generated from Nightingale, drift-tested) (Lists the 45 feature types ProtVista recognizes and shows default colour and shape used for each).
+- [Theme the viewer](https://ebi-webcomponents.github.io/protvista/theming): CSS custom properties (`--protvista-*`) and `::part` (Shows how to customize ProtVista appearance using CSS).
+- [Author tooltips](https://ebi-webcomponents.github.io/protvista/data-tooltip): the three `dataTooltip` forms (There are 3 supported ways to configure dataTooltip, which controls the information displayed in a tooltip).
+- [Config JSON Schema](https://ebi-webcomponents.github.io/protvista/schema/v1/config.schema.json): machine-readable schema for viewer configs (Schema used to check if ProtVista viewer config is expected). 
+- [Feature record JSON Schema](https://ebi-webcomponents.github.io/protvista/schema/v1/feature-record.schema.json): machine-readable schema for bring-your-own feature records (This schema defines the required structure and allowed fields when you supply feature records, helping you check that your data is formatted correctly before ProtVista uses it).
 
 ## Explanation
 
-- [Configuration vs data](https://ebi-webcomponents.github.io/protvista/configuration-vs-data): the Intent/Representation split — what your config controls versus what a data provider must supply.
+- [Configuration vs data](https://ebi-webcomponents.github.io/protvista/configuration-vs-data): the Intent/Representation split — what your config controls versus what a data provider must supply (Explains the difference between the instructions you give ProtVista and the actual information it displays).
 
 ## Tools and examples
 
-- [Configuration playground](https://ebi-webcomponents.github.io/protvista/playground/): edit a config with live validation and preview; `?dev` adds edge-case examples, `?accession=` seeds the viewer.
-- [Runnable examples](https://github.com/ebi-webcomponents/protvista/tree/next/examples): CI-validated config + data pairs (basic, inline, CSV, TSV, JSON, BED, extends-default, your own sequence from a FASTA file or inline, a 20-residue peptide, and per-residue conservation for rubredoxin).
-- [Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit): a no-build template repository — an HTML page, a commented `config.yaml`, and a `data/` folder — for visualising your own CSV/TSV annotations without writing code. Loads the component from a version-pinned CDN.
+- [Configuration playground](https://ebi-webcomponents.github.io/protvista/playground/): edit a config with live validation and preview; `?dev` adds edge-case examples, `?accession=` seeds the viewer (Interactive website where you can edit a ProtVista configuration and immediately see whether it is valid and how it looks).
+- [Runnable examples](https://github.com/ebi-webcomponents/protvista/tree/next/examples): CI-validated config + data pairs (basic, inline, CSV, TSV, JSON, BED, extends-default, your own sequence from a FASTA file or inline, a 20-residue peptide, and per-residue conservation for rubredoxin) (Collection of working examples).
+- [Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit): a no-build template repository — an HTML page, a commented `config.yaml`, and a `data/` folder — for visualising your own CSV/TSV annotations without writing code. Loads the component from a version-pinned CDN (Ready made project you can copy to get started without installing tools or writing code).
 
 ## Optional
 
