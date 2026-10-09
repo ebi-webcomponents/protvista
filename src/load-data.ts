@@ -675,7 +675,7 @@ export async function loadProtvistaData(
     (d) => !!(d as { features?: unknown[] } | null)?.features?.length
   );
 
-  const data: Record<string, unknown> = {};
+  const data: Record<string, unknown> = Object.create(null);
   const trackFailures: Record<string, TrackProcessingFailure> = {};
   const trackWarnings: Record<string, DecodeWarning[]> = {};
   // Keyed by `${groupId}-${trackId}`; ordered by config into
