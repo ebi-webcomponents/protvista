@@ -1,5 +1,6 @@
 ---
 title: Built-in track kinds
+description: "Describing different tracks' 'kind'(what it is in domain terms), colour scales and how to use kind with own data."
 ---
 
 A track's `kind` says *what it is* in domain terms — features, variants, a
