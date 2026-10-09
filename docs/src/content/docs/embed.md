@@ -1,5 +1,6 @@
 ---
 title: Embed the viewer
+description: "<protvista-uniprot> is embedded as a web component either via CDN or an npm package, configured using HTML attributes like 'accession' and 'config-src', or driven by custom YAML and JSON configurations."
 ---
 
 ProtVista is a **web component**: a custom element, `<protvista-uniprot>`, that
