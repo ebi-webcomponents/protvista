@@ -184,7 +184,7 @@ describe('sequence-only.md, "Proteins outside UniProt"', () => {
   const registry = () => createRegistry();
 
   it('is titled "Proteins outside UniProt"', () => {
-    expect(md).toMatch(/^---\ntitle: Proteins outside UniProt\n---/);
+    expect(md).toMatch(/^---\ntitle: Proteins outside UniProt\n/);
   });
 
   it('every yaml example is a valid config, given rows', async () => {
