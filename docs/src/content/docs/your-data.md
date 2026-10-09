@@ -1,5 +1,6 @@
 ---
 title: Load your own data
+description: "How to load your data format to ProtVista - choose formats, manage your data accordingly."
 ---
 
 ProtVista isn't limited to UniProt. Most tracks can read your own annotations
