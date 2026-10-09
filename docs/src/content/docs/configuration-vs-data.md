@@ -1,5 +1,6 @@
 ---
 title: Configuration vs data
+description: "ProtVista separates viewer configuration (intent) from track payloads (representation), linking them so you control how and what to display while data providers supply the underlying data shape."
 ---
 
 ProtVista draws a deliberate line between two things, and knowing which side of the line you're on saves a lot of confusion when you bring your own data.
