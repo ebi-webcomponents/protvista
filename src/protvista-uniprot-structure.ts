@@ -41,6 +41,7 @@ const sourceMethods = new Map([
   ['AlphaFill', 'Predicted'],
   ['HEGELAB', 'Modeling'],
   ['levylab', 'Modeling'],
+  ['Bindome', 'Predicted'],
 ]);
 
 // Excluded source from 3d-beacons is PDBe as we fetch them separately from UniProt
@@ -53,6 +54,7 @@ const providersFrom3DBeacons = [
   'AlphaFill',
   'HEGELAB',
   'levylab',
+  'Bindome',
 ];
 
 type UniProtKBData = {
