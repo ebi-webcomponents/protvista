@@ -9,7 +9,7 @@
  * Covers:
  *   - `visibleTracks` / `isRowHidden` / `displayRows` / `hiddenCount`;
  *   - `moveRow` / `moveTrack`: two-level reordering and its bounds;
- *   - `setRowHidden` / `setTrackHidden`: the show/hide cascades;
+ *   - `setRowHidden` / `setTrackHidden` / `setAllHidden`: the show/hide cascades;
  *   - `sameArrangement`: the no-op guard the change event depends on;
  *   - `diffLayout` / `applyPatch`: round-trip and tolerance of config edits.
  */
@@ -25,6 +25,7 @@ import {
   moveRow,
   moveTrack,
   sameArrangement,
+  setAllHidden,
   setRowHidden,
   setTrackHidden,
   trackKey,
@@ -276,6 +277,33 @@ describe('setTrackHidden', () => {
   it('keeps a standalone row in step with its track', () => {
     const out = setTrackHidden(rows(), 'S', 'S', true);
     expect(out[2].hidden).toBe(true);
+  });
+});
+
+describe('setAllHidden', () => {
+  it('hides every row', () => {
+    const out = setAllHidden(rows(), true);
+    expect(out.every((row) => row.hidden)).toBe(true);
+  });
+
+  it('shows every row and track, clearing per-track hides too', () => {
+    let input = setTrackHidden(rows(), 'A', 'a1', true);
+    input = setRowHidden(input, 'B', true);
+    const out = setAllHidden(input, false);
+    expect(out.every((row) => !row.hidden)).toBe(true);
+    expect(out.every((row) => row.tracks.every((t) => !t.hidden))).toBe(true);
+  });
+
+  it('keeps a standalone row and its track in step', () => {
+    const out = setAllHidden(rows(), true);
+    expect(out[2].hidden).toBe(true);
+    expect(out[2].tracks[0].hidden).toBe(true);
+  });
+
+  it('does not mutate its input', () => {
+    const input = rows();
+    setAllHidden(input, true);
+    expect(input[0].hidden).toBeUndefined();
   });
 });
 

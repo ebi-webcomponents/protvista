@@ -57,7 +57,7 @@ const providersFrom3DBeacons = [
   'AlphaFill',
   'HEGELAB',
   'levylab',
-  'Bindome',
+  'Bindome'
 ];
 
 type UniProtKBData = {

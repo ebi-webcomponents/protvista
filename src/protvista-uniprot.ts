@@ -91,6 +91,7 @@ import {
   moveRow,
   moveTrack,
   sameArrangement,
+  setAllHidden,
   setRowHidden,
   setTrackHidden,
   trackKey,
@@ -4373,18 +4374,16 @@ class ProtvistaUniprot extends LitElement {
    * `_rowRendersContent`), and a canvas that is empty with nothing hidden gets
    * the no-results message instead (see `render()`), so this notice never
    * stands in for a load failure or an absence it cannot fix.
+   *
+   * No button of its own — Reset lives in Customize, and a second Reset
+   * here, outside the mode, would be one more place for it to drift out of
+   * sync with the one that actually lives beside the layout it resets. The
+   * text points at Customize instead, where Reset (and Show all) already are.
    */
   private _renderAllHiddenNotice() {
     return html`
       <div class="${CSS_PREFIX}-all-hidden" role="status">
-        <p>All tracks are hidden.</p>
-        <button
-          type="button"
-          class="${CSS_PREFIX}-customize-action"
-          @click="${this._onResetLayout}"
-        >
-          Reset layout
-        </button>
+        <p>All tracks are hidden. Open Customize to show them again.</p>
       </div>
     `;
   }
@@ -4620,6 +4619,36 @@ class ProtvistaUniprot extends LitElement {
   }
 
   /**
+   * Reset and Done, shown in the same row as the Customize toggle — not in
+   * the customize-only actions row below, where Show/Hide all still lives.
+   * Reset sits immediately before Done rather than back with Show/Hide all:
+   * both Reset and Done answer "what do I do with what I've changed", so
+   * they read as a pair, pushed together to the row's far right via `--end`
+   * on Reset (which carries the group along with it, Done included).
+   */
+  private _renderResetAndDone() {
+    if (!this._customizeMode) return '';
+    const edited = !isDefaultLayout(this.getLayout());
+    return html`
+      <button
+        type="button"
+        class="${CSS_PREFIX}-customize-action ${CSS_PREFIX}-customize-action--end"
+        ?disabled="${!edited}"
+        @click="${this._onResetLayout}"
+      >
+        Reset
+      </button>
+      <button
+        type="button"
+        class="${CSS_PREFIX}-customize-action"
+        @click="${this._onCloseCustomize}"
+      >
+        Done
+      </button>
+    `;
+  }
+
+  /**
    * The "N hidden" badge. A button, not a label: it explains how to get the
    * tracks back, and a plain `<span title>` would put that explanation out of
    * reach of anyone not using a mouse. Pressing it opens customize mode,
@@ -4683,27 +4712,51 @@ class ProtvistaUniprot extends LitElement {
       .map((row) => row.id);
   }
 
-  /** Reset / Done, shown beside the toggle only while customizing. */
+  /**
+   * Show/Hide all — shown only while customizing. Reset and Done live
+   * beside the Customize toggle instead (see `_renderResetAndDone`).
+   */
   private _renderCustomizeActions() {
-    const edited = !isDefaultLayout(this.getLayout());
+    const anyHidden = this._anyTrackHidden();
     return html`
       <button
         type="button"
         class="${CSS_PREFIX}-customize-action"
-        ?disabled="${!edited}"
-        @click="${this._onResetLayout}"
+        @click="${this._onToggleAllVisibility}"
       >
-        Reset
-      </button>
-      <button
-        type="button"
-        class="${CSS_PREFIX}-customize-action"
-        @click="${this._onCloseCustomize}"
-      >
-        Done
+        ${anyHidden ? 'Show all' : 'Hide all'}
       </button>
     `;
   }
+
+  /**
+   * Whether any track is hidden — same count and exclusions as the "N
+   * hidden" badge, shared by the button label below and its handler so the
+   * two can never disagree about which state the layout is in.
+   */
+  private _anyTrackHidden(): boolean {
+    return (
+      hiddenCount(this.config?.rows ?? [], (rowId, trackId) =>
+        this._trackIsEmpty(rowId, trackId)
+      ) > 0
+    );
+  }
+
+  /**
+   * Show all / Hide all: the label names the action the click will take,
+   * rather than "Toggle", which left the reader to work out which way a
+   * mixed show/hide layout would resolve. A single control rather than
+   * separate buttons, since the two are never both useful at once —
+   * whichever state the layout is in, only one of them would do anything.
+   */
+  private _onToggleAllVisibility = () => {
+    if (!this.config) return;
+    const nextHidden = !this._anyTrackHidden();
+    this._commitRows(setAllHidden(this.config.rows, nextHidden));
+    this._announce(
+      nextHidden ? 'All tracks hidden.' : 'All tracks shown.'
+    );
+  };
 
   /** Leave customize mode and return focus to the toggle that opened it. */
   private _onCloseCustomize = () => {
@@ -5087,7 +5140,7 @@ class ProtvistaUniprot extends LitElement {
         <div class="${CSS_PREFIX}-nav-container">
           <div class="${CSS_PREFIX}-nav-track-label">
             <div class="${CSS_PREFIX}-toolbar-row">
-              ${this._renderCustomizeToggle()}${viewerNotes}
+              ${this._renderCustomizeToggle()}${viewerNotes}${this._renderResetAndDone()}
             </div>
             <div
               class="${CSS_PREFIX}-toolbar-row ${

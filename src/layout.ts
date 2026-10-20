@@ -191,6 +191,22 @@ export function setRowHidden(
 }
 
 /**
+ * Show or hide every row at once — the "toggle all" action. Goes through
+ * `setRowHidden` one row at a time rather than mapping `hidden` directly onto
+ * every row and track, so a standalone row's track flag stays in step with
+ * its row flag exactly as a single `setRowHidden` call would leave it.
+ */
+export function setAllHidden(
+  rows: NormalizedRow[],
+  hidden: boolean
+): NormalizedRow[] {
+  return rows.reduce(
+    (next, row) => setRowHidden(next, row.id, hidden),
+    rows
+  );
+}
+
+/**
  * Show or hide one track within a row. Hiding the last visible track of a
  * group empties the row (`isRowHidden`); showing a track inside a row that
  * was hidden outright also reveals the row, so the track the user asked for

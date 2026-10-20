@@ -265,6 +265,32 @@ describe('entering and leaving customize mode', () => {
     await enterCustomize(el);
     await expectNoA11yViolations(el);
   });
+
+  it('Show/Hide all names the action it will take, and hides or shows everything', async () => {
+    const el = await mountViewer();
+    await enterCustomize(el);
+    const showHideAll = () =>
+      Array.from(
+        el.querySelectorAll<HTMLButtonElement>(`.${CSS_PREFIX}-customize-action`)
+      ).find((b) => /^(Show|Hide) all$/.test(b.textContent!.trim()))!;
+
+    // Nothing hidden yet, so the label offers the action that would change
+    // that.
+    expect(showHideAll().textContent!.trim()).toBe('Hide all');
+
+    showHideAll().click();
+    await el.updateComplete;
+    expect(showHideAll().textContent!.trim()).toBe('Show all');
+    await enterCustomize(el); // close, so the hides actually leave the canvas
+    expect(laneIds(el)).toEqual([]);
+
+    await enterCustomize(el); // reopen
+    showHideAll().click();
+    await el.updateComplete;
+    expect(showHideAll().textContent!.trim()).toBe('Hide all');
+    await enterCustomize(el); // close
+    expect(laneIds(el)).toEqual(['DOMAINS', 'PTM', 'sites']);
+  });
 });
 
 describe('show / hide', () => {
@@ -343,8 +369,18 @@ describe('show / hide', () => {
 
     const notice = el.querySelector(`.${CSS_PREFIX}-all-hidden`)!;
     expect(notice.textContent).toContain('All tracks are hidden');
-    notice.querySelector('button')!.click();
+    expect(notice.textContent).toContain('Open Customize');
+    // No button of its own — Reset and Show all already live in Customize,
+    // and a second Reset out here would be one more place for it to drift.
+    expect(notice.querySelector('button')).toBeNull();
+
+    await enterCustomize(el);
+    const showAll = Array.from(
+      el.querySelectorAll<HTMLButtonElement>(`.${CSS_PREFIX}-customize-action`)
+    ).find((b) => b.textContent!.trim() === 'Show all')!;
+    showAll.click();
     await el.updateComplete;
+    await enterCustomize(el); // close, so the shows actually land on the canvas
     expect(laneIds(el)).toEqual(['DOMAINS', 'PTM', 'sites']);
   });
 });

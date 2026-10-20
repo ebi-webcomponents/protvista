@@ -35,14 +35,20 @@ export default css`
      empty cell beside the navigation, in the same column as the per-row
      controls it reveals.
 
-     Stacked in rows rather than left to wrap: what is on screen (Customize,
-     and the count of what is not) belongs on one line, and the actions that
-     change it on the next. Letting them wrap put Done alone on a second row
-     at some widths and not others. */
+     Stacked in rows rather than left to wrap: the toggle and the
+     hidden-tracks count belong on one line with Reset and Done — the two
+     that answer "what happens to what I changed", not what changes it —
+     and Show/Hide all, the one action that edits the layout, sits alone on
+     the next. Letting them wrap put Done alone on a second row at some
+     widths and not others. */
+  /* Stretched, not left-aligned: each toolbar row needs to span the full
+     label column, or it shrink-wraps to its own content and Reset's
+     margin-left: auto (.customize-action--end) has no column width left to
+     push into. */
   protvista-uniprot .${p}-nav-track-label {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     justify-content: center;
     gap: 0.3rem;
   }
@@ -93,6 +99,14 @@ export default css`
   protvista-uniprot .${p}-customize-action[disabled] {
     opacity: 0.5;
     cursor: default;
+  }
+
+  /* Reset and Done, pushed to the far right of their row, away from the
+     Customize toggle and hidden-tracks count it shares that row with — set
+     on Reset, the first of the pair, so the auto margin carries Done along
+     with it rather than splitting the two apart. */
+  protvista-uniprot .${p}-customize-action--end {
+    margin-left: auto;
   }
 
   protvista-uniprot .${p}-customize-toggle:focus-visible,

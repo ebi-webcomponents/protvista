@@ -1258,8 +1258,7 @@ describe('standalone row error badge', () => {
     await el._loadData();
     const target = renderTarget(el);
 
-    // The notice (and its Reset layout button, which would fix nothing) is
-    // for a canvas the *user* emptied — not for a load failure.
+    // The notice is for a canvas the *user* emptied — not for a load failure.
     expect(target.querySelector(ALL_HIDDEN)).toBeNull();
   });
 
