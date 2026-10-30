@@ -10,6 +10,7 @@ from Git Bash or WSL.
 | --- | --- | --- |
 | `sync-schema.mjs` | Copy `src/schema/schema.json` to the served `public/schema/v1/config.schema.json` | `pnpm schema:sync` |
 | `screenshots/` | Capture the documentation screenshots, or check them for drift ([README](./screenshots/README.md)) | `pnpm screenshots`, `pnpm screenshots:check` |
+| `complexity/` | Measure code size and cyclomatic complexity of `src/` at a commit ([report](../docs/program/complexity-report.md)) | `pnpm metrics:complexity <commit> [--files]` |
 | `conservation/` | Generate the data for `examples/conservation/` from a Pfam alignment | see `examples/conservation/PROVENANCE.md` |
 | `release-next.sh` | Cut a v5 beta from `next` ([RELEASING.md](../RELEASING.md)) | `pnpm release:next` |
 | `validate-package.sh` | The CI packaging checks plus extra tarball and ESM checks | `pnpm validate` |

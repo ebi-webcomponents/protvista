@@ -16,6 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Full history, so scripts/complexity/measure.spec.mjs can re-measure
+          # the commits docs/program/complexity-report.md cites and fail if a
+          # toolchain upgrade changes its figures. It skips in a shallow clone.
+          fetch-depth: 0
 
       # Before setup-node: its `cache: "pnpm"` resolution shells out to pnpm to
       # locate the store, so pnpm must already be on PATH. The version comes

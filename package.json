@@ -23,7 +23,7 @@
     "test:pack": "pnpm build && publint --strict --pack npm && attw --pack . --ignore-rules cjs-resolves-to-esm",
     "validate": "./scripts/validate-package.sh",
     "release:next": "./scripts/release-next.sh",
-    "test:lint": "eslint \"src/**/*.ts\" \"bench/**/*.{mjs,cjs}\" \"scripts/conservation/**/*.mjs\"",
+    "test:lint": "eslint \"src/**/*.ts\" \"bench/**/*.{mjs,cjs}\" \"scripts/conservation/**/*.mjs\" \"scripts/complexity/**/*.mjs\"",
     "test:types": "tsc",
     "test:unit": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
@@ -34,6 +34,7 @@
     "bench:bundle": "pnpm build && node bench/bundle-size.mjs",
     "bench:lighthouse": "pnpm bench:build && lhci autorun --config=bench/lighthouserc.cjs",
     "bench:summary": "node bench/summarize.mjs",
+    "metrics:complexity": "node scripts/complexity/measure.mjs",
     "cdn:clear": "./scripts/clearCDNcaches.sh",
     "screenshots": "node scripts/screenshots/capture.mjs",
     "screenshots:check": "node scripts/screenshots/capture.mjs --check"
