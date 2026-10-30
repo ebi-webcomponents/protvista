@@ -9,7 +9,8 @@ This page lists only limitations that have been verified in the code or by a tes
 
 ## What works today
 
-- **Controls around the tracks** are real buttons with names: group expand and collapse, the ⓘ notes, the ⚠ error badges and their Retry, and every [Customize mode](/protvista/customize-layout) control. They work with Enter and Space and show a focus ring.
+- **Controls around the tracks** have names and roles, and browser tests operate them from the keyboard: group expand and collapse (an element with the button role and `aria-expanded`), the ⓘ notes, the ⚠ error badges and their Retry button, and every [Customize mode](/protvista/customize-layout) control.
+- **Focus.** Customize controls, notes and error badges have their own focus ring. The group toggle and Retry show only the browser's default focus indicator; the keyboard pass will check how visible that is.
 - **Announcements.** Loading, Customize-mode changes and visitor notes are announced to screen readers. A viewer that cannot load shows an alert and moves focus to it.
 - **The structure table** under the 3D view can be used with the arrow keys.
 - **Automated checks.** Every change runs axe and keyboard tests in a real browser on the surfaces above.
@@ -29,7 +30,9 @@ This page lists only limitations that have been verified in the code or by a tes
 - **AlphaMissense.** The light middle of the scale (ambiguous scores) is close to white, and a residue with no score is drawn as white, so the two are hard to tell apart.
 - **AlphaMissense average track.** Three of its eight score ranges are drawn in the wrong colour: the most benign residues (average score below 0.1132) appear in the light salmon used for likely-pathogenic scores, residues from 0.2264 to 0.3395 appear light peach, and 0.7264–0.8632 appears in the darkest red. The heatmap and the 3D model are not affected.
 - **The AlphaMissense legend** in the structure panel uses darker colours than the 3D model shows.
-- **Collapsed groups.** A collapsed group draws all its feature types in one track, and some default colours are almost the same: for example metal binding and DNA binding in Sites, and motif and zinc finger in Domains for people with protanopia. Twelve of the 45 default feature colours have less than 3:1 contrast with white.
+- **Collapsed groups.** A collapsed group draws all its feature types in one track, and some default colours are almost the same: for example metal binding and DNA binding in Sites, and motif and zinc finger in Domains for people with protanopia. As drawn, 14 of the 45 default feature colours have less than 3:1 contrast with white.
+- **InterPro domains** get their colour from a hash of the entry, so two domains on one protein can look alike; nearly half the possible colours have less than 3:1 contrast with white.
+- **Count graphs.** The grey line of the variant and RNA editing count graphs has 2.35:1 contrast with white. In the variant graph only colour tells the grey line (all variants) from the red one (disease-causing).
 
 ### Other parts of the page
 

@@ -4,7 +4,7 @@ This is the accessibility audit report for `protvista-uniprot`, a named Q3 outpu
 
 **Status.** This report covers everything that can be checked without a person using assistive technology: automated axe and keyboard tests, a computed colour-blind check of every default palette, and code inspection. The manual passes (screen readers, keyboard-only walkthrough, zoom and reflow) have **not been done yet**. Every criterion that needs them is marked "Not yet checked — manual pass", with what the tester must do. No manual result is claimed here.
 
-**Baseline.** Taken against `next` at `09f1832`. The end-user summary is on the docs site: [Accessibility and known limitations](https://ebi-webcomponents.github.io/protvista/accessibility).
+**Baseline.** The code audited is `next` at `09f1832`. The audit script and the browser tests that pin its findings are added together with this report, so they do not exist on `09f1832` itself; run them on the commit that adds this report or any later one (see [Reproducing the figures](#reproducing-the-figures)). The end-user summary is on the docs site: [Accessibility and known limitations](https://ebi-webcomponents.github.io/protvista/accessibility).
 
 ## Summary
 
@@ -50,12 +50,12 @@ Issue numbers refer to [ebi-webcomponents/protvista](https://github.com/ebi-webc
 | 1.3.2 Meaningful sequence (A) | Manual pass | Not yet checked — manual pass | Tester: read the viewer and the playground in a screen reader's browse mode and confirm the reading order follows the visual order (group label, then its tracks; a popover straight after the control that opened it). | — |
 | 1.3.3 Sensory characteristics (A) | Manual pass | Not yet checked — manual pass | Tester: check that no on-screen instruction relies only on colour, shape or position (playground notices, help text, ⓘ notes). | — |
 | 1.3.4 Orientation (AA) | Manual pass | Not yet checked — manual pass | Tester: on a phone or tablet, use the playground and an embedded viewer in portrait and landscape. | — |
-| 1.4.1 Use of colour (A) | Computed; code inspection | **Fail** | The class of each variant is shown by colour only: every dot is a circle (`nightingale-variation-canvas` draws only `arc`). AlphaFold and AlphaMissense categories are colour only on the track. In a collapsed group some types differ only by colour. Non-colour routes exist but are partial: the variant filter's text labels, tooltip text (pointer only) and expanding a group. Customize mode passes (baseline). See the [colour-blind check](#colour-blind-check-of-the-default-palettes). | Issues to file: C, F, H |
+| 1.4.1 Use of colour (A) | Computed; code inspection | **Fail** | The class of each variant is shown by colour only: every dot is a circle (`nightingale-variation-canvas` draws only `arc`). AlphaFold and AlphaMissense categories are colour only on the track. In a collapsed group some types differ only by colour, and so do InterPro domains and the two lines of the variant-count graph. Non-colour routes exist but are partial: the variant filter's text labels, tooltip text (pointer only) and expanding a group. Customize mode passes (baseline). See the [colour-blind check](#colour-blind-check-of-the-default-palettes). | Issues to file: C, F, H |
 | 1.4.3 Contrast (minimum) (AA) | axe (`color-contrast`) | Partial | Passes on every surface with an axe check (see Scope). Not covered: the structure panel, the full playground page, and text Nightingale draws in SVG (sequence letters, axis labels). The default design-token pairs have no regression test. | #311, #315 |
 | 1.4.4 Resize text (AA) | Manual pass | Not yet checked — manual pass | Tester: zoom the browser to 200% on the playground and on a page embedding the viewer; no text may be clipped or overlap, and every control must still work. | — |
 | 1.4.5 Images of text (AA) | Code inspection | Pass | No images of text: the icons in `src/icons/` are SVG glyphs with no `<text>`, and each icon control has a text name. | — |
 | 1.4.10 Reflow (AA) | Manual pass | Not yet checked — manual pass | Tester: at 320 CSS px wide (1280 px at 400%), check that nothing needs scrolling in two directions apart from the track area, which is two-dimensional data and exempt. | — |
-| 1.4.11 Non-text contrast (AA) | Computed; baseline | **Fail** | Against white, as drawn: benign variant 1.48:1, predicted 2.04:1, uncertain 2.07:1; three of four AlphaFold colours (1.36–2.54:1); the five lightest of the nine AlphaMissense ramp stops (1.30–2.18:1); 14 of 45 feature-type colours. The Customize switch meets 3:1 (baseline). | Issues to file: C, H |
+| 1.4.11 Non-text contrast (AA) | Computed; baseline | **Fail** | Against white, as drawn: benign variant 1.48:1, predicted 2.04:1, uncertain 2.07:1; three of four AlphaFold colours (1.36–2.54:1); the five lightest of the nine AlphaMissense ramp stops (1.30–2.18:1); 14 of 45 feature-type colours; 1531 of the 3231 possible InterPro domain colours; the grey count-graph line 2.35:1. The Customize switch meets 3:1 (baseline). | Issues to file: C, H |
 | 1.4.12 Text spacing (AA) | Manual pass | Not yet checked — manual pass | Tester: apply line height 1.5, paragraph spacing 2, letter spacing 0.12 and word spacing 0.16 (for example with a text-spacing bookmarklet); labels, notes, popovers and the datatable must not clip or overlap. | — |
 | 1.4.13 Content on hover or focus (AA) | Code inspection | Partial | ProtVista's popovers (feature tooltip, ⓘ notes, ⚠ badges) open on click, not on hover or focus (`src/tooltips/popover.ts:276`). `title` tooltips are drawn by the browser and are exempt. Not checked: hover labels inside the Mol* 3D view. | — |
 | 2.1.1 Keyboard (A) | Keyboard tests; code inspection | **Fail** | Pass: group toggle, Customize mode, notes and badges, datatable rows. Fail: track features and their tooltips need a pointer click (`popover.ts:276`; the Nightingale track bundles have no `tabindex` or `aria-` attributes). Zoom and pan need a drag on the navigation track or Ctrl+scroll (`use-ctrl-to-zoom`, `protvista-uniprot.ts:5071`). The Mol* view was not checked. | Issues to file: A, D |
@@ -68,7 +68,7 @@ Issue numbers refer to [ebi-webcomponents/protvista](https://github.com/ebi-webc
 | 2.4.3 Focus order (A) | Keyboard tests | Partial | Customize mode returns focus to its button on Done and moves it when a move disables the pressed button; the error panel takes focus when it appears; popovers return focus on Escape. The overall order needs the keyboard pass. | — |
 | 2.4.4 Link purpose (in context) (A) | Code inspection | **Fail** | Every structure row's download link has the same name, "Download source file" (`protvista-uniprot-structure.ts:400`). | #311 |
 | 2.4.6 Headings and labels (AA) | axe; code inspection | **Fail** | Names checked by axe are descriptive, but the structure table's last column header is empty (`protvista-uniprot-structure.ts:579`). | #311 |
-| 2.4.7 Focus visible (AA) | Keyboard tests; code inspection | **Fail** | Customize controls, notes and datatable rows show a focus ring. The variant filter (`nightingale-filter` 5.11) makes each `<label>` focusable (`tabindex="0"`) and removes its outline (`outline: none`), so one Tab stop per filter shows no focus. Confirm in the keyboard pass. | Issue to file: I |
+| 2.4.7 Focus visible (AA) | Code inspection | **Fail** | ProtVista's CSS gives Customize controls, ⓘ notes, ⚠ badges and datatable rows a `:focus-visible` outline. The group toggle (a `<div role="button">`) and Retry have no focus style of their own, so they show only the browser's default indicator. No test checks a focus ring. The variant filter (`nightingale-filter` 5.11) makes each `<label>` focusable (`tabindex="0"`) and removes its outline (`outline: none`), so one Tab stop per filter shows no focus. Confirm in the keyboard pass. | Issue to file: I |
 | 2.4.11 Focus not obscured (minimum) (AA) | Manual pass | Not yet checked — manual pass | Tester: check that open popovers and the datatable's sticky header never completely hide the focused control. | — |
 | 2.5.1 Pointer gestures (A) | Manual pass | Not yet checked — manual pass | Tester: check that nothing in the tracks or the Mol* view needs a pinch or a path gesture. | — |
 | 2.5.2 Pointer cancellation (A) | Manual pass | Not yet checked — manual pass | Tester: press on a control or feature, move off it and release; nothing should happen. | — |
@@ -93,12 +93,14 @@ These WCAG 2.2 A/AA criteria do not apply to the viewer or playground: 1.2.1–1
 
 ### Method
 
-`scripts/accessibility/palette_audit.py` reads every default data palette from the source tree it runs in, so its output always describes the checked-out commit. It uses the Python standard library only.
+`scripts/accessibility/palette_audit.py` reads every default data palette from the source tree it runs in, so on any commit that includes it, its output describes that commit. It uses the Python standard library only. With `--check` it compares every colour figure quoted in this report and on the docs-site page with what it computes now, and fails on any difference; CI runs it with the script's own tests (`pnpm test:palettes`), so a palette change that makes these documents wrong fails the build.
 
 - **Colour-vision deficiency** is simulated with Machado, Oliveira and Fernandes (2009) at full severity, for protanopia, deuteranopia and tritanopia. This is the model behind Chrome DevTools' "Emulate vision deficiencies". Milder (anomalous) forms see more than this.
 - **Colour difference** is CIEDE2000 (ΔE00). The script checks itself against the published reference pairs (Sharma, Wu and Dalal 2005).
 - **Contrast** is the WCAG ratio against the default white surface.
-- **As drawn.** Nightingale paints variant dots at 60% opacity and feature shapes at 90% opacity, so those colours are blended over white before measuring. Overlapping dots, which get darker, are not modelled.
+- **As drawn.** Nightingale paints variant dots at 60% opacity and feature shapes at 90% opacity, so those colours are blended over white before measuring. The script reads both opacities from the installed Nightingale bundles and exits with an error if either has changed. Overlapping dots, which get darker, are not modelled.
+- **Types from a data source.** The epitope, antigen and large-scale mutagenesis tracks have no type filter and draw whatever types their source returns. The script takes those types from the recorded P05067 responses in `scripts/screenshots/fixtures/` and resolves their colour the way Nightingale does.
+- **By eye.** The Chrome DevTools "Emulate vision deficiencies" check that issue #382 names, with screenshots, needs a person and is listed under [Manual passes still to do](#manual-passes-still-to-do). The computed results here use the same simulation model.
 - **Thresholds.** For small marks on white this audit reads ΔE00 below 5 as _indistinguishable_ and below 10 as _hard to tell apart_. These are our working cut-offs, not a standard. The script prints the raw values so other thresholds can be applied.
 
 ### Results by palette
@@ -178,12 +180,26 @@ The 45 type colours are Nightingale's defaults (listed on [Feature type and shap
 | PTM | Cross-link / PTMeXchange Gold 1.3 (deuteranopia); lipidation / Gold 6.0; cross-link / lipidation 7.1; disulfide bond / Gold 7.7 (protanopia); glycosylation / PTMeXchange Bronze 7.7 (tritanopia); glycosylation / cross-link 9.2 (tritanopia) | No |
 | Sequence information | Non-adjacent / non-terminal residues 4.2 (deuteranopia); compositional bias / non-terminal 6.7; compositional bias / non-adjacent 8.7 | Non-adjacent and non-terminal share the double bar |
 | Molecule processing | Initiator methionine / signal peptide 4.3 (deuteranopia) | No (arrow, rectangle) |
-| Topology, Proteomics | None | — |
+| Topology, Epitopes, Antigenic sequences, Mutagenesis, Proteomics, PDBe 3D structure coverage | None | — |
 
 - Metal binding and DNA binding are hard to tell apart even in normal vision (ΔE00 5.5).
 - 12 of the 45 colours are below 3:1 against white as specified, and 14 as drawn. The lowest are sequence uncertainty 1.36:1, beta strand 1.51:1, propeptide 1.77:1, epitope 1.78:1 and lipidation 1.90:1.
-- Not assessed: InterPro representative domains (one colour per InterPro entry, from a hash) and the epitope, antigen and large-scale mutagenesis tracks, whose types come from their data source.
+- Epitopes, antigens and large-scale mutagenesis: in the recorded P05067 responses their types are `EPITOPE`, `ANTIGEN` and `MUTAGENESIS`. `MUTAGENESIS` is not in Nightingale's type table, so it is drawn as a black rectangle (Nightingale's fallback), far from the orange of the `MUTAGEN` sites it shares the Mutagenesis group with.
 - **Besides colour:** where shapes differ they help, but small shapes are hard to tell apart at low zoom. Expanding a group draws each type on its own labelled track, which removes the problem. The tooltip names the type, but only by pointer.
+
+#### InterPro representative domains
+
+The Domains group's InterPro track colours each entry by a hash of its accession (`color-hash` in `src/schema/adapters/interpro-adapter.ts`, copied from InterPro's site). The script reproduces the library exactly and lists every colour it can give.
+
+- 1531 of the 3231 possible colours (47%) are below 3:1 against white as drawn.
+- Nothing keeps two entries on one protein apart, so two domains can get the same or a very similar colour. Each domain's name is in its tooltip only (pointer). The recorded P05067 response has no representative domain, so it gives no example to measure.
+
+#### Count graphs
+
+The Variants and RNA editing groups each start with a count graph (`nightingale-linegraph-track`), drawn at full opacity.
+
+- The variant-count graph draws all variants in `darkgrey` (`#a9a9a9`, 2.35:1 against white) and disease-causing variants in `red` (`#ff0000`, 4.00:1). The two lines stay at least ΔE00 27 apart under every simulation, so they remain distinguishable, but only colour says which is which: neither ProtVista nor the component draws a legend.
+- The RNA editing graph draws one `darkgrey` line.
 
 #### Other built-in colours
 
@@ -236,12 +252,13 @@ None of these is tracked yet. They are drafted here for the maintainer to file; 
 
 ## Reproducing the figures
 
-Run from the repository root on `09f1832` (or later, to see how the figures change):
+Run from the repository root, after `pnpm install`, on the commit that adds this report or any later one. The script and the pinned browser tests are new with this report, so they cannot be run on `09f1832`; the code they measure is the same there (between the two commits `src/` changes only by these tests and a comment in `src/schema/registry.ts`).
 
 ```sh
 python3 scripts/accessibility/palette_audit.py           # every colour figure in this report
 python3 scripts/accessibility/palette_audit.py --json    # the same, as JSON
-python3 scripts/accessibility/test_palette_audit.py      # the script's own checks
+python3 scripts/accessibility/palette_audit.py --check   # do this report and the docs page still match?
+pnpm test:palettes                                       # the script's own tests, including --check
 pnpm exec vitest run --project browser \
   src/__browser__/score-colours.browser.spec.ts \
   src/__browser__/group-toggle.browser.spec.ts           # AlphaMissense colours drawn; nested-interactive
@@ -249,4 +266,4 @@ pnpm test:browser                                        # every axe and keyboar
 grep -cE 'tabindex|aria-' node_modules/@nightingale-elements/nightingale-track-canvas/dist/index.js
 ```
 
-The last command prints 0; replace the package name to check the other components. The variant and feature opacities are read from the same bundles by the palette script, which says whether it found them.
+The last command prints 0; replace the package name to check the other components. The variant and feature opacities are read from the same bundles by the palette script, which exits with an error if they differ from the ones it assumes.
