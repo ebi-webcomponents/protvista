@@ -193,6 +193,10 @@ export default defineConfig({
               label: 'Type and shape vocabulary',
               link: '/type-and-shape-vocabulary',
             },
+            {
+              label: 'Accessibility and known limitations',
+              link: '/accessibility',
+            },
           ],
         },
         {
