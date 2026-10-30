@@ -11,6 +11,7 @@ from Git Bash or WSL.
 | `sync-schema.mjs` | Copy `src/schema/schema.json` to the served `public/schema/v1/config.schema.json` | `pnpm schema:sync` |
 | `screenshots/` | Capture the documentation screenshots, or check them for drift ([README](./screenshots/README.md)) | `pnpm screenshots`, `pnpm screenshots:check` |
 | `conservation/` | Generate the data for `examples/conservation/` from a Pfam alignment | see `examples/conservation/PROVENANCE.md` |
+| `accessibility/palette_audit.py` | Colour-blind and contrast check of the default data palettes, read from the source ([report](../docs/accessibility-audit.md)); standard-library Python | `python3 scripts/accessibility/palette_audit.py`; tests: `python3 scripts/accessibility/test_palette_audit.py` |
 | `release-next.sh` | Cut a v5 beta from `next` ([RELEASING.md](../RELEASING.md)) | `pnpm release:next` |
 | `validate-package.sh` | The CI packaging checks plus extra tarball and ESM checks | `pnpm validate` |
 | `clearCDNcaches.sh` | Purge jsDelivr's cache for the package | `pnpm cdn:clear` |
