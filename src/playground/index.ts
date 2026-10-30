@@ -971,12 +971,15 @@ void run();
 initSplitter($<HTMLElement>('panels'), $<HTMLElement>('splitter'));
 
 // ── Share & export ────────────────────────────────────────────
-// Copy link shares the URL hash (which already holds the whole state);
+// Copy link shares the URL, whose hash holds the whole state;
 // Download config saves the editor text byte-for-byte with an extension
 // that matches format detection.
 const shareStatus = $<HTMLElement>('share-status');
 
 $<HTMLButtonElement>('copy-link').addEventListener('click', () => {
+  // The hash is otherwise written only after the debounced validation, so a
+  // click straight after an edit would copy the link from before it.
+  writeHash(currentState());
   void navigator.clipboard.writeText(location.href).then(
     () => {
       shareStatus.textContent = 'Link copied';
