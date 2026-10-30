@@ -10,6 +10,7 @@
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { userEvent } from 'vitest/browser';
+import axe from 'axe-core';
 
 import '../protvista-uniprot.js';
 import { CSS_PREFIX } from '../styles/css-prefix.js';
@@ -86,6 +87,39 @@ describe('group toggle — accessibility semantics', () => {
   it('has no axe violations', async () => {
     const { el } = await mountWithGroup();
     await expectNoA11yViolations(el.querySelector(`#${CSS_PREFIX}-group_g`)!);
+  });
+
+  // Known gap 3 in docs/accessibility-baseline.md, recorded by the #382 audit
+  // (docs/accessibility-audit.md). When the header is split into a button and
+  // its sibling controls, change this to `expectNoA11yViolations`.
+  it('still fails nested-interactive when a collapsed group carries a ⚠ badge', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: unknown) => {
+        const url = String(input);
+        if (url.includes('/b.json')) {
+          return { ok: false, status: 500, json: async () => ({}) } as unknown as Response;
+        }
+        const body = url.includes('/proteins/api/proteins/')
+          ? { sequence: { sequence: 'MSEQENCE' } }
+          : [{ type: 'DOMAIN', start: 1, end: 5 }];
+        return { ok: true, status: 200, json: async () => body } as unknown as Response;
+      })
+    );
+    const el = mount<El>('protvista-uniprot', {
+      viewerConfig: CONFIG,
+      accession: 'P05067',
+    });
+    const toggle = await vi.waitFor(() => {
+      const t = el.querySelector<HTMLElement>(TOGGLE);
+      if (!t?.querySelector(`.${CSS_PREFIX}-error-badge`)) {
+        throw new Error('badge not inside the toggle yet');
+      }
+      return t;
+    });
+    const { violations } = await axe.run(toggle.parentElement!);
+    expect(violations.map((v) => v.id)).toEqual(['nested-interactive']);
   });
 });
 
