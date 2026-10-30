@@ -5,8 +5,9 @@
 # Automates the "Releasing next" steps in RELEASING.md:
 #
 #   1. preflight  — on `next`, clean, level with origin/next, release notes
-#                   written, version not already published or tagged, and
-#                   (unless --prepare-only) npm and gh are logged in
+#                   written and carrying the funding acknowledgement, version
+#                   not already published or tagged, and (unless
+#                   --prepare-only) npm and gh are logged in
 #   2. prepare    — bump package.json, repin every jsDelivr reference and
 #                   banner version, date the CHANGELOG's Unreleased heading
 #   3. verify     — pnpm test && pnpm validate
@@ -44,6 +45,13 @@ REMOTE=origin
 # gh would otherwise stop to ask which one to use.
 GH_REPO=ebi-webcomponents/protvista
 NOTES=RELEASE_NOTES.md
+NOTES_TEMPLATE=scripts/release-notes-template.md
+
+# The grant's Outputs Management Plan (section 7) requires this on every
+# release, word for word. The template carries it and preflight refuses notes
+# without it. src/__spec__/funding-acknowledgement.spec.ts fails if this copy,
+# the template's or any other drifts.
+FUNDING_ACK='This work was supported by the Research Software Maintenance Fund, managed by the Software Sustainability Institute and funded by UKRI grant reference AH/Z000114/1.'
 
 # Every file that names the current version as a pin or a banner. Kept to an
 # explicit list on purpose: other files mention past versions legitimately
@@ -112,7 +120,19 @@ if [ "$RESUMING" = 0 ]; then
     || die "CHANGELOG.md has no '## Unreleased' heading to date."
 fi
 
-[ -s "$NOTES" ] || die "$NOTES is missing or empty. Write the release notes first (it is git-ignored)."
+if [ ! -e "$NOTES" ]; then
+  cp "$NOTES_TEMPLATE" "$NOTES"
+  die "$NOTES was missing, so it has been started from $NOTES_TEMPLATE. Write the release notes in it (it is git-ignored), then run again."
+fi
+[ -s "$NOTES" ] || die "$NOTES is empty. Write the release notes first (it is git-ignored)."
+cmp -s "$NOTES" "$NOTES_TEMPLATE" \
+  && die "$NOTES is still the unedited template. Write the release notes first."
+# Runs of whitespace are folded to one space, so a wrapped line still matches.
+# A here-string, not a pipe: under pipefail, grep -q quitting early could fail
+# the check with tr's SIGPIPE.
+grep -qF "$FUNDING_ACK" <<< "$(tr -s '[:space:]' ' ' < "$NOTES")" \
+  || die "$NOTES must carry the funding acknowledgement word for word (it is in $NOTES_TEMPLATE):
+  $FUNDING_ACK"
 info "release notes: $NOTES ($(wc -l < "$NOTES" | tr -d ' ') lines)"
 
 if [ "$PREPARE_ONLY" = 0 ]; then

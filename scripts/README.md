@@ -12,6 +12,7 @@ from Git Bash or WSL.
 | `screenshots/` | Capture the documentation screenshots, or check them for drift ([README](./screenshots/README.md)) | `pnpm screenshots`, `pnpm screenshots:check` |
 | `conservation/` | Generate the data for `examples/conservation/` from a Pfam alignment | see `examples/conservation/PROVENANCE.md` |
 | `release-next.sh` | Cut a v5 beta from `next` ([RELEASING.md](../RELEASING.md)) | `pnpm release:next` |
+| `release-notes-template.md` | Starting point for `RELEASE_NOTES.md`, with the funding acknowledgement every release must carry | copied by `pnpm release:next` |
 | `validate-package.sh` | The CI packaging checks plus extra tarball and ESM checks | `pnpm validate` |
 | `clearCDNcaches.sh` | Purge jsDelivr's cache for the package | `pnpm cdn:clear` |
 | `sync-from-main.sh` | Bring the safe subset of `main` into `next` ([policy](../docs/sync-from-main.md)) | `bash scripts/sync-from-main.sh` |
