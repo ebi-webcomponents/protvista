@@ -265,10 +265,13 @@ const NOT_STARLIGHT = ['bench.html', 'playground/index.html'];
 describe.skipIf(!existsSync(join(SITE, 'index.html')))(
   'funding acknowledgement — built documentation site',
   () => {
-    const pages = readdirSync(SITE, { recursive: true, encoding: 'utf8' })
-      .map((entry) => entry.split(sep).join('/'))
-      .filter((entry) => entry.endsWith('.html'))
-      .sort();
+    // A function, not a value: describe bodies run even when skipped, and
+    // site/ does not exist then.
+    const builtPages = () =>
+      readdirSync(SITE, { recursive: true, encoding: 'utf8' })
+        .map((entry) => entry.split(sep).join('/'))
+        .filter((entry) => entry.endsWith('.html'))
+        .sort();
     // Without comments: a commented-out footer does not show.
     const html = (page: string) =>
       readFileSync(join(SITE, page), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
@@ -276,6 +279,7 @@ describe.skipIf(!existsSync(join(SITE, 'index.html')))(
       /<meta name="generator" content="Starlight\b/.test(html(page));
 
     it('every Starlight page shows it in the footer, word for word', () => {
+      const pages = builtPages();
       // Non-vacuous: the splash home, content pages, a blog post and the 404.
       expect(pages).toEqual(
         expect.arrayContaining([
@@ -302,6 +306,7 @@ describe.skipIf(!existsSync(join(SITE, 'index.html')))(
     });
 
     it('leaves out only pages that are not Starlight pages', () => {
+      const pages = builtPages();
       expect(isStarlight('index.html')).toBe(true);
       for (const page of NOT_STARLIGHT) {
         expect(pages, `${page} was not built`).toContain(page);
