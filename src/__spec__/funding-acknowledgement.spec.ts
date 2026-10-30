@@ -113,144 +113,161 @@ describe('funding acknowledgement — release notes', () => {
 // step runs, so its stub stops the script there with exit 97: reaching it
 // means preflight passed. Resuming (HEAD is already the release commit) skips
 // prepare and stops at the publish prompt, which stdin answers "n".
-describe('funding acknowledgement — release-next.sh preflight', () => {
-  const NOTES = 'RELEASE_NOTES.md';
-  const TEMPLATE = 'scripts/release-notes-template.md';
-  const VERSION = '5.0.0-beta.5';
-  const REACHED_PREPARE = 'STUB npm version: preflight passed';
+// Not on Windows: releases are cut on macOS or Linux, and on Windows CI the
+// spawned bash finds the real git ahead of the stub, so the script fails
+// before the notes check.
+describe.skipIf(process.platform === 'win32')(
+  'funding acknowledgement — release-next.sh preflight',
+  () => {
+    const NOTES = 'RELEASE_NOTES.md';
+    const TEMPLATE = 'scripts/release-notes-template.md';
+    const VERSION = '5.0.0-beta.5';
+    const REACHED_PREPARE = 'STUB npm version: preflight passed';
 
-  const STUBS: Record<string, string> = {
-    git: `case "$1" in
+    const STUBS: Record<string, string> = {
+      git: `case "$1" in
   rev-parse) [ "$2" = --abbrev-ref ] && echo next || exit 1 ;;
   status|fetch) ;;
   rev-list) echo 0 ;;
   log) echo "$STUB_HEAD_SUBJECT" ;;
   *) echo "unexpected stub call: git $*" >&2; exit 98 ;;
 esac`,
-    npm: `case "$1" in
+      npm: `case "$1" in
   view) ;;
   whoami) echo tester ;;
   version) echo '${REACHED_PREPARE}' >&2; exit 97 ;;
   *) echo "unexpected stub call: npm $*" >&2; exit 98 ;;
 esac`,
-    gh: `case "$1" in
+      gh: `case "$1" in
   auth) ;;
   *) echo "unexpected stub call: gh $*" >&2; exit 98 ;;
 esac`,
-  };
+    };
 
-  // The HEAD commit subject the git stub reports in each mode.
-  const MODES = {
-    fresh: 'Merge pull request #1',
-    resuming: `Release ${VERSION}`,
-  } as const;
+    // The HEAD commit subject the git stub reports in each mode.
+    const MODES = {
+      fresh: 'Merge pull request #1',
+      resuming: `Release ${VERSION}`,
+    } as const;
 
-  let dir: string;
-  beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'release-next-'));
-    mkdirSync(join(dir, 'scripts'));
-    mkdirSync(join(dir, 'bin'));
-    copyFileSync(
-      resolve(root, 'scripts/release-next.sh'),
-      join(dir, 'scripts/release-next.sh')
-    );
-    copyFileSync(resolve(root, TEMPLATE), join(dir, TEMPLATE));
-    writeFileSync(
-      join(dir, 'package.json'),
-      JSON.stringify({ version: VERSION })
-    );
-    writeFileSync(join(dir, 'CHANGELOG.md'), '# Changelog\n\n## Unreleased\n');
-    for (const [name, body] of Object.entries(STUBS)) {
-      writeFileSync(join(dir, 'bin', name), `#!/usr/bin/env bash\n${body}\n`, {
-        mode: 0o755,
+    let dir: string;
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), 'release-next-'));
+      mkdirSync(join(dir, 'scripts'));
+      mkdirSync(join(dir, 'bin'));
+      copyFileSync(
+        resolve(root, 'scripts/release-next.sh'),
+        join(dir, 'scripts/release-next.sh')
+      );
+      copyFileSync(resolve(root, TEMPLATE), join(dir, TEMPLATE));
+      writeFileSync(
+        join(dir, 'package.json'),
+        JSON.stringify({ version: VERSION })
+      );
+      writeFileSync(
+        join(dir, 'CHANGELOG.md'),
+        '# Changelog\n\n## Unreleased\n'
+      );
+      for (const [name, body] of Object.entries(STUBS)) {
+        writeFileSync(
+          join(dir, 'bin', name),
+          `#!/usr/bin/env bash\n${body}\n`,
+          {
+            mode: 0o755,
+          }
+        );
+      }
+    });
+    afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+    const release = (mode: keyof typeof MODES, notes?: string) => {
+      if (notes !== undefined) writeFileSync(join(dir, NOTES), notes);
+      const result = spawnSync('bash', ['scripts/release-next.sh'], {
+        cwd: dir,
+        encoding: 'utf8',
+        input: 'n\n',
+        env: {
+          ...process.env,
+          // The script reads package.json with node, so keep it reachable.
+          PATH: [join(dir, 'bin'), dirname(process.execPath), process.env.PATH]
+            .filter(Boolean)
+            .join(delimiter),
+          STUB_HEAD_SUBJECT: MODES[mode],
+        },
+      });
+      const output = `${result.stdout}${result.stderr}`;
+      return {
+        status: result.status,
+        output,
+        // Got past the notes check: into prepare, or (resuming) to the prompt.
+        passed:
+          output.includes(REACHED_PREPARE) || output.includes('==> Publish'),
+      };
+    };
+
+    const WRITTEN = "## What's changed\n\n- Fixes a bug.\n";
+    // Wrapped as an editor would wrap it: the check folds whitespace.
+    const WRAPPED = ACKNOWLEDGEMENT.replace(
+      ' managed by ',
+      '\nmanaged by '
+    ).replace(' grant reference ', '\n  grant reference ');
+
+    for (const mode of Object.keys(MODES) as (keyof typeof MODES)[]) {
+      describe(mode, () => {
+        it('passes notes that carry it, wrapped over lines', () => {
+          const run = release(mode, `${WRITTEN}\n## Funding\n\n${WRAPPED}\n`);
+          expect(run.passed, run.output).toBe(true);
+          expect(run.status).toBe(mode === 'fresh' ? 97 : 1);
+        });
+
+        it('refuses notes without it', () => {
+          const run = release(mode, WRITTEN);
+          expect(run.status, run.output).toBe(1);
+          expect(run.output).toContain(
+            `${NOTES} must carry the funding acknowledgement word for word`
+          );
+          expect(run.passed).toBe(false);
+        });
+
+        it('refuses notes with a reworded copy', () => {
+          const reworded = ACKNOWLEDGEMENT.replace('grant reference', 'grant');
+          const run = release(mode, `${WRITTEN}\n## Funding\n\n${reworded}\n`);
+          expect(run.status, run.output).toBe(1);
+          expect(run.output).toContain(
+            'must carry the funding acknowledgement'
+          );
+          expect(run.passed).toBe(false);
+        });
+
+        // The template carries the acknowledgement, so only this check stops
+        // a release going out with the template's empty notes.
+        it('refuses the unedited template', () => {
+          const run = release(mode, read(TEMPLATE));
+          expect(run.status, run.output).toBe(1);
+          expect(run.output).toContain(
+            `${NOTES} is still the unedited template`
+          );
+          expect(run.passed).toBe(false);
+        });
+
+        it('refuses empty notes', () => {
+          const run = release(mode, '');
+          expect(run.status, run.output).toBe(1);
+          expect(run.output).toContain(`${NOTES} is empty`);
+          expect(run.passed).toBe(false);
+        });
+
+        it('starts missing notes from the template, then stops', () => {
+          const run = release(mode);
+          expect(run.status, run.output).toBe(1);
+          expect(run.output).toContain(`${NOTES} was missing`);
+          expect(run.passed).toBe(false);
+          expect(readFileSync(join(dir, NOTES), 'utf8')).toBe(read(TEMPLATE));
+        });
       });
     }
-  });
-  afterEach(() => rmSync(dir, { recursive: true, force: true }));
-
-  const release = (mode: keyof typeof MODES, notes?: string) => {
-    if (notes !== undefined) writeFileSync(join(dir, NOTES), notes);
-    const result = spawnSync('bash', ['scripts/release-next.sh'], {
-      cwd: dir,
-      encoding: 'utf8',
-      input: 'n\n',
-      env: {
-        ...process.env,
-        // The script reads package.json with node, so keep it reachable.
-        PATH: [join(dir, 'bin'), dirname(process.execPath), process.env.PATH]
-          .filter(Boolean)
-          .join(delimiter),
-        STUB_HEAD_SUBJECT: MODES[mode],
-      },
-    });
-    const output = `${result.stdout}${result.stderr}`;
-    return {
-      status: result.status,
-      output,
-      // Got past the notes check: into prepare, or (resuming) to the prompt.
-      passed:
-        output.includes(REACHED_PREPARE) || output.includes('==> Publish'),
-    };
-  };
-
-  const WRITTEN = "## What's changed\n\n- Fixes a bug.\n";
-  // Wrapped as an editor would wrap it: the check folds whitespace.
-  const WRAPPED = ACKNOWLEDGEMENT.replace(
-    ' managed by ',
-    '\nmanaged by '
-  ).replace(' grant reference ', '\n  grant reference ');
-
-  for (const mode of Object.keys(MODES) as (keyof typeof MODES)[]) {
-    describe(mode, () => {
-      it('passes notes that carry it, wrapped over lines', () => {
-        const run = release(mode, `${WRITTEN}\n## Funding\n\n${WRAPPED}\n`);
-        expect(run.passed, run.output).toBe(true);
-        expect(run.status).toBe(mode === 'fresh' ? 97 : 1);
-      });
-
-      it('refuses notes without it', () => {
-        const run = release(mode, WRITTEN);
-        expect(run.status, run.output).toBe(1);
-        expect(run.output).toContain(
-          `${NOTES} must carry the funding acknowledgement word for word`
-        );
-        expect(run.passed).toBe(false);
-      });
-
-      it('refuses notes with a reworded copy', () => {
-        const reworded = ACKNOWLEDGEMENT.replace('grant reference', 'grant');
-        const run = release(mode, `${WRITTEN}\n## Funding\n\n${reworded}\n`);
-        expect(run.status, run.output).toBe(1);
-        expect(run.output).toContain('must carry the funding acknowledgement');
-        expect(run.passed).toBe(false);
-      });
-
-      // The template carries the acknowledgement, so only this check stops
-      // a release going out with the template's empty notes.
-      it('refuses the unedited template', () => {
-        const run = release(mode, read(TEMPLATE));
-        expect(run.status, run.output).toBe(1);
-        expect(run.output).toContain(`${NOTES} is still the unedited template`);
-        expect(run.passed).toBe(false);
-      });
-
-      it('refuses empty notes', () => {
-        const run = release(mode, '');
-        expect(run.status, run.output).toBe(1);
-        expect(run.output).toContain(`${NOTES} is empty`);
-        expect(run.passed).toBe(false);
-      });
-
-      it('starts missing notes from the template, then stops', () => {
-        const run = release(mode);
-        expect(run.status, run.output).toBe(1);
-        expect(run.output).toContain(`${NOTES} was missing`);
-        expect(run.passed).toBe(false);
-        expect(readFileSync(join(dir, NOTES), 'utf8')).toBe(read(TEMPLATE));
-      });
-    });
   }
-});
+);
 
 // The built docs site, checked when there is one: CI runs this file again
 // after `pnpm site:build`, as it does package-contract.spec.ts after building
