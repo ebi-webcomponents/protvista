@@ -6,7 +6,9 @@ description: "Explaining the 'protvista-error' event and what each detail and ph
 When something doesn't load, ProtVista tells you in three places:
 on screen (an alert panel or a ⚠ badge), in the browser console,
 and through a single `protvista-error` event you can listen for.
-This page covers all three, plus the most common causes.
+This page covers all three, plus the most common causes. The full list of events the viewer
+dispatches, including `protvista-error`'s neighbours `protvista-event` and
+`protvista-layout-change`, is on the [Events](/protvista/events) page.
 
 Start with the messages on screen. If the whole viewer cannot load,
 read the alert panel. If only one track fails, check the ⚠ badge
