@@ -240,10 +240,11 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
 // ─────────────────────────────────────────────────────────────
 // Built-in colour themes
 //
-// Canonical, accessibility-reviewed palettes referenced by the
+// Canonical palettes referenced by the
 // `alphafold-confidence` / `alphamissense-pathogenicity` /
 // `alphamissense-heatmap` semantic kinds. Custom
 // themes may be added at runtime via `registerTheme()`.
+// Colour-blind and contrast results: docs/accessibility-audit.md.
 // ─────────────────────────────────────────────────────────────
 
 const ALPHAFOLD_RAMP: readonly ColorStop[] = [
