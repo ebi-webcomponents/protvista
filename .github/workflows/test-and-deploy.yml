@@ -130,6 +130,13 @@ jobs:
       - name: Build site
         run: pnpm site:build
 
+      # The built-site checks in funding-acknowledgement.spec.ts skip unless
+      # site/ exists; the test job never builds it, so run them here against
+      # the site/ the step above produced. They fail if any Starlight page
+      # stops showing the funding acknowledgement in its footer.
+      - name: Verify the funding acknowledgement on the built site
+        run: pnpm exec vitest run --project unit src/__spec__/funding-acknowledgement.spec.ts
+
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/next' && github.event_name == 'push'
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
