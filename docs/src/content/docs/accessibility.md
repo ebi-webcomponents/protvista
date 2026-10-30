@@ -3,17 +3,18 @@ title: Accessibility and known limitations
 description: What works with a keyboard, screen reader and colour-vision deficiency today, the verified limitations of the viewer, and how to work around them.
 ---
 
-ProtVista is being audited against [WCAG 2.2](https://www.w3.org/TR/WCAG22/) level AA. The automated and computed parts of the audit are done; the manual screen-reader, keyboard-only and zoom passes are still to come. The full results, with the evidence and tracking issue for each criterion, are in the [accessibility audit report](https://github.com/ebi-webcomponents/protvista/blob/next/docs/accessibility-audit.md).
+ProtVista is being audited against [WCAG 2.2](https://www.w3.org/TR/WCAG22/) level AA. The automated and computed parts of the audit are done, including browser checks (in Chromium) of keyboard use, focus, zoom to 200%, a 320 px wide screen and wider text spacing. A pass with screen readers is still to come. The full results, with the evidence and tracking issue for each criterion, are in the [accessibility audit report](https://github.com/ebi-webcomponents/protvista/blob/next/docs/accessibility-audit.md).
 
 This page lists only limitations that have been verified in the code or by a test.
 
 ## What works today
 
 - **Controls around the tracks** have names and roles, and browser tests operate them from the keyboard: group expand and collapse (an element with the button role and `aria-expanded`), the ⓘ notes, the ⚠ error badges and their Retry button, and every [Customize mode](/protvista/customize-layout) control.
-- **Focus.** Customize controls, notes and error badges have their own focus ring. The group toggle and Retry show only the browser's default focus indicator; the keyboard pass will check how visible that is.
+- **Focus.** Customize controls, notes and error badges have their own focus ring; the group toggle and Retry show the browser's default one. A browser check of every control found a visible focus indicator on all of them except the variant filter's labels (below). Tab never gets stuck: it moves through and out of the viewer, the playground's code editor and the structure panel's controls and table.
+- **Zoom and text spacing.** At 200% zoom, and with WCAG's increased line, letter and word spacing, no text is cut off or overlaps and every control stays in reach.
 - **Announcements.** Loading, Customize-mode changes and visitor notes are announced to screen readers. A viewer that cannot load shows an alert and moves focus to it.
 - **The structure table** under the 3D view can be used with the arrow keys.
-- **Automated checks.** Every change runs axe and keyboard tests in a real browser on the surfaces above.
+- **Automated checks.** Every change runs axe, keyboard, focus, zoom and reflow tests in a real browser on the surfaces above.
 
 ## Known limitations
 
@@ -40,10 +41,28 @@ This page lists only limitations that have been verified in the code or by a tes
 - **Datatable filters.** Each filter is named "Filter by …" for screen readers but is not linked to its column heading, and the number of matching rows is not announced when a filter changes ([#312](https://github.com/ebi-webcomponents/protvista/issues/312)).
 - **Structure panel.** Every download link has the same name, the last column has no heading, and loading and "no structures" are not announced ([#311](https://github.com/ebi-webcomponents/protvista/issues/311)).
 - **Variant filter checkboxes.** Each one has an extra Tab stop on its label that shows no focus ring.
+- **Structure table filters.** Changing a filter moves keyboard focus from the filter to the rows of the table. When the table scrolls up, the row that has focus can be hidden under the table's header.
+- **Notes and badges** close as soon as you press anywhere else, before you release.
+
+### Narrow screens and zoom
+
+- **At 320 px wide** (for example 400% zoom on a laptop), the label column beside the tracks is only 64 px wide. The Customize button, the variant filter and long words in labels run past it and are partly covered by the tracks.
+- **Zooming in after the viewer has drawn** leaves its tracks at their old width, so they run past the right edge until the viewer is drawn again (reload the page, or press Run in the playground).
+
+### The 3D structure view
+
+- **Single-letter keys.** While the pointer is over the 3D view and nothing else has focus, I starts or stops spinning the model, O rocking it, and T resets the view. ProtVista has no setting to turn them off.
+
+### The playground
+
+- **Accession field.** If you enter an accession that UniProt does not have and press Tab, focus moves to the error message in the preview instead of the next control.
+- **Some validation messages** are the schema validator's own wording, for example "must be equal to one of the allowed values", and do not say which values are allowed.
+- **The divider** between the editor and the preview is 8 px wide. It can also be moved with the arrow keys once it has focus.
 
 ## Workarounds
 
 - **Read a variant's class without colour:** in the variants filter, untick every class but one; only that class stays on the track. The tooltip also names the clinical significance.
+- **Avoid the 3D view's letter keys:** move the pointer off the 3D view before typing.
 - **Read AlphaFold and AlphaMissense values:** click a residue; the tooltip gives the pLDDT or pathogenicity score as a number. For AlphaMissense, prefer the heatmap or the score to the average track's colour.
 - **Tell feature types apart:** expand the group. Each type then has its own track with a text label.
 - **Simulate colour-vision deficiency** in Chrome or Edge under DevTools › Rendering › "Emulate vision deficiencies" to see what your readers see.
