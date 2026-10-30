@@ -128,8 +128,11 @@ export default defineConfig({
       // social icons in the header. Starlight has no slot there, so the chip
       // rides on a `SocialIcons` override that reproduces the default markup.
       // See the component for why it exists and why it is not a banner.
+      // The `Footer` override adds the funding acknowledgement the grant
+      // requires on every page (see the component).
       components: {
         SocialIcons: './src/components/SocialIcons.astro',
+        Footer: './src/components/Footer.astro',
       },
       // Serve the site favicon (docs/public/favicon.svg → /protvista/favicon.svg).
       // Written base-absolute because Astro does not prefix `base` onto head hrefs.

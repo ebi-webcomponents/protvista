@@ -1,0 +1,41 @@
+---
+/**
+ * Adds the funding acknowledgement to the foot of every docs page.
+ *
+ * Why it exists: the grant's Outputs Management Plan (section 7) requires
+ * every output, the documentation site included, to carry the acknowledgement
+ * word for word. Putting it in the footer reaches every Starlight page, the
+ * splash home among them, without an edit to each page.
+ *
+ * Overriding `Footer` is Starlight's supported way in, the same as the
+ * `SocialIcons` override beside the version chip. Rendering `<Default />` keeps
+ * the edit link, last-updated date and pagination exactly as Starlight draws
+ * them, through upgrades.
+ *
+ * The text must stay verbatim: src/__spec__/funding-acknowledgement.spec.ts
+ * fails if it drifts here or anywhere else the acknowledgement appears. The
+ * playground (src/pages/playground.astro) is not a Starlight page, so it does
+ * not get this footer.
+ */
+import Default from '@astrojs/starlight/components/Footer.astro';
+---
+
+<Default />
+
+<p class="pv-funding">
+  This work was supported by the Research Software Maintenance Fund, managed by
+  the Software Sustainability Institute and funded by UKRI grant reference
+  AH/Z000114/1.
+</p>
+
+<style>
+  @layer starlight.core {
+    .pv-funding {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--sl-color-hairline);
+      font-size: var(--sl-text-xs);
+      color: var(--sl-color-gray-3);
+    }
+  }
+</style>
