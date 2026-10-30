@@ -48,10 +48,11 @@ Three record shapes cover every "your own data" cell above — features
 ## Colour scales
 
 The score kinds (`alphafold-confidence`, `alphamissense-pathogenicity`) come with
-accessibility-reviewed colour ramps built in — AlphaFold's confidence ramp
-(orange = low confidence, through to blue = very high) and AlphaMissense's
-benign-to-pathogenic scale (blue = benign, through to red = pathogenic). You can
-define and apply your own ramps; see [Theme the viewer](/protvista/theming) and
+colour ramps built in — AlphaFold's confidence ramp (orange = low confidence,
+through to blue = very high) and AlphaMissense's benign-to-pathogenic scale
+(blue = benign, through to red = pathogenic). Their colour-blind and contrast
+results are on [Accessibility and known limitations](/protvista/accessibility).
+You can define and apply your own ramps; see [Theme the viewer](/protvista/theming) and
 [Escape hatches](/protvista/escape-hatches) (`registerTheme`).
 
 ## Using a kind with your own data

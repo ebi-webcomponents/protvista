@@ -29,6 +29,7 @@
     "test:browser": "vitest run --project browser",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:palettes": "python3 scripts/accessibility/test_palette_audit.py",
     "bench": "node bench/run.mjs",
     "bench:build": "vite build --config vite.bench.config.mjs",
     "bench:bundle": "pnpm build && node bench/bundle-size.mjs",

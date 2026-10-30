@@ -44,6 +44,14 @@ jobs:
       - name: Unit tests
         run: pnpm test:unit
 
+      # The colour-vision audit (#382) reads the palettes from src/ and the
+      # opacities from the installed Nightingale bundles. Its tests fail when a
+      # palette can no longer be found, an opacity changes, or a figure quoted
+      # in docs/accessibility-audit.md or the docs site's accessibility page
+      # no longer matches. Linux only: the runner image has python3.
+      - name: Palette audit
+        run: pnpm test:palettes
+
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium chromium-headless-shell
 
