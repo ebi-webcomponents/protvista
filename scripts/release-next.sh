@@ -50,7 +50,8 @@ NOTES_TEMPLATE=scripts/release-notes-template.md
 # The grant's Outputs Management Plan (section 7) requires this on every
 # release, word for word. The template carries it and preflight refuses notes
 # without it. src/__spec__/funding-acknowledgement.spec.ts fails if this copy,
-# the template's or any other drifts.
+# the template's or any other drifts, and runs this script with stub git, npm
+# and gh to check that preflight refuses notes without it.
 FUNDING_ACK='This work was supported by the Research Software Maintenance Fund, managed by the Software Sustainability Institute and funded by UKRI grant reference AH/Z000114/1.'
 
 # Every file that names the current version as a pin or a banner. Kept to an

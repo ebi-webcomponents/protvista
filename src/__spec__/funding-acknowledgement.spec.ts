@@ -5,18 +5,38 @@
  * carry the acknowledgement below word for word: the repository README, the
  * documentation site, release notes, Zenodo records and webinar materials.
  * These tests pin each copy to that text, check that the docs site and the
- * release flow still put it where it has to go, and fail on any file that
- * quotes part of it but not all of it, so a reworded copy is caught wherever
- * it lands.
+ * release flow still put it where it has to go (by running release-next.sh's
+ * notes check, and by reading the built site when there is one), and fail on
+ * any file that quotes part of it but not all of it, so a reworded copy is
+ * caught wherever it lands.
  *
  * Line breaks and repeated spaces are ignored: Markdown and Astro sources may
  * wrap the sentence, and it renders as one line either way. Nothing else may
  * differ.
  */
 
-import { describe, it, expect } from 'vitest';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { extname, join, relative, resolve, sep } from 'node:path';
+import { afterEach, beforeEach, describe, it, expect } from 'vitest';
+import { spawnSync } from 'node:child_process';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import {
+  delimiter,
+  dirname,
+  extname,
+  join,
+  relative,
+  resolve,
+  sep,
+} from 'node:path';
 
 // Verbatim from the Outputs Management Plan. Change it only if the funder
 // changes the required wording, and then everywhere at once.
@@ -79,22 +99,219 @@ describe('funding acknowledgement — release notes', () => {
     expect(value).toBe(ACKNOWLEDGEMENT);
   });
 
-  it('release-next.sh refuses release notes without it', () => {
-    expect(script).toMatch(
-      /^NOTES_TEMPLATE=scripts\/release-notes-template\.md$/m
-    );
-    expect(script).toContain(
-      `grep -qF "$FUNDING_ACK" <<< "$(tr -s '[:space:]' ' ' < "$NOTES")"`
-    );
-    expect(script).toContain('cp "$NOTES_TEMPLATE" "$NOTES"');
-  });
-
   it('the template puts it under a Funding heading', () => {
     const template = read('scripts/release-notes-template.md');
     const funding = template.split(/^## Funding$/m)[1] ?? '';
     expect(carries(funding)).toBe(true);
   });
 });
+
+// Runs the real release-next.sh in a scratch copy of the repo with git, npm
+// and gh stubbed on PATH, so these check what the script does with the notes,
+// not how its source reads. The stubs report a clean `next` level with origin,
+// nothing published, logged in. `npm version` is the first thing the prepare
+// step runs, so its stub stops the script there with exit 97: reaching it
+// means preflight passed. Resuming (HEAD is already the release commit) skips
+// prepare and stops at the publish prompt, which stdin answers "n".
+describe('funding acknowledgement — release-next.sh preflight', () => {
+  const NOTES = 'RELEASE_NOTES.md';
+  const TEMPLATE = 'scripts/release-notes-template.md';
+  const VERSION = '5.0.0-beta.5';
+  const REACHED_PREPARE = 'STUB npm version: preflight passed';
+
+  const STUBS: Record<string, string> = {
+    git: `case "$1" in
+  rev-parse) [ "$2" = --abbrev-ref ] && echo next || exit 1 ;;
+  status|fetch) ;;
+  rev-list) echo 0 ;;
+  log) echo "$STUB_HEAD_SUBJECT" ;;
+  *) echo "unexpected stub call: git $*" >&2; exit 98 ;;
+esac`,
+    npm: `case "$1" in
+  view) ;;
+  whoami) echo tester ;;
+  version) echo '${REACHED_PREPARE}' >&2; exit 97 ;;
+  *) echo "unexpected stub call: npm $*" >&2; exit 98 ;;
+esac`,
+    gh: `case "$1" in
+  auth) ;;
+  *) echo "unexpected stub call: gh $*" >&2; exit 98 ;;
+esac`,
+  };
+
+  // The HEAD commit subject the git stub reports in each mode.
+  const MODES = {
+    fresh: 'Merge pull request #1',
+    resuming: `Release ${VERSION}`,
+  } as const;
+
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'release-next-'));
+    mkdirSync(join(dir, 'scripts'));
+    mkdirSync(join(dir, 'bin'));
+    copyFileSync(
+      resolve(root, 'scripts/release-next.sh'),
+      join(dir, 'scripts/release-next.sh')
+    );
+    copyFileSync(resolve(root, TEMPLATE), join(dir, TEMPLATE));
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({ version: VERSION })
+    );
+    writeFileSync(join(dir, 'CHANGELOG.md'), '# Changelog\n\n## Unreleased\n');
+    for (const [name, body] of Object.entries(STUBS)) {
+      writeFileSync(join(dir, 'bin', name), `#!/usr/bin/env bash\n${body}\n`, {
+        mode: 0o755,
+      });
+    }
+  });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  const release = (mode: keyof typeof MODES, notes?: string) => {
+    if (notes !== undefined) writeFileSync(join(dir, NOTES), notes);
+    const result = spawnSync('bash', ['scripts/release-next.sh'], {
+      cwd: dir,
+      encoding: 'utf8',
+      input: 'n\n',
+      env: {
+        ...process.env,
+        // The script reads package.json with node, so keep it reachable.
+        PATH: [join(dir, 'bin'), dirname(process.execPath), process.env.PATH]
+          .filter(Boolean)
+          .join(delimiter),
+        STUB_HEAD_SUBJECT: MODES[mode],
+      },
+    });
+    const output = `${result.stdout}${result.stderr}`;
+    return {
+      status: result.status,
+      output,
+      // Got past the notes check: into prepare, or (resuming) to the prompt.
+      passed:
+        output.includes(REACHED_PREPARE) || output.includes('==> Publish'),
+    };
+  };
+
+  const WRITTEN = "## What's changed\n\n- Fixes a bug.\n";
+  // Wrapped as an editor would wrap it: the check folds whitespace.
+  const WRAPPED = ACKNOWLEDGEMENT.replace(
+    ' managed by ',
+    '\nmanaged by '
+  ).replace(' grant reference ', '\n  grant reference ');
+
+  for (const mode of Object.keys(MODES) as (keyof typeof MODES)[]) {
+    describe(mode, () => {
+      it('passes notes that carry it, wrapped over lines', () => {
+        const run = release(mode, `${WRITTEN}\n## Funding\n\n${WRAPPED}\n`);
+        expect(run.passed, run.output).toBe(true);
+        expect(run.status).toBe(mode === 'fresh' ? 97 : 1);
+      });
+
+      it('refuses notes without it', () => {
+        const run = release(mode, WRITTEN);
+        expect(run.status, run.output).toBe(1);
+        expect(run.output).toContain(
+          `${NOTES} must carry the funding acknowledgement word for word`
+        );
+        expect(run.passed).toBe(false);
+      });
+
+      it('refuses notes with a reworded copy', () => {
+        const reworded = ACKNOWLEDGEMENT.replace('grant reference', 'grant');
+        const run = release(mode, `${WRITTEN}\n## Funding\n\n${reworded}\n`);
+        expect(run.status, run.output).toBe(1);
+        expect(run.output).toContain('must carry the funding acknowledgement');
+        expect(run.passed).toBe(false);
+      });
+
+      // The template carries the acknowledgement, so only this check stops
+      // a release going out with the template's empty notes.
+      it('refuses the unedited template', () => {
+        const run = release(mode, read(TEMPLATE));
+        expect(run.status, run.output).toBe(1);
+        expect(run.output).toContain(`${NOTES} is still the unedited template`);
+        expect(run.passed).toBe(false);
+      });
+
+      it('refuses empty notes', () => {
+        const run = release(mode, '');
+        expect(run.status, run.output).toBe(1);
+        expect(run.output).toContain(`${NOTES} is empty`);
+        expect(run.passed).toBe(false);
+      });
+
+      it('starts missing notes from the template, then stops', () => {
+        const run = release(mode);
+        expect(run.status, run.output).toBe(1);
+        expect(run.output).toContain(`${NOTES} was missing`);
+        expect(run.passed).toBe(false);
+        expect(readFileSync(join(dir, NOTES), 'utf8')).toBe(read(TEMPLATE));
+      });
+    });
+  }
+});
+
+// The built docs site, checked when there is one: CI runs this file again
+// after `pnpm site:build`, as it does package-contract.spec.ts after building
+// dist/. The source checks above cannot see a footer that stops rendering
+// (commented out, behind a false condition, or dropped by a Starlight
+// upgrade); the built pages can. If this fails locally on an old site/,
+// rebuild it with `pnpm site:build`.
+const SITE = resolve(root, 'site');
+// Built into site/ but not Starlight pages, so they have no Starlight footer.
+const NOT_STARLIGHT = ['bench.html', 'playground/index.html'];
+
+describe.skipIf(!existsSync(join(SITE, 'index.html')))(
+  'funding acknowledgement — built documentation site',
+  () => {
+    const pages = readdirSync(SITE, { recursive: true, encoding: 'utf8' })
+      .map((entry) => entry.split(sep).join('/'))
+      .filter((entry) => entry.endsWith('.html'))
+      .sort();
+    // Without comments: a commented-out footer does not show.
+    const html = (page: string) =>
+      readFileSync(join(SITE, page), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+    const isStarlight = (page: string) =>
+      /<meta name="generator" content="Starlight\b/.test(html(page));
+
+    it('every Starlight page shows it in the footer, word for word', () => {
+      // Non-vacuous: the splash home, content pages, a blog post and the 404.
+      expect(pages).toEqual(
+        expect.arrayContaining([
+          'index.html',
+          '404.html',
+          'tutorial/index.html',
+          'webinar/index.html',
+          'blog/protvista-5/index.html',
+        ])
+      );
+      const missing = pages
+        .filter((page) => !NOT_STARLIGHT.includes(page))
+        .filter((page) => {
+          // Only the footer's own paragraph counts: the webinar page and the
+          // v5 announcement carry a copy in their body as well.
+          const footer = html(page).match(
+            /<p class="pv-funding\b[^"]*"[^>]*>([\s\S]*?)<\/p>/
+          )?.[1];
+          return (
+            footer === undefined || fold(footer).trim() !== ACKNOWLEDGEMENT
+          );
+        });
+      expect(missing).toEqual([]);
+    });
+
+    it('leaves out only pages that are not Starlight pages', () => {
+      expect(isStarlight('index.html')).toBe(true);
+      for (const page of NOT_STARLIGHT) {
+        expect(pages, `${page} was not built`).toContain(page);
+        expect(isStarlight(page), `${page} is a Starlight page now`).toBe(
+          false
+        );
+      }
+    });
+  }
+);
 
 describe('funding acknowledgement — Zenodo', () => {
   // No Zenodo deposit exists yet. Zenodo takes a release's metadata from

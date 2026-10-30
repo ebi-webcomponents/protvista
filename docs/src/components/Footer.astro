@@ -13,8 +13,9 @@
  * them, through upgrades.
  *
  * The text must stay verbatim: src/__spec__/funding-acknowledgement.spec.ts
- * fails if it drifts here or anywhere else the acknowledgement appears. The
- * playground (src/pages/playground.astro) is not a Starlight page, so it does
+ * fails if it drifts here or anywhere else the acknowledgement appears, and,
+ * run by CI after `pnpm site:build`, if any built Starlight page stops showing
+ * it in this paragraph. The playground (src/pages/playground.astro) is not a Starlight page, so it does
  * not get this footer.
  */
 import Default from '@astrojs/starlight/components/Footer.astro';
