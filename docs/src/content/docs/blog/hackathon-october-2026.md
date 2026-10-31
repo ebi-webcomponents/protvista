@@ -9,6 +9,10 @@ to make the project easier to join. This post is our record of the event. It
 lists every contribution with a link, says what we learned, and says what
 happens next.
 
+The hackathon was led by Swaathi Kandasaamy (UniProt) and Daniel Rice
+(ProtVista), and organised by Ajay Mishra (EMBL-EBI). Thank you, Ajay, for
+making it happen.
+
 Thank you to everyone who took part. The pull requests below were opened by
 [Bibhuprasadbehera](https://github.com/Bibhuprasadbehera),
 [Rajarshi0](https://github.com/Rajarshi0),
@@ -19,8 +23,6 @@ Thank you to everyone who took part. The pull requests below were opened by
 [lamplinked-netizen](https://github.com/lamplinked-netizen) and
 [lokchinleung](https://github.com/lokchinleung), and
 [vikashini-coder](https://github.com/vikashini-coder) co-wrote the EGFR view.
-Thank you also to Swaathi Kandasaamy (UniProt) for mentoring, and to Ajay
-Mishra (EMBL-EBI) for organising the hackathon.
 
 ## At a glance
 
@@ -28,7 +30,6 @@ Mishra (EMBL-EBI) for organising the hackathon.
 | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | **Dates**                                               | 7–9 October 2026                                                                                  |
 | **Format**                                              | Online, free                                                                                      |
-| **Places offered**                                      | 30                                                                                                |
 | **Attendees**                                           | 14 on day 1, 6 on day 2, 7 on day 3                                                               |
 | **Teams**                                               | 3                                                                                                 |
 | **Projects**                                            | 3: documentation fixes by first-time users (L5), isoform support (F8) and a community preset (L2) |
@@ -224,10 +225,10 @@ for help with setup or your own data.
 
 ## How the figures were counted
 
-Counted on 30 October 2026 from the repository on GitHub.
+Attendance, teams and projects come from the organisers' records, and the
+feedback from the daily surveys. The pull request figures were counted on 30
+October 2026 from the repository on GitHub.
 
-- **Places offered:** from the hackathon announcement in
-  [ProtVista 5 is in beta](/protvista/blog/protvista-5#hackathon-visualise-your-own-data).
 - **Merged pull requests and accounts:**
   [merged pull requests created 6–9 October 2026 by anyone but the maintainer](https://github.com/ebi-webcomponents/protvista/pulls?q=is%3Apr%20is%3Amerged%20created%3A2026-10-06..2026-10-09%20-author%3Adlrice);
   no one else on the team opened one in those days. Add
