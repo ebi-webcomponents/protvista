@@ -29,8 +29,7 @@ Mishra (EMBL-EBI) for organising the hackathon.
 | **Dates**                                               | 7–9 October 2026                                                                                  |
 | **Format**                                              | Online, free                                                                                      |
 | **Places offered**                                      | 30                                                                                                |
-| **Registrations**                                       | [TODO(maintainer): number of registrations]                                                       |
-| **Attendees**                                           | 14 on day 1, 6 on day 2                                                                           |
+| **Attendees**                                           | 14 on day 1, 6 on day 2, 7 on day 3                                                               |
 | **Teams**                                               | 3                                                                                                 |
 | **Projects**                                            | 3: documentation fixes by first-time users (L5), isoform support (F8) and a community preset (L2) |
 | **Merged pull requests from contributors, 6–9 October** | 24, from 8 GitHub accounts (20 by the end of the event, 4 more by 30 October)                     |
