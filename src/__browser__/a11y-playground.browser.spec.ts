@@ -35,7 +35,7 @@ import {
 import { PAGE_MARKUP, installPageStyles } from './playground-astro-page.js';
 import {
   PRINTABLE_KEYS,
-  accessibilityTree,
+  accessibilityTreeWith,
   deepActive,
   describeEl,
   focusIndicator,
@@ -136,8 +136,7 @@ const EXPECTED_STOPS = [
 
 describe('playground: landmarks, headings and reading order (2.4.1, 1.3.2)', () => {
   it('has a banner, a main landmark, named regions and headings to skip by', async () => {
-    const lines = outline(await accessibilityTree());
-    const order = [
+    const expected = [
       /^banner$/,
       /^link "← Docs"$/,
       /^heading "Configuration playground"$/,
@@ -154,7 +153,14 @@ describe('playground: landmarks, headings and reading order (2.4.1, 1.3.2)', () 
       /^heading "PREVIEW"$/,
       /^button "Customize"$/,
       /^button "Lab hits"$/,
-    ].map((re) => lines.findIndex((l) => re.test(l)));
+    ];
+    const lines = outline(
+      await accessibilityTreeWith((tree) => {
+        const read = outline(tree);
+        return expected.every((re) => read.some((l) => re.test(l)));
+      })
+    );
+    const order = expected.map((re) => lines.findIndex((l) => re.test(l)));
     expect(order.every((i) => i >= 0), lines.join('\n')).toBe(true);
     // The tree reads in the visual order: header, then the editor (left),
     // then the preview (right).

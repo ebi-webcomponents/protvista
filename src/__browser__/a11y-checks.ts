@@ -342,6 +342,26 @@ export async function accessibilityTree(): Promise<AxNode[]> {
   return out;
 }
 
+/**
+ * `accessibilityTree()`, read again until `ready` accepts it. Chromium
+ * updates the tree after the DOM, so on a busy machine (CI runs the unit and
+ * browser projects side by side under coverage) a read straight after a
+ * render can miss nodes the DOM already has. After `timeout` ms the last
+ * tree is returned as it is, for the caller's assertions to report.
+ */
+export async function accessibilityTreeWith(
+  ready: (tree: AxNode[]) => boolean,
+  timeout = 10000
+): Promise<AxNode[]> {
+  const deadline = performance.now() + timeout;
+  let tree = await accessibilityTree();
+  while (!ready(tree) && performance.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    tree = await accessibilityTree();
+  }
+  return tree;
+}
+
 /** The interactive and structural nodes of a tree, as `role "name"` lines. */
 export function outline(
   tree: AxNode[],

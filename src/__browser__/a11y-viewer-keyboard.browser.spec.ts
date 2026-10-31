@@ -44,7 +44,7 @@ import { CSS_PREFIX } from '../styles/css-prefix.js';
 import { track, unmountAll } from './mount.js';
 import {
   PRINTABLE_KEYS,
-  accessibilityTree,
+  accessibilityTreeWith,
   deepActive,
   deepElements,
   deepContains,
@@ -493,6 +493,8 @@ describe('viewer: focus and input change nothing by themselves (3.2.1)', () => {
 });
 
 describe('viewer: single-character keys (2.1.4)', () => {
+  // About 600 key presses over the DevTools protocol: slow in CI, which runs
+  // this under coverage beside the unit suite.
   it('no printable key does anything, on any control or on the page', async () => {
     const start = stateOf([viewer]);
     const changed: string[] = [];
@@ -517,7 +519,7 @@ describe('viewer: single-character keys (2.1.4)', () => {
       if (diff.length) changed.push(`${describeEl(target)}: ${diff.join('; ')}`);
     }
     expect(changed).toEqual([]);
-  });
+  }, 60_000);
 });
 
 describe('viewer: pointer cancellation (2.5.2)', () => {
@@ -535,6 +537,8 @@ describe('viewer: pointer cancellation (2.5.2)', () => {
     expect(failedFetches).toBe(fetches);
   }
 
+  // Five press-drag-release and click rounds, then a retried fetch: slow in
+  // CI, which runs this under coverage beside the unit suite.
   it('releasing off a control does not activate it; a click does', async () => {
     // Selectors, not elements: a re-render can replace a control.
     const controls = [
@@ -564,7 +568,7 @@ describe('viewer: pointer cancellation (2.5.2)', () => {
     const fetches = failedFetches;
     await userEvent.click(retry);
     await vi.waitFor(() => expect(failedFetches).toBeGreaterThan(fetches));
-  });
+  }, 60_000);
 
   it('pressing on a feature and releasing off it opens no tooltip; a click does', async () => {
     q(`.${P}-group-label[data-group-toggle="lab"]`).click();
@@ -647,9 +651,7 @@ describe('viewer: target size (2.5.8)', () => {
 
 describe('viewer: reading order in the accessibility tree (1.3.2)', () => {
   it('reads the top bar, then each group header before its controls, then the filter', async () => {
-    const lines = outline(await accessibilityTree());
-    const at = (re: RegExp) => lines.findIndex((l) => re.test(l));
-    const order = [
+    const expected = [
       /^button "Before the viewer"$/,
       /^button "Customize"$/,
       /^button "Notes about this view \(1\)"$/,
@@ -659,7 +661,15 @@ describe('viewer: reading order in the accessibility tree (1.3.2)', () => {
       /^checkbox "Likely pathogenic or pathogenic"$/,
       /^heading "Filter Provenance"$/,
       /^button "After the viewer"$/,
-    ].map(at);
+    ];
+    const lines = outline(
+      await accessibilityTreeWith((tree) => {
+        const read = outline(tree);
+        return expected.every((re) => read.some((l) => re.test(l)));
+      })
+    );
+    const at = (re: RegExp) => lines.findIndex((l) => re.test(l));
+    const order = expected.map(at);
     expect(order.every((i) => i >= 0), lines.join('\n')).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     // The ⚠ badge and Retry sit inside the "Partly broken" button
@@ -675,7 +685,7 @@ describe('viewer: reading order in the accessibility tree (1.3.2)', () => {
     const note = q(`.${P}-nav-track-label .${P}-note`);
     await userEvent.click(note);
     await settle();
-    const tree = await accessibilityTree();
+    const tree = await accessibilityTreeWith((t) => t.some((n) => n.name.includes('Partner data')));
     const i = tree.findIndex((n) => n.role === 'button' && /^Notes about this view/.test(n.name));
     const next = tree.slice(i + 1).find((n) => n.role !== 'StaticText' && n.role !== 'generic');
     expect(next, tree.slice(i, i + 6).map((n) => `${n.role} ${n.name}`).join('\n')).toBeDefined();
