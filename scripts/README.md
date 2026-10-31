@@ -44,7 +44,7 @@ No `pip install` step.
 | `update_metrics.sh` | runs all three of the below in sequence (continues if one fails) | `bash scripts/update_metrics.sh` |
 | `protvista_ecosystem.py` | discover new `package.json` dependents → append rows to `ecosystem.md`, flag fell-out | `python3 scripts/protvista_ecosystem.py` |
 | `npm_downloads.py` | update the committed monthly download CSV | `python3 scripts/npm_downloads.py` |
-| `protvista_citation_count.py` | print the citing-works count (ad-hoc; writes nothing) | `python3 scripts/protvista_citation_count.py` |
+| `protvista_citation_count.py` | rewrite the committed quarterly citation CSV | `python3 scripts/protvista_citation_count.py` |
 | `test_ecosystem_tools.py` | unit tests (offline) | `python3 scripts/test_ecosystem_tools.py` |
 
 ## 1. The ecosystem table — `../docs/program/ecosystem.md`
@@ -93,13 +93,18 @@ file. **Caveat:** npm counts are raw fetch events — inflated by CI/mirror/bot 
 and dominated by UniProt's own builds; report them as a baseline trend, never an
 adoption headline (the caveat travels as a comment line in the CSV too).
 
-## 3. Citations — print-only, not saved
+## 3. Citations — `../docs/program/citations.csv`
 
-`protvista_citation_count.py` prints the count of works citing the foundational
-ProtVista paper (OpenAlex). It writes **nothing** to the repo — citations to a 2017
-paper move too slowly to track per period, so just read off the current number when
-you need it. `--as-of YYYY-MM-DD` for an as-of count, `--list` for the per-work table,
-`--mailto you@example.org` for OpenAlex's faster pool.
+`protvista_citation_count.py` counts the works citing the foundational ProtVista
+paper (OpenAlex) and rewrites a committed quarterly series (`quarter,doi,citing_works`):
+the cumulative number of citing works published by the end of each quarter since
+2017-Q1. Unlike the npm CSV it is recomputed in full every run, because OpenAlex keeps
+indexing older works, so past quarters can rise slightly between runs; the latest
+quarter is partial, and works with no publication date, or one after the current
+quarter, are left out (the run prints how many). Quote the last complete quarter in a
+report. A failed fetch leaves the file unchanged and exits 1. `--no-write` to only
+print, `--as-of YYYY-MM-DD` for an as-of count (prints only), `--list` for the
+per-work table, `--mailto you@example.org` for OpenAlex's faster pool.
 
 ## Refreshing the metrics
 
@@ -115,11 +120,11 @@ git diff docs/program/ecosystem.md              # fill Project/Type/dates; mark 
 # 2. Update the npm download series.
 python3 scripts/npm_downloads.py
 
-# 3. Read off the current citation number (writes nothing).
+# 3. Rewrite the quarterly citation series.
 python3 scripts/protvista_citation_count.py
 
-# 4. Commit the table + CSV.
-git add docs/program/ecosystem.md docs/program/npm_downloads.csv
+# 4. Commit the table + CSVs.
+git add docs/program
 git commit -m "metrics: refresh"
 ```
 

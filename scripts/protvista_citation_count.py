@@ -1,11 +1,19 @@
 """
 Module to fetch paper citations from the OpenAlex API using standard libraries,
 sort them by publication date (descending), and export them as a Markdown table.
+
+Each run also rewrites docs/program/citations.csv (columns: quarter,doi,citing_works):
+the cumulative number of citing works published by the end of each quarter since the
+paper appeared. The whole series is recomputed every run, because OpenAlex keeps
+indexing older works; works without a publication date are left out of it.
 """
 
 import argparse
+import csv
 import datetime as dt
 import json
+import os
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -25,6 +33,13 @@ class Citation(TypedDict):
 
 OPENALEX_BASE_URL = "https://api.openalex.org/works"
 REPO_URL = "https://github.com/ebi-webcomponents/protvista"
+TARGET_DOI = "10.1093/bioinformatics/btx120"
+FIRST_QUARTER = "2017-Q1"                     # the paper was published in 2017
+MAX_RESULTS = 2000
+_DOCS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs", "program")
+CSV_PATH = os.path.join(_DOCS, "citations.csv")
+CAVEAT = ("# Works citing the ProtVista paper (OpenAlex), cumulative by publication date at each "
+          "quarter end; recomputed every run, undated works left out, latest quarter partial.")
 
 
 def _user_agent(mailto: Optional[str] = None) -> str:
@@ -174,11 +189,58 @@ def get_all_citations(
     return []
 
 
+# --------------------------------------------------------------------------- #
+# Pure quarter/CSV helpers (unit-tested, no network)
+# --------------------------------------------------------------------------- #
+def parse_date(date_str: str) -> Optional[dt.date]:
+    """The ISO date, or None for "Unknown Date" / malformed dates."""
+    try:
+        return dt.date.fromisoformat(date_str)
+    except ValueError:
+        return None
+
+
+def quarter_of(d: dt.date) -> str:
+    return f"{d.year:04d}-Q{(d.month - 1) // 3 + 1}"
+
+
+def quarter_end(q: str) -> dt.date:
+    y, n = int(q[:4]), int(q[-1])
+    return dt.date(y + n // 4, 3 * n % 12 + 1, 1) - dt.timedelta(days=1)   # day before next quarter
+
+
+def quarters(start_q: str, today: dt.date) -> List[str]:
+    """'YYYY-Qn' from start_q up to and including today's quarter."""
+    y, n = int(start_q[:4]), int(start_q[-1])
+    out = []
+    while f"{y:04d}-Q{n}" <= quarter_of(today):
+        out.append(f"{y:04d}-Q{n}")
+        y, n = (y + 1, 1) if n == 4 else (y, n + 1)
+    return out
+
+
+def quarterly_counts(dates: List[str], today: dt.date) -> Dict[str, int]:
+    """Cumulative citing works published on or before each quarter's end (undated dropped)."""
+    parsed = sorted(d for d in map(parse_date, dates) if d)
+    return {q: sum(1 for d in parsed if d <= quarter_end(q)) for q in quarters(FIRST_QUARTER, today)}
+
+
+def write_csv(path: str, counts: Dict[str, int]) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"                                   # write-then-rename = atomic
+    with open(tmp, "w", newline="") as f:
+        f.write(CAVEAT + "\n")
+        w = csv.writer(f, lineterminator="\n")
+        w.writerow(["quarter", "doi", "citing_works"])
+        for q in sorted(counts):
+            w.writerow([q, TARGET_DOI, counts[q]])
+    os.replace(tmp, path)
+
+
 if __name__ == "__main__":
     _ap = argparse.ArgumentParser(
-        description="Print the citing-works count for the ProtVista paper (OpenAlex). "
-                    "Ad-hoc tool — prints the count; nothing is written to the repo "
-                    "(citations move too slowly to track per period).")
+        description="Print the citing-works count for the ProtVista paper (OpenAlex) and "
+                    "rewrite the quarterly series in docs/program/citations.csv.")
     _ap.add_argument("--as-of", default=None,
                      help="count only works published on/before this date (YYYY-MM-DD); "
                           "default: include all to date")
@@ -186,19 +248,33 @@ if __name__ == "__main__":
                      help="contact email for OpenAlex's faster 'polite pool'")
     _ap.add_argument("--list", action="store_true",
                      help="also print the per-work table to stdout")
+    _ap.add_argument("--no-write", action="store_true",
+                     help="print only; leave docs/program/citations.csv unchanged "
+                          "(implied by --as-of)")
     _args = _ap.parse_args()
 
-    TARGET_DOI = "10.1093/bioinformatics/btx120"
-    papers: List[Citation] = get_all_citations(TARGET_DOI, max_results=500, mailto=_args.mailto)
+    papers: List[Citation] = get_all_citations(TARGET_DOI, max_results=MAX_RESULTS, mailto=_args.mailto)
+    if not papers:
+        print("No citing works fetched; citations.csv left unchanged.")
+        sys.exit(1)
+
+    if not (_args.no_write or _args.as_of):
+        if len(papers) >= MAX_RESULTS:            # newest first, so the oldest are missing
+            print(f"Hit the {MAX_RESULTS}-record cap; citations.csv left unchanged "
+                  "(raise MAX_RESULTS).")
+            sys.exit(1)
+        today = dt.date.today()
+        counts = quarterly_counts([p["date"] for p in papers], today)
+        write_csv(CSV_PATH, counts)
+        last = max(counts)
+        print(f"Saved {CSV_PATH}: {len(counts)} quarters "
+              f"({len(papers) - counts[last]} undated or future-dated works left out).")
+        prev = quarters(FIRST_QUARTER, today)[-2]
+        print(f"Last complete quarter: {prev} = {counts[prev]} citing works.")
 
     if _args.as_of:
-        def _on_or_before(date_str: str, cutoff: str) -> bool:
-            try:
-                dt.date.fromisoformat(date_str)
-            except ValueError:
-                return False                  # drop "Unknown Date" / malformed dates
-            return date_str <= cutoff
-        papers = [p for p in papers if _on_or_before(p["date"], _args.as_of)]
+        papers = [p for p in papers
+                  if (d := parse_date(p["date"])) and d.isoformat() <= _args.as_of]
         print(f"\n{len(papers)} citing works published on or before {_args.as_of}.")
     else:
         print(f"\n{len(papers)} citing works to date.")
