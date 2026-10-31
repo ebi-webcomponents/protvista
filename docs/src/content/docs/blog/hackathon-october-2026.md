@@ -17,22 +17,23 @@ Thank you to everyone who took part. The pull requests below were opened by
 [bryanswe01](https://github.com/bryanswe01),
 [knownshah](https://github.com/knownshah),
 [lamplinked-netizen](https://github.com/lamplinked-netizen) and
-[lokchinleung](https://github.com/lokchinleung).
-[TODO(maintainer): thank the mentors and anyone else who helped run the event,
-if you want to name them.]
+[lokchinleung](https://github.com/lokchinleung), and
+[vikashini-coder](https://github.com/vikashini-coder) co-wrote the EGFR view.
+Thank you also to Swaathi Kandasaamy (UniProt) for mentoring, and to Ajay
+Mishra (EMBL-EBI) for organising the hackathon.
 
 ## At a glance
 
-|                                                         |                                                                                          |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| **Dates**                                               | 7–9 October 2026                                                                         |
-| **Format**                                              | Online, free                                                                             |
-| **Places offered**                                      | 30                                                                                       |
-| **Registrations**                                       | [TODO(maintainer): number of registrations]                                              |
-| **Attendees**                                           | [TODO(maintainer): number who attended]                                                  |
-| **Teams**                                               | [TODO(maintainer): number of teams]                                                      |
-| **Projects**                                            | [TODO(maintainer): number of projects worked on, and link to the project list if public] |
-| **Merged pull requests from contributors, 6–9 October** | 24, from 8 GitHub accounts (20 by the end of the event, 4 more by 30 October)            |
+|                                                         |                                                                                                   |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Dates**                                               | 7–9 October 2026                                                                                  |
+| **Format**                                              | Online, free                                                                                      |
+| **Places offered**                                      | 30                                                                                                |
+| **Registrations**                                       | [TODO(maintainer): number of registrations]                                                       |
+| **Attendees**                                           | 14 on day 1, 6 on day 2                                                                           |
+| **Teams**                                               | 3                                                                                                 |
+| **Projects**                                            | 3: documentation fixes by first-time users (L5), isoform support (F8) and a community preset (L2) |
+| **Merged pull requests from contributors, 6–9 October** | 24, from 8 GitHub accounts (20 by the end of the event, 4 more by 30 October)                     |
 
 How each figure was counted is at the end of this post.
 
@@ -63,9 +64,9 @@ see a protein's annotations on a chosen isoform.
 
 ### EGFR drug contacts ([#355](https://github.com/ebi-webcomponents/protvista/pull/355))
 
-By [Bibhuprasadbehera](https://github.com/Bibhuprasadbehera) and a second team
-member [TODO(maintainer): their GitHub handle, if they agree to be named]
-(project L2, community presets).
+By [Bibhuprasadbehera](https://github.com/Bibhuprasadbehera) and
+[vikashini-coder](https://github.com/vikashini-coder) (project L2, community
+presets).
 
 A community view of human EGFR (`P00533`) that shows which residues contact each
 of seven approved kinase-inhibitor drugs and one ATP analogue in solved
@@ -88,7 +89,9 @@ note records the fix
 
 ## Documentation
 
-During the event, seventeen pull requests improved the documentation.
+During the event, seventeen pull requests improved the documentation. All
+of them came from the three people on project L5, documentation fixes by
+first-time users.
 
 | Pull request                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | By                                                          | What changed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -139,16 +142,11 @@ started:
   page
   ([8d5c37a](https://github.com/ebi-webcomponents/protvista/commit/8d5c37a484fc373243969dbb3a8955b89511dc1f)).
 
-[TODO(maintainer): any other projects, prototypes or ideas from the event that
-are not in a pull request or issue.]
-
 ## Feedback
 
 [TODO(maintainer): results of the post-hackathon survey
 ([#229](https://github.com/ebi-webcomponents/protvista/issues/229)): number of
 responses and the main findings.]
-
-[TODO(maintainer): what came out of the closing feedback session.]
 
 ## What we learned
 
@@ -173,14 +171,12 @@ What the pull requests show:
   became possible on the evening of the first day
   ([#378](https://github.com/ebi-webcomponents/protvista/issues/378)).
 
-[TODO(maintainer): anything else we learned, including from the survey and the
-feedback session.]
-
 ## What changes
 
-[TODO(maintainer): what we will change as a result, for example to the
-contributor guide, the default branch, or review capacity, and for the next
-event.]
+Participants asked for two things that we will look at next:
+
+- **Better screenshots and image capture** of the viewer.
+- **More than one protein at once** in the viewer.
 
 ## Get involved
 
