@@ -40,7 +40,7 @@ How each figure was counted is at the end of this post.
 
 ### Isoform rows ([#337](https://github.com/ebi-webcomponents/protvista/pull/337))
 
-By [Rajarshi0](https://github.com/Rajarshi0) (hackathon project F8).
+By [Rajarshi0](https://github.com/Rajarshi0) and a teammate (project F8).
 
 ProtVista draws a protein's canonical sequence, but UniProt lists several
 isoforms for many proteins. This contribution is the first step towards
