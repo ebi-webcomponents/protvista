@@ -10,7 +10,9 @@ lists every contribution with a link, says what we learned, and says what
 happens next.
 
 Daniel Rice and Swaathi Kandasaamy planned and led the hackathon, and Ajay
-Mishra coordinated it, all at EMBL-EBI.
+Mishra coordinated it, all at EMBL-EBI. The hackathon is part of ProtVista's
+Research Software Maintenance Fund (RSMF) grant from the Software
+Sustainability Institute (SSI).
 
 Thank you to everyone who took part. The pull requests below were opened by
 [Bibhuprasadbehera](https://github.com/Bibhuprasadbehera),
@@ -246,6 +248,10 @@ October 2026 from the repository on GitHub.
 ---
 
 _30 October 2026._
+
+This work was supported by the Research Software Maintenance Fund, managed by
+the Software Sustainability Institute and funded by UKRI grant reference
+AH/Z000114/1.
 
 Code is licensed under the MIT License; documentation and sample data are
 licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
