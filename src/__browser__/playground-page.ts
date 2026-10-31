@@ -180,6 +180,12 @@ export interface PlaygroundOptions {
    * a 770-residue protein for the Proteins API.
    */
   respond?: (url: string) => Response | undefined;
+  /**
+   * The page markup to build instead of {@link SKELETON}: the real page's
+   * body, from `playground-astro-page.ts`, for a spec that checks the page
+   * as it ships.
+   */
+  markup?: string;
 }
 
 const realFetch = globalThis.fetch.bind(globalThis);
@@ -214,7 +220,10 @@ export function openGate(): void {
 export async function openPlayground(
   options: PlaygroundOptions
 ): Promise<void> {
-  const parsed = new DOMParser().parseFromString(SKELETON, 'text/html');
+  const parsed = new DOMParser().parseFromString(
+    options.markup ?? SKELETON,
+    'text/html'
+  );
   fixture.push(...parsed.body.children);
   document.body.append(...fixture);
   const hash =
