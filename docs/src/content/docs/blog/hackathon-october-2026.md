@@ -144,9 +144,34 @@ started:
 
 ## Feedback
 
-[TODO(maintainer): results of the post-hackathon survey
-([#229](https://github.com/ebi-webcomponents/protvista/issues/229)): number of
-responses and the main findings.]
+We asked for anonymous feedback at the end of each day
+([#229](https://github.com/ebi-webcomponents/protvista/issues/229)) and got 6
+responses on day 1, 6 on day 2 and 5 on day 3.
+
+- **Most people were new to ProtVista.** On day 1, five of the six had never
+  used it, and all six said they would use it in their future work.
+- **Ratings were high.** Day 1: two Excellent, one Very good, two Good and one
+  Satisfactory. Day 2: one Excellent, two Very good and three Good. Day 3: two
+  Excellent and three Very good.
+- **The pace was about right.** All six on day 1 found the amount of content
+  about right. On day 2, four found the project work about right and two found
+  it very hard; by day 3 all five found it about right.
+- **Most reached their goal.** On day 3, three of the five said they had
+  reached their project goal, one was about three quarters of the way and one about
+  half. Hands-on work was the favourite part on day 2 (four of six), followed
+  by project work.
+- **People want to stay involved.** All five on day 3 said they would like to
+  contribute or collaborate again.
+
+What participants asked for:
+
+- Downloading the viewer as a high-resolution image (PNG, JPG or similar).
+- Viewing more than one protein at once.
+- A clearer "start here" guide for beginners: where to paste the HTML and the
+  YAML, how to load a sample file, and what a working result looks like.
+- Advance notice of what to prepare, such as the coding basics needed to read
+  the playground's error messages.
+- More on protein dynamics.
 
 ## What we learned
 
@@ -170,6 +195,15 @@ What the pull requests show:
   examples with a `preset.json`, with no change to the playground's code. That
   became possible on the evening of the first day
   ([#378](https://github.com/ebi-webcomponents/protvista/issues/378)).
+
+What the feedback shows:
+
+- **Beginners need a clearer first step.** The survey asked for a "start here"
+  guide, and the documentation fixes covered the same ground: where the HTML
+  snippet goes, and what the on-screen errors mean.
+- **The project days are hard for newcomers without some preparation.** Two
+  people found day 2 very hard, and one asked to know beforehand what to
+  prepare.
 
 ## What changes
 
