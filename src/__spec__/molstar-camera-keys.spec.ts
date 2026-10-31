@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 /**
- * Pins issue to file P of the WCAG audit (`docs/accessibility-audit.md`,
+ * Pins #431, raised by the WCAG audit (`docs/accessibility-audit.md`,
  * 2.1.4 Character key shortcuts): the Mol* 3D view inside
  * `nightingale-structure` binds I, O and T to spin, rock and reset the
  * camera, with no modifier key, and ProtVista cannot turn them off.
@@ -11,7 +11,7 @@
  * spec includes the `CameraControls` behaviour, and that behaviour's key
  * bindings are single letters. A Nightingale or Mol* upgrade that drops the
  * behaviour, adds a modifier or changes the keys fails here; then re-check
- * 2.1.4 and update issue P and this test.
+ * 2.1.4 and update #431 and this test.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -26,7 +26,7 @@ const bundle = readFileSync(
   'utf8'
 );
 
-describe('Mol* camera keys in nightingale-structure (issue to file: P)', () => {
+describe('Mol* camera keys in nightingale-structure (#431)', () => {
   it('the viewer includes the CameraControls behaviour', () => {
     expect(bundle).toMatch(/\.Behavior\([\w$.]*\bCamera\.CameraControls\)/);
   });

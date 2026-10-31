@@ -202,13 +202,13 @@ describe('structure panel: keyboard (2.1.2, 2.4.3, 2.4.7, 2.4.11, 3.2.1)', () =>
     expect(deepActive()).toBe(radios.querySelector('input[value="alphamissense"]'));
   });
 
-  // Issue to file: L. The datatable's `updated()` moves focus to a row
+  // Issue #427. The datatable's `updated()` moves focus to a row
   // whenever its filters change while it has focus, and the filter that was
   // just changed is inside it. With the keyboard, ArrowDown on a closed
   // <select> changes its value at once (Chromium on Windows and Linux), so a
   // keyboard user is moved out of the filter after one step. When focus
   // stays on the filter, expect `filter` here.
-  it('changing a table filter moves focus to a row (issue to file: L)', async () => {
+  it('changing a table filter moves focus to a row (#427)', async () => {
     const { panel } = await mountPanel();
     const table = panel.querySelector('protvista-uniprot-datatable')!;
     const filter = table.shadowRoot!.querySelector<HTMLSelectElement>('select[data-key="method"]')!;
@@ -253,7 +253,7 @@ describe('structure panel: keyboard (2.1.2, 2.4.3, 2.4.7, 2.4.11, 3.2.1)', () =>
 });
 
 describe('datatable: focus under the sticky header (2.4.11)', () => {
-  it('arrowing up through a scrolled table hides the focused row under the header (issue to file: M)', async () => {
+  it('arrowing up through a scrolled table hides the focused row under the header (#428)', async () => {
     const before = button('Before the table');
     const table = add(document.createElement('protvista-uniprot-datatable')) as unknown as ProtvistaUniprotDatatable<{ id: string; source: string; method: string }>;
     (table as unknown as HTMLElement).style.setProperty('--protvista-datatable-max-height', '240px');
@@ -280,7 +280,7 @@ describe('datatable: focus under the sticky header (2.4.11)', () => {
       const row = deepActive()!;
       if (!partlyVisible(row)) hidden.push(row.getAttribute('data-id')!);
     }
-    // Issue to file: M. Once the table has to scroll up, the browser brings
+    // Issue #428. Once the table has to scroll up, the browser brings
     // the focused row to the top edge of the scroll box, where the sticky
     // header (with its filters) covers it completely. When the table keeps
     // rows clear of the header (`scroll-padding-top`, or scrolling them in

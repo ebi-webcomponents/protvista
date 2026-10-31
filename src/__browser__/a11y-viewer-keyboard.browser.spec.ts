@@ -204,7 +204,7 @@ const EXPECTED_STOPS = [
   /^button "Some tracks in this group failed to load"$/,
   /^button "Retry loading/,
   // nightingale-filter 5.11: each class is a focusable <label> and then its
-  // checkbox, so every filter takes two Tab presses (issue to file: I).
+  // checkbox, so every filter takes two Tab presses (#424).
   ...[
     'Likely pathogenic or pathogenic',
     'Predicted consequence',
@@ -295,7 +295,7 @@ describe('viewer: keyboard order and traps (2.1.2, 2.4.3)', () => {
         `${kind}: ${stops.map(describeEl).join('\n')}`
       ).toBe(true);
     }
-    // Only the variant filter's labels (issue to file: I).
+    // Only the variant filter's labels (#424).
     expect(noRing.filter((n) => !n.startsWith('label "'))).toEqual([]);
   });
 
@@ -321,7 +321,7 @@ describe('viewer: keyboard order and traps (2.1.2, 2.4.3)', () => {
     expect(document.activeElement).not.toBe(note);
   });
 
-  it('the feature tooltip takes focus on a click; Tab moves on, Escape drops focus to the page (issue to file: A)', async () => {
+  it('the feature tooltip takes focus on a click; Tab moves on, Escape drops focus to the page (#416)', async () => {
     q(`.${P}-group-label[data-group-toggle="lab"]`).click();
     await settle();
     const canvas = await domainsTrack();
@@ -341,7 +341,7 @@ describe('viewer: keyboard order and traps (2.1.2, 2.4.3)', () => {
     await vi.waitFor(() => expect(tooltip.hidden).toBe(false));
     await userEvent.keyboard('{Escape}');
     expect(tooltip.hidden).toBe(true);
-    // Issue to file: A. Escape closes the tooltip but hands focus back to
+    // Issue #416. Escape closes the tooltip but hands focus back to
     // nothing: it was opened by a click on a canvas, which takes no focus,
     // and `popover.ts` does not restore focus to the page body, so focus
     // falls there when the tooltip hides. The next Tab starts again at the
@@ -421,7 +421,7 @@ async function clickFeature(
 }
 
 describe('viewer: focus visible and not obscured (2.4.7, 2.4.11)', () => {
-  it('every stop but the variant filter labels shows focus (issue to file: I)', async () => {
+  it('every stop but the variant filter labels shows focus (#424)', async () => {
     const looks = snapshotLooks([viewer]);
     const rings: string[] = [];
     const none: string[] = [];
@@ -511,7 +511,7 @@ describe('viewer: single-character keys (2.1.4)', () => {
       else (document.activeElement as HTMLElement | null)?.blur();
       // The pointer rests over the tracks, where a canvas listening for keys
       // would take them. (The Mol* 3D view is stubbed in this file: its
-      // single-key shortcuts are assessed from its code, issue to file: P.)
+      // single-key shortcuts are assessed from its code, issue #431.)
       await userEvent.hover(q('nightingale-navigation'));
       await userEvent.keyboard(PRINTABLE_KEYS);
       await settle();
@@ -585,11 +585,11 @@ describe('viewer: pointer cancellation (2.5.2)', () => {
     await vi.waitFor(() => expect(tooltip.hidden).toBe(false));
   });
 
-  // Issue to file: O. An open ⓘ/⚠ popover closes on the *down* event of a
+  // Issue #430. An open ⓘ/⚠ popover closes on the *down* event of a
   // press anywhere else (`_onNoteOutside`, a capture `pointerdown` listener),
   // so pressing outside and moving off before releasing still closes it.
   // When it closes on `click` instead, flip the last expectation.
-  it('an open note closes on the press itself, not on release (issue to file: O)', async () => {
+  it('an open note closes on the press itself, not on release (#430)', async () => {
     const note = q(`.${P}-nav-track-label .${P}-note`);
     await userEvent.click(note);
     await settle();
@@ -613,7 +613,7 @@ describe('viewer: target size (2.5.8)', () => {
       q(`.${P}-error-badge`),
       q(`.${P}-error-retry`),
       ...viewer.querySelectorAll<HTMLElement>('nightingale-filter input[type="checkbox"]'),
-      // Each filter's <label> is a tab stop of its own (issue to file: I).
+      // Each filter's <label> is a tab stop of its own (#424).
       ...viewer.querySelectorAll<HTMLElement>('nightingale-filter label'),
     ];
     const sizes = targetSizes(targets);
@@ -673,11 +673,11 @@ describe('viewer: reading order in the accessibility tree (1.3.2)', () => {
     expect(order.every((i) => i >= 0), lines.join('\n')).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     // The ⚠ badge and Retry sit inside the "Partly broken" button
-    // (`nested-interactive`, issue to file: B), so they come straight after it.
+    // (`nested-interactive`, issue #417), so they come straight after it.
     const broken = at(/^button "Partly broken/);
     expect(lines[broken + 1]).toMatch(/^button "Some tracks in this group failed to load"$/);
     expect(lines[broken + 2]).toMatch(/^button "Retry loading/);
-    // Track contents are not in the tree at all (issue to file: A).
+    // Track contents are not in the tree at all (#416).
     expect(lines.some((l) => /first domain|a region/.test(l))).toBe(false);
   });
 

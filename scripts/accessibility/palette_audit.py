@@ -1005,7 +1005,7 @@ def doc_claims(r: dict) -> list[tuple]:
     the forbidden strings. A `fact` claim is a statement the docs make that is
     checked against the results directly."""
     A, P = AUDIT_DOC, PAGE_DOC
-    SUMMARY, WCAG, ISSUES = "## Summary", "## WCAG 2.2 AA results", "## Issues to file"
+    SUMMARY, WCAG, ISSUES = "## Summary", "## WCAG 2.2 AA results", "## Issues filed"
     S_VAR, S_AF, S_AM = "#### Variant consequence", "#### AlphaFold confidence", "#### AlphaMissense"
     S_FEAT, S_IPR = "#### Feature-type colours", "#### InterPro representative domains"
     S_GRAPH, S_OTHER = "#### Count graphs", "#### Other built-in colours"
@@ -1114,7 +1114,7 @@ def doc_claims(r: dict) -> list[tuple]:
                    + [f"{x:.2f}:1" for _, x in F["specified"][:5]]))
     c.append(_line(A, WCAG, "| 1.4.11", [f"{nd} of {tot} feature-type colours"]))
     c.append(_line(A, SUMMARY, "**Low contrast.**", [f"{nd} of the {tot} feature-type colours"]))
-    c.append(_line(A, ISSUES, "**H.**", [f"the {nd} colours below 3:1"]))
+    c.append(_line(A, ISSUES, "**[#423](", [f"the {nd} colours below 3:1"]))
     c.append(_line(P, None, "**Collapsed groups.**", [f"{nd} of the {tot} default feature colours"]))
     for gid, g in r["feature_groups"].items():
         if not g["types"]:

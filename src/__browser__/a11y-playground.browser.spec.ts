@@ -275,7 +275,7 @@ describe('playground: pointer cancellation (2.5.2)', () => {
 });
 
 describe('playground: target size (2.5.8)', () => {
-  it('every header control is 24×24 px or spaced; the panel splitter is 8 px wide (issue to file: J)', async () => {
+  it('every header control is 24×24 px or spaced; the panel splitter is 8 px wide (#425)', async () => {
     await vi.waitFor(() => {
       if (!preview()?.querySelector('[data-group-toggle="lab"]')) throw new Error('no preview');
     });
@@ -334,12 +334,12 @@ describe('playground: error suggestions (3.3.3)', () => {
     }
   });
 
-  // Issue to file: N. A value outside an enum, or an unknown key inside a
+  // Issue #429. A value outside an enum, or an unknown key inside a
   // track, reaches the author as the schema validator's raw messages: they
   // neither list the allowed values nor name the key, and one says `data`
   // is missing although it is there. When they are rewritten, expect the
   // allowed formats here instead.
-  it('a wrong data format gets raw schema messages with no suggestion (issue to file: N)', async () => {
+  it('a wrong data format gets raw schema messages with no suggestion (#429)', async () => {
     const messages = await validate(CONFIG.replace('format: csv', 'format: xls'));
     expect(messages).toContain('must be equal to one of the allowed values (/rows/0/tracks/0/data/format)');
     expect(messages).toContain("must have required property 'data' (/rows/0)");
@@ -384,11 +384,11 @@ describe('playground: changing a control (3.2.2)', () => {
     expect(deepActive()).toBe(byId('load-data'));
   });
 
-  // Issue to file: K. When the new accession has no UniProt entry, the
+  // Issue #426. When the new accession has no UniProt entry, the
   // preview's error panel appears and takes focus: a keyboard user who
   // pressed Tab to move on lands in the preview instead. When focus stays
   // put (and the panel is announced instead), expect `load-data` here.
-  it('an unknown accession pulls focus into the preview on Tab (issue to file: K)', async () => {
+  it('an unknown accession pulls focus into the preview on Tab (#426)', async () => {
     const accession = byId<HTMLInputElement>('accession');
     accession.focus();
     accession.select();

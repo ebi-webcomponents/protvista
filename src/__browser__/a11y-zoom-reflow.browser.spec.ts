@@ -271,13 +271,13 @@ describe('reflow at 320 CSS px (1.4.10)', () => {
     expect(outOfReach()).toEqual([]);
   });
 
-  // Issue to file: R. The label column is `--protvista-label-width`, 20vw by
+  // Issue #433. The label column is `--protvista-label-width`, 20vw by
   // default: 64 px at 320 CSS px. The Customize button (about 90 px), the
   // variant filter, and any word longer than the column run past it, under
   // the ruler and tracks,
   // which paint over them. When the column has a usable minimum width or
   // its contents wrap inside it, expect an empty list here.
-  it('the Customize button, the variant filter and long words run out of the 64 px label column (issue to file: R)', async () => {
+  it('the Customize button, the variant filter and long words run out of the 64 px label column (#433)', async () => {
     await layOut(320, 256);
     const column = preview()!.querySelector(`.${CSS_PREFIX}-nav-track-label`)!;
     expect(Math.round(column.getBoundingClientRect().width)).toBe(64);
@@ -294,14 +294,14 @@ describe('reflow at 320 CSS px (1.4.10)', () => {
     expect(button.contains(hit)).toBe(false);
   });
 
-  // Issue to file: Q. The viewer sizes its track area when it draws and does
+  // Issue #432. The viewer sizes its track area when it draws and does
   // not shrink it when its container narrows later, as browser zoom and a
   // narrowed window do: the ruler and tracks run past the right edge and the
   // preview scrolls sideways until the viewer is drawn again. Widening is
   // followed. The track area is exempt from 1.4.10, so this is not a
   // failure, but zooming in after the page loads hides the end of the
   // tracks. When the viewer follows its container, expect no overflow here.
-  it('a viewer drawn wide keeps its track width when the window narrows (issue to file: Q)', async () => {
+  it('a viewer drawn wide keeps its track width when the window narrows (#432)', async () => {
     await layOut(1280, 720);
     await page.viewport(320, 256);
     await new Promise((r) => setTimeout(r, 1500));
@@ -401,7 +401,7 @@ describe('orientation (1.3.4)', () => {
       expect(outOfReach(), `${w}×${h}`).toEqual([]);
       const column = preview()!.querySelector(`.${CSS_PREFIX}-nav-track-label`)!;
       if (w < h) {
-        // Issue to file: R, as at 320 px: the 20vw label column is 72 px
+        // Issue #433, as at 320 px: the 20vw label column is 72 px
         // wide in portrait, and the Customize button runs out of it. That
         // is the width (1.4.10), not the orientation.
         expect(Math.round(column.getBoundingClientRect().width)).toBe(72);

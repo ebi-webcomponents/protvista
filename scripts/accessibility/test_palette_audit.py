@@ -245,7 +245,7 @@ class TestHeadlineFindings(unittest.TestCase):
 
     def test_alphamissense_legend_differs_from_model(self):
         # The structure legend is darker than the 3D model for every class
-        # (accessibility.md, "The AlphaMissense legend"; audit issue G).
+        # (accessibility.md, "The AlphaMissense legend"; audit issue #422).
         for name, swatch, model, d, l_swatch, l_model in results()["alphamissense_legend_vs_model"]:
             self.assertGreaterEqual(d, pa.HARD, name)
             self.assertLess(l_swatch, l_model, name)
