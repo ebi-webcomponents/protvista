@@ -360,12 +360,20 @@ describe('playground: changing a control (3.2.2)', () => {
 
   it('a new valid accession re-renders the preview; Tab still goes to the next control', async () => {
     setEditorText('rows:\n  - id: x\n    kind: features\n    data: https://example.org/x.json\n');
+    const old = preview();
     await userEvent.click(byId('run'));
+    await vi.waitFor(() => expect(preview()).not.toBe(old));
     const accession = byId<HTMLInputElement>('accession');
     await vi.waitFor(() => expect(accession.disabled).toBe(false));
+    const viewer = preview();
     accession.focus();
     accession.select();
     await userEvent.keyboard('P12345{Tab}');
+    // The change re-rendered the preview: a new viewer for the new entry.
+    await vi.waitFor(() => {
+      expect(preview()).not.toBe(viewer);
+      expect(preview()?.getAttribute('accession')).toBe('P12345');
+    });
     await new Promise((r) => setTimeout(r, 1500));
     expect(deepActive()).toBe(byId('load-data'));
   });
@@ -389,5 +397,47 @@ describe('playground: changing a control (3.2.2)', () => {
     const active = deepActive()!;
     expect(byId('preview').contains(active)).toBe(true);
     expect(active.textContent).toContain("No UniProt entry found for 'NOPE00'");
+  });
+});
+
+describe('playground: the accession field in the Tab order (2.4.3, 2.4.7, 2.4.11, 3.2.1)', () => {
+  // The other walks use a config with its own `sequence:`, which disables
+  // the accession field; the config here has none (set by the tests above),
+  // so the field is enabled and takes a stop.
+  it('Tab stops on the accession between the preset and Load data, with focus shown and nothing changed', async () => {
+    const accession = byId<HTMLInputElement>('accession');
+    expect(accession.disabled).toBe(false);
+    for (const [w, h] of [
+      [1280, 720],
+      [1280, 400],
+    ]) {
+      await page.viewport(w, h);
+      const s = withSentinels();
+      try {
+        const looks = snapshotLooks([document]);
+        const start = pageState();
+        const problems: string[] = [];
+        const walk = await tabWalk(s.start, byId('load-data'), {
+          each: (el) => {
+            if (el !== accession) return;
+            if (!focusIndicator(el, looks)) problems.push('no focus indicator');
+            if (!partlyVisible(el)) problems.push('hidden');
+            const diff = stateDiff(start, pageState());
+            if (diff.length) problems.push(`changed: ${diff.join('; ')}`);
+          },
+        });
+        const names = walk.stops.map(describeEl);
+        expect(names.slice(-3), `${w}×${h}`).toEqual([
+          expect.stringMatching(/^select#preset /),
+          expect.stringMatching(/^input#accession /),
+          expect.stringMatching(/^button#load-data /),
+        ]);
+        expect(problems, `${w}×${h}`).toEqual([]);
+        expect(walk.lost).toEqual([]);
+      } finally {
+        s.remove();
+      }
+    }
+    await page.viewport(1280, 720);
   });
 });

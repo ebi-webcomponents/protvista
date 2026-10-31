@@ -10,8 +10,8 @@ This page lists only limitations that have been verified in the code or by a tes
 ## What works today
 
 - **Controls around the tracks** have names and roles, and browser tests operate them from the keyboard: group expand and collapse (an element with the button role and `aria-expanded`), the ⓘ notes, the ⚠ error badges and their Retry button, and every [Customize mode](/protvista/customize-layout) control.
-- **Focus.** Customize controls, notes and error badges have their own focus ring; the group toggle and Retry show the browser's default one. A browser check of every control found a visible focus indicator on all of them except the variant filter's labels (below). Tab never gets stuck: it moves through and out of the viewer, the playground's code editor and the structure panel's controls and table.
-- **Zoom and text spacing.** At 200% zoom, and with WCAG's increased line, letter and word spacing, no text is cut off or overlaps and every control stays in reach.
+- **Focus.** Customize controls, notes and error badges have their own focus ring; the group toggle and Retry show the browser's default one. A browser check of every control found a visible focus indicator on all of them except the variant filter's labels (below). Tab and Shift+Tab never get stuck: they move through and out of the viewer, the playground's code editor and the structure panel's controls and table. The 3D structure view itself has not been checked yet.
+- **Zoom and text spacing.** At 200% zoom, and with WCAG's increased line, letter and word spacing, no text in the controls, labels, ruler or sequence is cut off or overlaps, and every control stays in reach. The exception is the variant track's amino-acid axis (below).
 - **Announcements.** Loading, Customize-mode changes and visitor notes are announced to screen readers. A viewer that cannot load shows an alert and moves focus to it.
 - **The structure table** under the 3D view can be used with the arrow keys.
 - **Automated checks.** Every change runs axe, keyboard, focus, zoom and reflow tests in a real browser on the surfaces above.
@@ -47,6 +47,7 @@ This page lists only limitations that have been verified in the code or by a tes
 ### Narrow screens and zoom
 
 - **At 320 px wide** (for example 400% zoom on a laptop), the label column beside the tracks is only 64 px wide. The Customize button, the variant filter and long words in labels run past it and are partly covered by the tracks.
+- **Variant track axis.** The amino-acid letters on the variant track's left axis are drawn so close to its edge that the widest (such as M and W) lose a sliver of their left side, at any zoom; with wider letter spacing more letters do. Whether they all stay readable has not been checked by eye yet.
 - **Zooming in after the viewer has drawn** leaves its tracks at their old width, so they run past the right edge until the viewer is drawn again (reload the page, or press Run in the playground).
 
 ### The 3D structure view

@@ -67,10 +67,18 @@ const ROWS = [
   { id: 'AF-P05067-F1', source: 'AlphaFold DB', method: 'Predicted', chain: 'A', positions: '1-770', amAnnotationsUrl: 'x', downloadUrl: 'https://example.org/af.cif' },
 ];
 
-async function mountPanel(): Promise<{ panel: Panel; before: HTMLElement; after: HTMLElement }> {
-  // The browser setup stubs the structure module; the query bypasses it.
+/**
+ * Define the real `<protvista-uniprot-structure>`. The browser setup stubs
+ * the structure module; the query bypasses it. Every test that mounts the
+ * panel calls this, so each also runs alone (`-t`).
+ */
+async function loadReal() {
   // @ts-expect-error query import
   await import('../protvista-uniprot-structure.ts?real=1');
+}
+
+async function mountPanel(): Promise<{ panel: Panel; before: HTMLElement; after: HTMLElement }> {
+  await loadReal();
   const before = button('Before the panel');
   const panel = document.createElement('protvista-uniprot-structure') as Panel;
   panel.metaInfo = html`<p>legend</p>`;
@@ -92,7 +100,20 @@ async function mountPanel(): Promise<{ panel: Panel; before: HTMLElement; after:
   return { panel, before, after };
 }
 
+/** The rows of the panel's table, in document order. */
+const tableRows = (table: Element) => [...table.shadowRoot!.querySelectorAll<HTMLElement>('tbody tr[data-id]')];
+
+/** The links a Tab can reach in `row`. */
+const rowLinks = (row: Element) =>
+  [...row.querySelectorAll<HTMLAnchorElement>('a[href]')].filter(
+    (a) => a.tabIndex >= 0 && a.getClientRects().length > 0
+  );
+
 describe('structure panel: keyboard (2.1.2, 2.4.3, 2.4.7, 2.4.11, 3.2.1)', () => {
+  afterEach(async () => {
+    await page.viewport(1280, 720);
+  });
+
   it('Tab reaches the colour radios, the filters and the table, shows focus and leaves', async () => {
     const { panel, before, after } = await mountPanel();
     const table = panel.querySelector('protvista-uniprot-datatable')!;
@@ -124,16 +145,50 @@ describe('structure panel: keyboard (2.1.2, 2.4.3, 2.4.7, 2.4.11, 3.2.1)', () =>
     expect(rest.filter((n) => n.startsWith('tr[role=option]'))).toEqual([
       expect.stringMatching(/^tr\[role=option\] "AlphaFold DBAF-P05067-F1/),
     ]);
-    expect(rest.filter((n) => !n.startsWith('tr[') && !n.startsWith('a '))).toEqual([]);
+    // Every link in every row is a stop, in document order (top to
+    // bottom, left to right), and the selected row comes just before its
+    // own links: so the links of the rows above it come before it.
+    const rows = tableRows(table);
+    const expected = rows.flatMap((row) => [...(row.tabIndex === 0 ? [row] : []), ...rowLinks(row)]);
+    expect(rows.flatMap(rowLinks).length).toBeGreaterThanOrEqual(ROWS.length);
+    expect(walk.stops.slice(3, -1).map(describeEl)).toEqual(expected.map(describeEl));
+    expect(walk.stops.slice(3, -1)).toEqual(expected);
     expect(walk.lost).toEqual([]);
     expect(noRing).toEqual([]);
     expect(hidden).toEqual([]);
     expect(changed).toEqual([]);
+
+    // Shift+Tab walks the same stops backwards and leaves the panel, also
+    // changing nothing.
+    const back = await tabWalk(after, before, { back: true });
+    expect(back.lost).toEqual([]);
+    expect(back.stops.slice(0, -1)).toEqual(walk.stops.slice(0, -1).reverse());
+    expect(stateDiff(start, stateOf([panel, table.shadowRoot! as unknown as Element]))).toEqual([]);
+  });
+
+  it('focus is never entirely hidden in a short window (1280×400), either way', async () => {
+    await page.viewport(1280, 400);
+    const { before, after } = await mountPanel();
+    for (const [from, to, back] of [
+      [before, after, false],
+      [after, before, true],
+    ] as const) {
+      const hidden: string[] = [];
+      const walk = await tabWalk(from, to, {
+        back,
+        each: (el) => {
+          if (el !== to && !partlyVisible(el)) hidden.push(describeEl(el));
+        },
+      });
+      expect(walk.stops.length).toBeGreaterThan(5);
+      expect(hidden, back ? 'Shift+Tab' : 'Tab').toEqual([]);
+    }
   });
 
   it('a colour radio changes on input without moving focus (3.2.2)', async () => {
     // A panel with AlphaMissense colouring available, as
     // `structure-color-radios.browser.spec.ts` mounts it.
+    await loadReal();
     const radios = document.createElement('protvista-uniprot-structure') as Panel;
     radios.metaInfo = html`<p>legend</p>`;
     (radios as unknown as { alphamissenseAvailable: boolean }).alphamissenseAvailable = true;
@@ -165,11 +220,35 @@ describe('structure panel: keyboard (2.1.2, 2.4.3, 2.4.7, 2.4.11, 3.2.1)', () =>
     expect(deepActive()?.getAttribute('role')).toBe('option');
   });
 
-  it('radios are under 24 px but spaced, and their labels widen the target (2.5.8)', async () => {
+  // The radios are the browser's own 13 px controls, one per line. In a
+  // wide panel their lines are 20 px apart, so their 24 px circles meet and
+  // they do not have the spacing 2.5.8 allows; they pass only under its
+  // exception for a target whose size the user agent sets and the author
+  // does not change. (In a narrow panel the labels wrap and the radios end
+  // up far enough apart.) Each also has a linked text label.
+  it('the colour radios are the browser-default size, 20 px apart, with linked labels (2.5.8)', async () => {
+    await page.viewport(1280, 720);
     const { panel } = await mountPanel();
     const radios = [...panel.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+    expect(radios).toHaveLength(2);
+    // Sized by the browser: the same size as a radio with no styles.
+    const plain = add(Object.assign(document.createElement('input'), { type: 'radio' }));
+    const { width, height } = plain.getBoundingClientRect();
+    expect(width).toBeLessThan(24);
     const sizes = targetSizes(radios);
-    expect(sizes.every((s) => s.big || s.spaced), JSON.stringify(sizes)).toBe(true);
+    expect(sizes.map((s) => [s.width, s.height])).toEqual(radios.map(() => [width, height]));
+    expect(sizes.map((s) => [s.big, s.spaced]), JSON.stringify(sizes)).toEqual([
+      [false, false],
+      [false, false],
+    ]);
+    const [a, b] = radios.map((r) => r.getBoundingClientRect());
+    expect(Math.round(b.top - a.top)).toBe(20);
+    // Each radio has a text label that selects it.
+    for (const radio of radios) {
+      const label = radio.labels?.[0];
+      expect(label?.textContent?.trim()).toBeTruthy();
+      expect(label?.control).toBe(radio);
+    }
   });
 });
 
@@ -226,6 +305,7 @@ describe('structure panel: zoom, reflow and text spacing (1.4.4, 1.4.10, 1.4.12)
 
   it.each([
     [640, 360, false],
+    [960, 540, false],
     [320, 256, false],
     [1280, 720, true],
   ])('at %i×%i CSS px (text spacing: %s) nothing is clipped or overlaps', async (w, h, spacing) => {
@@ -235,14 +315,13 @@ describe('structure panel: zoom, reflow and text spacing (1.4.4, 1.4.10, 1.4.12)
     try {
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
       // The 3D view is a stub here; the table is two-dimensional data, so
-      // only its own scroll box may scroll sideways (1.4.10 exempts it).
-      // The table's columns may run on inside its own scroll box.
-      const problems = layoutProblems(
-        [panel],
-        (el) =>
-          el.localName === 'nightingale-structure' ||
-          (w <= 320 && el.matches('.scroll-container'))
-      );
+      // only its own scroll box may scroll sideways (1.4.10 exempts it):
+      // its columns may run on past the page's edge inside that box, but its
+      // cells and sticky header are still checked for clipped and
+      // overlapping text.
+      const problems = layoutProblems([panel], (el) => el.localName === 'nightingale-structure', {
+        scrolls: (el) => el.matches('.scroll-container'),
+      });
       expect(problems.map((p) => `${p.kind}: ${p.what}`)).toEqual([]);
       expect(sideways(panel)).toEqual([]);
       expect(sidewaysScroll()).toBe(0);

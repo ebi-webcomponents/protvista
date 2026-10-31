@@ -45,6 +45,8 @@ import { track, unmountAll } from './mount.js';
 import {
   PRINTABLE_KEYS,
   accessibilityTree,
+  deepActive,
+  deepElements,
   deepContains,
   describeEl,
   focusIndicator,
@@ -164,6 +166,20 @@ beforeEach(async () => {
     { timeout: 10000 }
   );
   await settle();
+  // Nightingale keeps adding SVG elements (ruler ticks, sequence letters)
+  // for a moment after its first paint. Wait until the count holds, so the
+  // element count in `stateOf` compares like with like.
+  let count = -1;
+  await vi.waitFor(
+    () => {
+      const now = deepElements(viewer).length;
+      if (now !== count) {
+        count = now;
+        throw new Error('still drawing');
+      }
+    },
+    { timeout: 5000, interval: 250 }
+  );
 });
 
 afterEach(async () => {
@@ -256,15 +272,29 @@ describe('viewer: keyboard order and traps (2.1.2, 2.4.3)', () => {
     expect(walk.lost).toEqual([]);
     expect(hidden).toEqual([]);
     const stops = walk.stops.filter((s) => s !== after);
-    // Every Customize control is reached: a Show switch per row and the
-    // move buttons that are not disabled.
-    // A disabled switch (a track with no data) is rightly not a stop.
-    const switches = [
-      ...viewer.querySelectorAll<HTMLButtonElement>('[role="switch"]'),
-    ].filter((s) => !s.disabled);
-    expect(switches.length, stops.map(describeEl).join('\n')).toBeGreaterThan(0);
-    const missed = switches.filter((s) => !stops.includes(s)).map((s) => s.outerHTML.slice(0, 300));
+    // Every control Customize mode shows is reached: each enabled, drawn
+    // element in the viewer that takes Tab focus. A disabled control (the
+    // first row's "Move up", Reset before any change, the switch of a track
+    // with no data) is rightly not a stop.
+    const focusable = deepElements(viewer).filter((el) => {
+      const h = el as HTMLElement & { disabled?: boolean };
+      return h.tabIndex >= 0 && !h.disabled && !el.closest('[hidden]') && el.getClientRects().length > 0;
+    });
+    const missed = focusable.filter((el) => !stops.includes(el)).map(describeEl);
     expect(missed).toEqual([]);
+    // Each kind of Customize control is among them.
+    const kinds = {
+      switch: '[role="switch"]',
+      move: `.${P}-row-control--move`,
+      collapse: `.${P}-row-collapse`,
+      done: `.${P}-customize-action`,
+    };
+    for (const [kind, selector] of Object.entries(kinds)) {
+      expect(
+        stops.some((el) => el.matches(selector)),
+        `${kind}: ${stops.map(describeEl).join('\n')}`
+      ).toBe(true);
+    }
     // Only the variant filter's labels (issue to file: I).
     expect(noRing.filter((n) => !n.startsWith('label "'))).toEqual([]);
   });
@@ -291,17 +321,10 @@ describe('viewer: keyboard order and traps (2.1.2, 2.4.3)', () => {
     expect(document.activeElement).not.toBe(note);
   });
 
-  it('the feature tooltip takes focus on a click, and Tab and Escape both leave it', async () => {
-    const strip = q(`#${P}-group_lab`);
+  it('the feature tooltip takes focus on a click; Tab moves on, Escape drops focus to the page (issue to file: A)', async () => {
     q(`.${P}-group-label[data-group-toggle="lab"]`).click();
     await settle();
-    const canvas = await vi.waitFor(() => {
-      const c = strip.parentElement!.querySelector<HTMLElement & { getXFromSeqPosition(n: number): number }>(
-        'nightingale-track-canvas[id$="lab-a"], nightingale-track-canvas'
-      );
-      if (!c?.getXFromSeqPosition) throw new Error('track not ready');
-      return c;
-    });
+    const canvas = await domainsTrack();
     await clickFeature(canvas, 12);
     const tooltip = await vi.waitFor(() => {
       const t = viewer.querySelector<HTMLElement>('[role="tooltip"]');
@@ -318,6 +341,15 @@ describe('viewer: keyboard order and traps (2.1.2, 2.4.3)', () => {
     await vi.waitFor(() => expect(tooltip.hidden).toBe(false));
     await userEvent.keyboard('{Escape}');
     expect(tooltip.hidden).toBe(true);
+    // Issue to file: A. Escape closes the tooltip but hands focus back to
+    // nothing: it was opened by a click on a canvas, which takes no focus,
+    // and `popover.ts` does not restore focus to the page body, so focus
+    // falls there when the tooltip hides. The next Tab starts again at the
+    // viewer's first control, not near the feature. When the tooltip returns
+    // focus to the feature or its track, expect that here.
+    expect(document.activeElement).toBe(document.body);
+    await userEvent.keyboard('{Tab}');
+    expect(describeEl(deepActive())).toBe('button "Customize"');
   });
 });
 
@@ -333,15 +365,59 @@ function byTestId(el: Element) {
   return page.getByTestId(el.getAttribute('data-testid')!);
 }
 
+type TrackCanvas = HTMLElement & { getXFromSeqPosition(n: number): number };
+
+/**
+ * The expanded "Lab hits" group's Domains track (`lab` › `a`), once it is
+ * drawn with its features laid out. Not the first canvas in the viewer:
+ * that is the group's collapsed (aggregate) track, which expanding hides.
+ */
+async function domainsTrack(): Promise<TrackCanvas> {
+  return vi.waitFor(() => {
+    const c = viewer.querySelector<TrackCanvas>('nightingale-track-canvas[id$="lab-a"]');
+    const ready =
+      c?.getXFromSeqPosition &&
+      c.getClientRects().length > 0 &&
+      (c as unknown as { fragmentCollection?: unknown }).fragmentCollection;
+    if (!ready) {
+      const ids = [...viewer.querySelectorAll('nightingale-track-canvas')].map((t) => t.id);
+      throw new Error(`the Domains track is not ready (${ids.join(', ')})`);
+    }
+    return c;
+  });
+}
+
 /** Click residue `at` of a real feature track, as a visitor would. */
 async function clickFeature(
   canvas: HTMLElement & { getXFromSeqPosition(n: number): number },
   at: number
 ) {
-  const box = canvas.getBoundingClientRect();
-  await userEvent.click(canvas, {
-    position: { x: Math.round(canvas.getXFromSeqPosition(at + 0.5)), y: Math.round(box.height / 2) },
-  });
+  // Rest the pointer on the feature until the track reports it under the
+  // pointer: on a fresh page the track can take a moment to place its
+  // features where `getXFromSeqPosition` says.
+  let nudge = 0;
+  const position = await vi.waitFor(
+    async () => {
+      const box = canvas.getBoundingClientRect();
+      const at_ = {
+        x: Math.round(canvas.getXFromSeqPosition(at + 0.5)) + (nudge++ % 2),
+        y: Math.round(box.height / 2),
+      };
+      let over = false;
+      const seen = (e: Event) => {
+        const d = (e as CustomEvent<{ eventType?: string; feature?: unknown }>).detail;
+        if (d?.feature && d.eventType !== 'mouseout') over = true;
+      };
+      canvas.addEventListener('change', seen);
+      await userEvent.hover(canvas, { position: at_ });
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      canvas.removeEventListener('change', seen);
+      if (!over) throw new Error(`no feature under the pointer at residue ${at}`);
+      return at_;
+    },
+    { timeout: 5000, interval: 100 }
+  );
+  await userEvent.click(canvas, { position });
 }
 
 describe('viewer: focus visible and not obscured (2.4.7, 2.4.11)', () => {
@@ -369,7 +445,7 @@ describe('viewer: focus visible and not obscured (2.4.7, 2.4.11)', () => {
     ]);
   });
 
-  it('focus is never entirely hidden, in a short window or under an open note', async () => {
+  it('focus is never entirely hidden in a short window, and an open note closes before it could cover the next stop', async () => {
     await page.viewport(1280, 400);
     await settle();
     const hidden: string[] = [];
@@ -380,13 +456,22 @@ describe('viewer: focus visible and not obscured (2.4.7, 2.4.11)', () => {
     });
     expect(hidden).toEqual([]);
 
-    // A note open over the controls below it: Tab on from its button.
+    // A note opens over the controls below its button. While it is open,
+    // its button (which has focus) shows; Tab on from it closes it (focus
+    // leaving the note closes it, `_onNoteFocusOut`), so the next stop is
+    // never drawn under it. The note's own placement over other controls
+    // is not what is measured here: it can never be over the focused one.
     const note = q(`.${P}-nav-track-label .${P}-note`);
     note.focus();
     await userEvent.keyboard('{Enter}');
     await settle();
+    const popover = viewer.querySelector<HTMLElement>(`#${note.id}-pop`)!;
+    expect(popover.hidden).toBe(false);
+    expect(partlyVisible(note)).toBe(true);
     await userEvent.keyboard('{Tab}');
     await settle();
+    expect(document.activeElement).not.toBe(note);
+    expect(popover.hidden).toBe(true);
     expect(partlyVisible(document.activeElement!)).toBe(true);
   });
 });
@@ -484,13 +569,7 @@ describe('viewer: pointer cancellation (2.5.2)', () => {
   it('pressing on a feature and releasing off it opens no tooltip; a click does', async () => {
     q(`.${P}-group-label[data-group-toggle="lab"]`).click();
     await settle();
-    const canvas = await vi.waitFor(() => {
-      const c = viewer.querySelector<HTMLElement & { getXFromSeqPosition(n: number): number }>(
-        'nightingale-track-canvas'
-      );
-      if (!c?.getXFromSeqPosition) throw new Error('track not ready');
-      return c;
-    });
+    const canvas = await domainsTrack();
     const box = canvas.getBoundingClientRect();
     await userEvent.dragAndDrop(byTestId(canvas), byTestId(after), {
       sourcePosition: { x: Math.round(canvas.getXFromSeqPosition(12.5)), y: Math.round(box.height / 2) },
@@ -530,6 +609,8 @@ describe('viewer: target size (2.5.8)', () => {
       q(`.${P}-error-badge`),
       q(`.${P}-error-retry`),
       ...viewer.querySelectorAll<HTMLElement>('nightingale-filter input[type="checkbox"]'),
+      // Each filter's <label> is a tab stop of its own (issue to file: I).
+      ...viewer.querySelectorAll<HTMLElement>('nightingale-filter label'),
     ];
     const sizes = targetSizes(targets);
     const failing = sizes.filter((s) => !s.big && !s.spaced);
@@ -538,6 +619,29 @@ describe('viewer: target size (2.5.8)', () => {
     // pass only by spacing: their rows are 24 px apart.
     const boxes = sizes.filter((s) => s.what.startsWith('input'));
     expect(boxes.every((s) => !s.big && s.spaced)).toBe(true);
+  });
+
+  it('in Customize mode, every control is at least 24×24 px or has 24 px of clear space', async () => {
+    q(`.${P}-customize-toggle`).focus();
+    await userEvent.keyboard('{Enter}');
+    await settle();
+    const targets = deepElements(viewer).filter((el) => {
+      const h = el as HTMLElement & { disabled?: boolean };
+      return (
+        (h.tabIndex >= 0 || el.matches('button')) &&
+        !el.closest('[hidden]') &&
+        !el.closest('nightingale-filter') &&
+        el.getClientRects().length > 0
+      );
+    });
+    const sizes = targetSizes(targets);
+    const failing = sizes.filter((s) => !s.big && !s.spaced);
+    expect(failing).toEqual([]);
+    // The Customize controls were measured: Show switches, move and
+    // collapse buttons, and Done.
+    for (const selector of ['[role="switch"]', `.${P}-row-control--move`, `.${P}-row-collapse`, `.${P}-customize-action`]) {
+      expect(targets.some((el) => el.matches(selector)), selector).toBe(true);
+    }
   });
 });
 

@@ -419,22 +419,26 @@ export interface LayoutProblem {
  *  - `clipped`: an element that hides overflow (and does not scroll) holds
  *    text and its content is bigger than its box;
  *  - `overlap`: two text runs overlap by more than 2 px both ways;
- *  - `off-page`: text that starts beyond the page's right edge.
+ *  - `off-page`: text that starts at or past the right edge of the
+ *    viewport, so it shows only by scrolling sideways. Text inside an
+ *    element `scrolls` accepts (two-dimensional content with its own scroll
+ *    box, such as a wide table, which 1.4.10 lets scroll) is still checked
+ *    for the other two, but not for this.
  */
 export function layoutProblems(
   roots: Element[],
-  exempt: (el: Element) => boolean = () => false
+  exempt: (el: Element) => boolean = () => false,
+  options: { scrolls?: (el: Element) => boolean } = {}
 ): LayoutProblem[] {
   const problems: LayoutProblem[] = [];
-  const isExempt = (el: Element) => {
-    for (let n: Element | null = el; n; n = parentOf(n)) if (exempt(n)) return true;
+  const within = (test: (el: Element) => boolean) => (el: Element) => {
+    for (let n: Element | null = el; n; n = parentOf(n)) if (test(n)) return true;
     return false;
   };
+  const isExempt = within(exempt);
+  const mayScroll = within(options.scrolls ?? (() => false));
   const textRects: { el: Element; r: Box }[] = [];
-  const pageRight = Math.max(
-    document.documentElement.clientWidth,
-    document.documentElement.scrollWidth
-  );
+  const pageRight = document.documentElement.clientWidth;
   for (const root of roots) {
     for (const el of [root, ...deepElements(root)]) {
       if (!rendered(el) || isExempt(el)) continue;
@@ -465,7 +469,7 @@ export function layoutProblems(
         // around it let show: text scrolled out of view is not overlapping.
         for (const line of range.getClientRects()) {
           if (line.width < 1 || line.height < 1) continue;
-          if (line.left >= pageRight) {
+          if (line.left >= pageRight && !mayScroll(el)) {
             problems.push({ kind: 'off-page', what: describeEl(el) });
           }
           const r = intersect(line, clip);
@@ -528,6 +532,55 @@ function clipBox(el: Element): Box {
     }
   }
   return box;
+}
+
+/**
+ * Text drawn in SVG (`<text>`) under `roots` that is cut off or overlaps:
+ *  - `clipped`: a text box that runs more than 1 px out of its `<svg>`
+ *    (an `<svg>` clips what it draws past its edge);
+ *  - `overlap`: two text boxes that overlap by more than 1 px both ways.
+ * Text that is not drawn (`display: none`, `visibility: hidden`, zero
+ * opacity on it or an ancestor, or an empty box) is skipped.
+ */
+export function svgTextProblems(roots: Element[]): LayoutProblem[] {
+  const drawn = (el: Element) => {
+    for (let n: Element | null = el; n; n = parentOf(n)) {
+      const cs = getComputedStyle(n);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') return false;
+      if (n.getAttribute('opacity') === '0') return false;
+    }
+    return true;
+  };
+  const texts = roots
+    .flatMap((root) => deepElements(root))
+    .filter((el): el is SVGTextElement => el instanceof SVGTextElement && el.textContent!.trim() !== '')
+    .map((el) => ({ el, r: el.getBoundingClientRect() }))
+    .filter(({ el, r }) => r.width >= 1 && r.height >= 1 && drawn(el));
+  /** `nightingale-navigation "40"`: the custom element that drew it, and the text. */
+  const what = (el: Element) => {
+    let host: Element | null = el;
+    while (host && !host.localName.includes('-')) host = parentOf(host);
+    return `${host?.localName ?? 'svg'} "${el.textContent!.trim()}"`;
+  };
+  const problems: LayoutProblem[] = [];
+  for (const { el, r } of texts) {
+    const svg = el.ownerSVGElement?.getBoundingClientRect();
+    if (svg && (r.left < svg.left - 1 || r.right > svg.right + 1 || r.top < svg.top - 1 || r.bottom > svg.bottom + 1)) {
+      problems.push({ kind: 'clipped', what: what(el) });
+    }
+  }
+  for (let i = 0; i < texts.length; i++) {
+    for (let j = i + 1; j < texts.length; j++) {
+      const a = texts[i].r;
+      const b = texts[j].r;
+      const x = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      const y = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (x > 1 && y > 1) {
+        problems.push({ kind: 'overlap', what: `${what(texts[i].el)} and ${what(texts[j].el)}` });
+      }
+    }
+  }
+  return problems;
 }
 
 /** How far the page scrolls sideways, in CSS px (0 = no horizontal scroll). */
