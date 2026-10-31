@@ -9,9 +9,8 @@ to make the project easier to join. This post is our record of the event. It
 lists every contribution with a link, says what we learned, and says what
 happens next.
 
-The hackathon was led by Swaathi Kandasaamy (UniProt) and Daniel Rice
-(ProtVista), and organised by Ajay Mishra (EMBL-EBI). Thank you, Ajay, for
-making it happen.
+Daniel Rice and Swaathi Kandasaamy planned and led the hackathon, and Ajay
+Mishra coordinated it, all at EMBL-EBI.
 
 Thank you to everyone who took part. The pull requests below were opened by
 [Bibhuprasadbehera](https://github.com/Bibhuprasadbehera),
