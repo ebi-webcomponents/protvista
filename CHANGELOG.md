@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Fixed: a group header no longer wraps its links, warning badge and Retry
+
+Outside Customize mode the collapse control was a button that also held the
+label's links, the warning badge and Retry, which assistive technology
+reported as nested controls. The collapse control is now its own button. The
+links, the badge and Retry sit beside it and work on their own. The header
+looks the same, and Enter, Space and a click still expand and collapse the
+group (#417).
+
 - Added `uniprot-isoforms-json` adapter and "APP isoforms" community view. The adapter is opt-in and makes no new requests unless named in a config.
 
 ### Fixed: every variants track uses the variant colours

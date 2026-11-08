@@ -199,8 +199,8 @@ const described = (stops: Element[]) =>
 const EXPECTED_STOPS = [
   /^button "Customize"$/,
   /^button "Notes about this view \(1\)"$/,
-  /^div\[role=button\] "Lab hits"$/,
-  /^div\[role=button\] "Partly broken/,
+  /^button "Lab hits"$/,
+  /^button "Partly broken/,
   /^button "Some tracks in this group failed to load"$/,
   /^button "Retry loading/,
   // nightingale-filter 5.11: each class is a focusable <label> and then its
@@ -322,7 +322,7 @@ describe('viewer: keyboard order and traps (2.1.2, 2.4.3)', () => {
   });
 
   it('the feature tooltip takes focus on a click; Tab moves on, Escape drops focus to the page (#416)', async () => {
-    q(`.${P}-group-label[data-group-toggle="lab"]`).click();
+    q(`.${P}-group-toggle[data-group-toggle="lab"]`).click();
     await settle();
     const canvas = await domainsTrack();
     await clickFeature(canvas, 12);
@@ -501,7 +501,7 @@ describe('viewer: single-character keys (2.1.4)', () => {
     const targets: (HTMLElement | null)[] = [
       null, // focus on <body>
       q(`.${P}-customize-toggle`),
-      q(`.${P}-group-label[data-group-toggle="lab"]`),
+      q(`.${P}-group-toggle[data-group-toggle="lab"]`),
       q(`.${P}-nav-track-label .${P}-note`),
       q(`.${P}-error-badge`),
       q('nightingale-filter label'),
@@ -544,7 +544,7 @@ describe('viewer: pointer cancellation (2.5.2)', () => {
     const controls = [
       `.${P}-customize-toggle`,
       `.${P}-nav-track-label .${P}-note`,
-      `.${P}-group-label[data-group-toggle="lab"]`,
+      `.${P}-group-toggle[data-group-toggle="lab"]`,
       `.${P}-error-badge`,
       'nightingale-filter input[type="checkbox"]',
     ];
@@ -571,7 +571,7 @@ describe('viewer: pointer cancellation (2.5.2)', () => {
   }, 60_000);
 
   it('pressing on a feature and releasing off it opens no tooltip; a click does', async () => {
-    q(`.${P}-group-label[data-group-toggle="lab"]`).click();
+    q(`.${P}-group-toggle[data-group-toggle="lab"]`).click();
     await settle();
     const canvas = await domainsTrack();
     const box = canvas.getBoundingClientRect();
@@ -608,8 +608,8 @@ describe('viewer: target size (2.5.8)', () => {
     const targets = [
       q(`.${P}-customize-toggle`),
       q(`.${P}-nav-track-label .${P}-note`),
-      q(`.${P}-group-label[data-group-toggle="lab"]`),
-      q(`.${P}-group-label[data-group-toggle="broken"]`),
+      q(`.${P}-group-toggle[data-group-toggle="lab"]`),
+      q(`.${P}-group-toggle[data-group-toggle="broken"]`),
       q(`.${P}-error-badge`),
       q(`.${P}-error-retry`),
       ...viewer.querySelectorAll<HTMLElement>('nightingale-filter input[type="checkbox"]'),
@@ -672,8 +672,8 @@ describe('viewer: reading order in the accessibility tree (1.3.2)', () => {
     const order = expected.map(at);
     expect(order.every((i) => i >= 0), lines.join('\n')).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
-    // The ⚠ badge and Retry sit inside the "Partly broken" button
-    // (`nested-interactive`, issue #417), so they come straight after it.
+    // The ⚠ badge and Retry follow the "Partly broken" collapse button.
+    // They are siblings of it, not nested inside it (#417).
     const broken = at(/^button "Partly broken/);
     expect(lines[broken + 1]).toMatch(/^button "Some tracks in this group failed to load"$/);
     expect(lines[broken + 2]).toMatch(/^button "Retry loading/);

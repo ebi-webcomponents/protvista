@@ -4235,20 +4235,7 @@ class ProtvistaUniprot extends LitElement {
                   total
                 )}
               </div>`
-            : html`<div
-                class="${CSS_PREFIX}-group-label${expanded ? ' open' : ''}"
-                data-group-toggle="${group.id}"
-                role="button"
-                tabindex="0"
-                aria-expanded="${expanded}"
-                title="${group.description ?? ''}"
-                @click="${this.handleGroupClick}"
-                @keydown="${this.handleGroupKeydown}"
-              >
-                <span class="${CSS_PREFIX}-label-text"
-                  >${unsafeHTML(renderLabel(group.label, this._labelAccession))}</span
-                >${this._renderGroupBadge(group.id)}
-              </div>`
+            : this._renderGroupLabel(group, expanded)
         }
         <div
           data-id="${CSS_PREFIX}-group_${group.id}"
@@ -4297,6 +4284,78 @@ class ProtvistaUniprot extends LitElement {
           : ''
       }
     `;
+  }
+
+  /**
+   * A group's header outside Customize mode. The collapse control is its
+   * own `<button>`, covering the label cell, and it holds nothing else.
+   * The label text, its links, the ⚠ badge and Retry are siblings, so a
+   * screen reader can reach each one and axe does not report
+   * `nested-interactive`. The button is transparent and stretched over the
+   * cell, so the header looks the same and a click on the label still
+   * toggles; links, the badge and Retry sit above it and take their own
+   * clicks. Enter and Space activate the button natively.
+   */
+  private _renderGroupLabel(group: NormalizedRow, expanded: boolean) {
+    const beside = this._labelBesideToggle(group.label);
+    return html`<div
+      class="${CSS_PREFIX}-group-label ${CSS_PREFIX}-group-label--split${
+        expanded ? ' open' : ''
+      }"
+      title="${group.description ?? ''}"
+    >
+      <button
+        type="button"
+        class="${CSS_PREFIX}-group-toggle"
+        data-group-toggle="${group.id}"
+        aria-expanded="${expanded}"
+        aria-label="${beside.name}"
+        title="${group.description ?? ''}"
+        @click="${this.handleGroupClick}"
+      ></button>
+      <span
+        class="${CSS_PREFIX}-label-text"
+        aria-hidden="${ifDefined(beside.hideFromTree ? 'true' : undefined)}"
+        >${unsafeHTML(beside.html)}</span
+      >${this._renderGroupBadge(group.id)}
+    </div>`;
+  }
+
+  /**
+   * Label text drawn beside the collapse button, not inside it.
+   *
+   * The button names that text itself. The same words are hidden from the
+   * accessibility tree so they are not read twice. A link stays exposed:
+   * it is a separate control, and it must not be a descendant of the button.
+   */
+  private _labelBesideToggle(source: string): {
+    name: string;
+    html: string;
+    hideFromTree: boolean;
+  } {
+    const name = this._labelText(source);
+    const html = renderLabel(source, this._labelAccession);
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const interactive = doc.body.querySelector(
+      'a, button, input, select, textarea, area'
+    );
+    if (!interactive) return { name, html, hideFromTree: true };
+    const hideText = (node: Node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        if (!node.textContent) return;
+        const span = doc.createElement('span');
+        span.setAttribute('aria-hidden', 'true');
+        span.textContent = node.textContent;
+        node.parentNode?.replaceChild(span, node);
+        return;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      const el = node as Element;
+      if (el.matches('a, button, input, select, textarea, area')) return;
+      for (const child of [...el.childNodes]) hideText(child);
+    };
+    for (const child of [...doc.body.childNodes]) hideText(child);
+    return { name, html: doc.body.innerHTML, hideFromTree: false };
   }
 
   /** The empty-state message: nothing to draw, and nothing hidden. */
@@ -4773,10 +4832,11 @@ class ProtvistaUniprot extends LitElement {
   }
 
   /**
-   * The group collapse/expand control, as a real button. Outside customize
-   * mode this affordance lives on the group label itself; here it has to be
-   * separate, because the label cell holds the other controls and cannot be
-   * a button around buttons.
+   * The group collapse/expand control in Customize mode, as a real button.
+   * It stays separate from the label, the ⚠ badge and the row controls:
+   * the label cell holds those other controls and cannot be a button around
+   * buttons. Outside Customize mode the same split is the full-cell button
+   * in `_renderGroupLabel`.
    *
    * Collapse stays distinct from hide: collapsing swaps a group's tracks for
    * its aggregate summary, hiding removes the row. One control must never do
@@ -5479,8 +5539,8 @@ class ProtvistaUniprot extends LitElement {
    * rows, which is what makes `_placedNotes` complete.
    *
    * In author mode it also lists the errors of tracks whose label was not
-   * drawn — a collapsed group shows only a count badge, inside a label that
-   * is itself a button — and keeps layout-hidden tracks' notes.
+   * drawn — a collapsed group shows only a count badge beside its collapse
+   * button — and keeps layout-hidden tracks' notes.
    */
   private _renderViewerNotes() {
     const viewer = this._notes.filter((n) => n.anchor === 'viewer');
@@ -5916,29 +5976,18 @@ class ProtvistaUniprot extends LitElement {
     this.requestUpdate();
   }
 
+  /**
+   * Pointer activation for the group-collapse button. The control is a
+   * native `<button>`, so Enter and Space fire this too and the page does
+   * not scroll. A label link, the ⚠ badge and Retry are not inside the
+   * button, so their clicks never arrive here; a click that does land on
+   * an `<a>` is ignored.
+   */
   handleGroupClick(e: MouseEvent) {
     this._toggleGroupFromEvent(e);
   }
 
-  /**
-   * Keyboard operability for the group-collapse toggle. The label carries
-   * `role="button"` + `tabindex="0"`, so it must activate on Enter and
-   * Space like a native button. Space is `preventDefault`ed to stop the
-   * page scrolling; Enter for consistency.
-   *
-   * A label may nest an inline `<a>` (Markdoc), a `⚠` badge and its
-   * popover, or a Retry. A key pressed on any of those is theirs: only the
-   * label itself toggles, and the event is left unprevented so a nested
-   * button or link still activates.
-   */
-  handleGroupKeydown(e: KeyboardEvent) {
-    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
-    if (e.target !== e.currentTarget) return;
-    e.preventDefault();
-    this._toggleGroupFromEvent(e);
-  }
-
-  /** Shared toggle path for pointer (`click`) and keyboard (`keydown`). */
+  /** Shared toggle path for a click on the collapse button. */
   private _toggleGroupFromEvent(e: Event) {
     const target = e.target as Element;
     // A Markdoc-rendered label can contain an inline link. Activating that
