@@ -3,21 +3,20 @@
  * expand/collapse toggle on `<protvista-uniprot>` — the current proxy for
  * the not-yet-built track show/hide UI (issue #199).
  *
- * The toggle used to be a bare `<div @click>`: operable by mouse only.
- * This spec pins the accessibility fix — `role="button"`, `tabindex="0"`,
- * a live `aria-expanded`, and Enter/Space keyboard operation — so it
- * can't regress, and checks axe is clean over the group.
+ * The toggle is a native `<button>` with a live `aria-expanded`. It does not
+ * wrap the label's links, the ⚠ badge or Retry (issue #417), so axe's
+ * `nested-interactive` rule passes. Enter, Space and a click still
+ * expand and collapse the group.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import axe from 'axe-core';
 
 import '../protvista-uniprot.js';
 import { CSS_PREFIX } from '../styles/css-prefix.js';
 import { mount, unmountAll } from './mount.js';
 import { expectNoA11yViolations } from './axe.js';
 
-const TOGGLE = `.${CSS_PREFIX}-group-label[data-group-toggle="g"]`;
+const TOGGLE = `.${CSS_PREFIX}-group-toggle[data-group-toggle="g"]`;
 
 /** A valid config: one group with two feature tracks (collapsible). */
 const CONFIG = {
@@ -79,9 +78,12 @@ afterEach(() => {
 describe('group toggle — accessibility semantics', () => {
   it('exposes button semantics with a collapsed initial state', async () => {
     const { toggle } = await mountWithGroup();
-    expect(toggle.getAttribute('role')).toBe('button');
-    expect(toggle.getAttribute('tabindex')).toBe('0');
+    expect(toggle.tagName).toBe('BUTTON');
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle.getAttribute('aria-label')).toBe('Domains & sites');
+    // The name is on the button. The visible text is not inside it, so a
+    // link or a badge cannot nest there.
+    expect(toggle.querySelector('a, button')).toBeNull();
   });
 
   it('has no axe violations', async () => {
@@ -89,10 +91,7 @@ describe('group toggle — accessibility semantics', () => {
     await expectNoA11yViolations(el.querySelector(`#${CSS_PREFIX}-group_g`)!);
   });
 
-  // Known gap 3 in docs/accessibility-baseline.md, recorded by the #382 audit
-  // (docs/accessibility-audit.md). When the header is split into a button and
-  // its sibling controls, change this to `expectNoA11yViolations`.
-  it('still fails nested-interactive when a collapsed group carries a ⚠ badge', async () => {
+  it('has no nested-interactive violation when a collapsed group carries a ⚠ badge', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     vi.stubGlobal(
       'fetch',
@@ -111,15 +110,18 @@ describe('group toggle — accessibility semantics', () => {
       viewerConfig: CONFIG,
       accession: 'P05067',
     });
-    const toggle = await vi.waitFor(() => {
-      const t = el.querySelector<HTMLElement>(TOGGLE);
-      if (!t?.querySelector(`.${CSS_PREFIX}-error-badge`)) {
-        throw new Error('badge not inside the toggle yet');
+    const group = await vi.waitFor(() => {
+      const g = el.querySelector<HTMLElement>(`#${CSS_PREFIX}-group_g`);
+      const toggle = g?.querySelector<HTMLElement>(TOGGLE);
+      if (!toggle || !g.querySelector(`.${CSS_PREFIX}-error-badge`)) {
+        throw new Error('badge not beside the toggle yet');
       }
-      return t;
+      return g;
     });
-    const { violations } = await axe.run(toggle.parentElement!);
-    expect(violations.map((v) => v.id)).toEqual(['nested-interactive']);
+    const toggle = group.querySelector(TOGGLE)!;
+    expect(toggle.contains(group.querySelector(`.${CSS_PREFIX}-error-badge`))).toBe(false);
+    expect(toggle.contains(group.querySelector(`.${CSS_PREFIX}-error-retry`))).toBe(false);
+    await expectNoA11yViolations(group);
   });
 });
 
@@ -172,11 +174,12 @@ describe('group toggle — controls inside the label', () => {
       accession: 'P05067',
     });
     const link = await vi.waitFor(() => {
-      const a = el.querySelector<HTMLAnchorElement>(`${TOGGLE} a`);
+      const a = el.querySelector<HTMLAnchorElement>(`.${CSS_PREFIX}-group-label a`);
       if (!a) throw new Error('link not ready');
       return a;
     });
     const toggle = el.querySelector<HTMLElement>(TOGGLE)!;
+    expect(toggle.contains(link)).toBe(false);
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
 
     link.focus();
@@ -184,6 +187,13 @@ describe('group toggle — controls inside the label', () => {
 
     await vi.waitFor(() => expect(location.hash).toBe('#pv-guide'));
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(el.openGroups).not.toContain('g');
+
+    // The link is painted above the collapse button, so a click follows it
+    // and does not expand the group.
+    history.replaceState(null, '', location.pathname);
+    await userEvent.click(link);
+    await vi.waitFor(() => expect(location.hash).toBe('#pv-guide'));
     expect(el.openGroups).not.toContain('g');
   });
 });

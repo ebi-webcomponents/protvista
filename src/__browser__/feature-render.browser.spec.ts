@@ -114,7 +114,7 @@ async function mountOn(file: string): Promise<void> {
   const toggle = await vi.waitFor(
     () => {
       const t = el.querySelector<HTMLElement>(
-        `.${CSS_PREFIX}-group-label[data-group-toggle="MY_LAB"]`
+        `.${CSS_PREFIX}-group-toggle[data-group-toggle="MY_LAB"]`
       );
       if (!t) throw new Error('group not rendered yet');
       return t;

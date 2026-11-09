@@ -338,12 +338,19 @@ describe('customize mode', () => {
     expect(collapse.getAttribute('aria-expanded')).toBe('true');
   });
 
-  it('keeps the group label a plain toggle outside customize mode', () => {
+  it('keeps the collapse control a button of its own outside customize mode', () => {
     const label = renderInto(buildInstance()).querySelector(
       `.${CSS_PREFIX}-group-label`
     )!;
-    expect(label.getAttribute('role')).toBe('button');
-    expect(label.getAttribute('aria-expanded')).toBe('true');
+    // The cell itself is not a button: the links, badge and Retry are
+    // siblings of the collapse control, not nested inside it (#417).
+    expect(label.getAttribute('role')).toBeNull();
+    expect(label.hasAttribute('tabindex')).toBe(false);
+    const collapse = label.querySelector('[data-group-toggle]')!;
+    expect(collapse.tagName).toBe('BUTTON');
+    expect(collapse.getAttribute('aria-expanded')).toBe('true');
+    expect(collapse.getAttribute('aria-label')).toBe('A');
+    expect(collapse.querySelector('a, button')).toBeNull();
   });
 
   // Reordering is button-only; nothing is draggable.

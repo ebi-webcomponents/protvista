@@ -100,6 +100,9 @@ export default css`
   }
 
   protvista-uniprot .${p}-error-retry {
+    box-sizing: border-box;
+    min-width: 24px;
+    min-height: 24px;
     margin-left: 0.35em;
     font: inherit;
     font-size: 0.7rem;

@@ -191,6 +191,39 @@ export default css`
     display: none;
   }
 
+  /* Outside Customize mode the collapse control is a transparent button
+     stretched over the label cell. The text, caret, links and ⚠ badge stay
+     in normal flow, so the header looks as it did when the cell itself was
+     the button. Links, the badge and Retry are painted above the button and
+     take their own clicks. */
+  protvista-uniprot .${p}-group-label--split {
+    position: relative;
+  }
+
+  protvista-uniprot .${p}-group-toggle {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    line-height: inherit;
+    text-align: inherit;
+    cursor: pointer;
+  }
+
+  protvista-uniprot .${p}-group-label--split a,
+  protvista-uniprot .${p}-group-label--split .${p}-note,
+  protvista-uniprot .${p}-group-label--split .${p}-error-retry {
+    position: relative;
+    z-index: 2;
+  }
+
   protvista-uniprot nightingale-navigation .handle {
     fill: var(--protvista-nav-handle-fill);
     stroke: var(--protvista-nav-handle-stroke);
