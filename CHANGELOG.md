@@ -9,7 +9,8 @@ label's links, the warning badge and Retry, which assistive technology
 reported as nested controls. The collapse control is now its own button. The
 links, the badge and Retry sit beside it and work on their own. The header
 looks the same, and Enter, Space and a click still expand and collapse the
-group (#417).
+group. Retry is at least 24px in each direction, so it meets the target-size
+rule on its own (#417).
 
 - Added `uniprot-isoforms-json` adapter and "APP isoforms" community view. The adapter is opt-in and makes no new requests unless named in a config.
 
