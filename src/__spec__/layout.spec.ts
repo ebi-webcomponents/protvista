@@ -24,6 +24,8 @@ import {
   isRowHidden,
   moveRow,
   moveTrack,
+  movedIds,
+  movedKeys,
   sameArrangement,
   setAllHidden,
   setRowHidden,
@@ -500,5 +502,56 @@ describe('id-as-key robustness', () => {
     expect(patch.hidden.rows['A-a1']).toBe(true);
     expect(patch.hidden.tracks['A']['a1']).toBe(true);
     expect(sameArrangement(applyPatch(base, patch), arranged)).toBe(true);
+  });
+});
+
+describe('movedIds', () => {
+  const moved = (
+    base: string[],
+    current: string[],
+    prefer?: (id: string) => boolean
+  ) => [...movedIds(base, current, prefer)].sort();
+
+  it('is empty in the authored order', () => {
+    expect(moved(['a', 'b', 'c'], ['a', 'b', 'c'])).toEqual([]);
+  });
+
+  // Moving one row a long way shifts every index it passes; only it moved.
+  it('marks only the item that was lifted out, not the ones it passed', () => {
+    expect(moved(['a', 'b', 'c', 'd'], ['b', 'c', 'd', 'a'])).toEqual(['a']);
+  });
+
+  it('marks one of an adjacent swap, preferring the one the user moved', () => {
+    expect(moved(['a', 'b', 'c'], ['b', 'a', 'c'])).toHaveLength(1);
+    expect(moved(['a', 'b', 'c'], ['b', 'a', 'c'], (id) => id === 'a')).toEqual(['a']);
+    expect(moved(['a', 'b', 'c'], ['b', 'a', 'c'], (id) => id === 'b')).toEqual(['b']);
+  });
+
+  it('never lets the preference beat a smaller answer', () => {
+    // Only 'a' needs to move; preferring 'b'..'d' must not mark three.
+    expect(
+      moved(['a', 'b', 'c', 'd'], ['b', 'c', 'd', 'a'], (id) => id !== 'a')
+    ).toEqual(['a']);
+  });
+
+  it('ignores ids missing from either side', () => {
+    expect(moved(['a', 'b'], ['x', 'a', 'b'])).toEqual([]);
+  });
+});
+
+describe('movedKeys', () => {
+  it('reports moved rows by id and moved tracks by trackKey', () => {
+    const base = rows();
+    let next = moveRow(base, 'S', 0);
+    next = moveTrack(next, 'B', 'b2', 0);
+    expect([...movedKeys(base, next, (k) => k === 'B-b2')].sort()).toEqual([
+      'B-b2',
+      'S',
+    ]);
+  });
+
+  it('is empty when only visibility changed', () => {
+    const base = rows();
+    expect(movedKeys(base, setRowHidden(base, 'A', true)).size).toBe(0);
   });
 });

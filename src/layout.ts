@@ -295,6 +295,81 @@ const sameIds = (a: readonly { id: string }[], b: readonly { id: string }[]) =>
   a.length === b.length && a.every((x, i) => x.id === b[i].id);
 
 /**
+ * The ids in `current` that are out of their `base` order — the fewest items
+ * that, lifted out and re-inserted, turn `base` into `current`. Everything
+ * else is the longest run that kept its relative order, so moving one row
+ * down a place marks one row, not the two whose indices swapped.
+ *
+ * When several minimal answers exist (an adjacent swap: either of the two
+ * could be "the one that moved"), `preferMoved` breaks the tie — the viewer
+ * passes the items the user actually pressed a move button on, so the mark
+ * lands on the row they moved rather than the one it stepped past.
+ *
+ * Ids missing from either side are ignored: they have no authored position
+ * to have moved from.
+ */
+export function movedIds(
+  base: readonly string[],
+  current: readonly string[],
+  preferMoved: (id: string) => boolean = () => false
+): Set<string> {
+  const basePos = new Map(base.map((id, i) => [id, i]));
+  const items = current.filter((id) => basePos.has(id));
+  const n = items.length;
+  // Weighted longest increasing subsequence over base positions. Each kept
+  // item scores n + 1, plus 1 if the user did not move it, so the length is
+  // always maximised first and the preference only ever breaks ties.
+  const weight = items.map((id) => n + 1 + (preferMoved(id) ? 0 : 1));
+  const best: number[] = new Array(n).fill(0);
+  const prev: number[] = new Array(n).fill(-1);
+  let end = -1;
+  for (let i = 0; i < n; i++) {
+    best[i] = weight[i];
+    const pi = basePos.get(items[i])!;
+    for (let j = 0; j < i; j++) {
+      if (basePos.get(items[j])! < pi && best[j] + weight[i] > best[i]) {
+        best[i] = best[j] + weight[i];
+        prev[i] = j;
+      }
+    }
+    if (end === -1 || best[i] > best[end]) end = i;
+  }
+  const kept = new Set<string>();
+  for (let i = end; i !== -1; i = prev[i]) kept.add(items[i]);
+  return new Set(items.filter((id) => !kept.has(id)));
+}
+
+/**
+ * Every row and track that sits out of its authored order, as keys: a row id
+ * for a moved row, `trackKey` for a track moved within its group. A
+ * standalone row's single track cannot move on its own, so only the row
+ * counts. See `movedIds` for what "moved" means and for `preferMoved`.
+ */
+export function movedKeys(
+  base: readonly NormalizedRow[],
+  current: readonly NormalizedRow[],
+  preferMoved?: (key: string) => boolean
+): Set<string> {
+  const keys = movedIds(
+    base.map((r) => r.id),
+    current.map((r) => r.id),
+    preferMoved
+  );
+  const baseById = new Map(base.map((r) => [r.id, r]));
+  for (const row of current) {
+    const from = baseById.get(row.id);
+    if (!from || row.standalone || sameIds(from.tracks, row.tracks)) continue;
+    const moved = movedIds(
+      from.tracks.map((t) => t.id),
+      row.tracks.map((t) => t.id),
+      preferMoved && ((id) => preferMoved(trackKey(row.id, id)))
+    );
+    for (const id of moved) keys.add(trackKey(row.id, id));
+  }
+  return keys;
+}
+
+/**
  * Whether two row lists arrange the same things the same way — same row
  * order, same track order within each row, same visibility. The viewer uses
  * this to drop no-op edits (dragging a row back where it started, toggling a

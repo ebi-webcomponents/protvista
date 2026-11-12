@@ -174,8 +174,8 @@ describe('the neutral chrome cells', () => {
     expect(bg(q('track-label')!)).toBe('rgb(255, 255, 255)');
   });
 
-  it('carry the "N hidden" badge in the nav cell with them', async () => {
-    // The badge has no background of its own, so once the nav cell is
+  it('carry the change status in the nav cell with them', async () => {
+    // The status has no background of its own, so once the nav cell is
     // retinted it has to follow the cell's text token; until then it
     // keeps the muted grey.
     const withHidden = () => ({
@@ -191,8 +191,8 @@ describe('the neutral chrome cells', () => {
     });
     const badge = async (q: (cls: string) => HTMLElement | null) =>
       vi.waitFor(() => {
-        const el = q('hidden-count');
-        if (!el) throw new Error('hidden-count not ready');
+        const el = q('change-status');
+        if (!el) throw new Error('change-status not ready');
         return el;
       });
 

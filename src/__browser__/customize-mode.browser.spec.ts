@@ -242,13 +242,13 @@ describe('entering and leaving customize mode', () => {
     });
   });
 
-  it('gates Reset until something has actually been changed', async () => {
+  it('gates Reset to default until something has actually been changed', async () => {
     const el = await mountViewer();
     await enterCustomize(el);
     const reset = () =>
       Array.from(
         el.querySelectorAll<HTMLButtonElement>(`.${CSS_PREFIX}-customize-action`)
-      ).find((b) => b.textContent!.trim() === 'Reset')!;
+      ).find((b) => b.textContent!.trim() === 'Reset to default')!;
     expect(reset().disabled).toBe(true);
 
     el.setRowVisibility('PTM', false);
@@ -266,28 +266,76 @@ describe('entering and leaving customize mode', () => {
     await expectNoA11yViolations(el);
   });
 
-  it('Show/Hide all names the action it will take, and hides or shows everything', async () => {
+  it('puts Toggle all, Reset to default and Done on the Customize line, right-aligned', async () => {
+    const el = await mountViewer();
+    // Wide enough for the whole toolbar on one line; the test page is narrow.
+    el.style.setProperty('--protvista-label-width', '480px');
+    await enterCustomize(el);
+    const line = toggle(el).closest(`.${CSS_PREFIX}-toolbar-row`)!;
+    const actions = Array.from(
+      line.querySelectorAll<HTMLButtonElement>(`.${CSS_PREFIX}-customize-action`)
+    );
+    expect(actions.map((b) => b.textContent!.trim())).toEqual([
+      'Toggle all off',
+      'Reset to default',
+      'Done',
+    ]);
+    // Done ends flush with the line — the group is pushed right.
+    const lineBox = line.getBoundingClientRect();
+    const doneBox = actions[2].getBoundingClientRect();
+    expect(Math.round(lineBox.right - doneBox.right)).toBeLessThanOrEqual(1);
+    const toggleBox = toggle(el).getBoundingClientRect();
+    expect(doneBox.left).toBeGreaterThan(toggleBox.right);
+    // Same line as the toggle, not wrapped below it.
+    expect(Math.abs(actions[0].getBoundingClientRect().top - toggleBox.top)).toBeLessThanOrEqual(2);
+  });
+
+  // The default label column is 20vw — ~220px on a 1100px screen — and the
+  // whole line still has to fit, tightened rather than wrapped.
+  it('keeps all four buttons on one line in a narrow label column', async () => {
+    const el = await mountViewer();
+    el.style.setProperty('--protvista-label-width', '220px');
+    await enterCustomize(el);
+    const line = toggle(el).closest(`.${CSS_PREFIX}-toolbar-row`)!;
+    const lineBox = line.getBoundingClientRect();
+    const buttons = Array.from(line.querySelectorAll('button'));
+    expect(buttons.map((b) => b.textContent!.trim()).slice(1)).toEqual([
+      'Toggle all off',
+      'Reset to default',
+      'Done',
+    ]);
+    const top = toggle(el).getBoundingClientRect().top;
+    for (const b of buttons) {
+      const box = b.getBoundingClientRect();
+      expect(Math.abs(box.top - top)).toBeLessThanOrEqual(2);
+      expect(box.right).toBeLessThanOrEqual(lineBox.right + 0.5);
+    }
+    // The pressed toggle drops to its icon here, but keeps its name.
+    expect(toggle(el).textContent!.trim()).toBe('Customize');
+  });
+
+  it('Toggle all names the way it will go, and hides or shows everything', async () => {
     const el = await mountViewer();
     await enterCustomize(el);
     const showHideAll = () =>
       Array.from(
         el.querySelectorAll<HTMLButtonElement>(`.${CSS_PREFIX}-customize-action`)
-      ).find((b) => /^(Show|Hide) all$/.test(b.textContent!.trim()))!;
+      ).find((b) => /^Toggle all (on|off)$/.test(b.textContent!.trim()))!;
 
     // Nothing hidden yet, so the label offers the action that would change
     // that.
-    expect(showHideAll().textContent!.trim()).toBe('Hide all');
+    expect(showHideAll().textContent!.trim()).toBe('Toggle all off');
 
     showHideAll().click();
     await el.updateComplete;
-    expect(showHideAll().textContent!.trim()).toBe('Show all');
+    expect(showHideAll().textContent!.trim()).toBe('Toggle all on');
     await enterCustomize(el); // close, so the hides actually leave the canvas
     expect(laneIds(el)).toEqual([]);
 
     await enterCustomize(el); // reopen
     showHideAll().click();
     await el.updateComplete;
-    expect(showHideAll().textContent!.trim()).toBe('Hide all');
+    expect(showHideAll().textContent!.trim()).toBe('Toggle all off');
     await enterCustomize(el); // close
     expect(laneIds(el)).toEqual(['DOMAINS', 'PTM', 'sites']);
   });
@@ -352,14 +400,16 @@ describe('show / hide', () => {
     expect(laneIds(el)).not.toContain('PTM');
   });
 
-  it('reports the hidden count beside the toggle', async () => {
+  it('reports the hidden count below the toggle', async () => {
     const el = await mountViewer();
     await enterCustomize(el);
     rowSwitch(el, 'PTM').click();
     await el.updateComplete;
-    expect(
-      el.querySelector(`.${CSS_PREFIX}-hidden-count`)!.textContent
-    ).toContain('1 track hidden');
+    const status = el.querySelector(`.${CSS_PREFIX}-change-status`)!;
+    expect(status.textContent).toContain('1 track hidden');
+    expect(status.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      toggle(el).getBoundingClientRect().bottom
+    );
   });
 
   it('says so instead of rendering an empty frame when everything is hidden', async () => {
@@ -370,14 +420,14 @@ describe('show / hide', () => {
     const notice = el.querySelector(`.${CSS_PREFIX}-all-hidden`)!;
     expect(notice.textContent).toContain('All tracks are hidden');
     expect(notice.textContent).toContain('Open Customize');
-    // No button of its own — Reset and Show all already live in Customize,
+    // No button of its own — Reset and Toggle all already live in Customize,
     // and a second Reset out here would be one more place for it to drift.
     expect(notice.querySelector('button')).toBeNull();
 
     await enterCustomize(el);
     const showAll = Array.from(
       el.querySelectorAll<HTMLButtonElement>(`.${CSS_PREFIX}-customize-action`)
-    ).find((b) => b.textContent!.trim() === 'Show all')!;
+    ).find((b) => b.textContent!.trim() === 'Toggle all on')!;
     showAll.click();
     await el.updateComplete;
     await enterCustomize(el); // close, so the shows actually land on the canvas
@@ -427,17 +477,21 @@ describe('move up / down', () => {
 // Tracks with no data are absent from the canvas whatever the toggle says, so
 // offering a working Show would be a button that visibly does nothing.
 describe('tracks with no data', () => {
-  it('disables the switch, off, and puts the reason in its name', async () => {
+  it('shows a not-applicable sign in place of the switch, with the reason as its name', async () => {
     const el = await mountViewer();
     await enterCustomize(el);
-    const sw = trackSwitch(el, 'empty');
-    expect(sw.disabled).toBe(true);
-    // Off follows what the reader sees: nothing is drawn.
-    expect(sw.getAttribute('aria-checked')).toBe('false');
-    // A disabled control cannot be tabbed to, so the reason has to live in
-    // the name rather than in a description.
-    expect(sw.getAttribute('aria-label')).toContain('no data');
-    expect(sw.getAttribute('title')).toContain('no data');
+    expect(trackSwitch(el, 'empty')).toBeNull();
+    const sign = el.querySelector(
+      `#${CSS_PREFIX}-track_empty .${CSS_PREFIX}-no-data`
+    )!;
+    expect(sign.getAttribute('role')).toBe('img');
+    // Not a control, so nothing to tab to — the reason is its name.
+    expect(sign.getAttribute('aria-label')).toContain('no data');
+    expect(sign.getAttribute('title')).toContain('no data');
+    // Same footprint as a switch, so the move buttons stay in column.
+    const signBox = sign.getBoundingClientRect();
+    const swBox = trackSwitch(el, 'domain').getBoundingClientRect();
+    expect(signBox.width).toBeCloseTo(swBox.width, 0);
   });
 
   it('leaves its move controls working', async () => {
@@ -448,22 +502,25 @@ describe('tracks with no data', () => {
 
   it('is left out of the hidden count', async () => {
     const el = await mountViewer();
-    // Only the dataless track exists in a hidden state, so nothing is
-    // *user*-hidden and the badge should not appear at all.
-    expect(el.querySelector(`.${CSS_PREFIX}-hidden-count`)).toBeNull();
+    // Only the dataless track has nothing to draw, so nothing is
+    // *user*-hidden and the status should say nothing at all.
+    await enterCustomize(el);
+    expect(
+      el.querySelector(`.${CSS_PREFIX}-change-status`)!.textContent!.trim()
+    ).toBe('');
   });
 });
 
-describe('the hidden count', () => {
+describe('the change status', () => {
   const badge = (el: Viewer) =>
-    el.querySelector<HTMLButtonElement>(`.${CSS_PREFIX}-hidden-count`);
+    el.querySelector<HTMLButtonElement>(`.${CSS_PREFIX}-change-status`);
 
   // Hiding a group of several and hiding one track are not both "1 hidden";
   // the badge answers "how much am I not seeing".
   it('counts tracks, not toggles, when a whole group is hidden', async () => {
     const el = await mountViewer();
     el.setRowVisibility('DOMAINS', false);
-    await el.updateComplete;
+    await enterCustomize(el);
     // DOMAINS holds three tracks, one of which has no data and is excluded.
     expect(badge(el)!.textContent).toContain('2 tracks hidden');
   });
@@ -471,18 +528,19 @@ describe('the hidden count', () => {
   it('counts an individually hidden track as one', async () => {
     const el = await mountViewer();
     el.setTrackVisibility('DOMAINS', 'domain', false);
-    await el.updateComplete;
+    await enterCustomize(el);
     // Singular, so it reads as a sentence rather than a stat.
     expect(badge(el)!.textContent).toContain('1 track hidden');
   });
 
-  it('explains how to bring the tracks back', async () => {
+  it('says only "Modified view" outside the mode, and how to see more', async () => {
     const el = await mountViewer();
     el.setRowVisibility('PTM', false);
     await el.updateComplete;
+    expect(badge(el)!.tagName).toBe('BUTTON');
+    expect(badge(el)!.textContent!.trim()).toBe('Modified view');
     const hint = badge(el)!.getAttribute('title')!;
     expect(hint).toContain('Customize');
-    expect(hint).toContain('switch');
     // The same text is the accessible name, so the hint is not mouse-only.
     expect(badge(el)!.getAttribute('aria-label')).toBe(hint);
   });
@@ -498,7 +556,7 @@ describe('the hidden count', () => {
   });
 
   // Entering the mode is not enough: a hidden group collapses to one stub, so
-  // the tracks the badge counted would still be nowhere on screen.
+  // the hidden tracks would still be nowhere on screen.
   it('opens the hidden group so its tracks are reachable', async () => {
     const el = await mountViewer();
     el.openGroups = [];
@@ -534,6 +592,19 @@ describe('the hidden count', () => {
     expect(el.openGroups).toContain('DOMAINS');
   });
 
+  it('opens a group whose tracks were reordered', async () => {
+    const el = await mountViewer();
+    await enterCustomize(el);
+    trackControl(el, 'region', 'Move Region up').click();
+    await enterCustomize(el); // close
+    el.openGroups = [];
+    await el.updateComplete;
+
+    badge(el)!.click();
+    await el.updateComplete;
+    expect(el.openGroups).toContain('DOMAINS');
+  });
+
   it('leaves already-open groups alone', async () => {
     const el = await mountViewer();
     el.setRowVisibility('DOMAINS', false);
@@ -543,6 +614,60 @@ describe('the hidden count', () => {
     badge(el)!.click();
     await el.updateComplete;
     expect(el.openGroups).toEqual(before);
+  });
+});
+
+describe('the moved asterisk', () => {
+  const marks = (el: Viewer) =>
+    Array.from(
+      el.querySelectorAll(`.${CSS_PREFIX}-row-controls .${CSS_PREFIX}-moved-mark`)
+    );
+
+  it('marks the row the user moved, not the one it stepped past', async () => {
+    const el = await mountViewer();
+    await enterCustomize(el);
+    control(el, 'PTM', 'Move Modifications down').click();
+    await el.updateComplete;
+    expect(marks(el)).toHaveLength(1);
+    expect(marks(el)[0].closest(`#${CSS_PREFIX}-group_PTM`)).not.toBeNull();
+    expect(
+      el.querySelector(`.${CSS_PREFIX}-change-status`)!.textContent!.replace(/\s+/g, ' ')
+    ).toContain('1 track moved *');
+  });
+
+  it('sits immediately left of the switch, vertically centred on it', async () => {
+    const el = await mountViewer();
+    await enterCustomize(el);
+    control(el, 'PTM', 'Move Modifications down').click();
+    await el.updateComplete;
+    const mark = marks(el)[0] as HTMLElement;
+    const sw = rowSwitch(el, 'PTM');
+    expect(mark.nextElementSibling).toBe(sw);
+    const m = mark.getBoundingClientRect();
+    const s = sw.getBoundingClientRect();
+    expect(m.right).toBeLessThanOrEqual(s.left);
+    expect(Math.abs((m.top + m.bottom) / 2 - (s.top + s.bottom) / 2)).toBeLessThanOrEqual(2);
+  });
+
+  it('clears when the row is moved back, and on reset', async () => {
+    const el = await mountViewer();
+    await enterCustomize(el);
+    control(el, 'PTM', 'Move Modifications down').click();
+    await el.updateComplete;
+    control(el, 'PTM', 'Move Modifications up').click();
+    await el.updateComplete;
+    expect(marks(el)).toHaveLength(0);
+
+    trackControl(el, 'region', 'Move Region up').click();
+    await el.updateComplete;
+    expect(marks(el)).toHaveLength(1);
+    Array.from(
+      el.querySelectorAll<HTMLButtonElement>(`.${CSS_PREFIX}-customize-action`)
+    )
+      .find((b) => b.textContent!.trim() === 'Reset to default')!
+      .click();
+    await el.updateComplete;
+    expect(marks(el)).toHaveLength(0);
   });
 });
 
