@@ -131,7 +131,7 @@ const EXPECTED_STOPS = [
   /^div\[role=textbox\] "ProtVista configuration editor \(YAML or JSON\)"$/,
   /^div#splitter\[role=separator\] "Resize panels"$/,
   /^button "Customize"$/,
-  /^div\[role=button\] "Lab hits"$/,
+  /^button "Lab hits"$/,
 ];
 
 describe('playground: landmarks, headings and reading order (2.4.1, 1.3.2)', () => {

@@ -64,12 +64,12 @@ runs `test:browser` and `test:coverage` on every push/PR.
 
 ### Group expand/collapse — `<protvista-uniprot>` (`src/__browser__/group-toggle.browser.spec.ts`)
 
-- **Fixed in this work:** the toggle was a bare `<div @click>` — operable
-  by mouse only. It now exposes `role="button"`, `tabindex="0"`, and a
-  live `aria-expanded`, and activates on **Enter/Space** as well as click.
-- **axe:** no violations over a group with nothing nested in its label. A
-  label carrying a `⚠` badge (and Retry) fails `nested-interactive`: see
-  known gap 3.
+- **Fixed:** the toggle is a native `<button>` with a live `aria-expanded`.
+  Enter, Space and a click expand and collapse the group. The label's
+  links, the `⚠` badge and Retry are siblings of that button, not inside
+  it (baseline gap 3, issue #417).
+- **axe:** no violations over a group, including a collapsed group whose
+  label carries a `⚠` badge and Retry.
 
 ### "Customize layout" mode (`src/__browser__/customize-mode.browser.spec.ts`)
 
@@ -111,10 +111,9 @@ layout API, which rewrites the config, and per-config persistence. See
 
 ## Known residual gaps (for the manual audit)
 
-These are documented, not yet remediated. The #382 audit re-checked them on
-`next` at `09f1832` and all four are still open: gaps 1 and 2 are tracked by
-#312, gap 3 now has a browser test that pins the `nested-interactive` failure,
-and gap 4 is assessed in
+These are documented, not yet remediated, except gap 3, which #417 fixed.
+The #382 audit re-checked them on `next` at `09f1832` and all four were still
+open then: gaps 1 and 2 are tracked by #312, and gap 4 is assessed in
 [`accessibility-audit.md`](./accessibility-audit.md#nightingale-track-internals).
 
 1. **Filter `<select>` labelling.** Filter selects are labelled with
@@ -123,20 +122,13 @@ and gap 4 is assessed in
    association would be stronger.
 2. **"No results" is not a live region.** When a filter empties the table,
    the empty-state cell is not announced (`aria-live`) to screen readers.
-3. **Group label / nested controls.** A group label may contain an inline
-   `<a>` (Markdoc), and a group with a failed track carries its `⚠` badge,
-   the badge's popover and a Retry. The toggle wraps them all as
-   `role="button"`, which axe reports as `nested-interactive`; while a
-   badge's popover is open, its text also joins the group's accessible
-   name. Each control still works on its own — a click on one never
-   toggles the group, and the toggle's keydown handler acts only on keys
-   pressed on the label itself, so Enter on a link or Enter/Space on the
-   badge or Retry activates that control — but a cleaner DOM would separate
-   the collapse affordance from the label's contents. The #199 Track
-   Manager controls deliberately avoid this pattern (real, separate
-   `<button>`s with no nested interactive content); the legacy collapse
-   toggle is left as-is for now since it is functionally correct, and a DOM
-   cleanup of the group header is a separate, low-risk follow-up.
+3. **Group label / nested controls.** Fixed (#417). The collapse control is
+   a `<button>` of its own. An inline `<a>` in the label, the `⚠` badge and
+   Retry sit beside it, so axe no longer reports `nested-interactive`, and
+   an open badge popover is not part of the group's accessible name. Enter
+   on a link follows the link. Enter or Space on the badge or Retry
+   activates that control. A click on the label still expands and collapses
+   the group.
 4. **Nightingale track internals** (canvas/SVG rendering) are out of scope
    here (stubbed in tests) and must be assessed separately.
 
