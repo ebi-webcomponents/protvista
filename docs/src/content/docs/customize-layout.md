@@ -67,7 +67,8 @@ If everything is hidden the viewer says so and offers a reset rather than
 rendering an empty frame.
 
 **Reset** (enabled only once something has changed) restores the authored
-layout; **Done** leaves the mode and returns focus to the Customize button.
+layout. While the mode is on, the Customize button reads **Done**; pressing it
+leaves the mode.
 Changes apply and persist live, so there is no separate save step.
 
 ### Accessibility

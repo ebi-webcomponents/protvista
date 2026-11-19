@@ -91,8 +91,8 @@ layout API, which rewrites the config, and per-config persistence. See
   it opened, so the badge leads somewhere instead of merely reporting.
 - **Announcements:** a polite live region announces each reorder ("… moved to
   position N of M"), hide, and show (4.1.3).
-- **Focus:** a visible focus ring on every control; Done returns focus to the
-  Customize button that opened the mode, and a move that disables the button
+- **Focus:** a visible focus ring on every control; the Customize button
+  becomes Done while the mode is on, so leaving keeps focus where it was, and a move that disables the button
   you pressed hands focus to its opposite number rather than dropping it
   (2.4.7).
 - **Nothing is displaced:** the Customize button lives in the empty label cell

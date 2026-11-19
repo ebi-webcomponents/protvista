@@ -4611,28 +4611,37 @@ class ProtvistaUniprot extends LitElement {
    * the navigation rather than a toolbar above the viewer, so opening
    * customize mode never shifts the visualization — and so the button sits in
    * the same column as the per-row controls it turns on.
+   *
+   * While customizing it becomes "Done", the way out of the mode. Its label
+   * carries the state, so it has no aria-pressed: a toggle whose name also
+   * changes would read as "Done, pressed". Focus stays on it across the
+   * switch, since it is the same element.
    */
   private _renderCustomizeToggle() {
     return html`
       <button
         type="button"
         class="${CSS_PREFIX}-customize-toggle"
-        aria-pressed="${this._customizeMode}"
         @click="${this._toggleCustomizeMode}"
       >
-        <span class="${CSS_PREFIX}-customize-toggle__icon" aria-hidden="true"
-          >${svg`${unsafeHTML(inlineSvg(slidersIcon))}`}</span
-        ><span class="${CSS_PREFIX}-customize-toggle__text">Customize</span>
+        ${this._customizeMode
+          ? ''
+          : html`<span
+              class="${CSS_PREFIX}-customize-toggle__icon"
+              aria-hidden="true"
+              >${svg`${unsafeHTML(inlineSvg(slidersIcon))}`}</span
+            >`}<span class="${CSS_PREFIX}-customize-toggle__text"
+          >${this._customizeMode ? 'Done' : 'Customize'}</span
+        >
       </button>
     `;
   }
 
   /**
-   * Toggle all, Reset to default and Done — the customize-mode actions, in
-   * the same row as the Customize toggle and pushed together to its far
+   * Toggle all and Reset to default — the customize-mode actions, in the
+   * same row as the toggle (now "Done") and pushed together to its far
    * right. One wrapper, so on a narrow label column they wrap below the
-   * toggle as a unit rather than one per line. Reset and Done sit
-   * last, as a pair: both answer "what do I do with what I've changed".
+   * toggle as a unit rather than one per line.
    */
   private _renderCustomizeActions() {
     if (!this._customizeMode) return '';
@@ -4653,13 +4662,6 @@ class ProtvistaUniprot extends LitElement {
         @click="${this._onResetLayout}"
       >
         Reset to default
-      </button>
-      <button
-        type="button"
-        class="${CSS_PREFIX}-customize-action"
-        @click="${this._onCloseCustomize}"
-      >
-        Done
       </button>
     </span>`;
   }
@@ -4810,16 +4812,6 @@ class ProtvistaUniprot extends LitElement {
     this._announce(
       nextHidden ? 'All tracks hidden.' : 'All tracks shown.'
     );
-  };
-
-  /** Leave customize mode and return focus to the toggle that opened it. */
-  private _onCloseCustomize = () => {
-    this._toggleCustomizeMode();
-    void this.updateComplete.then(() => {
-      this.querySelector<HTMLElement>(
-        `.${CSS_PREFIX}-customize-toggle`
-      )?.focus();
-    });
   };
 
   private _onResetLayout = () => {

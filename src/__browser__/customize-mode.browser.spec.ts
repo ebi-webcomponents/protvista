@@ -4,7 +4,7 @@
  * accessibility contract from #173.
  *
  * A real mount is what makes this worth running in a browser rather than
- * jsdom — focus actually moves, `aria-pressed` and `disabled` are actually
+ * jsdom — focus actually moves, labels and `disabled` are actually
  * computed, and axe has a real layout to inspect. The pure ordering logic is covered in `src/__spec__/layout.spec.ts`
  * and the render output in `layout-render.spec.ts`; this file is about
  * whether a person can drive the thing.
@@ -171,11 +171,12 @@ describe('entering and leaving customize mode', () => {
     expect(el.querySelector(`.${CSS_PREFIX}-row-controls`)).not.toBeNull();
   });
 
-  it('reports the mode through aria-pressed', async () => {
+  it('relabels the toggle Done while the mode is on', async () => {
     const el = await mountViewer();
-    expect(toggle(el).getAttribute('aria-pressed')).toBe('false');
+    expect(toggle(el).textContent!.trim()).toBe('Customize');
+    expect(toggle(el).hasAttribute('aria-pressed')).toBe(false);
     await enterCustomize(el);
-    expect(toggle(el).getAttribute('aria-pressed')).toBe('true');
+    expect(toggle(el).textContent!.trim()).toBe('Done');
   });
 
   // The whole reason for inline editing over a panel or modal: the tracks
@@ -227,19 +228,18 @@ describe('entering and leaving customize mode', () => {
     }
   });
 
-  it('Done leaves the mode and returns focus to the toggle', async () => {
+  it('Done leaves the mode and keeps focus on the toggle', async () => {
     const el = await mountViewer();
     await enterCustomize(el);
-    const done = Array.from(
-      el.querySelectorAll<HTMLButtonElement>(`.${CSS_PREFIX}-customize-action`)
-    ).find((b) => b.textContent!.trim() === 'Done')!;
+    const done = toggle(el);
+    done.focus();
 
     done.click();
     await el.updateComplete;
-    expect(toggle(el).getAttribute('aria-pressed')).toBe('false');
-    await vi.waitFor(() => {
-      expect(document.activeElement).toBe(toggle(el));
-    });
+    expect(toggle(el)).toBe(done);
+    expect(toggle(el).textContent!.trim()).toBe('Customize');
+    expect(el.querySelector(`.${CSS_PREFIX}-row-controls`)).toBeNull();
+    expect(document.activeElement).toBe(done);
   });
 
   it('gates Reset to default until something has actually been changed', async () => {
@@ -266,7 +266,7 @@ describe('entering and leaving customize mode', () => {
     await expectNoA11yViolations(el);
   });
 
-  it('puts Toggle all, Reset to default and Done on the Customize line, right-aligned', async () => {
+  it('puts Toggle all and Reset to default on the Customize line, right-aligned', async () => {
     const el = await mountViewer();
     // Wide enough for the whole toolbar on one line; the test page is narrow.
     el.style.setProperty('--protvista-label-width', '480px');
@@ -278,31 +278,30 @@ describe('entering and leaving customize mode', () => {
     expect(actions.map((b) => b.textContent!.trim())).toEqual([
       'Toggle all off',
       'Reset to default',
-      'Done',
     ]);
-    // Done ends flush with the line — the group is pushed right.
+    // Reset ends flush with the line — the group is pushed right.
     const lineBox = line.getBoundingClientRect();
-    const doneBox = actions[2].getBoundingClientRect();
-    expect(Math.round(lineBox.right - doneBox.right)).toBeLessThanOrEqual(1);
+    const resetBox = actions[1].getBoundingClientRect();
+    expect(Math.round(lineBox.right - resetBox.right)).toBeLessThanOrEqual(1);
     const toggleBox = toggle(el).getBoundingClientRect();
-    expect(doneBox.left).toBeGreaterThan(toggleBox.right);
+    expect(actions[0].getBoundingClientRect().left).toBeGreaterThan(toggleBox.right);
     // Same line as the toggle, not wrapped below it.
     expect(Math.abs(actions[0].getBoundingClientRect().top - toggleBox.top)).toBeLessThanOrEqual(2);
   });
 
   // The default label column is 20vw — ~220px on a 1100px screen — and the
   // whole line still has to fit, tightened rather than wrapped.
-  it('keeps all four buttons on one line in a narrow label column', async () => {
+  it('keeps all three buttons on one line in a narrow label column', async () => {
     const el = await mountViewer();
     el.style.setProperty('--protvista-label-width', '220px');
     await enterCustomize(el);
     const line = toggle(el).closest(`.${CSS_PREFIX}-toolbar-row`)!;
     const lineBox = line.getBoundingClientRect();
     const buttons = Array.from(line.querySelectorAll('button'));
-    expect(buttons.map((b) => b.textContent!.trim()).slice(1)).toEqual([
+    expect(buttons.map((b) => b.textContent!.trim())).toEqual([
+      'Done',
       'Toggle all off',
       'Reset to default',
-      'Done',
     ]);
     const top = toggle(el).getBoundingClientRect().top;
     for (const b of buttons) {
@@ -310,8 +309,6 @@ describe('entering and leaving customize mode', () => {
       expect(Math.abs(box.top - top)).toBeLessThanOrEqual(2);
       expect(box.right).toBeLessThanOrEqual(lineBox.right + 0.5);
     }
-    // The pressed toggle drops to its icon here, but keeps its name.
-    expect(toggle(el).textContent!.trim()).toBe('Customize');
   });
 
   it('Toggle all names the way it will go, and hides or shows everything', async () => {
@@ -552,7 +549,7 @@ describe('the change status', () => {
 
     badge(el)!.click();
     await el.updateComplete;
-    expect(toggle(el).getAttribute('aria-pressed')).toBe('true');
+    expect(toggle(el).textContent!.trim()).toBe('Done');
   });
 
   // Entering the mode is not enough: a hidden group collapses to one stub, so

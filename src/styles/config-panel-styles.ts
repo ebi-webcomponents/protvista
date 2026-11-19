@@ -36,7 +36,7 @@ export default css`
      controls it reveals.
 
      Stacked in rows: the toggle shares its line with every customize
-     action (Toggle all, Reset to default, Done), and the change status —
+     action (Toggle all, Reset to default), and the change status —
      what is different from the default — sits alone on the line below. */
   /* Stretched, not left-aligned: each toolbar row needs to span the full
      label column, or it shrink-wraps to its own content and the actions'
@@ -60,8 +60,7 @@ export default css`
   /* The status row is always laid out, and merely made invisible when there
      is nothing to report, so a first change adds no height and the
      navigation ruler does not step down. */
-  /* The Customize line never wraps: Toggle all, Reset to default and Done
-     stay beside the toggle at any usual label-column width. The column is a size
+  /* The Customize line never wraps: Toggle all and Reset to default stay beside the toggle at any usual label-column width. The column is a size
      container so the line can tighten itself to fit (see the @container
      rules below) rather than spill onto a second line. */
   protvista-uniprot .${p}-nav-track-label {
@@ -138,11 +137,10 @@ export default css`
     min-width: 0;
   }
 
-  /* Tightening, in steps, as the label column narrows — all four buttons
-     stay on the Customize line. First the padding and gaps give way; then,
-     while customizing, the Customize button drops to its icon (it is the
-     pressed one, its job already done, and the word stays its accessible
-     name — visually hidden, not removed); finally the type steps down. */
+  /* Tightening, in steps, as the label column narrows — all three buttons
+     stay on the Customize line. First the padding and gaps give way, then
+     the type steps down. (While customizing the toggle reads "Done" and
+     drops its icon, which already keeps the line short.) */
   @container ${p}-toolbar (max-width: 380px) {
     protvista-uniprot .${p}-customize-line,
     protvista-uniprot .${p}-customize-actions {
@@ -151,18 +149,6 @@ export default css`
     protvista-uniprot .${p}-customize-line .${p}-customize-toggle,
     protvista-uniprot .${p}-customize-line .${p}-customize-action {
       padding: 0.2rem 0.3rem;
-    }
-  }
-
-  @container ${p}-toolbar (max-width: 340px) {
-    protvista-uniprot .${p}--customizing .${p}-customize-toggle__text {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      margin: -1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: nowrap;
     }
   }
 
@@ -186,10 +172,9 @@ export default css`
     outline-offset: 2px;
   }
 
-  /* Pressed (customize mode active): accent border + tinted background, so
-     the state is carried by more than colour alone — the button also reports
-     its aria-pressed state. */
-  protvista-uniprot .${p}-customize-toggle[aria-pressed='true'] {
+  /* Customize mode active (the toggle reads "Done"): accent border + tinted
+     background. The label change carries the state, not colour alone. */
+  protvista-uniprot .${p}--customizing .${p}-customize-toggle {
     border-color: var(--protvista-color-accent, #0053d6);
     background: var(--protvista-color-bg-active, #e6f3ff);
   }

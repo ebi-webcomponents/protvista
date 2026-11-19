@@ -254,9 +254,9 @@ describe('the customize actions', () => {
         .querySelectorAll(`.${CSS_PREFIX}-customize-action`)
     ).map((b) => b.textContent!.trim());
 
-  it('sit beside Customize, Toggle all first, then Reset to default and Done', () => {
+  it('sit beside the toggle, Toggle all first, then Reset to default', () => {
     const target = renderInto(buildInstance({ _customizeMode: true }));
-    expect(labels(target)).toEqual(['Toggle all off', 'Reset to default', 'Done']);
+    expect(labels(target)).toEqual(['Toggle all off', 'Reset to default']);
   });
 
   it('offer Toggle all on once anything is hidden', () => {

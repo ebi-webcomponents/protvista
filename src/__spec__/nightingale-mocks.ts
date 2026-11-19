@@ -60,7 +60,12 @@ vi.mock('@nightingale-elements/nightingale-filter', () => ({
 // `amColorScale` is only used in `_loadDataInComponents`, which the
 // render/mount tests never invoke. A no-op stub is fine; non-mount
 // specs don't reach this module at all.
+// `default` is needed whenever the real `protvista-uniprot-structure`
+// module loads (some specs unmock it, and in browser mode the module
+// graph can be shared across spec files); without it the import fails
+// with "does not provide an export named 'default'".
 vi.mock('@nightingale-elements/nightingale-structure', () => ({
+  default: class extends HTMLElement {},
   amColorScale: () => '#000000',
 }));
 
