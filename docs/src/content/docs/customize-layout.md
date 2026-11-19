@@ -62,6 +62,10 @@ the mode. Beside it, at the right of the same line, are two actions:
   authored config) restores the authored layout. When it disables itself,
   focus moves to Toggle all rather than being lost.
 
+On a narrow label column the two actions wrap below Done. The line is laid
+out the same way outside the mode, with the actions invisible, so opening
+Customize never moves the tracks.
+
 Below that line, the **change status** says what differs from the authored
 config — "2 tracks hidden | 1 track shown | 6 tracks moved \*" — each part only
 when it is non-zero. Every part counts *tracks*: hiding or moving a group of

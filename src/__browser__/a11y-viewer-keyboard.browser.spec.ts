@@ -264,11 +264,33 @@ describe('viewer: keyboard order and traps (2.1.2, 2.4.3)', () => {
     const toggle = q<HTMLButtonElement>(`.${P}-customize-toggle`);
     toggle.click();
     await settle();
-    const doneTop = toggle.getBoundingClientRect().top;
-    expect(Math.abs(note.getBoundingClientRect().top - doneTop)).toBeLessThanOrEqual(4);
+    // Beside the Customize line (which may itself wrap), not below it.
+    const line = q(`.${P}-customize-line`).getBoundingClientRect();
+    const box = note.getBoundingClientRect();
+    expect(box.left).toBeGreaterThanOrEqual(line.right - 1);
+    expect(box.top).toBeGreaterThanOrEqual(line.top - 1);
+    expect(box.bottom).toBeLessThanOrEqual(line.bottom + 1);
     expect(q(`#${P}-group_lab`).getBoundingClientRect().top).toBe(rowTop);
     toggle.click();
     await settle();
+  });
+
+  // The default label column is 20vw, so below a ~1500px screen the
+  // Customize line wraps. It must wrap the same way in both modes: the rows stay put at
+  // every width, wrapped or not.
+  it('opening Customize moves no row at narrow label columns either', async () => {
+    const toggle = q<HTMLButtonElement>(`.${P}-customize-toggle`);
+    for (const width of ['220px', '180px', '150px', '120px']) {
+      viewer.style.setProperty('--protvista-label-width', width);
+      await settle();
+      const rowTop = q(`#${P}-group_lab`).getBoundingClientRect().top;
+      toggle.click();
+      await settle();
+      expect(q(`#${P}-group_lab`).getBoundingClientRect().top, width).toBe(rowTop);
+      toggle.click();
+      await settle();
+    }
+    viewer.style.removeProperty('--protvista-label-width');
   });
 
   it('in Customize mode, Tab reaches every control and leaves the viewer', async () => {

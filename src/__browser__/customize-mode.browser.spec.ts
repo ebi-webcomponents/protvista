@@ -289,11 +289,13 @@ describe('entering and leaving customize mode', () => {
     expect(Math.abs(actions[0].getBoundingClientRect().top - toggleBox.top)).toBeLessThanOrEqual(2);
   });
 
-  // The default label column is 20vw — ~220px on a 1100px screen — and the
-  // whole line still has to fit, tightened rather than wrapped.
-  it('keeps all three buttons on one line in a narrow label column', async () => {
+  // Tightening keeps all three on one line down to a ~300px label column
+  // (the default 20vw on a ~1500px screen). Below that they wrap — the same
+  // way in both modes, so nothing shifts (see the next test, and the
+  // narrow-column test in a11y-viewer-keyboard).
+  it('keeps all three buttons on one line in a 320px label column', async () => {
     const el = await mountViewer();
-    el.style.setProperty('--protvista-label-width', '220px');
+    el.style.setProperty('--protvista-label-width', '320px');
     await enterCustomize(el);
     const line = toggle(el).closest(`.${CSS_PREFIX}-toolbar-row`)!;
     const lineBox = line.getBoundingClientRect();
@@ -313,17 +315,20 @@ describe('entering and leaving customize mode', () => {
 
   // Narrower than tightening can fit: the actions wrap below the toggle
   // rather than run past the column under the ruler.
-  it('wraps the actions rather than overflow a very narrow label column', async () => {
-    const el = await mountViewer();
-    el.style.setProperty('--protvista-label-width', '140px');
-    await enterCustomize(el);
-    const cell = el.querySelector(`.${CSS_PREFIX}-nav-track-label`)!;
-    const right = cell.getBoundingClientRect().right;
-    const line = toggle(el).closest(`.${CSS_PREFIX}-toolbar-row`)!;
-    for (const b of Array.from(line.querySelectorAll('button'))) {
-      expect(b.getBoundingClientRect().right).toBeLessThanOrEqual(right + 0.5);
+  it.each(['220px', '140px'])(
+    'wraps the actions rather than overflow a %s label column',
+    async (width) => {
+      const el = await mountViewer();
+      el.style.setProperty('--protvista-label-width', width);
+      await enterCustomize(el);
+      const cell = el.querySelector(`.${CSS_PREFIX}-nav-track-label`)!;
+      const right = cell.getBoundingClientRect().right;
+      const line = toggle(el).closest(`.${CSS_PREFIX}-toolbar-row`)!;
+      for (const b of Array.from(line.querySelectorAll('button'))) {
+        expect(b.getBoundingClientRect().right).toBeLessThanOrEqual(right + 0.5);
+      }
     }
-  });
+  );
 
   it('Toggle all names the way it will go, and hides or shows everything', async () => {
     const el = await mountViewer();

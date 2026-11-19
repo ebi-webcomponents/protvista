@@ -311,6 +311,19 @@ describe('setAllHidden', () => {
     setAllHidden(input, true);
     expect(input[0].hidden).toBeUndefined();
   });
+
+  // A dataless row shows ⊘, not a switch, so a hide on it could not be
+  // undone one row at a time.
+  it('leaves rows with nothing to draw alone when hiding', () => {
+    const out = setAllHidden(rows(), true, (rowId) => rowId === 'B');
+    expect(out.map((r) => !!r.hidden)).toEqual([true, false, true]);
+  });
+
+  it('still shows them when showing', () => {
+    const input = setRowHidden(rows(), 'B', true);
+    const out = setAllHidden(input, false, (rowId) => rowId === 'B');
+    expect(out.every((row) => !row.hidden)).toBe(true);
+  });
 });
 
 describe('sameArrangement', () => {
@@ -587,6 +600,15 @@ describe('movedTrackCount', () => {
       [rowMoveKey('A'), trackMoveKey('A', 'a2')].includes(k)
     );
     expect(movedTrackCount(next, moved)).toBe(2);
+  });
+});
+
+describe('movedTrackCount with empty tracks', () => {
+  it('leaves tracks with nothing to draw out, as the hidden count does', () => {
+    const base = rows();
+    const next = moveRow(base, 'A', 1);
+    const moved = movedKeys(base, next, (k) => k === rowMoveKey('A'));
+    expect(movedTrackCount(next, moved, (_r, t) => t === 'a1')).toBe(1);
   });
 });
 

@@ -173,6 +173,10 @@ const outOfReach = () => {
         h.tabIndex >= 0 &&
         !(h as HTMLButtonElement).disabled &&
         !el.closest('[hidden]') &&
+        // Inert or invisible controls cannot be reached at all — e.g. the
+        // customize actions, laid out but hidden outside customize mode.
+        !el.closest('[inert]') &&
+        getComputedStyle(el).visibility !== 'hidden' &&
         el.getClientRects().length > 0 &&
         !(el instanceof HTMLInputElement && el.type === 'file')
       );

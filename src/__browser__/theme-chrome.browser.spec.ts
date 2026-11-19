@@ -36,7 +36,11 @@ const CONFIG = { theme: { labelColor: '#e8f5e9' }, rows: rows() };
  *  illegible on it, so the derived white must actually reach the cell. */
 const DARK_CONFIG = { theme: { labelColor: '#1a237e' }, rows: rows() };
 
-type El = HTMLElement & { viewerConfig?: unknown; accession?: string };
+type El = HTMLElement & {
+  viewerConfig?: unknown;
+  accession?: string;
+  noPersistLayout?: boolean;
+};
 
 function stubFetch() {
   vi.stubGlobal(
@@ -76,6 +80,10 @@ async function mountViewer(config: unknown, vars: Record<string, string> = {}) {
   const el = mount<El>('protvista-uniprot', {
     viewerConfig: config,
     accession: 'P05067',
+    // Keep layout edits (the change-status test hides a row) out of
+    // localStorage and the URL, so a failing test cannot leak them into
+    // the next mount.
+    noPersistLayout: true,
   });
   for (const [name, value] of Object.entries(vars)) {
     el.style.setProperty(name, value);
@@ -183,14 +191,10 @@ describe('the neutral chrome cells', () => {
     // invisible reserved placeholder — which has a computed colour too, so
     // the check would pass without anything on screen. Hiding a row after
     // mount is a user change, so the visible "Modified view" button is what
-    // gets measured. The layout persists (storage and URL), so it is reset
-    // before the next mount.
+    // gets measured.
     const statusColor = async (q: (cls: string) => HTMLElement | null) => {
       const host = document.querySelector<
-        HTMLElement & {
-          setRowVisibility(id: string, visible: boolean): void;
-          resetLayout(): void;
-        }
+        HTMLElement & { setRowVisibility(id: string, visible: boolean): void }
       >('protvista-uniprot')!;
       host.setRowVisibility('solo', false);
       const el = await vi.waitFor(() => {
@@ -200,9 +204,7 @@ describe('the neutral chrome cells', () => {
         expect(getComputedStyle(found).visibility).toBe('visible');
         return found;
       });
-      const color = fg(el);
-      host.resetLayout();
-      return color;
+      return fg(el);
     };
 
     const plain = await mountViewer(UNTHEMED());

@@ -70,13 +70,17 @@ export default css`
     container-name: ${p}-toolbar;
   }
 
-  /* Customize and its actions are one unit. Outside the mode the top-bar
-     notes (ⓘ) after it still wrap onto their own line when there is no room.
-     While customizing, the unit grows into the space the notes leave — so
-     the actions sit at its right edge — and the notes stay on the same line:
-     pushing them to a line of their own would add a row and shift the
-     visualization down. The unit shrinks instead, and wraps the actions
-     inside itself. */
+  /* Customize and its actions are one unit, laid out identically in both
+     modes: the actions are always there, merely invisible outside customize
+     mode (.customize-actions--inactive), and the toggle keeps the width of
+     "Customize" while it reads "Done" (below). So whether the line wraps
+     never depends on the mode, and opening Customize cannot change the nav
+     cell's height or move the tracks.
+
+     The unit grows into the space the top-bar notes (ⓘ) leave — so the
+     actions sit at its right edge — and the notes stay on the same line
+     rather than drop to a line of their own. The unit shrinks instead, and
+     wraps the actions inside itself. */
   protvista-uniprot .${p}-customize-line {
     display: inline-flex;
     flex-wrap: wrap;
@@ -85,19 +89,43 @@ export default css`
     min-width: 0;
   }
 
-  protvista-uniprot .${p}--customizing .${p}-toolbar-row--customize {
+  protvista-uniprot .${p}-toolbar-row--customize {
     flex-wrap: nowrap;
   }
 
-  protvista-uniprot .${p}--customizing .${p}-customize-line {
+  protvista-uniprot .${p}-customize-line {
     flex: 1 1 auto;
   }
 
-  protvista-uniprot
-    .${p}--customizing
-    .${p}-toolbar-row--customize
-    > :not(.${p}-customize-line) {
+  protvista-uniprot .${p}-toolbar-row--customize > :not(.${p}-customize-line) {
     flex: none;
+  }
+
+  /* Outside customize mode: holds its space, shows and announces nothing
+     (also aria-hidden and inert in the markup). */
+  protvista-uniprot .${p}-customize-actions--inactive {
+    visibility: hidden;
+  }
+
+  /* "Done" is narrower than the icon plus "Customize", which would let the
+     line fit while customizing yet wrap outside it. An invisible copy of
+     the wider label sits under the text at zero height, so the button keeps
+     its outside-mode width without growing taller. Generated content,
+     hidden: it is not in textContent and not in the accessible name. */
+  protvista-uniprot .${p}--customizing .${p}-customize-toggle__text {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  protvista-uniprot .${p}--customizing .${p}-customize-toggle__text::after {
+    content: 'Customize';
+    display: block;
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    /* The icon (16px) and the button's gap, which "Done" drops. */
+    padding-left: calc(16px + 0.4rem);
   }
 
   protvista-uniprot .${p}-toolbar-row--reserved {
@@ -258,8 +286,8 @@ export default css`
   }
 
   protvista-uniprot .${p}-row-controls .${p}-moved-mark {
-    /* Sits immediately left of the switch / not-applicable sign. Its 0.4rem gap
-       matches the switch's own trailing margin. */
+    /* Sits immediately left of the switch / not-applicable sign, with a
+       small gap before it. */
     margin-right: 0.25rem;
     font-size: 1rem;
     /* An asterisk's ink sits in the top half of its em box; nudge it down

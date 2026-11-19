@@ -211,15 +211,24 @@ export function setRowHidden(
  * `setRowHidden` one row at a time rather than mapping `hidden` directly onto
  * every row and track, so a standalone row's track flag stays in step with
  * its row flag exactly as a single `setRowHidden` call would leave it.
+ *
+ * @param isEmpty Optional predicate marking a track as having nothing to
+ *   draw. When hiding, a row whose every track is empty is left as it is:
+ *   the viewer shows it a not-applicable sign rather than a switch, so a
+ *   hide put on it could never be undone one row at a time.
  */
 export function setAllHidden(
   rows: NormalizedRow[],
-  hidden: boolean
+  hidden: boolean,
+  isEmpty?: (rowId: string, trackId: string) => boolean
 ): NormalizedRow[] {
-  return rows.reduce(
-    (next, row) => setRowHidden(next, row.id, hidden),
-    rows
-  );
+  return rows.reduce((next, row) => {
+    // A row with nothing to draw is skipped when hiding (see `isEmpty`).
+    if (hidden && isEmpty && row.tracks.every((t) => isEmpty(row.id, t.id))) {
+      return next;
+    }
+    return setRowHidden(next, row.id, hidden);
+  }, rows);
 }
 
 /**
@@ -392,19 +401,21 @@ export function movedKeys(
  * How many **tracks** the `movedKeys` result moves — a moved row counts
  * every track it holds, so moving a group of six reads "6 tracks moved",
  * the same way hiding it reads "6 tracks hidden". A track moved inside a
- * row that also moved is already counted with its row.
+ * row that also moved is already counted with its row. `isEmpty` leaves
+ * out tracks with nothing to draw, as `visibilityChanges` does.
  */
 export function movedTrackCount(
   rows: readonly NormalizedRow[],
-  moved: ReadonlySet<string>
+  moved: ReadonlySet<string>,
+  isEmpty?: (rowId: string, trackId: string) => boolean
 ): number {
   let n = 0;
   for (const row of rows) {
-    if (moved.has(rowMoveKey(row.id))) {
-      n += row.tracks.length;
-      continue;
+    const rowMoved = moved.has(rowMoveKey(row.id));
+    for (const t of row.tracks) {
+      if (isEmpty?.(row.id, t.id)) continue;
+      if (rowMoved || moved.has(trackMoveKey(row.id, t.id))) n += 1;
     }
-    for (const t of row.tracks) if (moved.has(trackMoveKey(row.id, t.id))) n += 1;
   }
   return n;
 }

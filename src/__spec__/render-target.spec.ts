@@ -800,7 +800,7 @@ describe('handleGroupClick — group collapse / expand toggle', () => {
 
   it('collapses in one click a group opened via openGroups (badge / customize path)', () => {
     const el = buildInstance();
-    // The "N hidden" badge and the customize-mode collapse button push
+    // The "Modified view" button and the customize-mode collapse button push
     // straight into `openGroups` without the imperative `open` class the old
     // handler read its direction from. Collapsing must still take one click,
     // and must not leave a duplicate id behind.

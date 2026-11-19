@@ -1,4 +1,4 @@
-import { LitElement, html, svg } from 'lit';
+import { LitElement, html, nothing, svg } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { repeat } from 'lit/directives/repeat.js';
@@ -4071,7 +4071,7 @@ class ProtvistaUniprot extends LitElement {
       <div
         class="${CSS_PREFIX}-group ${CSS_PREFIX}-group--standalone ${this._ghostClass(
           isRowHidden(group)
-        )} ${this._movedClass(group.id)}"
+        )} ${this._movedClass(rowMoveKey(group.id))}"
         id="${CSS_PREFIX}-group_${group.id}"
       >
         <div
@@ -4167,7 +4167,7 @@ class ProtvistaUniprot extends LitElement {
       // `|| _trackErrors.has(key)` is what keeps a *broken* standalone row on
       // the canvas, exactly as the grouped branch below does. Without it the
       // row vanished and `_renderAllHiddenNotice` claimed the user had hidden
-      // everything — a false statement with a Reset-layout button that fixes
+      // everything — a false statement pointing at controls that fix
       // nothing. Standalone is the default shape for the starter kits, so this
       // was the most-reachable failure surface in the component.
       return hasRenderableData(this.data[key]) || this._trackErrors.has(key);
@@ -4236,7 +4236,7 @@ class ProtvistaUniprot extends LitElement {
       <div
         class="${CSS_PREFIX}-group ${this._ghostClass(
           isRowHidden(group)
-        )} ${this._movedClass(group.id)}"
+        )} ${this._movedClass(rowMoveKey(group.id))}"
         id="${CSS_PREFIX}-group_${group.id}"
       >
         ${
@@ -4407,7 +4407,7 @@ class ProtvistaUniprot extends LitElement {
       <div
         class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-track--nested ${this._ghostClass(
           !!track.hidden || !!group.hidden
-        )} ${this._movedClass(trackKey(group.id, track.id))}"
+        )} ${this._movedClass(trackMoveKey(group.id, track.id))}"
         id="${CSS_PREFIX}-track_${track.id}"
       >
         <div
@@ -4465,7 +4465,7 @@ class ProtvistaUniprot extends LitElement {
     return html`
       <div
         class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-row--stub ${CSS_PREFIX}-row--hidden ${this._movedClass(
-          row.id
+          rowMoveKey(row.id)
         )}"
         id="${CSS_PREFIX}-group_${row.id}"
       >
@@ -4502,7 +4502,7 @@ class ProtvistaUniprot extends LitElement {
     return html`
       <div
         class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-track--nested ${CSS_PREFIX}-row--stub ${CSS_PREFIX}-row--hidden ${this._movedClass(
-          trackKey(group.id, track.id)
+          trackMoveKey(group.id, track.id)
         )}"
         id="${CSS_PREFIX}-track_${track.id}"
       >
@@ -4613,10 +4613,20 @@ class ProtvistaUniprot extends LitElement {
    * toggle as a unit rather than one per line.
    */
   private _renderCustomizeActions() {
-    if (!this._customizeMode) return '';
-    const edited = !isDefaultLayout(this.getLayout());
-    const anyHidden = this._anyTrackHidden();
-    return html`<span class="${CSS_PREFIX}-customize-actions">
+    // Laid out in both modes, and only invisible (and inert) outside
+    // customize mode, so the Customize line wraps — or not — the same way
+    // either side of the toggle, and opening the mode never changes the nav
+    // cell's height or moves the tracks down.
+    const active = this._customizeMode;
+    const edited = active && !isDefaultLayout(this.getLayout());
+    const anyHidden = active && this._anyTrackHidden();
+    return html`<span
+      class="${CSS_PREFIX}-customize-actions${active
+        ? ''
+        : ` ${CSS_PREFIX}-customize-actions--inactive`}"
+      aria-hidden="${active ? nothing : 'true'}"
+      ?inert="${!active}"
+    >
       <button
         type="button"
         class="${CSS_PREFIX}-customize-action"
@@ -4697,11 +4707,16 @@ class ProtvistaUniprot extends LitElement {
         </button>
       </div>`;
     }
-    const changes = this._visibilityChanges();
-    const hidden = changes.hidden.length;
-    const shown = changes.shown.length;
-    const moved = movedTrackCount(this.config?.rows ?? [], this._movedNow);
-    if (hidden === 0 && shown === 0 && moved === 0) return reserved;
+    const { hidden, shown, moved } = this._changeCounts();
+    if (hidden === 0 && shown === 0 && moved === 0) {
+      if (isDefaultLayout(this.getLayout())) return reserved;
+      // The patch differs only in ways the counts leave out (a flag on a
+      // track inside a hidden group, a dataless track). "Modified view" and
+      // Reset to default still see it, so say so rather than show nothing.
+      return html`<div class="${CSS_PREFIX}-toolbar-row">
+        <span class="${CSS_PREFIX}-change-status">Layout modified</span>
+      </div>`;
+    }
     const tracks = (n: number) => `${n} ${n === 1 ? 'track' : 'tracks'}`;
     const parts = [
       hidden > 0 ? html`${tracks(hidden)} hidden` : null,
@@ -4715,7 +4730,10 @@ class ProtvistaUniprot extends LitElement {
       <span class="${CSS_PREFIX}-change-status">
         ${parts.map(
           (part, i) =>
-            html`${i > 0 ? ' | ' : ''}${part}`
+            html`${i > 0
+              ? html`<span aria-hidden="true"> | </span
+                  ><span class="${CSS_PREFIX}-visually-hidden">, </span>`
+              : ''}${part}`
         )}
       </span>
     </div>`;
@@ -4730,6 +4748,23 @@ class ProtvistaUniprot extends LitElement {
     return hiddenCount(this.config?.rows ?? [], (rowId, trackId) =>
       this._trackIsEmpty(rowId, trackId)
     );
+  }
+
+  /**
+   * The change status's three numbers, all in tracks and all leaving out
+   * tracks with nothing to draw.
+   */
+  private _changeCounts(): { hidden: number; shown: number; moved: number } {
+    const { hidden, shown } = this._visibilityChanges();
+    return {
+      hidden: hidden.length,
+      shown: shown.length,
+      moved: movedTrackCount(
+        this.config?.rows ?? [],
+        this._movedNow,
+        (rowId, trackId) => this._trackIsEmpty(rowId, trackId)
+      ),
+    };
   }
 
   /**
@@ -4766,10 +4801,13 @@ class ProtvistaUniprot extends LitElement {
     const added = toOpen.filter((id) => !this.openGroups.includes(id));
     if (added.length > 0) this.openGroups = [...this.openGroups, ...added];
 
+    const { hidden, shown, moved } = this._changeCounts();
     this._announce(
       added.length > 0
         ? `Opened ${added.length} group${added.length === 1 ? '' : 's'} containing changes.`
-        : 'Changes are marked below.'
+        : hidden + shown + moved > 0
+          ? 'Changes are marked below.'
+          : 'Layout modified. Reset to default restores it.'
     );
     void this.updateComplete.then(() => {
       this.querySelector<HTMLButtonElement>(
@@ -4816,7 +4854,14 @@ class ProtvistaUniprot extends LitElement {
   private _onToggleAllVisibility = () => {
     if (!this.config) return;
     const nextHidden = !this._anyTrackHidden();
-    this._commitRows(setAllHidden(this.config.rows, nextHidden));
+    // Dataless rows are left alone: they show ⊘, not a switch, so a hide
+    // put on them could not be undone one row at a time, and the Toggle all
+    // label (which ignores them) would stop admitting it was there.
+    this._commitRows(
+      setAllHidden(this.config.rows, nextHidden, (rowId, trackId) =>
+        this._trackIsEmpty(rowId, trackId)
+      )
+    );
     this._announce(
       nextHidden ? 'All tracks hidden.' : 'All tracks shown.'
     );
@@ -4879,8 +4924,8 @@ class ProtvistaUniprot extends LitElement {
     const hidden =
       isRowHidden(row) || !this._rowRendersContent(row, visibleTracks(row));
     // Nothing to draw anywhere in the row *at all* (every track empty, none
-    // merely hidden): showing it would change nothing, so the toggle is
-    // disabled and says why instead of offering a no-op.
+    // merely hidden): showing it would change nothing, so the switch is
+    // replaced by a not-applicable sign (⊘) instead of offering a no-op.
     const empty = row.tracks.every((t) => this._trackIsEmpty(row.id, t.id));
     return html`
       <span class="${CSS_PREFIX}-row-controls">
@@ -5057,7 +5102,7 @@ class ProtvistaUniprot extends LitElement {
     const to = index + delta;
     if (to < 0 || to >= total) return;
     this._commitRows(moveRow(this.config.rows, row.id, to));
-    this._markMoved(row.id, rowMoveKey(row.id));
+    this._markMoved(rowMoveKey(row.id));
     this._keepFocusAfterMove(button);
     this._announceMove(this._labelText(row.label), to, total);
   }
@@ -5075,10 +5120,7 @@ class ProtvistaUniprot extends LitElement {
     const to = index + delta;
     if (to < 0 || to >= total) return;
     this._commitRows(moveTrack(this.config.rows, group.id, track.id, to));
-    this._markMoved(
-      trackKey(group.id, track.id),
-      trackMoveKey(group.id, track.id)
-    );
+    this._markMoved(trackMoveKey(group.id, track.id));
     this._keepFocusAfterMove(button);
     this._announceMove(this._labelText(track.label), to, total);
   }
@@ -5096,9 +5138,9 @@ class ProtvistaUniprot extends LitElement {
    * visually. The announcement covers screen-reader users; this covers
    * everyone else.
    */
-  private _markMoved(key: string, moveKey: string): void {
+  private _markMoved(key: string): void {
     this._movedKey = key;
-    this._userMoved.add(moveKey);
+    this._userMoved.add(key);
     this._pruneUserMoved();
     clearTimeout(this._movedTimer);
     this._movedTimer = setTimeout(() => {
@@ -5130,7 +5172,11 @@ class ProtvistaUniprot extends LitElement {
     >`;
   }
 
-  /** The just-moved highlight class for a row/track, if it is the one. */
+  /**
+   * The just-moved highlight class for a row/track, if it is the one. Keyed
+   * by `rowMoveKey` / `trackMoveKey`, like the asterisk, so a hyphenated row
+   * id never lights up a track that spells the same.
+   */
   private _movedClass(key: string): string {
     return this._movedKey === key ? `${CSS_PREFIX}-row--moved` : '';
   }
@@ -5208,8 +5254,8 @@ class ProtvistaUniprot extends LitElement {
     // user hid something that would draw — `hasData` is a coarse heuristic
     // (a raw `features` response with none matching a track's `filter:` still
     // sets it), so it cannot tell an empty canvas from a hidden one. A canvas
-    // with nothing hidden has no data, and a Reset-layout button there would
-    // fix nothing.
+    // with nothing hidden has no data, and pointing the user at Customize
+    // would fix nothing.
     if (
       rows.length === 0 &&
       this.config.rows.length > 0 &&

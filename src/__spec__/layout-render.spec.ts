@@ -19,6 +19,7 @@ import { describe, it, expect } from 'vitest';
 import { render } from 'lit';
 import type { NormalizedConfig } from '../schema/normalize';
 import { CSS_PREFIX } from '../styles/css-prefix';
+import { rowMoveKey, trackMoveKey } from '../layout';
 import '../protvista-uniprot';
 
 const SEQ_LEN = 100;
@@ -181,6 +182,12 @@ describe('the Customize toggle', () => {
     });
   const status = (target: Element) =>
     target.querySelector(`.${CSS_PREFIX}-change-status`);
+  // The text a sighted reader sees: the visually-hidden separators left out.
+  const visibleText = (el: Element) => {
+    const copy = el.cloneNode(true) as Element;
+    copy.querySelectorAll(`.${CSS_PREFIX}-visually-hidden`).forEach((n) => n.remove());
+    return copy.textContent!.replace(/\s+/g, ' ').trim();
+  };
 
   it('says only "Modified view" outside customize mode', () => {
     const target = renderInto(edited());
@@ -218,7 +225,7 @@ describe('the Customize toggle', () => {
     const target = renderInto(
       buildInstance({ _baseRows: base, config, _customizeMode: true })
     );
-    expect(status(target)!.textContent!.replace(/\s+/g, ' ').trim()).toBe(
+    expect(visibleText(status(target)!)).toBe(
       // The moved row is a group of two, and moves count tracks.
       '2 tracks hidden | 2 tracks moved *'
     );
@@ -243,6 +250,39 @@ describe('the Customize toggle', () => {
     expect(status(shown)!.textContent!.replace(/\s+/g, ' ').trim()).toBe(
       '2 tracks shown'
     );
+  });
+
+  // Only the "|" is decoration; a screen reader gets a comma instead.
+  it('hides the separators from assistive tech', () => {
+    const base = makeConfig().rows;
+    const config = makeConfig({ B: true });
+    config.rows = [config.rows[1], config.rows[0], config.rows[2]];
+    const target = renderInto(
+      buildInstance({ _baseRows: base, config, _customizeMode: true })
+    );
+    const pipe = Array.from(status(target)!.querySelectorAll('span')).find(
+      (el) => el.textContent!.trim() === '|'
+    )!;
+    expect(pipe.getAttribute('aria-hidden')).toBe('true');
+    expect(pipe.nextElementSibling!.classList.contains(`${CSS_PREFIX}-visually-hidden`)).toBe(
+      true
+    );
+  });
+
+  // A patch the counts leave out (here a flag on a track inside a hidden
+  // group) still shows Modified view and enables Reset, so the status must
+  // not go blank.
+  it('says "Layout modified" when the patch differs but no count does', () => {
+    const base = makeConfig({ B: true }).rows;
+    const config = makeConfig({ B: true });
+    config.rows[1] = {
+      ...config.rows[1],
+      tracks: config.rows[1].tracks.map((t, i) => (i === 0 ? { ...t, hidden: true } : t)),
+    };
+    const target = renderInto(
+      buildInstance({ _baseRows: base, config, _customizeMode: true })
+    );
+    expect(status(target)!.textContent!.trim()).toBe('Layout modified');
   });
 
   it('keeps the status line laid out but invisible when nothing changed', () => {
@@ -288,8 +328,19 @@ describe('the customize actions', () => {
     expect(labels(target)[0]).toBe('Toggle all on');
   });
 
-  it('are absent outside customize mode', () => {
-    expect(labels(renderInto(buildInstance()))).toEqual([]);
+  // Laid out in both modes so the line wraps the same way either side of
+  // the toggle, but neither seen, read nor reachable outside the mode.
+  it('are laid out but hidden and inert outside customize mode', () => {
+    const target = renderInto(buildInstance());
+    const actions = target.querySelector(`.${CSS_PREFIX}-customize-actions`)!;
+    expect(actions.classList.contains(`${CSS_PREFIX}-customize-actions--inactive`)).toBe(true);
+    expect(actions.getAttribute('aria-hidden')).toBe('true');
+    expect(actions.hasAttribute('inert')).toBe(true);
+
+    const on = renderInto(buildInstance({ _customizeMode: true }));
+    const live = on.querySelector(`.${CSS_PREFIX}-customize-actions`)!;
+    expect(live.hasAttribute('aria-hidden')).toBe(false);
+    expect(live.hasAttribute('inert')).toBe(false);
   });
 });
 
@@ -522,7 +573,7 @@ describe('the live region', () => {
 describe('the just-moved highlight', () => {
   it('marks the row named by _movedKey', () => {
     const target = renderInto(
-      buildInstance({ _customizeMode: true, _movedKey: 'B' })
+      buildInstance({ _customizeMode: true, _movedKey: rowMoveKey('B') })
     );
     const moved = target.querySelectorAll(`.${CSS_PREFIX}-row--moved`);
     expect(moved).toHaveLength(1);
@@ -531,7 +582,7 @@ describe('the just-moved highlight', () => {
 
   it('marks a moved track by its composite key', () => {
     const target = renderInto(
-      buildInstance({ _customizeMode: true, _movedKey: 'A-At2' })
+      buildInstance({ _customizeMode: true, _movedKey: trackMoveKey('A', 'At2') })
     );
     const moved = target.querySelectorAll(`.${CSS_PREFIX}-row--moved`);
     expect(moved).toHaveLength(1);
