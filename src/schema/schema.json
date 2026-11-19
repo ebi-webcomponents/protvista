@@ -35,8 +35,30 @@
       "minLength": 1
     },
     "sources": {
-      "description": "Map of named URL templates. Tracks reference these by key.",
+      "description": "Map of named URL templates. Tracks reference these by key. Four keys also override the viewer's own requests, and keep their defaults when unset: sequenceEntry, structureUniprot, structureAlphafold and structureBeacons.",
       "type": "object",
+      "properties": {
+        "sequenceEntry": {
+          "description": "The entry the viewer reads the protein sequence from, which must answer with UniProt Proteins API JSON. Default: https://www.ebi.ac.uk/proteins/api/proteins/{accession}",
+          "type": "string",
+          "minLength": 1
+        },
+        "structureUniprot": {
+          "description": "The UniProtKB entry the 3D structure panel reads PDB cross-references from. Default: https://rest.uniprot.org/uniprotkb/{accession}",
+          "type": "string",
+          "minLength": 1
+        },
+        "structureAlphafold": {
+          "description": "The AlphaFold DB predictions the 3D structure panel lists. Default: https://alphafold.ebi.ac.uk/api/prediction/{accession}?include_complexes=true",
+          "type": "string",
+          "minLength": 1
+        },
+        "structureBeacons": {
+          "description": "The 3D-Beacons summary the 3D structure panel lists models from. Default: https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/{accession}.json?exclude_provider=pdbe",
+          "type": "string",
+          "minLength": 1
+        }
+      },
       "additionalProperties": { "type": "string", "minLength": 1 }
     },
     "variables": {

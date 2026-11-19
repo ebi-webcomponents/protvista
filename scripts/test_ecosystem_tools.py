@@ -186,5 +186,39 @@ class TestCitationFormat(unittest.TestCase):
         self.assertEqual(cite.format_author_string(list("ABCDEFG")), "A et al.")
 
 
+class TestCitationQuarters(unittest.TestCase):
+    today = dt.date(2026, 10, 31)
+
+    def test_quarter_bounds(self):
+        self.assertEqual(cite.quarter_of(dt.date(2026, 9, 30)), "2026-Q3")
+        self.assertEqual(cite.quarter_of(dt.date(2026, 10, 1)), "2026-Q4")
+        self.assertEqual(cite.quarter_end("2026-Q1"), dt.date(2026, 3, 31))
+        self.assertEqual(cite.quarter_end("2026-Q3"), dt.date(2026, 9, 30))
+        self.assertEqual(cite.quarter_end("2026-Q4"), dt.date(2026, 12, 31))
+
+    def test_quarters_range(self):
+        qs = cite.quarters("2017-Q1", self.today)
+        self.assertEqual((qs[0], qs[-1], len(qs)), ("2017-Q1", "2026-Q4", 40))
+
+    def test_cumulative_counts_drop_undated(self):
+        dates = ["2017-02-01", "2026-09-30", "2026-10-01", "Unknown Date", "2026-07"]
+        counts = cite.quarterly_counts(dates, self.today)
+        self.assertEqual(counts["2017-Q1"], 1)
+        self.assertEqual(counts["2026-Q2"], 1)
+        self.assertEqual(counts["2026-Q3"], 2)        # 30 Sep is inside Q3
+        self.assertEqual(counts["2026-Q4"], 3)        # undated and malformed left out
+
+    def test_csv_has_caveat_and_header(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp = os.path.join(d, "citations.csv")
+            cite.write_csv(tmp, {"2017-Q2": 3, "2017-Q1": 1})
+            with open(tmp) as f:
+                lines = f.read().splitlines()
+            self.assertTrue(lines[0].startswith("#"))
+            self.assertEqual(lines[1:], ["quarter,doi,citing_works",
+                                         f"2017-Q1,{cite.TARGET_DOI},1",
+                                         f"2017-Q2,{cite.TARGET_DOI},3"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

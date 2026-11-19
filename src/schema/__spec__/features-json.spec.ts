@@ -516,4 +516,16 @@ describe('features-json adapter — extra fields (#283)', () => {
       warn.mockRestore();
     }
   });
+
+  it('drops an empty-string key whatever its value', () => {
+    const { out, warnings } = decode([
+      { type: 'A', start: 1, end: 2, '': 'x' },
+      { type: 'A', start: 1, end: 2, '': 5 },
+    ]);
+    expect(out).toStrictEqual([
+      { type: 'A', start: 1, end: 2 },
+      { type: 'A', start: 1, end: 2 },
+    ]);
+    expect(warnings).toEqual([]);
+  });
 });

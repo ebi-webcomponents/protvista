@@ -20,6 +20,7 @@ import { describe, it, expect } from 'vitest';
 
 import {
   colorScaleToAttrs,
+  colorScaleToColorFn,
   renderingToAttrs,
 } from '../render-helpers.js';
 
@@ -43,9 +44,9 @@ describe('colorScaleToAttrs', () => {
   it('expands the alphamissense-ramp theme to the legacy scale / color-range pair', () => {
     expect(colorScaleToAttrs({ theme: 'alphamissense-ramp' })).toEqual({
       scale:
-        'B:0,H:0.1132,V:0.2264,L:0.3395,A:0.4527,l:0.5895,h:0.7264,p:0.8632,P:1',
+        '-:-1,B:0,H:0.1132,V:0.2264,L:0.3395,A:0.4527,l:0.5895,h:0.7264,p:0.8632,P:1',
       colorRange:
-        '#2166ac:0,#4290bf:0.1132,#8cbcd4:0.2264,#c3d6e0:0.3395,#e2e2e2:0.4527,#edcdba:0.5895,#e99e7c:0.7264,#d15e4b:0.8632,#b2182b:1',
+        'transparent:-1,#2166ac:0,#4290bf:0.1132,#8cbcd4:0.2264,#c3d6e0:0.3395,#e2e2e2:0.4527,#edcdba:0.5895,#e99e7c:0.7264,#d15e4b:0.8632,#b2182b:1',
     });
   });
 
@@ -95,6 +96,151 @@ describe('colorScaleToAttrs', () => {
       colorRange:
         '#ff7d45:0,#ffdb13:50,#65cbf3:70,#0053d6:90,#0053d6:100',
     });
+  });
+});
+
+describe('colorScaleToColorFn', () => {
+  it('returns undefined when there is no colour scale to resolve', () => {
+    expect(colorScaleToColorFn(undefined)).toBeUndefined();
+    expect(colorScaleToColorFn({})).toBeUndefined();
+    expect(colorScaleToColorFn({ theme: 'not-registered' })).toBeUndefined();
+  });
+
+  it('draws alphamissense-ramp exactly as the d3 amColorScale it replaces', () => {
+    // Reference values from nightingale-structure's `amColorScale` (a d3
+    // `scaleLinear` over the same nine stops), including extrapolation past
+    // both ends and `undefined` for a missing score.
+    const fn = colorScaleToColorFn({ theme: 'alphamissense-ramp' })!;
+    const expected: Array<[number, string]> = [
+      [-0.5, 'rgb(0, 0, 88)'],
+      [0, 'rgb(33, 102, 172)'],
+      [0.05, 'rgb(48, 121, 180)'],
+      [0.1132, 'rgb(66, 144, 191)'],
+      [0.2, 'rgb(123, 178, 207)'],
+      [0.3, 'rgb(176, 205, 220)'],
+      [0.4527, 'rgb(226, 226, 226)'],
+      [0.5, 'rgb(230, 219, 212)'],
+      [0.6, 'rgb(237, 201, 181)'],
+      [0.75, 'rgb(229, 147, 116)'],
+      [0.9, 'rgb(201, 75, 66)'],
+      [1, 'rgb(178, 24, 43)'],
+      [1.5, 'rgb(65, 0, 0)'],
+    ];
+    for (const [score, color] of expected) expect(fn(score)).toBe(color);
+    expect(fn(NaN)).toBeUndefined();
+    expect(fn(undefined as unknown as number)).toBeUndefined();
+  });
+
+  it('interpolates explicit stops, which win over the theme', () => {
+    const fn = colorScaleToColorFn({
+      theme: 'alphamissense-ramp',
+      stops: [
+        { value: 1, color: '#fff' },
+        { value: 0, color: '#000000' },
+      ],
+    })!;
+    expect(fn(0)).toBe('rgb(0, 0, 0)');
+    expect(fn(0.5)).toBe('rgb(128, 128, 128)');
+    expect(fn(1)).toBe('rgb(255, 255, 255)');
+  });
+
+  it('looks a registered theme up through getTheme', () => {
+    const fn = colorScaleToColorFn({ theme: 'mine' }, (name) =>
+      name === 'mine'
+        ? [
+            { value: 0, color: '#ff0000' },
+            { value: 10, color: '#0000ff' },
+          ]
+        : undefined
+    )!;
+    expect(fn(5)).toBe('rgb(128, 0, 128)');
+  });
+
+  // ColorStop.color takes any CSS colour, and the coloured sequence hands the
+  // same stops to a d3 scaleLinear, which interpolates all of these. Each
+  // expected value is what `scaleLinear().domain([0, 1]).range([lo, hi])`
+  // returns.
+  const nonHex: Array<[string, string, string, Array<[number, string]>]> = [
+    [
+      'named',
+      'blue',
+      'red',
+      [
+        [0.5, 'rgb(128, 0, 128)'],
+        [0.25, 'rgb(64, 0, 191)'],
+        [-1, 'rgb(0, 0, 255)'],
+        [2, 'rgb(255, 0, 0)'],
+      ],
+    ],
+    ['black / white', 'black', 'white', [[0.5, 'rgb(128, 128, 128)']]],
+    ['rgb()', 'rgb(0, 0, 255)', 'rgb(255, 0, 0)', [[0.5, 'rgb(128, 0, 128)']]],
+    ['#rrggbbaa', '#0000ffff', '#ff0000ff', [[0.5, 'rgb(128, 0, 128)']]],
+    [
+      'rgba() below full opacity',
+      'rgba(0, 0, 255, 0.5)',
+      'rgba(255, 0, 0, 1)',
+      [[0.5, 'rgba(128, 0, 128, 0.75)']],
+    ],
+    [
+      'rgb() percentages',
+      'rgb(0%, 0%, 100%)',
+      'rgb(100%, 0%, 0%)',
+      [[0.5, 'rgb(128, 0, 128)']],
+    ],
+    [
+      'hsl()',
+      'hsl(240, 100%, 50%)',
+      'hsl(0, 100%, 50%)',
+      [[0.5, 'rgb(128, 0, 128)']],
+    ],
+    [
+      'transparent',
+      'transparent',
+      'red',
+      [
+        [0.5, 'rgba(255, 0, 0, 0.5)'],
+        [1, 'rgb(255, 0, 0)'],
+      ],
+    ],
+    [
+      '#rgba',
+      '#00f8',
+      '#f00f',
+      [[0.5, 'rgba(128, 0, 128, 0.7666666666666666)']],
+    ],
+    [
+      'hsla() to a named colour, extrapolated',
+      'hsla(120, 50%, 25%, 0.3)',
+      'goldenrod',
+      [
+        [0, 'rgba(32, 96, 32, 0.3)'],
+        [0.3, 'rgba(88, 116, 32, 0.51)'],
+        [1.7, 'rgb(255, 214, 32)'],
+      ],
+    ],
+  ];
+  for (const [label, lo, hi, expected] of nonHex) {
+    it(`interpolates ${label} stops as d3 scaleLinear does`, () => {
+      const fn = colorScaleToColorFn({
+        stops: [
+          { value: 0, color: lo },
+          { value: 1, color: hi },
+        ],
+      })!;
+      for (const [score, color] of expected) expect(fn(score)).toBe(color);
+    });
+  }
+
+  it('steps between stops no CSS colour parser can read', () => {
+    const fn = colorScaleToColorFn({
+      stops: [
+        { value: 0, color: 'var(--low)' },
+        { value: 1, color: 'blue' },
+      ],
+    })!;
+    expect(fn(-1)).toBe('var(--low)');
+    expect(fn(0.5)).toBe('var(--low)');
+    expect(fn(1)).toBe('blue');
   });
 });
 

@@ -17,18 +17,20 @@
  * only `--served <dir>` otherwise.
  *
  * `--check` writes nothing. It recomputes from today's data and compares with
- * the committed files, ignoring only the `retrieved` dates, and exits 1 naming
- * the first difference. InterPro serves only the current Pfam release, so a
- * difference after a new release is drift to review, not a bug.
+ * the committed files, served copies included, ignoring only the `retrieved`
+ * dates, and exits 1 naming the first difference in each file. InterPro
+ * serves only the current Pfam release, so a difference after a new release
+ * is drift to review, not a bug.
  *
- * It uses the network, so it runs by hand and never in CI. It fails loudly
- * when the target is not exactly one row of the alignment, when that row's
- * residues differ from the UniProt sequence, or when the scored residues are
- * not one unbroken run.
+ * It uses the network, so it never gates a pull request: it runs by hand, and
+ * `--check` runs weekly in `.github/workflows/sample-data-drift.yml`. It
+ * fails loudly when the target is not exactly one row of the alignment, when
+ * that row's residues differ from the UniProt sequence, or when the scored
+ * residues are not one unbroken run.
  */
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 import {
@@ -316,7 +318,7 @@ export function firstDifference(want, got, path = '') {
  * @param {string} want
  * @param {string} got
  */
-function firstLineDifference(want, got) {
+export function firstLineDifference(want, got) {
   const a = want.split('\n');
   const b = got.split('\n');
   for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
@@ -325,6 +327,40 @@ function firstLineDifference(want, got) {
     }
   }
   return null;
+}
+
+/**
+ * Compare freshly generated files with the committed ones in `out`, and the
+ * served copies in `served` when given. JSON is compared ignoring `retrieved`
+ * dates; text line by line.
+ *
+ * @param {Record<string, string>} files
+ * @param {string} out
+ * @param {string} [served]
+ * @returns {Array<{ path: string, difference: string | null }>}
+ */
+export function checkFiles(files, out, served) {
+  const committedFiles = Object.keys(files).map((name) => ({
+    name,
+    path: join(out, name),
+  }));
+  if (served) {
+    for (const name of SERVED_FILES) {
+      committedFiles.push({ name, path: join(served, name) });
+    }
+  }
+  return committedFiles.map(({ name, path }) => {
+    let committed;
+    try {
+      committed = readFileSync(path, 'utf8');
+    } catch {
+      return { path, difference: 'missing' };
+    }
+    const difference = name.endsWith('.json')
+      ? firstDifference(JSON.parse(committed), JSON.parse(files[name]))
+      : firstLineDifference(committed, files[name]);
+    return { path, difference };
+  });
 }
 
 async function main() {
@@ -355,27 +391,16 @@ async function main() {
     return;
   }
 
-  let differences = 0;
-  for (const [name, text] of Object.entries(files)) {
-    let committed;
-    try {
-      committed = readFileSync(join(out, name), 'utf8');
-    } catch {
-      console.error(`${name}: missing from ${options.out}`);
-      differences += 1;
-      continue;
-    }
-    const difference = name.endsWith('.json')
-      ? firstDifference(JSON.parse(committed), JSON.parse(text))
-      : firstLineDifference(committed, text);
-    if (difference) {
-      console.error(`${name} differs (committed → today), ${difference}`);
-      differences += 1;
-    } else {
-      console.log(`${name}: unchanged`);
-    }
+  const served = options.served && resolve(REPO_ROOT, options.served);
+  const results = checkFiles(files, out, served);
+  for (const { path, difference } of results) {
+    const shown = relative(REPO_ROOT, path);
+    if (difference === 'missing') console.error(`${shown}: missing`);
+    else if (difference) {
+      console.error(`${shown} differs (committed → today), ${difference}`);
+    } else console.log(`${shown}: unchanged`);
   }
-  if (differences) process.exitCode = 1;
+  if (results.some(({ difference }) => difference)) process.exitCode = 1;
 }
 
 if (

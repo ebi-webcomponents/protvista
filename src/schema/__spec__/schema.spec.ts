@@ -627,6 +627,30 @@ describe('JSON Schema — rejection cases', () => {
 // Top-level standalone tracks (discriminated GroupConfig | TrackConfig)
 // ─────────────────────────────────────────────────────────────
 
+describe('JSON Schema — sources that override the viewer’s own requests', () => {
+  const rows = [{ id: 'C', tracks: [] }];
+  const KEYS = [
+    'sequenceEntry',
+    'structureUniprot',
+    'structureAlphafold',
+    'structureBeacons',
+  ];
+
+  it('accepts a URL template for each', () => {
+    expectValid({
+      sources: Object.fromEntries(
+        KEYS.map((k) => [k, `https://mirror.example.org/${k}/{accession}`])
+      ),
+      rows,
+    });
+  });
+
+  it.each(KEYS)('rejects an empty or non-string %s', (key) => {
+    expectInvalid({ sources: { [key]: '' }, rows }, new RegExp(`/${key}`));
+    expectInvalid({ sources: { [key]: 1 }, rows }, new RegExp(`/${key}`));
+  });
+});
+
 describe('JSON Schema — showWarnings', () => {
   const rows = [{ id: 'C', tracks: [] }];
 

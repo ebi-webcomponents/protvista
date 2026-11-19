@@ -192,8 +192,18 @@ export interface ProtvistaViewerConfig {
    * key via `DataSourceDescriptor.source` (preferred) or implicitly
    * via a bare string `data:` value. URLs support `{token}` template
    * variables — see `variables`.
+   *
+   * Four keys also override the viewer's own requests, each keeping its
+   * EBI default when unset: `sequenceEntry` (the Proteins API entry the
+   * sequence is read from) and, for the 3D structure panel,
+   * `structureUniprot`, `structureAlphafold` and `structureBeacons`.
    */
-  sources?: Record<string, string>;
+  sources?: Record<string, string> & {
+    sequenceEntry?: string;
+    structureUniprot?: string;
+    structureAlphafold?: string;
+    structureBeacons?: string;
+  };
 
   /**
    * Baseline values for `{token}` template variables in data URLs —
@@ -371,7 +381,7 @@ export interface GroupConfig {
    * This is not an initial-mount-only default: `setRowVisibility` and the
    * show/hide control write this very field, so a user's choice and an
    * author's are the same state, and `getConfig()` exports whichever is
-   * current (see `specs/config-approach.md`). Defaults to `false`.
+   * current. Defaults to `false`.
    */
   hidden?: boolean;
 
@@ -535,8 +545,8 @@ export interface TrackConfig {
    *
    * As with `GroupConfig.hidden`, this is the same field
    * `setTrackVisibility` and the show/hide control write — a user's choice
-   * and an author's are the same state (see `specs/config-approach.md`).
-   * Defaults to `false`.
+   * and an author's are the same state, and `getConfig()` exports whichever
+   * is current. Defaults to `false`.
    */
   hidden?: boolean;
 
@@ -1041,8 +1051,9 @@ export interface SemanticKindDefinition {
    * `format:`, inline records, `setTrackData()` — for free.
    *
    * Omit it for a kind that can only read its provider's feed, and name the
-   * kind for that provider so authors are not invited to try (see the naming
-   * rule in `specs/config-approach.md`).
+   * kind for that provider (`alphafold-confidence`, not `confidence-score`) so
+   * authors are not invited to try: a plain domain word (`features`,
+   * `variants`) promises that an author's own file works on the kind.
    */
   shape?: ShapeName;
   /**

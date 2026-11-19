@@ -16,6 +16,7 @@ import ProtvistaUniprotDatatable, {
   type ColumnConfig,
 } from './protvista-uniprot-datatable.js';
 import { fetchAll, loadComponent } from './utils/index.js';
+import { isSafeUrl } from './utils/security.js';
 import downloadIcon from './icons/download.svg';
 import externalLinkIcon from './icons/external-link.svg';
 
@@ -24,6 +25,26 @@ import { inlineSvg } from './icons/inline.js';
 import loaderStyles from './styles/loader-styles.js';
 import { injectStyleOnce, installTokenDefaults } from './styles/inject.js';
 import { warnLostProperties } from './lost-properties.js';
+import { mergeVariables, substituteTemplate } from './schema/variables.js';
+
+/**
+ * The URL templates the panel requests, by the property that overrides each
+ * (`uniprot-url`, `alphafold-url`, `beacons-url`, `beacons-checksum-url`).
+ * `{accession}` and `{checksum}` come from the element's attributes, and any
+ * other `{token}` from its `data-*` attributes.
+ */
+const defaultUrls = {
+  // We are showing PDBe models returned by UniProt's API as there is inconsistency between UniProt's recognised ones and 3d-beacons.
+  uniprotUrl: 'https://rest.uniprot.org/uniprotkb/{accession}',
+  // AlphaMissense predictions are only available in AF predictions endpoint
+  alphafoldUrl:
+    'https://alphafold.ebi.ac.uk/api/prediction/{accession}?include_complexes=true',
+  // exclude_provider accepts only value hence 'pdbe' as majority of the models are from there if querying by accession
+  beaconsUrl:
+    'https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/{accession}.json?exclude_provider=pdbe',
+  beaconsChecksumUrl:
+    'https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/v2/sequence/summary?id={checksum}&type=md5',
+};
 
 const alphaFoldLinkUrl = 'https://alphafold.ebi.ac.uk/search/text/';
 const foldseekUrl = `https://search.foldseek.com/search`;
@@ -426,6 +447,10 @@ class ProtvistaUniprotStructure extends LitElement {
   private columns: ColumnConfig<ProcessedStructureData>[] = [];
   selectedId?: string;
   noTable?: boolean;
+  uniprotUrl?: string;
+  alphafoldUrl?: string;
+  beaconsUrl?: string;
+  beaconsChecksumUrl?: string;
 
   constructor() {
     super();
@@ -454,7 +479,59 @@ class ProtvistaUniprotStructure extends LitElement {
       isoforms: { type: Object, attribute: false },
       selectedId: { type: String, attribute: 'selected-id' },
       noTable: { type: Boolean, attribute: 'no-table' },
+      uniprotUrl: { type: String, attribute: 'uniprot-url' },
+      alphafoldUrl: { type: String, attribute: 'alphafold-url' },
+      beaconsUrl: { type: String, attribute: 'beacons-url' },
+      beaconsChecksumUrl: { type: String, attribute: 'beacons-checksum-url' },
     };
+  }
+
+  /**
+   * The URL to request for `which`. With no override, the EBI default with
+   * the accession or checksum put in as written, exactly as it always was.
+   * An override has its `{tokens}` filled like any data URL's. Empty — no
+   * request, as for the requests a checksum lookup doesn't make — when the
+   * override is empty or a token has no usable value, which is reported
+   * rather than requested half-built.
+   */
+  private requestUrl(which: keyof typeof defaultUrls): string {
+    const override = this[which];
+    if (override == null) {
+      return defaultUrls[which].replace(
+        /\{(accession|checksum)\}/g,
+        (_, name: 'accession' | 'checksum') => String(this[name])
+      );
+    }
+    const vars = mergeVariables({
+      dataset: this.dataset,
+      accession: this.accession,
+    });
+    if (this.checksum != null) vars.checksum = this.checksum;
+    const result = substituteTemplate(override, vars);
+    if ('url' in result) return result.url;
+    const tokens = (
+      'unresolved' in result ? result.unresolved : result.invalid
+    ).map((t) => `{${t}}`);
+    console.warn(
+      `[protvista-uniprot-structure] Not fetching '${override}': ` +
+        `${'unresolved' in result ? 'undefined' : 'invalid value for'} ` +
+        `${tokens.join(', ')}.`
+    );
+    return '';
+  }
+
+  /**
+   * The three URLs a load requests, in order: UniProtKB, AlphaFold DB and
+   * 3D-Beacons by accession, or only 3D-Beacons by checksum. An empty one
+   * is not requested.
+   */
+  private requestUrls(): [string, string, string] {
+    const byAccession = !!this.accession && !this.checksum;
+    return [
+      byAccession ? this.requestUrl('uniprotUrl') : '',
+      byAccession ? this.requestUrl('alphafoldUrl') : '',
+      this.requestUrl(byAccession ? 'beaconsUrl' : 'beaconsChecksumUrl'),
+    ];
   }
 
   private getColumns(): ColumnConfig<ProcessedStructureData>[] {
@@ -529,7 +606,13 @@ class ProtvistaUniprotStructure extends LitElement {
           ? html`<a href="${alphaFoldLinkUrl}${this.accession}">AlphaFold</a>`
           : nothing
       }
-      ${sourceDBLink ? html`<a href="${sourceDBLink}">${source}</a>` : nothing}
+      ${
+        // A response's own link, from whatever server a URL override names:
+        // only an http(s) one is rendered, never a `javascript:` one.
+        isSafeUrl(sourceDBLink)
+          ? html`<a href="${sourceDBLink}">${source}</a>`
+          : nothing
+      }
     `;
   }
 
@@ -537,7 +620,7 @@ class ProtvistaUniprotStructure extends LitElement {
     const { downloadUrl, source, id } = row;
 
     return html`
-      ${downloadUrl ? html`${sourceDownloadLink(downloadUrl)}` : nothing}
+      ${isSafeUrl(downloadUrl) ? html`${sourceDownloadLink(downloadUrl)}` : nothing}
       ${
         (source === 'PDB' || source === 'AlphaFold DB') && this.accession
           ? html` ·
@@ -553,24 +636,48 @@ class ProtvistaUniprotStructure extends LitElement {
   async connectedCallback() {
     super.connectedCallback();
     warnLostProperties(this, { data: 'data' });
-    if (!this.accession && !this.checksum) return;
-    // We are showing PDBe models returned by UniProt's API as there is inconsistency between UniProt's recognised ones and 3d-beacons.
-    const pdbUrl =
-      this.accession && !this.checksum
-        ? `https://rest.uniprot.org/uniprotkb/${this.accession}`
-        : '';
-    // AlphaMissense predictions are only available in AF predictions endpoint
-    const alphaFoldUrl =
-      this.accession && !this.checksum
-        ? `https://alphafold.ebi.ac.uk/api/prediction/${this.accession}?include_complexes=true`
-        : '';
-    // exclude_provider accepts only value hence 'pdbe' as majority of the models are from there if querying by accession
-    const beaconsUrl =
-      this.accession && !this.checksum
-        ? `https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/${this.accession}.json?exclude_provider=pdbe`
-        : `https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/v2/sequence/summary?id=${this.checksum}&type=md5`;
+    await this.load();
+  }
 
-    const rawData = await fetchAll([pdbUrl, alphaFoldUrl, beaconsUrl]);
+  /**
+   * Load again when a URL override is set or changed after the first load
+   * (the viewer hands on new ones when a `data-*` value they use changes).
+   * The first update, which carries the attributes the element was created
+   * with, finds the URLs `connectedCallback` already asked for and does
+   * nothing.
+   */
+  private reloadIfUrlsChanged(changed: PropertyValues) {
+    if (
+      this.requestedUrls !== undefined &&
+      (changed.has('uniprotUrl') ||
+        changed.has('alphafoldUrl') ||
+        changed.has('beaconsUrl') ||
+        changed.has('beaconsChecksumUrl')) &&
+      this.requestUrls().join('\n') !== this.requestedUrls
+    ) {
+      this.load();
+    }
+  }
+
+  /** The URLs the latest `load()` asked for, joined for comparison. */
+  private requestedUrls?: string;
+
+  /** Bumped per `load()`; an older load's responses are dropped. */
+  private loadGeneration = 0;
+
+  private async load() {
+    if (!this.accession && !this.checksum) return;
+    const reload = this.requestedUrls !== undefined;
+    const generation = ++this.loadGeneration;
+    const urls = this.requestUrls();
+    this.requestedUrls = urls.join('\n');
+    const [pdbUrl, alphaFoldUrl, beaconsUrl] = urls;
+    if (reload) this.loading = true;
+
+    // An empty URL is skipped, not fetched: `fetch('')` would request the
+    // host page itself.
+    const rawData = await fetchAll(urls.filter((url) => url !== ''));
+    if (generation !== this.loadGeneration) return;
     this.loading = false;
 
     const pdbData = processPDBData(rawData[pdbUrl] || []);
@@ -619,8 +726,14 @@ class ProtvistaUniprotStructure extends LitElement {
     this.data = data;
     this.columns = this.getColumns();
 
-    // Default to the first row only if the consumer hasn't pre-set a selection.
-    if (data.length > 0 && !this.selectedId) {
+    // Default to the first row only if the consumer hasn't pre-set a
+    // selection. A reload replaces the rows, so a selection it no longer
+    // has moves to the first row too.
+    if (
+      data.length > 0 &&
+      (!this.selectedId ||
+        (reload && !data.some(({ id }) => id === this.selectedId)))
+    ) {
       this.selectedId = data[0].id;
     }
 
@@ -649,9 +762,16 @@ class ProtvistaUniprotStructure extends LitElement {
   }
 
   protected override willUpdate(changed: PropertyValues) {
+    this.reloadIfUrlsChanged(changed);
     // Apply when either selection or data changes — covers consumer
     // pre-setting selected-id before the async fetch resolves.
-    if (!changed.has('selectedId') && !changed.has('data')) return;
+    if (changed.has('selectedId') || changed.has('data')) {
+      this.updateSelection();
+    }
+    this.syncAlphaFoldLegend();
+  }
+
+  private updateSelection() {
     // Wait for the first data assignment before deciding what to show; a
     // consumer-set selectedId arriving before fetch should not clear anything.
     if (!this.data) return;
@@ -666,6 +786,24 @@ class ProtvistaUniprotStructure extends LitElement {
       // the viewer state so a previous structure does not linger on screen.
       this.clearViewer();
     }
+  }
+
+  // The colour scale actually shown. Pathogenicity needs the selected model's
+  // AlphaMissense annotations; without them the panel shows confidence, so the
+  // viewer, the radios and the legend agree. `colorTheme` keeps the requested
+  // value, so it applies again once an annotated model is selected.
+  private get displayedColorTheme(): string {
+    return this.colorTheme === 'alphamissense' && this.alphamissenseAvailable
+      ? 'alphamissense'
+      : 'alphafold';
+  }
+
+  // The AlphaFold legend follows the colour scale however it was set: a radio
+  // click, or the `color-theme` attribute or property, before or after load.
+  private syncAlphaFoldLegend() {
+    if (this.metaInfo !== AFMetaInfo && this.metaInfo !== AMMetaInfo) return;
+    this.metaInfo =
+      this.displayedColorTheme === 'alphamissense' ? AMMetaInfo : AFMetaInfo;
   }
 
   private clearViewer() {
@@ -692,7 +830,9 @@ class ProtvistaUniprotStructure extends LitElement {
       this.colorTheme = 'alphafold';
       if (source === 'AlphaFold DB') {
         this.metaInfo = AFMetaInfo;
-        this.alphamissenseAvailable = !!amAnnotationsUrl;
+        // The model-url viewer has no AlphaMissense colouring, so pathogenicity
+        // is unavailable here even when the row has annotations.
+        this.alphamissenseAvailable = false;
       }
     } else {
       this.structureId = id;
@@ -803,7 +943,6 @@ class ProtvistaUniprotStructure extends LitElement {
   toggleColorTheme(e: Event) {
     const input = e.currentTarget as HTMLInputElement;
     this.colorTheme = input.value;
-    this.metaInfo = input.value === 'alphafold' ? AFMetaInfo : AMMetaInfo;
   }
 
   render() {
@@ -826,7 +965,7 @@ class ProtvistaUniprotStructure extends LitElement {
                           name=${this.colorSchemeGroupId}
                           value="alphafold"
                           @click=${this.toggleColorTheme}
-                          .checked=${this.colorTheme !== 'alphamissense'}
+                          .checked=${this.displayedColorTheme !== 'alphamissense'}
                         />
                         <label for=${alphafoldRadioId}>Confidence</label>
                       </div>
@@ -839,7 +978,7 @@ class ProtvistaUniprotStructure extends LitElement {
                           name=${this.colorSchemeGroupId}
                           value="alphamissense"
                           @click=${this.toggleColorTheme}
-                          .checked=${this.colorTheme === 'alphamissense'}
+                          .checked=${this.displayedColorTheme === 'alphamissense'}
                           ?disabled=${!this.alphamissenseAvailable}
                         />
                         <label
@@ -865,7 +1004,7 @@ class ProtvistaUniprotStructure extends LitElement {
               ? html`<nightingale-structure
                   structure-id=${this.structureId}
                   protein-accession=${this.accession}
-                  color-theme=${this.colorTheme}
+                  color-theme=${this.displayedColorTheme}
                 ></nightingale-structure>`
               : nothing
           }

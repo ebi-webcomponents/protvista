@@ -168,9 +168,6 @@ export default css`
     border-bottom: 5px solid transparent;
     border-left: 5px solid var(--protvista-caret-color);
     margin-right: 5px;
-    -webkit-transition: all 0.1s;
-    /* Safari */
-    -o-transition: all 0.1s;
     transition: all 0.1s;
   }
 

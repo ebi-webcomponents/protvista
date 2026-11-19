@@ -56,8 +56,10 @@ import {
   aggregatePayload,
   isAuthoredSource,
   type NormalizedConfig,
+  type NormalizedDataSource,
   type NormalizedTrack,
 } from './schema/normalize.js';
+import type { DataFormat } from './schema/types.js';
 import { DATA_FORMATS } from './schema/file-formats.js';
 import { runPipeline, sourceLabel } from './schema/adapters/pipeline.js';
 import type {
@@ -516,18 +518,31 @@ function applyTooltipResolver(
 }
 
 /**
- * Extract the URL (`string | string[]`) from a `NormalizedDataSource`.
- * `from: url` and `from: file` sources both carry a usable `url` (a file
- * shorthand like `./x.csv` is normalised onto `url`); `inline` and
- * `custom` sources have none and yield an empty string so the dedupe
- * pass skips them cleanly.
+ * A source's `url` (`string | string[]`, or absent) as a list of URL
+ * templates. `from: url` and `from: file` sources both carry a usable `url`
+ * (a file shorthand like `./x.csv` is normalised onto `url`); `inline` and
+ * `custom` sources have none, and an absent `url` becomes `['']`. Callers
+ * that want only real templates (the dedupe pass) filter the empty string
+ * out, while the per-track body lookup keeps it, so a URL-less source still
+ * hands its adapter one empty body.
  */
-function trackUrl(
-  data: NormalizedConfig['rows'][number]['tracks'][number]['data']
-): string | string[] {
-  const first = data[0];
-  if (!first) return '';
-  return (first.url ?? '') as string | string[];
+export function toUrlList(url: string | string[] | undefined): string[] {
+  return Array.isArray(url) ? url : [url ?? ''];
+}
+
+/**
+ * The track-level `filter:` shortcut: keep only the items of an array
+ * payload whose `type` equals `filter`. Anything else — no filter, or a
+ * payload that is not an array (a `{ variants }` wrapper, `null`) — is
+ * returned as is.
+ */
+export function filterByType(
+  payload: unknown,
+  filter: string | undefined
+): unknown {
+  return Array.isArray(payload) && filter
+    ? payload.filter(({ type }: { type?: string }) => type === filter)
+    : payload;
 }
 
 export async function loadProtvistaData(
@@ -563,7 +578,7 @@ export async function loadProtvistaData(
   // must be fetched exactly once — a spec performance requirement) and the
   // authoritative per-track map of the *substituted* URL(s) each track
   // fetched (callers correlate per-URL HTTP failures against it instead of
-  // re-deriving the substitution). `trackUrl()` yields an empty string for
+  // re-deriving the substitution). `toUrlList()` yields an empty string for
   // `from: inline | custom`, so those are excluded; `from: file` sources
   // carry their path on `url`, so they are fetched here like any URL.
   //
@@ -630,8 +645,7 @@ export async function loadProtvistaData(
     for (const track of group.tracks) {
       const key = `${group.id}-${track.id}`;
       if (!isReloading(key)) continue;
-      const raw = trackUrl(track.data);
-      const list = (Array.isArray(raw) ? raw : [raw]).filter((u) => u !== '');
+      const list = toUrlList(track.data[0]?.url).filter((u) => u !== '');
       // Only a declared format reads as text; every provider transform takes
       // a JSON response.
       const source = track.data[0];
@@ -675,7 +689,7 @@ export async function loadProtvistaData(
     (d) => !!(d as { features?: unknown[] } | null)?.features?.length
   );
 
-  const data: Record<string, unknown> = {};
+  const data: Record<string, unknown> = Object.create(null);
   const trackFailures: Record<string, TrackProcessingFailure> = {};
   const trackWarnings: Record<string, DecodeWarning[]> = {};
   // Keyed by `${groupId}-${trackId}`; ordered by config into
@@ -784,16 +798,174 @@ export async function loadProtvistaData(
     groupId: string,
     track: NormalizedTrack
   ): unknown => {
-    const { filter } = track;
-    const filteredData =
-      Array.isArray(transformedData) && filter
-        ? (transformedData as Array<{ type?: string }>).filter(
-            ({ type }) => type === filter
-          )
-        : transformedData;
+    const filteredData = filterByType(transformedData, track.filter);
     if (filteredData == null) return undefined;
     const annotated = resolveTrackTooltips(filteredData, groupId, track);
     assignTrackData(`${groupId}-${track.id}`, annotated, track);
+    return annotated;
+  };
+
+  // `from: custom` — consumer-supplied data bypasses the fetch. If the
+  // descriptor declares `custom` but no data was injected via
+  // `setTrackData()`, record an `info` failure and leave the slot empty.
+  // Injected data still flows through the downstream `filter:` sugar and
+  // tooltip resolver so behaviour is symmetric with URL-sourced tracks.
+  const loadCustomTrack = async (
+    groupId: string,
+    track: NormalizedTrack
+  ): Promise<unknown> => {
+    const trackKey = `${groupId}-${track.id}`;
+    if (!(trackKey in customTrackData)) {
+      trackFailures[trackKey] = {
+        severity: 'info',
+        message: `Track ${groupId}/${track.id} is 'from: custom' but no data was provided via setTrackData().`,
+      };
+      return;
+    }
+    // `setTrackData()` payloads are not bounds-checked: they are
+    // documented as already in renderer form, so no coordinates
+    // are collected.
+    const { payload, warnings } = await adaptAuthoredRecords(
+      customTrackData[trackKey],
+      track,
+      false
+    );
+    if (warnings) trackWarnings[trackKey] = warnings;
+    return filterResolveAndAssign(payload, groupId, track);
+  };
+
+  // `from: inline` — the payload lives on the descriptor itself
+  // (`inlineData`, populated by the normalizer); no fetch. Filter +
+  // tooltip resolution still apply, mirroring `from: custom` above.
+  const loadInlineTrack = async (
+    first: NormalizedDataSource,
+    groupId: string,
+    track: NormalizedTrack
+  ): Promise<unknown> => {
+    const trackKey = `${groupId}-${track.id}`;
+    const { payload, coordinates, warnings } = await adaptAuthoredRecords(
+      first.inlineData,
+      track,
+      true
+    );
+    // Recorded before `filter:`, like `decodeFormattedBody` below.
+    if (coordinates) trackCoordinates[trackKey] = coordinates;
+    if (warnings) trackWarnings[trackKey] = warnings;
+    return filterResolveAndAssign(payload, groupId, track);
+  };
+
+  // A fetched body with a declared `format`: decode it and validate it
+  // against the track's shape, recording the decoder's warnings and every
+  // decoded row (before `filter:`) for the sequence-bounds check.
+  const decodeFormattedBody = async (
+    first: NormalizedDataSource,
+    format: DataFormat,
+    body: unknown,
+    trackKey: string
+  ): Promise<unknown> => {
+    const template = String(first.url ?? '');
+    // The author's own path, so a parse error names their file.
+    const source = substituted.get(template) ?? template;
+    const shape = first.shape ?? 'feature';
+    const rows: CoordinateRow[] = [];
+    const warnings: DecodeWarning[] = [];
+    const decoded = await runPipeline(shape, format, body, {
+      source,
+      coordinates: rows,
+      warnings,
+    });
+    if (warnings.length > 0) trackWarnings[trackKey] = warnings;
+    // Every decoded row, before `filter:`.
+    trackCoordinates[trackKey] = {
+      label: sourceLabel(source, format),
+      shape,
+      format,
+      rows,
+      url: source,
+    };
+    return decoded;
+  };
+
+  // A fetched body with a named `adapter` (a provider transform, or one the
+  // author pinned). A throw from the adapter's own body sets
+  // `attempt.providerAdapterThrew`, so the per-track catch can mark the
+  // failure retryable.
+  const runProviderAdapter = async (
+    adapter: string,
+    trackData: unknown[],
+    attempt: { providerAdapterThrew: boolean }
+  ): Promise<unknown> => {
+    // Resolved outside the guard: an unregistered name is a config
+    // mistake, not something a Retry could fix.
+    const adapterFn = resolveAdapterFn(adapter);
+    try {
+      return await adapterFn(...trackData);
+    } catch (err) {
+      attempt.providerAdapterThrew = true;
+      throw err;
+    }
+  };
+
+  // `from: url | file` — a body fetched above: convert it, filter it,
+  // resolve tooltips and assign the result.
+  const loadRemoteTrack = async (
+    first: NormalizedDataSource,
+    groupId: string,
+    track: NormalizedTrack,
+    attempt: { providerAdapterThrew: boolean }
+  ): Promise<unknown> => {
+    const { adapter } = first;
+    const trackKey = `${groupId}-${track.id}`;
+    const urls = toUrlList(first.url);
+    // Every URL was skipped (an undefined or refused variable,
+    // already warned about): there is no body, so don't run the
+    // format pipeline or adapter just to have it warn a second time
+    // about an empty one. The track renders empty.
+    const templateList = urls.filter((u) => u !== '');
+    if (
+      templateList.length > 0 &&
+      templateList.every((u) => skipped.has(u))
+    ) {
+      return;
+    }
+
+    const trackData = urls.map((u) => rawData[u] || []);
+
+    // 1. Convert data. Two ways a body becomes a payload, and a
+    //    descriptor carries exactly one of them: a `format` (decode it,
+    //    validate against the track's shape) or a named `adapter` (a
+    //    provider transform, or one the author pinned). Empty-body
+    //    guards and post-processing live inside each.
+    let transformedData: any = trackData;
+    if (first.format !== undefined) {
+      // A body that never arrived (the fetch closure's `null`) has nothing
+      // to decode. The caller reports the fetch failure itself, and a
+      // decoder handed the `[]` placeholder would add its own "expected a
+      // text body" line beside it, pointing at the body instead of the
+      // path. Provider adapters still run: some fetch a second source and
+      // degrade on a partial payload, and their throw is subordinate to
+      // the fetch failure there anyway.
+      if (rawData[urls[0] ?? ''] == null) return undefined;
+      transformedData = await decodeFormattedBody(
+        first,
+        first.format,
+        trackData[0],
+        trackKey
+      );
+    } else if (adapter) {
+      transformedData = await runProviderAdapter(adapter, trackData, attempt);
+    }
+
+    // 2. Filter raw data if filter is specified
+    const filteredData = filterByType(transformedData, track.filter);
+    if (!filteredData) {
+      return;
+    }
+
+    // 3. Resolve per-item tooltips (see `resolveTrackTooltips`).
+    const annotated = resolveTrackTooltips(filteredData, groupId, track);
+    // 4. Assign track data (+ a pristine baseline for filter tracks)
+    assignTrackData(trackKey, annotated, track);
     return annotated;
   };
 
@@ -806,21 +978,18 @@ export async function loadProtvistaData(
     }
     const groupData = await Promise.all(
       group.tracks.map(async (track) => {
-        const { data: dataConfig, id: trackId, filter } = track;
-        const trackKey = `${groupId}-${trackId}`;
+        const trackKey = `${groupId}-${track.id}`;
         // Sibling in a touched group that isn't itself being retried:
         // reuse its previous per-track data so the group aggregate below
         // stays complete, without rewriting `data[trackKey]`.
         if (!isReloading(trackKey)) {
           return previousData[trackKey];
         }
-        const first = dataConfig[0];
+        const first = track.data[0];
         if (!first) return;
-        const url = first.url;
-        const adapter = first.adapter;
         // Set when the throw came from a provider adapter's own body — the
         // one failure here a Retry could change (`retryable` below).
-        let providerAdapterThrew = false;
+        const attempt = { providerAdapterThrew: false };
 
         // Isolate the per-track pipeline: an adapter (or filter/tooltip
         // step) that throws on an unexpected payload — e.g. the empty
@@ -829,131 +998,13 @@ export async function loadProtvistaData(
         // here would abort the entire load, skipping the caller's
         // error-correlation pass so no failure gets surfaced at all.
         try {
-          // `from: custom` — consumer-supplied data bypasses the fetch. If the
-          // descriptor declares `custom` but no data was injected via
-          // `setTrackData()`, emit a `console.info` and leave the slot empty.
-          // Injected data still flows through the downstream `filter:` sugar
-          // and tooltip resolver so behaviour is symmetric with URL-sourced
-          // tracks.
           if (first.from === 'custom') {
-            if (!(trackKey in customTrackData)) {
-              trackFailures[trackKey] = {
-                severity: 'info',
-                message: `Track ${groupId}/${trackId} is 'from: custom' but no data was provided via setTrackData().`,
-              };
-              return;
-            }
-            // `setTrackData()` payloads are not bounds-checked: they are
-            // documented as already in renderer form, so no coordinates
-            // are collected.
-            const { payload, warnings } = await adaptAuthoredRecords(
-              customTrackData[trackKey],
-              track,
-              false
-            );
-            if (warnings) trackWarnings[trackKey] = warnings;
-            return filterResolveAndAssign(payload, groupId, track);
+            return await loadCustomTrack(groupId, track);
           }
-
-          // `from: inline` — the payload lives on the descriptor itself
-          // (`inlineData`, populated by the normalizer); no fetch. Filter +
-          // tooltip resolution still apply, mirroring `from: custom` above.
           if (first.from === 'inline') {
-            const { payload, coordinates, warnings } =
-              await adaptAuthoredRecords(first.inlineData, track, true);
-            // Recorded before `filter:`, like the formatted branch below.
-            if (coordinates) trackCoordinates[trackKey] = coordinates;
-            if (warnings) trackWarnings[trackKey] = warnings;
-            return filterResolveAndAssign(payload, groupId, track);
+            return await loadInlineTrack(first, groupId, track);
           }
-
-          // Every URL was skipped (an undefined or refused variable,
-          // already warned about): there is no body, so don't run the
-          // format pipeline or adapter just to have it warn a second time
-          // about an empty one. The track renders empty.
-          const templateList = (Array.isArray(url) ? url : [url ?? '']).filter(
-            (u) => u !== ''
-          );
-          if (
-            templateList.length > 0 &&
-            templateList.every((u) => skipped.has(u))
-          ) {
-            return;
-          }
-
-          const trackData = (Array.isArray(url) ? url : [url ?? '']).map(
-            (u) => rawData[u as string] || []
-          );
-
-          // 1. Convert data. Two ways a body becomes a payload, and a
-          //    descriptor carries exactly one of them: a `format` (decode it,
-          //    validate against the track's shape) or a named `adapter` (a
-          //    provider transform, or one the author pinned). Empty-body
-          //    guards and post-processing live inside each.
-          let transformedData: any = trackData;
-          // A body that never arrived (the fetch closure's `null`) has nothing
-          // to decode. The caller reports the fetch failure itself, and a
-          // decoder handed the `[]` placeholder would add its own "expected a
-          // text body" line beside it, pointing at the body instead of the
-          // path. Provider adapters still run: some fetch a second source and
-          // degrade on a partial payload, and their throw is subordinate to
-          // the fetch failure there anyway.
-          if (
-            first.format !== undefined &&
-            rawData[(Array.isArray(url) ? url[0] : url) ?? ''] == null
-          ) {
-            return undefined;
-          }
-          if (first.format !== undefined) {
-            // The author's own path, so a parse error names their file.
-            const source =
-              substituted.get(String(url ?? '')) ?? String(url ?? '');
-            const shape = first.shape ?? 'feature';
-            const rows: CoordinateRow[] = [];
-            const warnings: DecodeWarning[] = [];
-            transformedData = await runPipeline(
-              shape,
-              first.format,
-              trackData[0],
-              { source, coordinates: rows, warnings }
-            );
-            if (warnings.length > 0) trackWarnings[trackKey] = warnings;
-            // Every decoded row, before `filter:` below.
-            trackCoordinates[trackKey] = {
-              label: sourceLabel(source, first.format),
-              shape,
-              format: first.format,
-              rows,
-              url: source,
-            };
-          } else if (adapter) {
-            // Resolved outside the guard: an unregistered name is a config
-            // mistake, not something a Retry could fix.
-            const adapterFn = resolveAdapterFn(adapter);
-            try {
-              transformedData = await adapterFn(...trackData);
-            } catch (err) {
-              providerAdapterThrew = true;
-              throw err;
-            }
-          }
-
-          // 2. Filter raw data if filter is specified
-          const filteredData =
-            Array.isArray(transformedData) && filter
-              ? transformedData.filter(
-                  ({ type }: { type?: string }) => type === filter
-                )
-              : transformedData;
-          if (!filteredData) {
-            return;
-          }
-
-          // 3. Resolve per-item tooltips (see `resolveTrackTooltips`).
-          const annotated = resolveTrackTooltips(filteredData, groupId, track);
-          // 4. Assign track data (+ a pristine baseline for filter tracks)
-          assignTrackData(trackKey, annotated, track);
-          return annotated;
+          return await loadRemoteTrack(first, groupId, track, attempt);
         } catch (err) {
           // Record rather than log: a malformed file is an authoring error the
           // author has to be able to *see*, and the console is the one place
@@ -963,7 +1014,7 @@ export async function loadProtvistaData(
             severity: 'error',
             message: err instanceof Error ? err.message : String(err),
             cause: err,
-            ...(providerAdapterThrew ? { retryable: true } : {}),
+            ...(attempt.providerAdapterThrew ? { retryable: true } : {}),
           };
           return undefined;
         }

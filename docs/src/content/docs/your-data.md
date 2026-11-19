@@ -552,6 +552,10 @@ and load your sample file with **Load data file…**. Check the listed errors
 and warnings, confirm that the requested tracks appear in the right order,
 and test any tooltips, links and visibility controls before using it on your page.
 
+## Start from your field
+
+- [Structural biology and drug discovery](/protvista/playground/#preset=community-structure-egfr) — PDBe co-crystal drug binding contacts for 7 approved TKIs on human EGFR (`P00533`), PDB 3D structure coverage, and AlphaFold confidence.
+
 ## Where to go next
 
 - [Configuration vs data](/protvista/configuration-vs-data) — the boundary this page sits on.

@@ -14,8 +14,7 @@
  *
  * Every source resolves through here — a fetched body, an inline block, a
  * `setTrackData()` payload — so one file read one way cannot come out two
- * different ways depending on where it entered. See "Shape and format
- * (normative)" in `specs/config-approach.md`.
+ * different ways depending on where it entered.
  *
  * `formatLabel` is threaded through rather than derived so a caller can name
  * the input in the author's own terms: the file path they wrote, or "inline

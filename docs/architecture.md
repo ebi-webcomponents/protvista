@@ -222,7 +222,7 @@ The renderable components an author can select are seeded into the registry from
 
 1. Add its tag name to `KnownComponentName` in `src/schema/types.ts` and to the `RENDERABLE` table in `src/schema/components.ts` (the `satisfies Record<KnownComponentName, true>` there makes an omission on either side a compile error, so `tsc` will tell you if you skip half of this step).
 2. Add its `[name, ctor]` pair to `RENDERABLE_COMPONENTS` in `src/built-in-components.ts`.
-3. Add a `case` to `getTrack()` in `src/protvista-uniprot.ts` so the renderer can draw it (lit-html cannot template dynamic tag names).
+3. Add a `case` to `trackTemplate()` in `src/renderer/track-template.ts` (which `getTrack()` delegates to), and its default height to `DEFAULT_TRACK_HEIGHT` there, so the renderer can draw it (lit-html cannot template dynamic tag names).
 
 Structural chrome the template always emits (manager, navigation, sequence, filter, structure) is not config-selectable and lives in `STRUCTURAL_COMPONENTS` in the same module, registered directly rather than through the registry.
 

@@ -14,8 +14,7 @@
  * A format is half of the pair that replaced the `<shape>-<format>` adapter
  * grid: it says how the bytes are encoded, while the track's `kind` says what
  * the records mean. Neither can override the other, so a `kind:` and a file
- * extension need no precedence rule between them — see "Shape and format
- * (normative)" in `specs/config-approach.md`.
+ * extension need no precedence rule between them.
  *
  * To add a format: add one row below and a decoder branch in
  * `adapters/pipeline.ts`. Nothing else needs to change.

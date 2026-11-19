@@ -124,7 +124,6 @@ export class ProtvistaUniprotDatatable<
       max-height: ${t('--protvista-datatable-max-height')};
       overflow-y: auto;
       overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
       border: 1px solid ${t('--protvista-datatable-border')};
       background: ${t('--protvista-datatable-bg-base')};
     }

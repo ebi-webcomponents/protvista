@@ -1,16 +1,25 @@
 import type { AdapterFunction } from '../types.js';
 import { RnaEditing } from './types/rna-editing.js';
 
+/** One `{ position, value }` per residue, 1..sequence.length (skips slot 0). */
+const toValues = (counts: Uint32Array) =>
+  Array.from(counts.subarray(1), (value, index) => ({
+    position: index + 1,
+    value,
+  }));
+
 export const rnaEditingGraphAdapter: AdapterFunction = (raw) => {
   const data = raw as RnaEditing;
   if (data.sequence && data.features.length) {
-    const total = new Uint8ClampedArray(data.sequence.length);
-    const missense = new Uint8ClampedArray(data.sequence.length);
-    const synonymous = new Uint8ClampedArray(data.sequence.length);
+    // Indexed by 1-based residue position, so slot 0 is unused. Uint32Array
+    // rather than Uint8ClampedArray, which saturated at 255 per position.
+    const total = new Uint32Array(data.sequence.length + 1);
+    const missense = new Uint32Array(data.sequence.length + 1);
+    const synonymous = new Uint32Array(data.sequence.length + 1);
     for (const feature of data.features) {
       const index = +feature.locationType.position.position;
       const consequence = feature.variantType.consequenceType;
-      if (index >= 0 && index <= data.sequence.length) {
+      if (index >= 1 && index <= data.sequence.length) {
         total[index] += 1;
         if (consequence === 'missense') {
           missense[index] += 1;
@@ -27,20 +36,14 @@ export const rnaEditingGraphAdapter: AdapterFunction = (raw) => {
         name: 'missense',
         range,
         color: 'darkgrey',
-        values: [...missense].map((value, index) => ({
-          position: index,
-          value: value,
-        })),
+        values: toValues(missense),
       },
       // TODO: at present the data contains only missense
       // {
       //   name: 'synonymous',
       //   range,
       //   color: 'red',
-      //   values: [...synonymous].map((value, index) => ({
-      //     position: index,
-      //     value: value,
-      //   })),
+      //   values: toValues(synonymous),
       // },
     ];
     return graphData;

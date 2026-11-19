@@ -6,11 +6,23 @@
  * the target. Importing `build.mjs` runs nothing: its `main` only runs as a
  * script.
  */
-import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { describe, it, expect, afterEach } from 'vitest';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { firstDifference, scoreTarget } from './build.mjs';
+import {
+  checkFiles,
+  firstDifference,
+  firstLineDifference,
+  scoreTarget,
+} from './build.mjs';
 
 const SEED = readFileSync(
   resolve(
@@ -64,6 +76,74 @@ describe('firstDifference (build.mjs --check)', () => {
     expect(firstDifference(committed, today)).toBe(
       'outputs.extra.csv: undefined → "222"'
     );
+  });
+});
+
+describe('firstLineDifference (build.mjs --check)', () => {
+  it('is null for identical texts', () => {
+    expect(firstLineDifference('a\nb\n', 'a\nb\n')).toBeNull();
+  });
+
+  it('names the first differing line', () => {
+    expect(firstLineDifference('a\nb\n', 'a\nB\n')).toBe('line 2: "b" → "B"');
+  });
+});
+
+describe('checkFiles (build.mjs --check)', () => {
+  const files = {
+    'conservation.csv': 'position,value\n4,0.5\n',
+    'conserved-sites.csv': 'type,start,end,description\n',
+    'provenance.json': JSON.stringify({ retrieved: 'today', n: 1 }),
+  };
+  let dir = '';
+  afterEach(() => {
+    if (dir) rmSync(dir, { recursive: true, force: true });
+    dir = '';
+  });
+
+  /** Commit `files` to out/ and the CSVs to served/, then apply `edit`. */
+  const committed = (edit = () => {}) => {
+    dir = mkdtempSync(join(tmpdir(), 'conservation-'));
+    for (const [name, text] of Object.entries(files)) {
+      writeFileSync(join(dir, name), text);
+    }
+    mkdirSync(join(dir, 'served'));
+    for (const name of ['conservation.csv', 'conserved-sites.csv']) {
+      writeFileSync(join(dir, 'served', name), files[name]);
+    }
+    edit();
+    return checkFiles(files, dir, join(dir, 'served'));
+  };
+  const differing = (results) => results.filter(({ difference }) => difference);
+
+  it('finds nothing when the committed files match, retrieved aside', () => {
+    const results = committed(() =>
+      writeFileSync(
+        join(dir, 'provenance.json'),
+        JSON.stringify({ retrieved: 'last week', n: 1 })
+      )
+    );
+    expect(results).toHaveLength(5);
+    expect(differing(results)).toEqual([]);
+  });
+
+  it('compares the served copies too', () => {
+    const results = committed(() =>
+      writeFileSync(join(dir, 'served', 'conserved-sites.csv'), 'stale\n')
+    );
+    expect(differing(results)).toEqual([
+      {
+        path: join(dir, 'served', 'conserved-sites.csv'),
+        difference: 'line 1: "stale" → "type,start,end,description"',
+      },
+    ]);
+  });
+
+  it('reports a missing file', () => {
+    const results = committed(() => rmSync(join(dir, 'conservation.csv')));
+    expect(differing(results)).toEqual([
+      { path: join(dir, 'conservation.csv'), difference: 'missing' },
+    ]);
   });
 });
 

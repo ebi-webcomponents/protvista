@@ -62,6 +62,12 @@ export interface ProtvistaUniprotStructureProps extends ElementProps<ProtvistaUn
   'selected-id'?: string;
   'no-table'?: boolean;
   'color-theme'?: string;
+  /** URL templates replacing the EBI lookups; `{accession}` is filled in. */
+  'uniprot-url'?: string;
+  'alphafold-url'?: string;
+  'beacons-url'?: string;
+  /** As `beacons-url`, for a lookup by `checksum`; `{checksum}` is filled in. */
+  'beacons-checksum-url'?: string;
   /** Property only — import the element before rendering, or use a ref. */
   data?: ProcessedStructureData[];
 }

@@ -58,12 +58,9 @@ import type { AdapterFunction } from '../types.js';
 import type { AuthoredFeatureRecord } from './dsv.js';
 import {
   FEATURE_CANONICAL_FIELDS,
+  RenderFieldCollector,
+  checkSpan,
   classifyExtraField,
-  ignoredFieldsWarning,
-  ignoredShapesWarning,
-  isReservedShape,
-  isUnpaintable,
-  unpaintableColorWarning,
   type DecodeWarning,
 } from './feature-fields.js';
 
@@ -104,162 +101,156 @@ export const featuresJson: AdapterFunction = (raw, labelArg, warningsArg) => {
     );
   }
 
+  const fields = new RenderFieldCollector(label);
   const records: AuthoredFeatureRecord[] = [];
-  const blocked = new Set<string>();
-  const unpaintable: string[] = [];
-  let unpaintableRows = 0;
-  const reservedShapes: string[] = [];
   for (let i = 0; i < raw.length; i++) {
-    const item: unknown = raw[i];
-
-    if (item === null || typeof item !== 'object' || Array.isArray(item)) {
-      throw new Error(
-        `${label}: record ${i} is not an object (got ${describe(item)}).`
-      );
-    }
-    const r = item as Record<string, unknown>;
-
-    if (typeof r.type !== 'string') {
-      throw new Error(
-        `${label}: record ${i}, field "type": expected a string, ` +
-          `got ${describe(r.type)}.`
-      );
-    }
-
-    // Accept `start` or `begin`; `start` wins when both are present.
-    // `!= null` (not `!== undefined`) so an explicit `start: null` falls
-    // back to `begin` instead of masking it — matching the `score` guard
-    // below, which likewise treats `null` as absent.
-    const rawStart = r.start != null ? r.start : r.begin;
-    if (!isFiniteNumber(rawStart)) {
-      throw new Error(
-        `${label}: record ${i}, field "start": expected a number, ` +
-          `got ${describe(rawStart)}.`
-      );
-    }
-    if (!isFiniteNumber(r.end)) {
-      throw new Error(
-        `${label}: record ${i}, field "end": expected a number, ` +
-          `got ${describe(r.end)}.`
-      );
-    }
-    // Coordinates are residue positions, so they must be whole numbers, and
-    // `end` may not precede `start` (equal endpoints — a single residue — are
-    // fine), matching BED. A `begin`-given record is still reported as
-    // "start", as above. Negative integers pass here; bounds are checked
-    // against the sequence later.
-    if (!Number.isInteger(rawStart)) {
-      throw new Error(
-        `${label}: record ${i}, field "start": expected a whole number, ` +
-          `got ${rawStart}.`
-      );
-    }
-    if (!Number.isInteger(r.end)) {
-      throw new Error(
-        `${label}: record ${i}, field "end": expected a whole number, ` +
-          `got ${r.end}.`
-      );
-    }
-    if (r.end < rawStart) {
-      throw new Error(
-        `${label}: record ${i}: end (${r.end}) is before start (${rawStart}).`
-      );
-    }
-
-    const record: AuthoredFeatureRecord = {
-      type: r.type,
-      start: rawStart,
-      end: r.end,
-    };
-
-    if (r.description !== undefined && r.description !== null) {
-      if (typeof r.description !== 'string') {
-        throw new Error(
-          `${label}: record ${i}, field "description": expected a ` +
-            `string, got ${describe(r.description)}.`
-        );
-      }
-      if (r.description !== '') {
-        record.description = r.description;
-      }
-    }
-
-    if (r.score !== undefined && r.score !== null) {
-      if (!isFiniteNumber(r.score)) {
-        throw new Error(
-          `${label}: record ${i}, field "score": expected a number, ` +
-            `got ${describe(r.score)}.`
-        );
-      }
-      record.score = r.score;
-    }
-
-    let rowUnpaintable = false;
-    for (const key of Object.keys(r)) {
-      if (FEATURE_CANONICAL_FIELDS.has(key) || key === 'begin') continue;
-      const group = classifyExtraField(key);
-      if (group === 'skip') continue;
-      if (group === 'blocked') {
-        blocked.add(key);
-        continue;
-      }
-      const value = r[key];
-      if (group === 'extra') {
-        // Safe as plain assignment: every `Object.prototype` name, `__proto__`
-        // included, was classified as blocked above.
-        record[key] = value;
-        continue;
-      }
-      // `null` and `''` alike leave a render field off, as `null` does for
-      // `description` / `score`.
-      if (value == null || value === '') continue;
-      if (key === 'opacity') {
-        if (typeof value !== 'number') {
-          throw new Error(
-            `${label}: record ${i}, field "opacity": expected a number from ` +
-              `0 to 1, got ${describe(value)}.`
-          );
-        }
-        if (!Number.isFinite(value) || value < 0 || value > 1) {
-          throw new Error(
-            `${label}: record ${i}, field "opacity": expected a number from ` +
-              `0 to 1, got ${value}.`
-          );
-        }
-        record.opacity = value;
-        continue;
-      }
-      if (typeof value !== 'string') {
-        throw new Error(
-          `${label}: record ${i}, field "${key}": expected a string, ` +
-            `got ${describe(value)}.`
-        );
-      }
-      const trimmed = value.trim();
-      if (trimmed === '') continue;
-      if (isReservedShape(key, trimmed)) {
-        reservedShapes.push(trimmed);
-        continue;
-      }
-      if (isUnpaintable(key, trimmed)) {
-        unpaintable.push(trimmed);
-        rowUnpaintable = true;
-      }
-      record[key] = trimmed;
-    }
-    if (rowUnpaintable) unpaintableRows++;
-
-    records.push(record);
+    records.push(decodeRecord(raw[i], i, label, fields));
   }
-
-  if (blocked.size > 0)
-    warnings?.push(ignoredFieldsWarning(label, [...blocked]));
-  if (reservedShapes.length > 0)
-    warnings?.push(ignoredShapesWarning(label, reservedShapes));
-  if (unpaintableRows > 0) {
-    warnings?.push(
-      unpaintableColorWarning(label, unpaintableRows, unpaintable)
-    );
-  }
+  fields.flush(warnings);
   return records;
 };
+
+/**
+ * Decode array element `i` into a feature record, or throw naming it.
+ * Render fields and blocked keys go through `fields`, which collects the
+ * warnings for the whole decode.
+ */
+function decodeRecord(
+  item: unknown,
+  i: number,
+  label: string,
+  fields: RenderFieldCollector
+): AuthoredFeatureRecord {
+  if (item === null || typeof item !== 'object' || Array.isArray(item)) {
+    throw new Error(
+      `${label}: record ${i} is not an object (got ${describe(item)}).`
+    );
+  }
+  const r = item as Record<string, unknown>;
+  const where = `record ${i}`;
+
+  const type = requireString(r.type, 'type', label, where);
+
+  // Accept `start` or `begin`; `start` wins when both are present.
+  // `!= null` (not `!== undefined`) so an explicit `start: null` falls
+  // back to `begin` instead of masking it — matching the `score` guard
+  // below, which likewise treats `null` as absent. A `begin`-given record
+  // is still reported as "start".
+  const rawStart = r.start != null ? r.start : r.begin;
+  const start = requireNumber(rawStart, 'start', label, where);
+  const end = requireNumber(r.end, 'end', label, where);
+  checkSpan(label, where, start, end);
+
+  const record: AuthoredFeatureRecord = { type, start, end };
+  decodeOptionalFields(r, record, label, where);
+  decodeExtras(r, record, label, where, fields);
+  return record;
+}
+
+/** `value` if it is a finite number, else throw naming `field`. */
+function requireNumber(
+  value: unknown,
+  field: string,
+  label: string,
+  where: string
+): number {
+  if (isFiniteNumber(value)) return value;
+  throw new Error(
+    `${label}: ${where}, field "${field}": expected a number, ` +
+      `got ${describe(value)}.`
+  );
+}
+
+/** `value` if it is a string, else throw naming `field`. */
+function requireString(
+  value: unknown,
+  field: string,
+  label: string,
+  where: string
+): string {
+  if (typeof value === 'string') return value;
+  throw new Error(
+    `${label}: ${where}, field "${field}": expected a string, ` +
+      `got ${describe(value)}.`
+  );
+}
+
+/**
+ * Copy `description` and `score` onto `record`. Absent or `null` omits
+ * either (and `''` omits `description`); a present value of the wrong
+ * type throws.
+ */
+function decodeOptionalFields(
+  r: Record<string, unknown>,
+  record: AuthoredFeatureRecord,
+  label: string,
+  where: string
+): void {
+  if (r.description != null) {
+    const description = requireString(
+      r.description,
+      'description',
+      label,
+      where
+    );
+    if (description !== '') record.description = description;
+  }
+
+  if (r.score != null) {
+    record.score = requireNumber(r.score, 'score', label, where);
+  }
+}
+
+/**
+ * Copy every other key of `r` onto `record`, in the object's own key
+ * order, by the rule in `./feature-fields`: extras as given, render fields
+ * through `fields`, blocked keys noted there and dropped.
+ */
+function decodeExtras(
+  r: Record<string, unknown>,
+  record: AuthoredFeatureRecord,
+  label: string,
+  where: string,
+  fields: RenderFieldCollector
+): void {
+  for (const key of Object.keys(r)) {
+    if (FEATURE_CANONICAL_FIELDS.has(key) || key === 'begin') continue;
+    const group = classifyExtraField(key);
+    if (group === 'blocked') {
+      fields.block(key);
+    } else if (group === 'extra') {
+      // Safe as plain assignment: every `Object.prototype` name, `__proto__`
+      // included, was classified as blocked above.
+      record[key] = r[key];
+    } else if (group === 'render') {
+      applyRenderField(r[key], key, record, label, where, fields);
+    }
+  }
+}
+
+/**
+ * Type-check render field `key`'s value and hand it to `fields`: `opacity`
+ * must be a number and the others strings. `null` and `''` alike leave a
+ * render field off, as `null` does for `description` / `score`.
+ */
+function applyRenderField(
+  value: unknown,
+  key: string,
+  record: AuthoredFeatureRecord,
+  label: string,
+  where: string,
+  fields: RenderFieldCollector
+): void {
+  if (value == null || value === '') return;
+  if (key !== 'opacity') {
+    fields.apply(record, key, requireString(value, key, label, where), where);
+    return;
+  }
+  if (typeof value !== 'number') {
+    throw new Error(
+      `${label}: ${where}, field "opacity": expected a number from ` +
+        `0 to 1, got ${describe(value)}.`
+    );
+  }
+  fields.apply(record, key, value, where);
+}

@@ -22,11 +22,12 @@
  *     (`linegraph-csv`, `linegraph-tsv`): the same records out of CSV/TSV,
  *     reached only by a file extension on a track already using that kind.
  *
- * This is NOT a normative schema. The normative contract for shapes and
- * formats is "Shape and format (normative)" in `specs/config-approach.md`,
- * alongside the Intent vs Representation split. Do not restate those
- * here — this table is the input to the generated `docs/adapter-reference.md`
- * and `public/schema/v1/feature-record.schema.json` (run `pnpm adapters:sync`).
+ * This is NOT a normative schema. What a file must contain is decided by the
+ * track's record shape (`../shapes.ts`) and how it is read by its format
+ * (`../file-formats.ts`), composed in `./pipeline.ts`; this table only
+ * describes those payloads for readers. It is the input to the generated
+ * `docs/adapter-reference.md` and `public/schema/v1/feature-record.schema.json`
+ * (run `pnpm adapters:sync`).
  *
  * Kept in sync with the code by `src/schema/__spec__/adapter-reference.spec.ts`:
  * every entry name must match `BUILTIN_ADAPTERS`, every domain `kind` must

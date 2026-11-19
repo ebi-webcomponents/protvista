@@ -222,6 +222,7 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
     {
       component: 'nightingale-sequence-heatmap',
       adapter: 'alphamissense-full-csv',
+      rendering: { colorScale: { theme: 'alphamissense-ramp' } },
     },
   ],
   [
@@ -239,9 +240,11 @@ const BUILTIN_SEMANTIC_KINDS: readonly BuiltinSemanticKindEntry[] = [
 // ─────────────────────────────────────────────────────────────
 // Built-in colour themes
 //
-// Canonical, accessibility-reviewed palettes referenced by the
-// `alphafold-confidence` / `alphamissense-pathogenicity` semantic kinds. Custom
+// Canonical palettes referenced by the
+// `alphafold-confidence` / `alphamissense-pathogenicity` /
+// `alphamissense-heatmap` semantic kinds. Custom
 // themes may be added at runtime via `registerTheme()`.
+// Colour-blind and contrast results: docs/accessibility-audit.md.
 // ─────────────────────────────────────────────────────────────
 
 const ALPHAFOLD_RAMP: readonly ColorStop[] = [

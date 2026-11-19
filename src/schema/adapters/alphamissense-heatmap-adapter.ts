@@ -1,29 +1,20 @@
 import type { AlphaFoldPayload } from '@nightingale-elements/nightingale-structure';
 
 import type { AdapterFunction } from '../types.js';
-import {
-  cellSplitter,
-  rowSplitter,
-} from './alphamissense-pathogenicity-adapter.js';
+import { parseRows } from './alphamissense-pathogenicity-adapter.js';
 
-const parseCSV = (rawText: string): Array<Record<string, string>> => {
-  const data = [];
-
-  for (const [i, row] of rawText.split(rowSplitter).entries()) {
-    if (i === 0 || !row) {
-      continue;
-    }
-    const [, , positionString, mutated, pathogenicityScore] =
-      row.match(cellSplitter);
-
-    data.push({
-      xValue: +positionString,
-      yValue: mutated,
-      score: +pathogenicityScore,
-    });
-  }
-  return data;
+type HeatmapCell = {
+  xValue: number;
+  yValue: string;
+  score: number;
 };
+
+const parseCSV = (rawText: string): Array<HeatmapCell> =>
+  parseRows(rawText).map(({ position, mutated, pathogenicityScore }) => ({
+    xValue: position,
+    yValue: mutated,
+    score: pathogenicityScore,
+  }));
 
 /**
  * Fetch and parse the AlphaMissense annotations the prediction payload points
@@ -38,7 +29,7 @@ const parseCSV = (rawText: string): Array<Record<string, string>> => {
  */
 const loadAndParseAnnotations = async (
   url: string
-): Promise<Array<Record<string, string>>> => {
+): Promise<Array<HeatmapCell>> => {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(

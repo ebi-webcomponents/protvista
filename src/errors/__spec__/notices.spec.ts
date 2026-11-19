@@ -6,12 +6,18 @@
 
 import { describe, it, expect } from 'vitest';
 
+import type { ValidationIssue } from '../../schema/errors.js';
+import type { FailureReport } from '../router.js';
 import {
+  MAX_NOTES_PER_ANCHOR,
   NOTICE_TEXT,
   NOTE_UI,
+  buildErrorDetail,
   mergeFacts,
   plural,
   stripTag,
+  upsertNote,
+  type Note,
   type NoticeCode,
 } from '../notices.js';
 
@@ -151,5 +157,188 @@ describe('controls and announcements', () => {
     expect(stripTag('[protvista] a')).toBe('a');
     expect(stripTag('[protvista-uniprot] b')).toBe('b');
     expect(stripTag('c [protvista] d')).toBe('c [protvista] d');
+  });
+});
+
+describe('recording a warning as a note', () => {
+  const warning = (over: Partial<FailureReport> = {}): FailureReport => ({
+    severity: 'warning',
+    phase: 'track-data',
+    scope: { trackKey: 'row-track' },
+    consoleLevel: 'warn',
+    message: '[protvista-uniprot] 2 features out of range.',
+    ...over,
+  });
+
+  it('adds a note anchored on the track, its text untagged', () => {
+    const notes = upsertNote(
+      [],
+      warning({ code: 'coordinate-out-of-range', source: 'a.json' }),
+      { noticeFacts: { count: 2 } },
+      'track'
+    );
+    expect(notes).toEqual([
+      {
+        anchor: 'row-track',
+        phase: 'track-data',
+        code: 'coordinate-out-of-range',
+        notice: 'track',
+        texts: ['2 features out of range.'],
+        source: 'a.json',
+        facts: { count: 2 },
+        lifecycle: 'load',
+        repeat: 1,
+      },
+    ]);
+  });
+
+  it("anchors a viewer warning on the viewer, with each issue's text and path", () => {
+    const issues: ValidationIssue[] = [
+      { path: '/rows/0', message: 'one', code: 'schema' },
+      { path: '', message: 'two', code: 'schema' },
+    ];
+    const [note] = upsertNote(
+      [],
+      warning({ phase: 'config', scope: 'viewer' }),
+      { issues, noteKey: 'k', noticeKeys: { names: ['row-track'] } },
+      null
+    );
+    expect(note).toEqual({
+      anchor: 'viewer',
+      phase: 'config',
+      notice: null,
+      texts: ['one', 'two'],
+      paths: ['/rows/0', ''],
+      factKeys: { names: ['row-track'] },
+      key: 'k',
+      lifecycle: 'config',
+      repeat: 1,
+    });
+  });
+
+  it('prefers the panel summary to the message as the text', () => {
+    const [note] = upsertNote(
+      [],
+      warning(),
+      { panelSummary: 'Shown to people' },
+      null
+    );
+    expect(note.texts).toEqual(['Shown to people']);
+    expect(note).not.toHaveProperty('paths');
+  });
+
+  it('counts a repeated setTrackData() misuse, without mutating', () => {
+    const report = warning({ phase: 'set-track-data', scope: 'viewer' });
+    const once = upsertNote([], report, {}, null);
+    const twice = upsertNote(once, report, {}, null);
+    expect(once[0].lifecycle).toBe('api');
+    expect(once[0].repeat).toBe(1);
+    expect(twice).toHaveLength(1);
+    expect(twice[0].repeat).toBe(2);
+  });
+
+  it('counts a repeat in place, leaving the notes around it as they were', () => {
+    const misuse = warning({ phase: 'set-track-data', scope: 'viewer' });
+    let notes = upsertNote([], warning({ message: 'before' }), {}, null);
+    notes = upsertNote(notes, misuse, {}, null);
+    notes = upsertNote(notes, warning({ message: 'after' }), {}, null);
+    const counted = upsertNote(notes, misuse, {}, null);
+    expect(counted.map((n) => n.texts[0])).toEqual([
+      'before',
+      '2 features out of range.',
+      'after',
+    ]);
+    expect(counted.map((n) => n.repeat)).toEqual([1, 2, 1]);
+    expect(counted[0]).toBe(notes[0]);
+    expect(counted[2]).toBe(notes[2]);
+    expect(notes[1].repeat).toBe(1);
+  });
+
+  it('keeps a repeated load or config warning as one note', () => {
+    const report = warning();
+    const once = upsertNote([], report, {}, null);
+    expect(upsertNote(once, report, {}, null)).toBe(once);
+  });
+
+  it('tells notes apart by text, or by noteKey when there is one', () => {
+    const a = upsertNote([], warning({ message: 'a' }), {}, null);
+    expect(upsertNote(a, warning({ message: 'b' }), {}, null)).toHaveLength(2);
+    const keyed = upsertNote(
+      [],
+      warning({ message: 'a' }),
+      { noteKey: 'k' },
+      null
+    );
+    expect(
+      upsertNote(keyed, warning({ message: 'b' }), { noteKey: 'k' }, null)
+    ).toBe(keyed);
+    expect(
+      upsertNote(
+        keyed,
+        warning({ code: 'unpaintable-color' }),
+        { noteKey: 'k' },
+        null
+      )
+    ).toHaveLength(2);
+  });
+
+  it('stops adding notes to an anchor at the cap, but not to another', () => {
+    let notes: Note[] = [];
+    for (let i = 0; i < MAX_NOTES_PER_ANCHOR; i++) {
+      notes = upsertNote(notes, warning({ message: `m${i}` }), {}, null);
+    }
+    expect(upsertNote(notes, warning({ message: 'over' }), {}, null)).toBe(
+      notes
+    );
+    expect(
+      upsertNote(notes, warning({ message: 'over', scope: 'viewer' }), {}, null)
+    ).toHaveLength(MAX_NOTES_PER_ANCHOR + 1);
+  });
+});
+
+describe('the protvista-error event detail', () => {
+  const report: FailureReport = {
+    severity: 'error',
+    phase: 'track-fetch',
+    scope: { trackKey: 'row-track' },
+    consoleLevel: 'warn',
+    message: '[protvista-uniprot] failed',
+  };
+
+  it('carries the untagged message, empty issues, and the accession', () => {
+    expect(buildErrorDetail(report, {}, 'P05067')).toEqual({
+      phase: 'track-fetch',
+      severity: 'error',
+      message: 'failed',
+      issues: [],
+      context: { accession: 'P05067' },
+    });
+  });
+
+  it('adds the source, and merges the context over the accession', () => {
+    const issues: ValidationIssue[] = [
+      { path: 'p', message: 'm', code: 'schema' },
+    ];
+    expect(
+      buildErrorDetail(
+        { ...report, source: 'https://x/y' },
+        { issues, context: { accession: 'Q1', url: 'https://x/y' } },
+        'P05067'
+      )
+    ).toEqual({
+      phase: 'track-fetch',
+      severity: 'error',
+      message: 'failed',
+      source: 'https://x/y',
+      issues,
+      context: { accession: 'Q1', url: 'https://x/y' },
+    });
+  });
+
+  it('says what the panel says, when it has its own summary', () => {
+    expect(
+      buildErrorDetail(report, { panelSummary: 'Could not load' }, 'P05067')
+        .message
+    ).toBe('Could not load');
   });
 });

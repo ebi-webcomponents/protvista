@@ -7,8 +7,8 @@
  * *rendering surface* that snapshot deliberately does not touch.
  *
  * What this guards
- *   • `getTrack(component, layout, color, shape, id, scale, colorRange,
- *     showSeriesLabel, height)`
+ *   • `getTrack(component, { layout, color, shape, id, scale, colorRange,
+ *     showSeriesLabel, height })`
  *     — each `KnownComponentName` must emit the exact nightingale
  *     element with the exact attribute set (tier 1).
  *   • The top-level shell (manager + navigation + sequence) plus one
@@ -88,7 +88,7 @@ const COMPONENT_NAMES: KnownComponentName[] = [
 /**
  * Representative argument set; values are chosen to be obviously
  * synthetic so the snapshot reads unambiguously and any accidental
- * renaming / reordering of getTrack's positional params shows up loudly.
+ * renaming of getTrack's options shows up loudly.
  */
 const GET_TRACK_ARGS = {
   layout: 'non-overlapping',
@@ -108,15 +108,7 @@ describe('getTrack() per component — config → nightingale attribute mapping'
 
   for (const component of COMPONENT_NAMES) {
     it(`${component} → stable attribute set`, () => {
-      const template = el.getTrack(
-        component,
-        GET_TRACK_ARGS.layout,
-        GET_TRACK_ARGS.color,
-        GET_TRACK_ARGS.shape,
-        GET_TRACK_ARGS.id,
-        GET_TRACK_ARGS.scale,
-        GET_TRACK_ARGS.colorRange
-      );
+      const template = el.getTrack(component, GET_TRACK_ARGS);
       const target = document.createElement('div');
       render(template, target);
       expect(normalize(target.innerHTML)).toMatchSnapshot();
@@ -127,17 +119,7 @@ describe('getTrack() per component — config → nightingale attribute mapping'
   // the defaults above (pinned by the snapshots) stand.
   for (const component of COMPONENT_NAMES) {
     it(`${component} → takes rendering.height when given`, () => {
-      const template = el.getTrack(
-        component,
-        '',
-        '',
-        '',
-        'H',
-        '',
-        '',
-        true,
-        '120'
-      );
+      const template = el.getTrack(component, { id: 'H', height: '120' });
       const target = document.createElement('div');
       render(template, target);
       expect(target.querySelector(component)!.getAttribute('height')).toBe(

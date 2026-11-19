@@ -11,7 +11,7 @@
  * viewer stores the diff and replays it onto the authored baseline on mount.
  */
 import type { NormalizedRow } from './schema/normalize.js';
-import { emptyPatch, isDefaultPatch, type LayoutPatch } from './layout.js';
+import { isDefaultPatch, type LayoutPatch } from './layout.js';
 
 /** The query-string parameter carrying a shareable layout. */
 export const LAYOUT_PARAM = 'layout';
@@ -91,6 +91,53 @@ function idList(value: unknown): string[] | null {
 }
 
 /**
+ * Whether an untrusted value is a non-null object whose entries can be
+ * walked. Arrays pass too (their entries are index-keyed), matching the
+ * `typeof === 'object'` guard the decoder has always used.
+ */
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object';
+}
+
+/**
+ * The entries of an untrusted object that `pick` accepts (returns non-`null`
+ * for), copied into a fresh `Object.create(null)` map — so a `__proto__` or
+ * `constructor` key lands as a plain own key and can never reach a prototype.
+ * Anything that is not an object yields an empty map.
+ */
+function pickEntries<T>(
+  value: unknown,
+  pick: (entry: unknown) => T | null
+): Record<string, T> {
+  const out: Record<string, T> = Object.create(null);
+  if (!isRecord(value)) return out;
+  for (const [key, entry] of Object.entries(value)) {
+    const picked = pick(entry);
+    if (picked !== null) out[key] = picked;
+  }
+  return out;
+}
+
+/** The boolean entries of an untrusted object; other entries are dropped. */
+export function boolMap(value: unknown): Record<string, boolean> {
+  return pickEntries(value, (v) => (typeof v === 'boolean' ? v : null));
+}
+
+/**
+ * A two-level `boolMap` (row id → track id → boolean). A row whose value is
+ * not an object, or that holds no boolean entries, is dropped entirely rather
+ * than kept as an empty map.
+ */
+export function nestedBoolMap(
+  value: unknown
+): Record<string, Record<string, boolean>> {
+  return pickEntries(value, (inner) => {
+    const map = boolMap(inner);
+    return Object.keys(map).length > 0 ? map : null;
+  });
+}
+
+/**
  * Decode a `?layout=` / stored token back to a `LayoutPatch`, or `null` if it
  * is missing or malformed. Defensive: a hand-edited URL or a stale storage
  * entry must never throw or inject a wrong-typed patch — unknown shapes
@@ -105,46 +152,17 @@ export function decodeLayout(token: string | null): LayoutPatch | null {
   } catch {
     return null;
   }
-  if (!parsed || typeof parsed !== 'object') return null;
-  const obj = parsed as Record<string, unknown>;
+  if (!isRecord(parsed)) return null;
 
-  const patch = emptyPatch();
-  patch.order = idList(obj.order);
-
-  if (obj.tracks && typeof obj.tracks === 'object') {
-    for (const [rowId, ids] of Object.entries(
-      obj.tracks as Record<string, unknown>
-    )) {
-      const list = idList(ids);
-      if (list) patch.tracks[rowId] = list;
-    }
-  }
-
-  if (obj.hidden && typeof obj.hidden === 'object') {
-    const hidden = obj.hidden as Record<string, unknown>;
-    if (hidden.rows && typeof hidden.rows === 'object') {
-      for (const [rowId, v] of Object.entries(
-        hidden.rows as Record<string, unknown>
-      )) {
-        if (typeof v === 'boolean') patch.hidden.rows[rowId] = v;
-      }
-    }
-    if (hidden.tracks && typeof hidden.tracks === 'object') {
-      for (const [rowId, inner] of Object.entries(
-        hidden.tracks as Record<string, unknown>
-      )) {
-        if (!inner || typeof inner !== 'object') continue;
-        for (const [trackId, v] of Object.entries(
-          inner as Record<string, unknown>
-        )) {
-          if (typeof v !== 'boolean') continue;
-          let hides = patch.hidden.tracks[rowId];
-          if (!hides) hides = patch.hidden.tracks[rowId] = Object.create(null);
-          hides[trackId] = v;
-        }
-      }
-    }
-  }
-
-  return patch;
+  const hidden: Record<string, unknown> = isRecord(parsed.hidden)
+    ? parsed.hidden
+    : {};
+  return {
+    order: idList(parsed.order),
+    tracks: pickEntries(parsed.tracks, idList),
+    hidden: {
+      rows: boolMap(hidden.rows),
+      tracks: nestedBoolMap(hidden.tracks),
+    },
+  };
 }

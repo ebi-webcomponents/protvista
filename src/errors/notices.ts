@@ -12,7 +12,9 @@
  * later without hunting through the element.
  */
 
-import type { FailureCode } from './router.js';
+import type { ValidationIssue } from '../schema/errors.js';
+import type { ErrorContext, ErrorPhase } from './report.js';
+import type { FailureChannels, FailureCode, FailureReport } from './router.js';
 
 /** The codes whose routing row raises a visitor notice. */
 export type NoticeCode = Extract<
@@ -145,3 +147,183 @@ export const NOTE_UI = {
 /** The console's `[protvista…]` tag, which no person-facing surface shows. */
 export const stripTag = (message: string): string =>
   message.replace(/^\[protvista(?:-uniprot)?\] /, '');
+
+/** At most this many notes per anchor; a runaway caller can't grow it. */
+export const MAX_NOTES_PER_ANCHOR = 200;
+
+/**
+ * One warning, kept for the visitor notice and author mode. Every routed
+ * warning is recorded, whatever the display switches say, so turning either
+ * on at runtime shows what already happened.
+ *
+ * `lifecycle` says what clears it: a new config (`config`), a new load of its
+ * track (`load`), or a new config as well (`api` — `setTrackData()` misuse,
+ * which no load repeats).
+ */
+export interface Note {
+  /** `'viewer'`, or the `${rowId}-${trackId}` key of the track it is about. */
+  anchor: string;
+  phase: ErrorPhase;
+  code?: FailureCode;
+  /** The routed visitor notice, if any. */
+  notice: 'track' | 'viewer' | null;
+  /** The author text: each issue's message, or the event's message. */
+  texts: string[];
+  /** Each issue's config path, where it has one. */
+  paths?: string[];
+  source?: string;
+  facts?: NoticeFacts;
+  /**
+   * The track (or row) key behind each name in `facts`, in the same order,
+   * so a name can be left out while the layout hides its track.
+   */
+  factKeys?: { names?: string[]; partial?: string[] };
+  /** What identifies it when its text does not (see `NoteOptions.noteKey`). */
+  key?: string;
+  lifecycle: 'config' | 'load' | 'api';
+  /** How many identical `api` notes this one stands for. */
+  repeat: number;
+}
+
+/** The parts of a `_report` call's options a note is built from. */
+export interface NoteOptions {
+  /** Each issue's message becomes one of the note's texts. */
+  issues?: ValidationIssue[];
+  /** What a person reads, when it should differ from the report's message. */
+  panelSummary?: string;
+  /** What the visitor notice counts or names, for a warning that has one. */
+  noticeFacts?: NoticeFacts;
+  /** The track or row key behind each of `noticeFacts`' names. */
+  noticeKeys?: { names?: string[]; partial?: string[] };
+  /**
+   * What makes two reports the same note, when their text can differ: a
+   * skipped template's message names whichever track met it first.
+   */
+  noteKey?: string;
+}
+
+/** A warning's first note, before any repeat. */
+function newNote(
+  anchor: string,
+  report: FailureReport,
+  texts: string[],
+  issues: ValidationIssue[],
+  opts: NoteOptions,
+  channel: FailureChannels['notice']
+): Note {
+  return {
+    anchor,
+    phase: report.phase,
+    ...(report.code !== undefined ? { code: report.code } : {}),
+    notice: channel,
+    texts,
+    ...(issues.some((i) => i.path) ? { paths: issues.map((i) => i.path) } : {}),
+    ...(report.source !== undefined ? { source: report.source } : {}),
+    ...(opts.noticeFacts ? { facts: opts.noticeFacts } : {}),
+    ...(opts.noticeKeys ? { factKeys: opts.noticeKeys } : {}),
+    ...(opts.noteKey !== undefined ? { key: opts.noteKey } : {}),
+    // What clears it (see {@link Note}'s `lifecycle`).
+    lifecycle:
+      report.phase === 'config'
+        ? 'config'
+        : report.phase === 'set-track-data'
+          ? 'api'
+          : 'load',
+    repeat: 1,
+  };
+}
+
+/**
+ * The notes once a warning is recorded: one more note, the same note counted
+ * again, or — at {@link MAX_NOTES_PER_ANCHOR} for its anchor — no change.
+ *
+ * Two reports are the same note when they share anchor, phase and code, and
+ * either their `noteKey` or, without one, their texts. Never mutates `notes`;
+ * returns it as is when nothing changes.
+ */
+export function upsertNote(
+  notes: Note[],
+  report: FailureReport,
+  opts: NoteOptions,
+  channel: FailureChannels['notice']
+): Note[] {
+  const anchor = report.scope === 'viewer' ? 'viewer' : report.scope.trackKey;
+  const issues = opts.issues ?? [];
+  const texts = issues.length
+    ? issues.map((i) => i.message)
+    : [stripTag(opts.panelSummary ?? report.message)];
+  const at = notes.findIndex(
+    (n) =>
+      n.anchor === anchor &&
+      n.phase === report.phase &&
+      n.code === report.code &&
+      (opts.noteKey !== undefined
+        ? n.key === opts.noteKey
+        : n.texts.join('\n') === texts.join('\n'))
+  );
+  if (at !== -1) {
+    // Three identical `setTrackData()` misuses are three calls. A load or
+    // config warning reported again — a targeted Retry re-reporting a
+    // skipped template it shares — is the same fact, not a second one.
+    const same = notes[at];
+    return same.lifecycle === 'api'
+      ? [
+          ...notes.slice(0, at),
+          { ...same, repeat: same.repeat + 1 },
+          ...notes.slice(at + 1),
+        ]
+      : notes;
+  }
+  if (notes.filter((n) => n.anchor === anchor).length >= MAX_NOTES_PER_ANCHOR) {
+    return notes;
+  }
+  return [...notes, newNote(anchor, report, texts, issues, opts, channel)];
+}
+
+/** The `detail` of a `protvista-error` event. */
+export interface ErrorDetail {
+  phase: ErrorPhase;
+  severity: FailureReport['severity'];
+  message: string;
+  source?: string;
+  issues: ValidationIssue[];
+  context: ErrorContext;
+}
+
+/**
+ * A `protvista-error` event's `detail`: `message` is what a person reads —
+ * the panel's summary when there is one, and never the console's
+ * `[protvista…]` tag — and `context` is the caller's merged over
+ * `{ accession }`.
+ */
+export function buildErrorDetail(
+  report: FailureReport,
+  opts: {
+    issues?: ValidationIssue[];
+    context?: ErrorContext;
+    panelSummary?: string;
+  },
+  accession: string | undefined
+): ErrorDetail {
+  return {
+    phase: report.phase,
+    // How bad it is, so a listener can tell a warning from a failure
+    // without inferring it. A viewer-scoped warning (a theme colour
+    // that did not resolve, a component with no renderer) carries no
+    // `issues`, so the `issue.severity` check that works for config
+    // warnings has nothing to read.
+    severity: report.severity,
+    // What the visible surface says. Without it the event was the one
+    // channel that could not say *what* went wrong: a malformed file
+    // reported `errorKind: 'adapter'` and a URL, while the text naming
+    // the file and the offending row — the whole reason the failure is
+    // worth surfacing — reached only the badge. A failure that raises
+    // the panel carries the panel's own summary rather than the
+    // developer line, and the console's `[protvista…]` tag is dropped:
+    // the documented use is putting this text in front of a user.
+    message: stripTag(opts.panelSummary ?? report.message),
+    ...(report.source !== undefined ? { source: report.source } : {}),
+    issues: opts.issues ?? [],
+    context: { accession, ...opts.context },
+  };
+}

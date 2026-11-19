@@ -4,6 +4,35 @@
 
 - Added `uniprot-isoforms-json` adapter and "APP isoforms" community view. The adapter is opt-in and makes no new requests unless named in a config.
 
+### Fixed: every variants track uses the variant colours
+
+With more than one `kind: variants` track, for example your own CSV of
+variants beside the UniProt Variants track, only the first got the variant
+colour scheme (pathogenic, benign, predicted, uncertain); every other drew all
+its dots pink. Each variants track now uses the scheme, matching the filter
+legend. A second track with `filterUI: nightingale-filter` likewise showed an
+empty filter, and now lists the same filters as the first (#389).
+
+### Fixed: an AlphaMissense heatmap draws in any row
+
+An `alphamissense-heatmap` track drew nothing unless its group's id was
+`ALPHAMISSENSE_PATHOGENICITY`, so a heatmap in a group of your own, or on a row
+of its own, stayed blank. With two heatmaps, the first was handed every
+heatmap's data. Each heatmap track now gets its own data, in any group or
+standalone row, coloured by its `colorScale`: the `alphamissense-ramp` unless
+the config sets another. Its stops take any colour a coloured sequence takes
+(hex, `rgb()`, `hsl()` or a colour name) and blend the same way. A heatmap whose data is not an array of cells gets a
+`⚠` badge and a `protvista-error` event instead of stopping the other tracks
+from drawing. The default UniProt view looks the same as before.
+
+### Fixed: the variant and RNA-editing count graphs count the last residue
+
+The line graphs from `uniprot-variation-counts-json` and
+`uniprot-rna-editing-counts-json` dropped any variant or RNA-editing event on
+the protein's last residue, and plotted a spurious point at position 0. Both now
+plot exactly positions 1 to the sequence length, ignore positions outside that
+range, and no longer cap a residue's count at 255.
+
 ### Fixed: `rendering.height` and `rendering.layout` take effect
 
 The config schema accepted `rendering.height` and `rendering.layout`, but the
@@ -14,13 +43,27 @@ collapsed row. `layout: default` draws a feature track's overlapping features
 on one row. Configs that leave these fields out look the same as before; a
 config that already set them will now render the way it asked to.
 
+### Fixed: the structure panel's legend follows `color-theme`
+
+With an AlphaFold model, setting `color-theme="alphamissense"` (as an
+attribute or the `colorTheme` property, before or after the structure loaded)
+coloured the 3D model by AlphaMissense pathogenicity but left the legend
+explaining pLDDT confidence bands. The legend now matches the colour scale
+however it was set, not only after a radio click. When the selected model has
+no AlphaMissense annotations, the model, the radios and the legend all show
+confidence instead; `colorTheme` keeps the requested `alphamissense`, so it
+applies again when an annotated model is selected. AlphaFold complexes, whose
+viewer has no AlphaMissense colouring, now show the Pathogenicity radio as
+unavailable and keep the confidence legend.
+
 ### Added: a warning for rendering settings that have no effect
 
 Some `rendering` settings only work on certain tracks: `colorScale` on coloured
-sequence tracks (`alphafold-confidence`, `alphamissense-pathogenicity`), and
-`layout`, `color` and `shape` on feature tracks. Setting one where it can't
-take effect now gives a `rendering-field-ignored` validation warning instead of
-being silently ignored. The config still loads. The Configure page's
+sequence and heatmap tracks (`alphafold-confidence`,
+`alphamissense-pathogenicity`, `alphamissense-heatmap`), and `layout`, `color`
+and `shape` on feature tracks. Setting one where it can't take effect now
+gives a `rendering-field-ignored` validation warning instead of being silently
+ignored. The config still loads. The Configure page's
 `rendering` section lists each field, where it works, and the order in which a
 track, its kind, its group and `defaults:` take precedence.
 
@@ -30,6 +73,41 @@ Each page of the documentation site now links to its source on GitHub's `next`
 branch, so a reader who spots a mistake can propose a fix in a couple of
 clicks. The adapter reference and the feature type and shape vocabulary pages
 have no link, because they are generated from code.
+
+### Added: point the viewer's own requests somewhere other than EBI
+
+The sequence entry and the 3D structure panel's UniProtKB, AlphaFold DB and
+3D-Beacons lookups were fixed EBI URLs, so a page using a mirror still sent
+them to EBI. A config's `sources:` can now replace each one, with the keys
+`sequenceEntry`, `structureUniprot`, `structureAlphafold` and
+`structureBeacons`, and their `{tokens}` are filled like any data URL's. A
+page using `<protvista-uniprot-structure>` on its own sets the `uniprot-url`,
+`alphafold-url` and `beacons-url` attributes instead, and
+`beacons-checksum-url` for its 3D-Beacons lookup by `checksum` (default
+`https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/v2/sequence/summary?id={checksum}&type=md5`).
+When a `data-*` value on `<protvista-uniprot>` that one of these URLs uses
+changes, the URL is requested again, as a data URL is. Set nothing and the
+viewer makes the same requests as before.
+
+### Fixed: the 3D structure panel's skipped requests and response links
+
+The structure panel used to request the page it was on for each lookup it
+skipped, such as the two that a search by `checksum` doesn't make. It now
+requests nothing for them. It also renders a link from a structure response
+only when that link is `http`, `https` or `mailto`, so a server that a URL
+override points at can't add a `javascript:` link.
+
+### Fixed: AlphaMissense tracks tolerate imperfect annotation files
+
+One malformed line in an AlphaMissense annotations CSV made the heatmap track
+fail with "null is not iterable"; both AlphaMissense tracks now skip such a
+line, as well as a line whose score isn't a number (which before showed up as
+a `NaN` heatmap cell and blanked out that residue's average) or whose position
+is 0. On the pathogenicity track, a residue whose average score was exactly
+1.0 was dropped, shifting every residue after it one place to the left; it is
+now shown as pathogenic. A residue missing from the file no longer breaks the
+track: it keeps its place, left blank rather than painted in a pathogenicity
+colour, so the residues after it stay aligned with the sequence.
 
 ## 5.0.0-beta.5 — 2026-10-06
 

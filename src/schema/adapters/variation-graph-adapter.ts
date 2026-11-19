@@ -9,6 +9,13 @@ type VariationFeature = {
 
 type VariationData = { sequence?: string; features: VariationFeature[] };
 
+/** One `{ position, value }` per residue, 1..sequence.length (skips slot 0). */
+const toValues = (counts: Uint32Array) =>
+  Array.from(counts.subarray(1), (value, index) => ({
+    position: index + 1,
+    value,
+  }));
+
 export const variationGraphAdapter: AdapterFunction = (raw) => {
   const data = raw as VariationData;
   if (data.sequence && data.features.length) {
@@ -18,8 +25,10 @@ export const variationGraphAdapter: AdapterFunction = (raw) => {
       start: variant.begin,
     }));
 
-    const total = new Uint8ClampedArray(data.sequence.length);
-    const diseaseTotal = new Uint8ClampedArray(data.sequence.length);
+    // Indexed by 1-based residue position, so slot 0 is unused. Uint32Array
+    // rather than Uint8ClampedArray, which saturated at 255 per position.
+    const total = new Uint32Array(data.sequence.length + 1);
+    const diseaseTotal = new Uint32Array(data.sequence.length + 1);
 
     for (const { start, association } of variants) {
       const index = +start;
@@ -41,19 +50,13 @@ export const variationGraphAdapter: AdapterFunction = (raw) => {
         name: 'variant',
         range,
         color: 'darkgrey',
-        values: [...total].map((value, index) => ({
-          position: index,
-          value: value,
-        })),
+        values: toValues(total),
       },
       {
         name: 'disease causing variant',
         range,
         color: 'red',
-        values: [...diseaseTotal].map((value, index) => ({
-          position: index,
-          value: value,
-        })),
+        values: toValues(diseaseTotal),
       },
     ];
     return graphData;

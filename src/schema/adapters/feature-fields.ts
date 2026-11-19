@@ -3,9 +3,9 @@
  *
  * The CSV/TSV and JSON feature decoders keep every column or key an author
  * adds beyond `type, start, end, description, score`, so a file and the same
- * records written inline render the same way (see "Unrecognised fields" in
- * `specs/config-approach.md`). One rule, shared by both decoders, sorts each
- * extra name into a group:
+ * records written inline render the same way, and a `dataTooltip` that names
+ * an extra column (say `gene`) finds it rather than silently showing nothing.
+ * One rule, shared by both decoders, sorts each extra name into a group:
  *
  *   - **render** — `color`, `shape`, `fill`, `opacity`. Nightingale reads these
  *     per record ahead of the track's `rendering:`, so they are trimmed,
@@ -182,4 +182,165 @@ export function isUnpaintable(name: string, value: string): boolean {
  */
 export function isReservedShape(name: string, value: string): boolean {
   return name === 'shape' && value in Object.prototype;
+}
+
+/**
+ * Throw unless `start`..`end` is a feature span both decoders accept.
+ * Coordinates are residue positions, so both must be whole numbers, and
+ * `end` may not precede `start` (equal endpoints — a single residue — are
+ * fine), matching BED. Negative integers pass here; bounds are checked
+ * against the sequence later.
+ *
+ * `where` names the record as the decoder's other errors do (`record 3`,
+ * `row 4`). Without cell text the values are JSON's: each is a `field` and
+ * is quoted as the number itself. A delimited decoder passes the untrimmed
+ * `startCell` / `endCell` it parsed, so each is a `column` and is quoted as
+ * the author wrote it.
+ */
+export function checkSpan(
+  label: string,
+  where: string,
+  start: number,
+  end: number,
+  startCell?: string,
+  endCell?: string
+): void {
+  checkWhole(label, where, 'start', start, startCell);
+  checkWhole(label, where, 'end', end, endCell);
+  if (end < start) {
+    throw new Error(
+      `${label}: ${where}: end (${end}) is before start (${start}).`
+    );
+  }
+}
+
+/** Throw unless coordinate `name` is a whole number (see `checkSpan`). */
+function checkWhole(
+  label: string,
+  where: string,
+  name: 'start' | 'end',
+  n: number,
+  cell: string | undefined
+): void {
+  if (Number.isInteger(n)) return;
+  const what =
+    cell === undefined
+      ? `field "${name}": expected a whole number, got ${n}`
+      : `column "${name}": expected a whole number, got "${cell}"`;
+  throw new Error(`${label}: ${where}, ${what}.`);
+}
+
+/**
+ * Applies the render-field rules (`color`, `shape`, `fill`, `opacity`) to
+ * decoded records, and collects what both decoders warn about, to push once
+ * the whole decode has succeeded: the blocked field names, the dropped
+ * reserved `shape` values, and the unpaintable `color` / `fill` values with
+ * the number of records carrying one. One collector serves one decode.
+ *
+ * The JSON decoder has already checked its values' types, so its `opacity`
+ * arrives as a number — a `field`, quoted as the number in errors — and
+ * every other render field as a string. A delimited decoder passes every
+ * value as its cell's text and constructs the collector with its number
+ * parser, which reads an `opacity` cell — a `column`, quoted as written.
+ */
+export class RenderFieldCollector {
+  private readonly blocked = new Set<string>();
+  private readonly reservedShapes: string[] = [];
+  private readonly unpaintable: string[] = [];
+  private unpaintableRows = 0;
+  /** The last record counted in `unpaintableRows`, so each counts once. */
+  private lastUnpaintable: object | undefined;
+  private readonly label: string;
+  private readonly parseCell: ((cell: string) => number | null) | undefined;
+
+  constructor(label: string, parseCell?: (cell: string) => number | null) {
+    this.label = label;
+    this.parseCell = parseCell;
+  }
+
+  /** Note a blocked field name the decode dropped (named once in `flush`). */
+  block(name: string): void {
+    this.blocked.add(name);
+  }
+
+  /**
+   * Set render field `key` on `record` from `value`, or leave it off.
+   *
+   * A string is trimmed, and a blank one leaves the field off, so the
+   * track's `rendering:` still applies. `opacity` must be a number from 0 to
+   * 1 (anything else throws, naming `where`); a `shape` naming an
+   * `Object.prototype` property is dropped (see `isReservedShape`); a
+   * `color` / `fill` the canvas cannot paint is kept but noted.
+   */
+  apply(
+    record: Record<string, unknown>,
+    key: string,
+    value: string | number,
+    where: string
+  ): void {
+    if (typeof value === 'number') {
+      this.setOpacity(record, value, where);
+      return;
+    }
+    const trimmed = value.trim();
+    if (trimmed === '') return;
+    if (key === 'opacity') {
+      this.setOpacity(record, this.parseCell?.(trimmed), where, value);
+      return;
+    }
+    if (isReservedShape(key, trimmed)) {
+      this.reservedShapes.push(trimmed);
+      return;
+    }
+    if (isUnpaintable(key, trimmed)) {
+      this.unpaintable.push(trimmed);
+      // Count each record carrying one once, however many it carries.
+      if (record !== this.lastUnpaintable) this.unpaintableRows++;
+      this.lastUnpaintable = record;
+    }
+    record[key] = trimmed;
+  }
+
+  /** Push the collected warnings, in their fixed order, onto `warnings`. */
+  flush(warnings: DecodeWarning[] | undefined): void {
+    if (!warnings) return;
+    if (this.blocked.size > 0) {
+      warnings.push(ignoredFieldsWarning(this.label, [...this.blocked]));
+    }
+    if (this.reservedShapes.length > 0) {
+      warnings.push(ignoredShapesWarning(this.label, this.reservedShapes));
+    }
+    if (this.unpaintableRows > 0) {
+      warnings.push(
+        unpaintableColorWarning(
+          this.label,
+          this.unpaintableRows,
+          this.unpaintable
+        )
+      );
+    }
+  }
+
+  /**
+   * Set `opacity`, or throw unless `n` is a finite number from 0 to 1
+   * (`null` or `undefined` — a cell that did not parse — never is). The
+   * error names a `column` and quotes `cell` as written when the value came
+   * from one, else a `field` and `n`, as `checkSpan` does.
+   */
+  private setOpacity(
+    record: Record<string, unknown>,
+    n: number | null | undefined,
+    where: string,
+    cell?: string
+  ): void {
+    if (Number.isFinite(n) && n >= 0 && n <= 1) {
+      record.opacity = n;
+      return;
+    }
+    const what =
+      cell === undefined
+        ? `field "opacity": expected a number from 0 to 1, got ${n}`
+        : `column "opacity": expected a number from 0 to 1, got "${cell}"`;
+    throw new Error(`${this.label}: ${where}, ${what}.`);
+  }
 }

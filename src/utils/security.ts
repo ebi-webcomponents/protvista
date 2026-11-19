@@ -35,19 +35,28 @@ const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
  */
 export const sanitizeUrl = (url: unknown): string => {
   if (url == null) return '';
-  const str = String(url).trim();
-  if (str === '') return '';
+  const str = String(url);
+  return isSafeUrl(str) ? escapeHtml(str.trim()) : '';
+};
+
+/**
+ * Whether `url` is safe as an href: non-empty, and relative or http:,
+ * https: or mailto:. The check {@link sanitizeUrl} makes, for a binding
+ * that escapes the value itself (a Lit attribute) and so must not be
+ * handed an HTML-escaped one.
+ */
+export const isSafeUrl = (url: unknown): url is string => {
+  if (typeof url !== 'string') return false;
+  const str = url.trim();
+  if (str === '') return false;
   // Relative URLs are allowed
   if (str.startsWith('/') || str.startsWith('#') || str.startsWith('?')) {
-    return escapeHtml(str);
+    return true;
   }
   try {
-    const parsed = new URL(str);
-    if (SAFE_PROTOCOLS.has(parsed.protocol)) {
-      return escapeHtml(str);
-    }
+    return SAFE_PROTOCOLS.has(new URL(str).protocol);
   } catch {
     // Invalid URL — block it
+    return false;
   }
-  return '';
 };

@@ -305,6 +305,6 @@ Data-domain colours — the AlphaFold pLDDT and AlphaMissense pathogenicity ramp
 
 ## On the roadmap
 
-Dark mode is planned as a `prefers-color-scheme` default token set — the token layer above is the substrate, and the palette itself is the follow-on work. Colour-blind-friendly palettes are part of the viewer's WCAG accessibility work and will likewise be a token-swap on top of this layer. Further out, the interactive playground should grow a no-code styling panel that lets non-developers adjust these tokens with live preview.
+Dark mode is planned as a `prefers-color-scheme` default token set — the token layer above is the substrate, and the palette itself is the follow-on work. Colour-blind-friendly palettes are part of the viewer's WCAG accessibility work; the default data palettes have been checked, and the results are on [Accessibility and known limitations](/protvista/accessibility). Further out, the interactive playground should grow a no-code styling panel that lets non-developers adjust these tokens with live preview.
 
 _Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

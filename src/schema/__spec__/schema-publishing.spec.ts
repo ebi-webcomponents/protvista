@@ -167,8 +167,10 @@ const SCAN_EXTENSIONS = new Set([
 // matter as much as the outputs: `.astro` holds a content-collection store
 // that embeds the docs' own text, so a stale one from a build predating a
 // version bump reports the *old* pin and fails the check below against a
-// gitignored file no one edited. Everything here is either gitignored or not
-// authored, so nothing scannable is lost.
+// gitignored file no one edited. `.claude` holds local agent state, including
+// git worktrees that are full copies of the repo (this spec among them), so
+// scanning it reports every copy of the markers below. Everything here is
+// either gitignored or not authored, so nothing scannable is lost.
 const IGNORE_DIR_NAMES = new Set([
   'node_modules',
   'dist',
@@ -183,6 +185,7 @@ const IGNORE_DIR_NAMES = new Set([
   '.idea',
   '.astro',
   '.cache',
+  '.claude',
 ]);
 const PLACEHOLDER_MARKERS: Array<string | RegExp> = [
   'TODO-PUBLISH-BEFORE-V5-RELEASE',

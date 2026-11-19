@@ -49,6 +49,10 @@ async function mountStructure(
   ) as StructureEl;
   // metaInfo gates the colour-scale radios in render().
   el.metaInfo = html`<p data-testid="legend">legend</p>`;
+  // The Pathogenicity radio is only shown checked when the model has
+  // AlphaMissense annotations.
+  (el as unknown as { alphamissenseAvailable: boolean }).alphamissenseAvailable =
+    true;
   Object.assign(el, overrides);
   document.body.append(el);
   appended.push(el);

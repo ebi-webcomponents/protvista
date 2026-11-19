@@ -3,8 +3,8 @@
  *
  * One half of the pair that replaces the `<shape>-<format>` adapter grid. A
  * kind declares the shape it draws; a source declares the format it is
- * encoded in; the adapter for the pair is computed rather than named. See
- * "Shape and format (normative)" in `specs/config-approach.md`.
+ * encoded in; the adapter for the pair is computed rather than named, so a
+ * `kind:` and a file extension never compete and need no precedence rule.
  *
  * A shape is deliberately more than a list of field names: `label` is what
  * error messages are built from, and it is the reason a mismatch can read
@@ -12,9 +12,9 @@
  * variation records (position, variant)" rather than naming adapters and body
  * types at an author who was promised neither.
  *
- * `ShapeDefinition` is shaped to become a registry entry: the reserved
- * `registerShape()` extension point (see the spec) adds consumer shapes
- * without changing this module's contract.
+ * `ShapeDefinition` is shaped to become a registry entry: `registerShape()`
+ * is a reserved name, not yet implemented, and when it lands it will add
+ * consumer shapes without changing this module's contract.
  */
 
 import type { ShapeName } from './types.js';

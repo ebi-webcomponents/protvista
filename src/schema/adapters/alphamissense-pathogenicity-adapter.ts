@@ -27,15 +27,28 @@ const pathogenicityCategories = [
   { min: pathogenic, max: certainlyPathogenic, code: 'P' },
 ];
 
-const getPathogenicityCode = (score) => {
+// The top bucket's `max` is inclusive, so an average of exactly 1 is `P`
+// rather than matching nothing.
+const getPathogenicityCode = (score: number): string | undefined => {
   for (const { min, max, code } of pathogenicityCategories) {
-    if (score >= min && score < max) {
+    if (
+      score >= min &&
+      (score < max || (max === certainlyPathogenic && score === max))
+    ) {
       return code;
     }
   }
 };
 
-type Row = {
+// Stands in for a position the CSV has no (usable) score for, so every later
+// residue stays at its own position instead of shifting left by one. The
+// `alphamissense-ramp` theme (src/renderer/render-helpers.ts) gives it a
+// transparent stop of its own: nightingale-colored-sequence draws a character
+// missing from its scale at the scale's 0 end, which here is the
+// certainly-benign colour.
+export const NO_SCORE = '-';
+
+export type AlphaMissenseRow = {
   wildType: string;
   position: number;
   mutated: string;
@@ -43,8 +56,15 @@ type Row = {
   pathogenicityLabel: string;
 };
 
-const parseCSV = (rawText: string): string => {
-  const positions: Array<Array<Row>> = [];
+/**
+ * Parse an AlphaMissense annotations CSV into rows, shared by this adapter
+ * and `alphamissense-full-csv`. The header and any row that doesn't match
+ * `cellSplitter` (blank, short or stray lines), names a position below 1, or
+ * whose score isn't a number (text, or an extra column the greedy score group
+ * swallowed) is skipped rather than thrown on or passed on as `NaN`.
+ */
+export const parseRows = (rawText: string): Array<AlphaMissenseRow> => {
+  const rows: Array<AlphaMissenseRow> = [];
   for (const [i, row] of rawText.split(rowSplitter).entries()) {
     if (i === 0 || !row) {
       continue;
@@ -62,21 +82,40 @@ const parseCSV = (rawText: string): string => {
       pathogenicityLabel,
     ] = match;
     const position = +positionString;
-    const index = position - 1;
-    if (!positions[index]) {
-      positions[index] = [];
+    if (position < 1) {
+      continue;
     }
-    positions[index].push({
+    const score = +pathogenicityScore;
+    if (!pathogenicityScore.trim() || !Number.isFinite(score)) {
+      continue;
+    }
+    rows.push({
       wildType,
       position,
       mutated,
-      pathogenicityScore: +pathogenicityScore,
+      pathogenicityScore: score,
       pathogenicityLabel,
     });
   }
+  return rows;
+};
 
-  const out = [];
-  for (const position of positions) {
+const parseCSV = (rawText: string): string => {
+  const positions: Array<Array<AlphaMissenseRow>> = [];
+  for (const row of parseRows(rawText)) {
+    const index = row.position - 1;
+    if (!positions[index]) {
+      positions[index] = [];
+    }
+    positions[index].push(row);
+  }
+
+  // `Array.from` visits the holes a position missing from the CSV leaves, so
+  // the output is as long as the highest position.
+  return Array.from(positions, (position) => {
+    if (!position) {
+      return NO_SCORE;
+    }
     // maximum
     // const value = Math.max(
     //   ...position.map((variation) => variation.pathogenicityScore)
@@ -84,14 +123,11 @@ const parseCSV = (rawText: string): string => {
     // average
     const value =
       position.reduce(
-        (acc, variation) => acc + +variation.pathogenicityScore,
+        (acc, variation) => acc + variation.pathogenicityScore,
         0
       ) / position.length;
-    const letter = getPathogenicityCode(value);
-    out.push(letter);
-  }
-
-  return out.join('');
+    return getPathogenicityCode(value) ?? NO_SCORE;
+  }).join('');
 };
 
 /**

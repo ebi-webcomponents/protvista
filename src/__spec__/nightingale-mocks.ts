@@ -51,19 +51,39 @@ vi.mock('@nightingale-elements/nightingale-variation-canvas', () => ({
 vi.mock('@nightingale-elements/nightingale-linegraph-track', () => ({
   default: class extends HTMLElement {},
 }));
+// The heatmap takes its cells through `setHeatmapData` and its colours
+// through `heatmapInstance.setColor`, not `.data`. The stub records both, so
+// a spec can read what each heatmap was handed (`heatmapCalls`) and the
+// colour function it was given (`colorFn`).
 vi.mock('@nightingale-elements/nightingale-sequence-heatmap', () => ({
-  default: class extends HTMLElement {},
+  default: class extends HTMLElement {
+    heatmapCalls: Array<{
+      xDomain: number[];
+      yDomain: string[];
+      data: unknown[];
+    }> = [];
+    colorFn?: (d: { score: number }) => string;
+    updateComplete = Promise.resolve(true);
+    heatmapInstance = {
+      setColor: (fn: (d: { score: number }) => string) => {
+        this.colorFn = fn;
+      },
+    };
+    setHeatmapData(xDomain: number[], yDomain: string[], data: unknown[]) {
+      this.heatmapCalls.push({ xDomain, yDomain, data });
+    }
+  },
 }));
 vi.mock('@nightingale-elements/nightingale-filter', () => ({
   default: class extends HTMLElement {},
 }));
-// `amColorScale` is only used in `_loadDataInComponents`, which the
-// render/mount tests never invoke. A no-op stub is fine; non-mount
-// specs don't reach this module at all.
-// `default` is needed whenever the real `protvista-uniprot-structure`
-// module loads (some specs unmock it, and in browser mode the module
-// graph can be shared across spec files); without it the import fails
-// with "does not provide an export named 'default'".
+// `<protvista-uniprot>` no longer imports this package by value (the
+// heatmap's colours come from the track's `colorScale`). The stub stays so a
+// spec whose module graph does reach it never pulls in Mol*. `default` is
+// needed whenever the real `protvista-uniprot-structure` module loads (some
+// specs unmock it, and in browser mode the module graph can be shared across
+// spec files); without it the import fails with "does not provide an export
+// named 'default'".
 vi.mock('@nightingale-elements/nightingale-structure', () => ({
   default: class extends HTMLElement {},
   amColorScale: () => '#000000',

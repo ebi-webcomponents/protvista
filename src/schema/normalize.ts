@@ -672,7 +672,7 @@ function expandDescriptor(
     resolvedUrl = resolveSource(d.source, sources);
   }
 
-  // Resolution, in the order the spec fixes (see "Shape and format"):
+  // Resolution, first match wins:
   //
   //   1. an explicit `adapter:` — a named transform, nothing else consulted;
   //   2. an explicit `format:`  — decode that way, validate against the

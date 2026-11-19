@@ -16,6 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Full history, so scripts/complexity/measure.spec.mjs can re-measure
+          # the commits docs/program/complexity-report.md cites and fail if a
+          # toolchain upgrade changes its figures. It skips in a shallow clone.
+          fetch-depth: 0
 
       # Before setup-node: its `cache: "pnpm"` resolution shells out to pnpm to
       # locate the store, so pnpm must already be on PATH. The version comes
@@ -38,6 +43,14 @@ jobs:
 
       - name: Unit tests
         run: pnpm test:unit
+
+      # The colour-vision audit (#382) reads the palettes from src/ and the
+      # opacities from the installed Nightingale bundles. Its tests fail when a
+      # palette can no longer be found, an opacity changes, or a figure quoted
+      # in docs/accessibility-audit.md or the docs site's accessibility page
+      # no longer matches. Linux only: the runner image has python3.
+      - name: Palette audit
+        run: pnpm test:palettes
 
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium chromium-headless-shell
@@ -116,6 +129,13 @@ jobs:
       # fails CI before merge; only `next` uploads and deploys.
       - name: Build site
         run: pnpm site:build
+
+      # The built-site checks in funding-acknowledgement.spec.ts skip unless
+      # site/ exists; the test job never builds it, so run them here against
+      # the site/ the step above produced. They fail if any Starlight page
+      # stops showing the funding acknowledgement in its footer.
+      - name: Verify the funding acknowledgement on the built site
+        run: pnpm exec vitest run --project unit src/__spec__/funding-acknowledgement.spec.ts
 
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/next' && github.event_name == 'push'

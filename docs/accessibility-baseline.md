@@ -7,6 +7,10 @@ It records what is now covered by automated accessibility + interaction
 tests, what those tests verify, and the residual gaps a manual WCAG audit
 should still review.
 
+The audit itself, with a result for each WCAG 2.2 AA criterion and the
+colour-blind check of the default palettes, is in
+[`accessibility-audit.md`](./accessibility-audit.md) (issue #382).
+
 ## How accessibility is tested
 
 Two Vitest projects run side by side (see `vite.config.mjs`):
@@ -107,7 +111,11 @@ layout API, which rewrites the config, and per-config persistence. See
 
 ## Known residual gaps (for the manual audit)
 
-These are documented, not yet remediated:
+These are documented, not yet remediated. The #382 audit re-checked them on
+`next` at `09f1832` and all four are still open: gaps 1 and 2 are tracked by
+#312, gap 3 now has a browser test that pins the `nested-interactive` failure,
+and gap 4 is assessed in
+[`accessibility-audit.md`](./accessibility-audit.md#nightingale-track-internals).
 
 1. **Filter `<select>` labelling.** Filter selects are labelled with
    `aria-label` rather than a visible `<label for>` associated with the

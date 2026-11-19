@@ -19,9 +19,10 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render } from 'lit';
 
-// Registers <protvista-uniprot>; nightingale packages are stubbed
-// globally via `src/__spec__/nightingale-mocks.ts` (setupFiles).
-import '../protvista-uniprot.js';
+// Registers <protvista-uniprot> and exposes its per-URL fetcher; nightingale
+// packages are stubbed globally via `src/__spec__/nightingale-mocks.ts`
+// (setupFiles).
+import { makeRecordingFetch } from '../protvista-uniprot.js';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fixtureText } from './fixture-text.js';
@@ -4463,5 +4464,134 @@ describe('dismissing the alert panel', () => {
     );
     expect(aggregate?.data).toBeDefined();
     expect(aggregate?.data).toBe(el.data.g);
+  });
+});
+
+// ── The per-URL fetcher, directly ─────────────────────────────────
+
+describe('makeRecordingFetch', () => {
+  const abortError = () =>
+    Object.assign(new Error('aborted'), { name: 'AbortError' });
+
+  /** Fetch `/u` through a fresh recorder with `impl` as the global fetch. */
+  const run = async (
+    impl: () => Promise<unknown>,
+    responseType: 'text' | 'json' = 'json'
+  ) => {
+    const fetchMock = vi.fn(impl);
+    vi.stubGlobal('fetch', fetchMock);
+    const errors = new Map();
+    const out = await makeRecordingFetch(new AbortController().signal, errors)(
+      '/u',
+      responseType
+    );
+    return { out, errors, fetchMock };
+  };
+
+  it('records a rejected fetch as a network failure, keyed by URL', async () => {
+    const cause = new TypeError('Failed to fetch');
+    const { out, errors } = await run(() => Promise.reject(cause));
+    expect(out).toBeNull();
+    expect([...errors.keys()]).toEqual(['/u']);
+    expect(errors.get('/u')).toEqual({ url: '/u', kind: 'network', cause });
+  });
+
+  it('passes the abort signal through to fetch', async () => {
+    const { fetchMock } = await run(async () => ({
+      ok: true,
+      json: async () => ({}),
+    }));
+    expect(fetchMock).toHaveBeenCalledWith('/u', {
+      signal: expect.any(AbortSignal),
+    });
+  });
+
+  it('ignores an AbortError from fetch', async () => {
+    const { out, errors } = await run(() => Promise.reject(abortError()));
+    expect(out).toBeNull();
+    expect(errors.size).toBe(0);
+  });
+
+  it('records an HTTP error status', async () => {
+    const { out, errors } = await run(async () => ({ ok: false, status: 503 }));
+    expect(out).toBeNull();
+    expect(errors.get('/u')).toEqual({ url: '/u', kind: 'http', status: 503 });
+  });
+
+  it('records a JSON parse failure with the parser message', async () => {
+    const cause = new SyntaxError('Unexpected token');
+    const { out, errors } = await run(async () => ({
+      ok: true,
+      json: async () => {
+        throw cause;
+      },
+    }));
+    expect(out).toBeNull();
+    expect(errors.get('/u')).toEqual({
+      url: '/u',
+      kind: 'parse',
+      message: 'Unexpected token',
+      cause,
+    });
+  });
+
+  it('ignores an AbortError while reading a JSON body', async () => {
+    const { out, errors } = await run(async () => ({
+      ok: true,
+      json: async () => {
+        throw abortError();
+      },
+    }));
+    expect(out).toBeNull();
+    expect(errors.size).toBe(0);
+  });
+
+  it('returns the parsed JSON body', async () => {
+    const { out, errors } = await run(async () => ({
+      ok: true,
+      json: async () => ({ a: 1 }),
+    }));
+    expect(out).toEqual({ a: 1 });
+    expect(errors.size).toBe(0);
+  });
+
+  it('returns a text body via text(), not json()', async () => {
+    const json = vi.fn();
+    const { out, errors } = await run(
+      async () => ({ ok: true, text: async () => 'a\tb', json }),
+      'text'
+    );
+    expect(out).toBe('a\tb');
+    expect(json).not.toHaveBeenCalled();
+    expect(errors.size).toBe(0);
+  });
+
+  it('records a failed text read as a parse failure without a message', async () => {
+    const cause = new TypeError('body stream already read');
+    const { out, errors } = await run(
+      async () => ({
+        ok: true,
+        text: async () => {
+          throw cause;
+        },
+      }),
+      'text'
+    );
+    expect(out).toBeNull();
+    expect(errors.get('/u')).toEqual({ url: '/u', kind: 'parse', cause });
+  });
+
+  it('ignores an AbortError while reading a text body', async () => {
+    const { out, errors } = await run(
+      async () => ({
+        ok: true,
+        text: async () => {
+          throw abortError();
+        },
+      }),
+      'text'
+    );
+    expect(out).toBeNull();
+    expect(errors.size).toBe(0);
   });
 });

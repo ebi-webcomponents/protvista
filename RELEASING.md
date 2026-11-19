@@ -18,7 +18,26 @@ Publish from a machine with npm auth (`npm login`) — the sandbox/CI GitHub cre
 | Pre-publish gate | **none** — run `yarn test` yourself | `prepublishOnly: pnpm test:pack` |
 | Files to bump | `package.json` only | `package.json` **+** the version pins (see below) |
 | GitHub release | optional | cut `vX.Y.Z-beta.N` — fires `publish-starter-kit.yml` |
+| Funding acknowledgement in the release notes | check it yourself (below) | checked by `pnpm release:next` |
 | Stakes | high — the default install | low — opt-in testers |
+
+## Funding acknowledgement
+
+The grant's Outputs Management Plan (section 7) requires every output to carry
+this acknowledgement, word for word. Every GitHub release counts, on either
+branch:
+
+> This work was supported by the Research Software Maintenance Fund, managed by the Software Sustainability Institute and funded by UKRI grant reference AH/Z000114/1.
+
+Start the release notes from
+[`scripts/release-notes-template.md`](./scripts/release-notes-template.md),
+which ends with a **Funding** section holding the text, and keep that section
+as it is. `pnpm release:next` refuses notes that lack it. A line break inside
+the sentence is fine; any other change is not.
+`src/__spec__/funding-acknowledgement.spec.ts` fails if the template, the
+release script, this file, the README, the docs site footer or any other copy
+drifts from the text above. The npm package page shows the README, which
+carries it on both branches under **Funding**.
 
 ## Releasing `main` (stable 4.x → `latest`)
 
@@ -37,9 +56,23 @@ git push --follow-tags                      # push the bump commit + the tag
 
 Use `npm version minor` instead of `patch` if the release includes a feature. Cutting a GitHub release for the tag is optional (4.x historically didn't).
 
+If you do cut one, nothing on `main` checks its notes, so check them yourself. `main` has no copy of the template: take it from `next`, write the notes, confirm the acknowledgement is there, then create the release:
+
+```bash
+git fetch origin next
+git show origin/next:scripts/release-notes-template.md > RELEASE_NOTES.md   # then write the notes
+tr -s '[:space:]' ' ' < RELEASE_NOTES.md \
+  | grep -qF 'This work was supported by the Research Software Maintenance Fund, managed by the Software Sustainability Institute and funded by UKRI grant reference AH/Z000114/1.' \
+  && echo 'acknowledgement present' || echo 'MISSING: add the Funding section'
+gh release create v4.9.4 --verify-tag --title v4.9.4 --notes-file RELEASE_NOTES.md
+rm RELEASE_NOTES.md                         # main does not git-ignore it; never commit it
+```
+
 ## Releasing `next` (v5 beta → `beta`)
 
-Write `RELEASE_NOTES.md` (git-ignored), then run:
+Write `RELEASE_NOTES.md` (git-ignored) from
+[`scripts/release-notes-template.md`](./scripts/release-notes-template.md),
+keeping its **Funding** section, then run:
 
 ```bash
 git checkout next && git pull
@@ -47,7 +80,10 @@ pnpm release:next                  # 5.0.0-beta.N -> 5.0.0-beta.N+1, or pass a v
 ```
 
 `scripts/release-next.sh` does every step below. It checks the branch, the
-working tree, the release notes and your npm and GitHub logins first. It then
+working tree, the release notes and your npm and GitHub logins first. If
+`RELEASE_NOTES.md` is missing it copies the template there and stops; it also
+stops if the notes are still the unedited template or lack the funding
+acknowledgement. It then
 bumps and repins, dates the CHANGELOG's `## Unreleased` heading, runs
 `pnpm test && pnpm validate` and commits `Release <version>`. Nothing leaves
 your machine until it asks you to confirm the publish. `--prepare-only` stops
@@ -63,6 +99,8 @@ git checkout next && git pull
 #      starter-kit/recipes/extend-uniprot.yaml,
 #      docs/src/content/docs/{tutorial,embed,configure}.md
 #    and the banner version strings in README.md + starter-kit notices.
+# 2. Write RELEASE_NOTES.md from scripts/release-notes-template.md, keeping
+#    its Funding section (see "Funding acknowledgement" above).
 pnpm test && pnpm validate                  # the pin specs fail loudly on any missed reference
 npm publish                                 # prepack builds; prepublishOnly runs test:pack; -> beta
 npm dist-tag ls protvista-uniprot           # beta: 5.0.0-beta.N, latest: 4.9.x

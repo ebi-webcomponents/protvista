@@ -1,0 +1,41 @@
+name: Sample data drift
+
+# The example data under examples/conservation/ and examples/structure-egfr/
+# is derived from live APIs (InterPro, UniProt, PDBe-KB) by the build scripts
+# in scripts/. Each has a `--check` mode that regenerates the data in memory
+# and compares it with the committed files and their docs/public/ copies.
+#
+# That needs the network, and upstream data changes on its own schedule, so it
+# never gates a pull request. Instead this runs weekly and on demand: a failure
+# means "upstream moved", not "the code broke". Read the log, then regenerate
+# with `node scripts/<name>/build.mjs` and review the diff before committing.
+#
+# NOTE: `schedule` and `workflow_dispatch` only run from the repository's
+# default branch (`main`), so this does nothing until it is merged there.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays, 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check ${{ matrix.script }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        script: [conservation, structure-egfr]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # The build scripts use only Node built-ins, so no install is needed.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      - name: Regenerate and compare with the committed data
+        run: node scripts/${{ matrix.script }}/build.mjs --check

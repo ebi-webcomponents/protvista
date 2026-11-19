@@ -44,8 +44,9 @@
  * it is declared here so the vocabulary is stable and so that when the
  * feature lands it emits through the same `_report` seam (one listener
  * covers every flavour):
- *   - `transform-calculate` — a `calculate` expression threw for some
- *                             items (see specs/transform-engine.md)
+ *   - `transform-calculate` — a `calculate` expression in the planned
+ *                             declarative `transform` pipeline threw for
+ *                             some items
  */
 export type ErrorPhase =
   | 'config'

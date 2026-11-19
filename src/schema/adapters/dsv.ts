@@ -36,12 +36,9 @@
 
 import {
   FEATURE_CANONICAL_FIELDS,
+  RenderFieldCollector,
+  checkSpan,
   classifyExtraField,
-  ignoredFieldsWarning,
-  ignoredShapesWarning,
-  isReservedShape,
-  isUnpaintable,
-  unpaintableColorWarning,
   type DecodeWarning,
 } from './feature-fields.js';
 
@@ -380,13 +377,18 @@ export function rowsToFeatureRecords(
       );
     }
   }
-  const hasScore = index.has('score');
   const { extras, blocked } = planExtraColumns(index);
-  // Collected for the warnings, which are pushed only once every row has
+  const plan: FeatureRowPlan = {
+    formatLabel,
+    index,
+    width: header.length,
+    hasScore: index.has('score'),
+    extras,
+  };
+  // Collects the warnings, which are pushed only once every row has
   // decoded: a file that throws reports its error alone.
-  const unpaintable: string[] = [];
-  let unpaintableRows = 0;
-  const reservedShapes: string[] = [];
+  const fields = new RenderFieldCollector(formatLabel, parseDecimal);
+  for (const name of blocked) fields.block(name);
 
   const records: AuthoredFeatureRecord[] = [];
   for (let r = 1; r < rows.length; r++) {
@@ -395,111 +397,93 @@ export function rowsToFeatureRecords(
 
     if (isBlankRow(cells)) continue;
 
-    if (cells.length !== header.length) {
-      throw new Error(
-        `${formatLabel}: row ${line} is ragged — expected ${header.length} ` +
-          `columns, got ${cells.length}.`
-      );
-    }
-
-    const num = (col: string): number => {
-      const raw = cells[index.get(col) as number];
-      const n = parseDecimal(raw);
-      if (n === null) {
-        throw new Error(
-          `${formatLabel}: row ${line}, column "${col}": expected a number, ` +
-            `got "${raw}".`
-        );
-      }
-      return n;
-    };
-
-    const record: AuthoredFeatureRecord = {
-      type: cells[index.get('type') as number],
-      start: num('start'),
-      end: num('end'),
-    };
-
-    // Coordinates must be whole residues; checked after both parse so a
-    // non-number start or end is reported first.
-    wholeNumber(cells, index, 'start', record.start, line, formatLabel);
-    wholeNumber(cells, index, 'end', record.end, line, formatLabel);
-    if (record.end < record.start) {
-      throw new Error(
-        `${formatLabel}: row ${line}: end (${record.end}) is before ` +
-          `start (${record.start}).`
-      );
-    }
-
-    const description = cells[index.get('description') as number];
-    if (description !== '') record.description = description;
-
-    if (hasScore) {
-      const rawScore = cells[index.get('score') as number];
-      if (rawScore.trim() !== '') {
-        const s = parseDecimal(rawScore);
-        if (s === null) {
-          throw new Error(
-            `${formatLabel}: row ${line}, column "score": expected a number, ` +
-              `got "${rawScore}".`
-          );
-        }
-        record.score = s;
-      }
-    }
-
-    // Extras last, after every canonical check, so a coordinate error is
-    // still the one reported for a row that has both.
-    let rowUnpaintable = false;
-    for (const { name, i, render } of extras) {
-      const raw = cells[i];
-      if (!render) {
-        // Safe as plain assignment: every `Object.prototype` name was
-        // classified as blocked and is not in the plan.
-        record[name] = raw;
-        continue;
-      }
-      const value = raw.trim();
-      if (value === '') continue;
-      if (name === 'opacity') {
-        const n = parseDecimal(value);
-        if (n === null || n < 0 || n > 1) {
-          throw new Error(
-            `${formatLabel}: row ${line}, column "opacity": expected a ` +
-              `number from 0 to 1, got "${raw}".`
-          );
-        }
-        record.opacity = n;
-        continue;
-      }
-      if (isReservedShape(name, value)) {
-        reservedShapes.push(value);
-        continue;
-      }
-      if (isUnpaintable(name, value)) {
-        unpaintable.push(value);
-        rowUnpaintable = true;
-      }
-      record[name] = value;
-    }
-    if (rowUnpaintable) unpaintableRows++;
-
-    records.push(record);
+    records.push(decodeRow(cells, line, plan, fields));
     opts.rowNumbers?.push(line);
   }
 
-  if (blocked.length > 0) {
-    opts.warnings?.push(ignoredFieldsWarning(formatLabel, blocked));
-  }
-  if (reservedShapes.length > 0) {
-    opts.warnings?.push(ignoredShapesWarning(formatLabel, reservedShapes));
-  }
-  if (unpaintableRows > 0) {
-    opts.warnings?.push(
-      unpaintableColorWarning(formatLabel, unpaintableRows, unpaintable)
+  fields.flush(opts.warnings);
+  return records;
+}
+
+/** What {@link decodeRow} needs from a feature file's header, worked out once. */
+type FeatureRowPlan = {
+  formatLabel: string;
+  index: ReadonlyMap<string, number>;
+  /** The header's column count, which every data row must match. */
+  width: number;
+  hasScore: boolean;
+  extras: ReturnType<typeof planExtraColumns>['extras'];
+};
+
+/**
+ * Decode one non-blank data row (1-based `line`) into a feature record, or
+ * throw naming the row and, where meaningful, the column. Render fields go
+ * through `fields`, which collects the warnings for the whole file.
+ */
+function decodeRow(
+  cells: string[],
+  line: number,
+  plan: FeatureRowPlan,
+  fields: RenderFieldCollector
+): AuthoredFeatureRecord {
+  const { formatLabel, index } = plan;
+  if (cells.length !== plan.width) {
+    throw new Error(
+      `${formatLabel}: row ${line} is ragged — expected ${plan.width} ` +
+        `columns, got ${cells.length}.`
     );
   }
-  return records;
+  const where = `row ${line}`;
+
+  const startCell = cells[index.get('start') as number];
+  const endCell = cells[index.get('end') as number];
+  const record: AuthoredFeatureRecord = {
+    type: cells[index.get('type') as number],
+    start: cellNumber(startCell, 'start', formatLabel, where),
+    end: cellNumber(endCell, 'end', formatLabel, where),
+  };
+
+  // Coordinates must be whole residues; checked after both parse so a
+  // non-number start or end is reported first.
+  checkSpan(formatLabel, where, record.start, record.end, startCell, endCell);
+
+  const description = cells[index.get('description') as number];
+  if (description !== '') record.description = description;
+
+  if (plan.hasScore) {
+    const rawScore = cells[index.get('score') as number];
+    if (rawScore.trim() !== '') {
+      record.score = cellNumber(rawScore, 'score', formatLabel, where);
+    }
+  }
+
+  // Extras last, after every canonical check, so a coordinate error is
+  // still the one reported for a row that has both.
+  for (const { name, i, render } of plan.extras) {
+    if (render) {
+      fields.apply(record, name, cells[i], where);
+    } else {
+      // Safe as plain assignment: every `Object.prototype` name was
+      // classified as blocked and is not in the plan.
+      record[name] = cells[i];
+    }
+  }
+  return record;
+}
+
+/** Parse cell `raw` of column `col` as a decimal, or throw naming both. */
+function cellNumber(
+  raw: string,
+  col: string,
+  formatLabel: string,
+  where: string
+): number {
+  const n = parseDecimal(raw);
+  if (n !== null) return n;
+  throw new Error(
+    `${formatLabel}: ${where}, column "${col}": expected a number, ` +
+      `got "${raw}".`
+  );
 }
 
 /**
