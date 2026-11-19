@@ -87,27 +87,33 @@ layout API, which rewrites the config, and per-config persistence. See
   non-text contrast (1.4.11) and has a `forced-colors` fallback. Reordering is
   move-up/down buttons only — there is no drag gesture to fail WCAG 2.5.7.
   Controls are at least 24×24 px (2.5.8).
-- **Dead ends removed:** a track with no data has its Show switch disabled
-  and named "Show X — no data", rather than offering a press that visibly does
-  nothing. The "N hidden" badge is a button, not a `<span title>`, so the
-  explanation of how to undo a hide is reachable without a mouse — and
-  pressing it opens the groups holding those tracks, then announces how many
-  it opened, so the badge leads somewhere instead of merely reporting.
+- **Dead ends removed:** a track with no data shows a not-applicable sign
+  (⊘, `role="img"` named "X — no data") in place of its switch, rather than
+  offering a press that visibly does nothing. Outside the mode a changed
+  layout shows a "Modified view" button, not a `<span title>`, so the way to
+  see and undo the changes is reachable without a mouse — pressing it opens
+  customize mode and the groups holding the changes, announces how many it
+  opened, and moves focus to Done, so the button leads somewhere instead of
+  merely reporting.
 - **Announcements:** a polite live region announces each reorder ("… moved to
   position N of M"), hide, and show (4.1.3).
 - **Focus:** a visible focus ring on every control; the Customize button
-  becomes Done while the mode is on, so leaving keeps focus where it was, and a move that disables the button
-  you pressed hands focus to its opposite number rather than dropping it
-  (2.4.7).
+  becomes Done while the mode is on, so leaving keeps focus where it was. A
+  move that disables the button you pressed hands focus to its opposite
+  number, and Reset to default, which disables itself once the layout is
+  back to default, hands focus to Toggle all, rather than dropping it to
+  `<body>` (2.4.7).
 - **Nothing is displaced:** the Customize button lives in the empty label cell
   beside the navigation, so entering the mode does not move the visualization
   — a browser test pins that the manager's position is unchanged.
 - **Hidden in place:** a hidden row or track stays where it was as a dimmed
   stub with a muted italic label and its switch turned off (`aria-checked`
   false, thumb left), so its state never rides on colour or opacity alone.
-  Outside the mode a
-  "N hidden" count reports what is missing, and an all-hidden viewer says so
-  rather than rendering an empty frame.
+  While customizing, a change status ("n tracks hidden | k tracks shown |
+  m tracks moved \*", counted in tracks against the authored config) says
+  what differs, and an asterisk marks each moved row; its visual asterisk is
+  hidden from assistive tech in favour of the word "Moved". An all-hidden
+  viewer says so rather than rendering an empty frame.
 
 ## Known residual gaps (for the manual audit)
 

@@ -98,11 +98,15 @@ import {
   moveRow,
   moveTrack,
   movedKeys,
+  movedTrackCount,
+  rowMoveKey,
   sameArrangement,
   setAllHidden,
   setRowHidden,
   setTrackHidden,
   trackKey,
+  trackMoveKey,
+  visibilityChanges,
   visibleTracks,
 } from './layout.js';
 import {
@@ -561,11 +565,14 @@ class ProtvistaUniprot extends LitElement {
   /** Timer clearing `_movedKey`; re-armed on each move. */
   private _movedTimer?: ReturnType<typeof setTimeout>;
   /**
-   * Every row/track key the user has pressed a move button on since the
-   * layout was last reset. Only a tie-breaker for `movedKeys` — an adjacent
-   * swap has two equally-minimal answers, and the asterisk should land on
-   * the one that was moved, not the one it stepped past. Never the source of
-   * truth: a restored layout has no history and still marks correctly.
+   * The `movedKeys` keys the user has pressed a move button on that are
+   * still out of authored order. Only a tie-breaker for `movedKeys` — an
+   * adjacent swap has two equally-minimal answers, and the asterisk should
+   * land on the one that was moved, not the one it stepped past. Never the
+   * source of truth: a restored layout has no history and still marks
+   * correctly. Pruned after every layout change (see `_pruneUserMoved`), so
+   * an item moved back home stops claiming later ties, and cleared whenever
+   * a config loads or the layout resets.
    */
   private _userMoved = new Set<string>();
   /**
@@ -1115,6 +1122,7 @@ class ProtvistaUniprot extends LitElement {
     if (sameArrangement(this.config.rows, rows)) return;
     this._rebuildAggregates(this.config.rows, rows);
     this.config = { ...this.config, rows };
+    this._pruneUserMoved();
     this.dispatchEvent(
       new CustomEvent('protvista-layout-change', {
         detail: this.getLayout(),
@@ -2976,6 +2984,7 @@ class ProtvistaUniprot extends LitElement {
     // The pristine rows, kept before any layout edit: the baseline "reset to
     // default" restores and the patch diff is measured against.
     this._baseRows = normalized.rows;
+    this._userMoved.clear();
     this.config = normalized;
     // Restore a previously-saved / shared layout now that the config (and
     // thus its identity) is known. Runs before data loads, so the customized
@@ -3022,6 +3031,7 @@ class ProtvistaUniprot extends LitElement {
     // short-circuiting, and so a failure can't leave a half-swapped state.
     this._dropConfig();
     this._baseRows = undefined;
+    this._userMoved.clear();
     this._authoredConfig = undefined;
     this.data = Object.create(null);
     this.rawData = {};
@@ -4626,6 +4636,18 @@ class ProtvistaUniprot extends LitElement {
   }
 
   /**
+   * Drop move history for items no longer out of authored order, so a stale
+   * entry never ties with — and wins over — the row actually moved since.
+   */
+  private _pruneUserMoved(): void {
+    if (this._userMoved.size === 0) return;
+    const moved = this._computeMoved();
+    for (const key of this._userMoved) {
+      if (!moved.has(key)) this._userMoved.delete(key);
+    }
+  }
+
+  /**
    * The keys out of authored order for the current rows (see `movedKeys`),
    * preferring to mark what the user actually moved when a swap is
    * ambiguous.
@@ -4639,9 +4661,12 @@ class ProtvistaUniprot extends LitElement {
   /**
    * The change status, on its own line below Customize.
    *
-   * While customizing it says what changed — "n tracks hidden | m tracks
-   * moved *", each part only when it is non-zero, the asterisk keying the
-   * one beside every moved row. Outside the mode the detail would be noise
+   * While customizing it says what changed from the authored config —
+   * "n tracks hidden | k tracks shown | m tracks moved *", each part only
+   * when it is non-zero, the asterisk keying the one beside every moved row.
+   * Every part counts tracks (a moved group counts all it holds), and
+   * hidden/shown are measured against the baseline like moves are, so a
+   * track the author hid is not a change and showing it is. Outside the mode the detail would be noise
    * on a view most people only read, so it collapses to "Modified view": a
    * button, which opens Customize on the groups holding the changes.
    *
@@ -4672,12 +4697,15 @@ class ProtvistaUniprot extends LitElement {
         </button>
       </div>`;
     }
-    const hidden = this._hiddenTrackCount();
-    const moved = this._movedNow.size;
-    if (hidden === 0 && moved === 0) return reserved;
+    const changes = this._visibilityChanges();
+    const hidden = changes.hidden.length;
+    const shown = changes.shown.length;
+    const moved = movedTrackCount(this.config?.rows ?? [], this._movedNow);
+    if (hidden === 0 && shown === 0 && moved === 0) return reserved;
     const tracks = (n: number) => `${n} ${n === 1 ? 'track' : 'tracks'}`;
     const parts = [
       hidden > 0 ? html`${tracks(hidden)} hidden` : null,
+      shown > 0 ? html`${tracks(shown)} shown` : null,
       moved > 0
         ? html`${tracks(moved)} moved
             <span class="${CSS_PREFIX}-moved-mark" aria-hidden="true">*</span>`
@@ -4705,14 +4733,30 @@ class ProtvistaUniprot extends LitElement {
   }
 
   /**
+   * Tracks whose visibility differs from the authored config, empty ones
+   * excluded (see `visibilityChanges`).
+   */
+  private _visibilityChanges() {
+    const base = this._baseline();
+    if (!base || !this.config) return { hidden: [], shown: [] };
+    return visibilityChanges(base, this.config.rows, (rowId, trackId) =>
+      this._trackIsEmpty(rowId, trackId)
+    );
+  }
+
+  /**
    * Pressing "Modified view": enter customize mode and open every group
-   * holding a hidden or moved track.
+   * holding a hidden, shown or moved track.
    *
    * Entering the mode alone is not enough. A hidden group collapses to one
    * stub and a collapsed visible group hides its tracks behind the caret, so
    * the changes could still be nowhere on screen. This opens exactly the
    * groups they are in, so the click lands the user on the controls (and
    * asterisks) that show what changed.
+   *
+   * The button itself is gone once the mode is on (the status turns into
+   * plain text), so focus moves to the toggle — now "Done" — rather than
+   * dropping to <body>.
    */
   private _onChangeStatusClick = () => {
     // Idempotent — the status must never toggle the mode back off.
@@ -4727,23 +4771,28 @@ class ProtvistaUniprot extends LitElement {
         ? `Opened ${added.length} group${added.length === 1 ? '' : 's'} containing changes.`
         : 'Changes are marked below.'
     );
+    void this.updateComplete.then(() => {
+      this.querySelector<HTMLButtonElement>(
+        `.${CSS_PREFIX}-customize-toggle`
+      )?.focus({ preventScroll: true });
+    });
   };
 
   /**
-   * Ids of the groups holding at least one hidden or moved track — hidden
-   * counted as the status counts it, so empty ones are excluded here too.
+   * Ids of the groups holding at least one track whose visibility or place
+   * changed — measured exactly as the change status measures it (against
+   * the baseline, empty tracks excluded), so the two never disagree.
    */
   private _rowsHoldingChanges(): string[] {
     const moved = this._computeMoved();
+    const { hidden, shown } = this._visibilityChanges();
+    const changedRows = new Set([...hidden, ...shown].map((c) => c.rowId));
     return (this.config?.rows ?? [])
       .filter(
         (row) =>
           !row.standalone &&
-          row.tracks.some(
-            (t) =>
-              ((row.hidden || t.hidden) && !this._trackIsEmpty(row.id, t.id)) ||
-              moved.has(trackKey(row.id, t.id))
-          )
+          (changedRows.has(row.id) ||
+            row.tracks.some((t) => moved.has(trackMoveKey(row.id, t.id))))
       )
       .map((row) => row.id);
   }
@@ -4773,9 +4822,24 @@ class ProtvistaUniprot extends LitElement {
     );
   };
 
-  private _onResetLayout = () => {
+  /**
+   * Reset disables itself once the layout is back to default, which would
+   * drop a keyboard user's focus to <body>; hand it to Toggle all, its
+   * neighbour, the way `_keepFocusAfterMove` does for the move buttons.
+   */
+  private _onResetLayout = (e: Event) => {
+    const button = e.currentTarget as HTMLButtonElement;
     this.resetLayout();
     this._announce('Layout reset to the authored default.');
+    void this.updateComplete.then(() => {
+      if (!button.disabled) return;
+      const fallback =
+        button.parentElement?.querySelector<HTMLButtonElement>(
+          `.${CSS_PREFIX}-customize-action:not([disabled])`
+        ) ??
+        this.querySelector<HTMLButtonElement>(`.${CSS_PREFIX}-customize-toggle`);
+      fallback?.focus({ preventScroll: true });
+    });
   };
 
   /**
@@ -4820,7 +4884,7 @@ class ProtvistaUniprot extends LitElement {
     const empty = row.tracks.every((t) => this._trackIsEmpty(row.id, t.id));
     return html`
       <span class="${CSS_PREFIX}-row-controls">
-        ${this._movedMark(row.id)}${this._toggleButton(hidden, name, empty, () =>
+        ${this._movedMark(rowMoveKey(row.id))}${this._toggleButton(hidden, name, empty, () =>
           this.setRowVisibility(row.id, hidden)
         )}
         ${this._moveButton(-1, name, index, total, (b) =>
@@ -4848,7 +4912,7 @@ class ProtvistaUniprot extends LitElement {
     const empty = this._trackIsEmpty(group.id, track.id);
     return html`
       <span class="${CSS_PREFIX}-row-controls">
-        ${this._movedMark(trackKey(group.id, track.id))}${this._toggleButton(
+        ${this._movedMark(trackMoveKey(group.id, track.id))}${this._toggleButton(
           hidden,
           name,
           empty,
@@ -4993,7 +5057,7 @@ class ProtvistaUniprot extends LitElement {
     const to = index + delta;
     if (to < 0 || to >= total) return;
     this._commitRows(moveRow(this.config.rows, row.id, to));
-    this._markMoved(row.id);
+    this._markMoved(row.id, rowMoveKey(row.id));
     this._keepFocusAfterMove(button);
     this._announceMove(this._labelText(row.label), to, total);
   }
@@ -5011,7 +5075,10 @@ class ProtvistaUniprot extends LitElement {
     const to = index + delta;
     if (to < 0 || to >= total) return;
     this._commitRows(moveTrack(this.config.rows, group.id, track.id, to));
-    this._markMoved(trackKey(group.id, track.id));
+    this._markMoved(
+      trackKey(group.id, track.id),
+      trackMoveKey(group.id, track.id)
+    );
     this._keepFocusAfterMove(button);
     this._announceMove(this._labelText(track.label), to, total);
   }
@@ -5029,9 +5096,10 @@ class ProtvistaUniprot extends LitElement {
    * visually. The announcement covers screen-reader users; this covers
    * everyone else.
    */
-  private _markMoved(key: string): void {
+  private _markMoved(key: string, moveKey: string): void {
     this._movedKey = key;
-    this._userMoved.add(key);
+    this._userMoved.add(moveKey);
+    this._pruneUserMoved();
     clearTimeout(this._movedTimer);
     this._movedTimer = setTimeout(() => {
       this._movedKey = null;
@@ -5049,8 +5117,8 @@ class ProtvistaUniprot extends LitElement {
   }
 
   /**
-   * The asterisk beside the controls of a row or track that sits out of its
-   * authored order — the persistent mark, where `-row--moved` is the
+   * The asterisk beside the controls of a row or track (keyed by
+   * `rowMoveKey` / `trackMoveKey`) that sits out of its authored order — the persistent mark, where `-row--moved` is the
    * momentary one. Keyed by the change status's "m tracks moved *". The
    * visual asterisk is hidden from assistive tech in favour of a word.
    */
@@ -5169,7 +5237,9 @@ class ProtvistaUniprot extends LitElement {
       >
         <div class="${CSS_PREFIX}-nav-container">
           <div class="${CSS_PREFIX}-nav-track-label">
-            <div class="${CSS_PREFIX}-toolbar-row">
+            <div
+              class="${CSS_PREFIX}-toolbar-row ${CSS_PREFIX}-toolbar-row--customize"
+            >
               <span class="${CSS_PREFIX}-customize-line"
                 >${this._renderCustomizeToggle()}${this._renderCustomizeActions()}</span
               >${viewerNotes}

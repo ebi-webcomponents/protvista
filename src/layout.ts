@@ -29,6 +29,20 @@ export function trackKey(rowId: string, trackId: string): string {
 }
 
 /**
+ * The key `movedKeys` uses for a row. Namespaced apart from `trackMoveKey`,
+ * since `trackKey`'s plain `-` join blurs id boundaries: row `a-b` and track
+ * `b` of row `a` would both be `a-b`.
+ */
+export function rowMoveKey(rowId: string): string {
+  return `row:${rowId}`;
+}
+
+/** The key `movedKeys` uses for a track within its row (see `rowMoveKey`). */
+export function trackMoveKey(rowId: string, trackId: string): string {
+  return `track:${JSON.stringify([rowId, trackId])}`;
+}
+
+/**
  * The empty patch: authored order, no visibility overrides.
  *
  * The id-keyed maps are `Object.create(null)` so a config whose row/track id
@@ -86,11 +100,13 @@ export function displayRows(rows: NormalizedRow[]): DisplayRow[] {
 }
 
 /**
- * How many **tracks** are hidden — the number the "N hidden" badge shows.
+ * How many **tracks** are hidden right now, whoever hid them — the author's
+ * `hidden: true` included. The viewer uses it for the Toggle all label and
+ * for telling an all-hidden canvas from an empty one; the change status
+ * counts against the authored config instead (see `visibilityChanges`).
  *
  * Counted per track, not per toggle: hiding a group of six and hiding one
- * track are not both "1 hidden". The badge answers "how much of the data am
- * I not seeing", so it has to count the things that would come back.
+ * track are not both "1 hidden".
  *
  * @param isEmpty Optional predicate marking a track as having nothing to
  *   draw. Those are excluded: they are absent because no data arrived, not
@@ -340,21 +356,24 @@ export function movedIds(
 }
 
 /**
- * Every row and track that sits out of its authored order, as keys: a row id
- * for a moved row, `trackKey` for a track moved within its group. A
- * standalone row's single track cannot move on its own, so only the row
- * counts. See `movedIds` for what "moved" means and for `preferMoved`.
+ * Every row and track that sits out of its authored order, as keys:
+ * `rowMoveKey` for a moved row, `trackMoveKey` for a track moved within its
+ * group. A standalone row's single track cannot move on its own, so only the
+ * row counts. See `movedIds` for what "moved" means and for `preferMoved`.
  */
 export function movedKeys(
   base: readonly NormalizedRow[],
   current: readonly NormalizedRow[],
   preferMoved?: (key: string) => boolean
 ): Set<string> {
-  const keys = movedIds(
+  const keys = new Set<string>();
+  for (const id of movedIds(
     base.map((r) => r.id),
     current.map((r) => r.id),
-    preferMoved
-  );
+    preferMoved && ((id) => preferMoved(rowMoveKey(id)))
+  )) {
+    keys.add(rowMoveKey(id));
+  }
   const baseById = new Map(base.map((r) => [r.id, r]));
   for (const row of current) {
     const from = baseById.get(row.id);
@@ -362,11 +381,72 @@ export function movedKeys(
     const moved = movedIds(
       from.tracks.map((t) => t.id),
       row.tracks.map((t) => t.id),
-      preferMoved && ((id) => preferMoved(trackKey(row.id, id)))
+      preferMoved && ((id) => preferMoved(trackMoveKey(row.id, id)))
     );
-    for (const id of moved) keys.add(trackKey(row.id, id));
+    for (const id of moved) keys.add(trackMoveKey(row.id, id));
   }
   return keys;
+}
+
+/**
+ * How many **tracks** the `movedKeys` result moves — a moved row counts
+ * every track it holds, so moving a group of six reads "6 tracks moved",
+ * the same way hiding it reads "6 tracks hidden". A track moved inside a
+ * row that also moved is already counted with its row.
+ */
+export function movedTrackCount(
+  rows: readonly NormalizedRow[],
+  moved: ReadonlySet<string>
+): number {
+  let n = 0;
+  for (const row of rows) {
+    if (moved.has(rowMoveKey(row.id))) {
+      n += row.tracks.length;
+      continue;
+    }
+    for (const t of row.tracks) if (moved.has(trackMoveKey(row.id, t.id))) n += 1;
+  }
+  return n;
+}
+
+/** One track whose visibility differs from the authored config. */
+export interface VisibilityChange {
+  rowId: string;
+  trackId: string;
+}
+
+/**
+ * The tracks whose effective visibility (row or track hide) differs from
+ * the authored baseline: those the user hid, and those the author hid that
+ * the user showed. Measured against the baseline, as `movedKeys` is for
+ * order, so an authored `hidden: true` is not a change and un-hiding it is.
+ *
+ * Rows and tracks absent from the baseline have no authored state and are
+ * skipped. `isEmpty` excludes tracks with nothing to draw, as `hiddenCount`
+ * does.
+ */
+export function visibilityChanges(
+  base: readonly NormalizedRow[],
+  current: readonly NormalizedRow[],
+  isEmpty?: (rowId: string, trackId: string) => boolean
+): { hidden: VisibilityChange[]; shown: VisibilityChange[] } {
+  const hidden: VisibilityChange[] = [];
+  const shown: VisibilityChange[] = [];
+  const baseById = new Map(base.map((r) => [r.id, r]));
+  for (const row of current) {
+    const from = baseById.get(row.id);
+    if (!from) continue;
+    const fromTracks = new Map(from.tracks.map((t) => [t.id, t]));
+    for (const track of row.tracks) {
+      const was = fromTracks.get(track.id);
+      if (!was || isEmpty?.(row.id, track.id)) continue;
+      const wasHidden = !!from.hidden || !!was.hidden;
+      const isHidden = !!row.hidden || !!track.hidden;
+      if (wasHidden === isHidden) continue;
+      (isHidden ? hidden : shown).push({ rowId: row.id, trackId: track.id });
+    }
+  }
+  return { hidden, shown };
 }
 
 /**

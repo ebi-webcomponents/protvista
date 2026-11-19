@@ -311,6 +311,20 @@ describe('entering and leaving customize mode', () => {
     }
   });
 
+  // Narrower than tightening can fit: the actions wrap below the toggle
+  // rather than run past the column under the ruler.
+  it('wraps the actions rather than overflow a very narrow label column', async () => {
+    const el = await mountViewer();
+    el.style.setProperty('--protvista-label-width', '140px');
+    await enterCustomize(el);
+    const cell = el.querySelector(`.${CSS_PREFIX}-nav-track-label`)!;
+    const right = cell.getBoundingClientRect().right;
+    const line = toggle(el).closest(`.${CSS_PREFIX}-toolbar-row`)!;
+    for (const b of Array.from(line.querySelectorAll('button'))) {
+      expect(b.getBoundingClientRect().right).toBeLessThanOrEqual(right + 0.5);
+    }
+  });
+
   it('Toggle all names the way it will go, and hides or shows everything', async () => {
     const el = await mountViewer();
     await enterCustomize(el);
@@ -602,6 +616,19 @@ describe('the change status', () => {
     expect(el.openGroups).toContain('DOMAINS');
   });
 
+  // The button is replaced by plain text once the mode is on, so focus must
+  // be handed on rather than dropped to <body>.
+  it('moves focus to Done when pressed', async () => {
+    const el = await mountViewer();
+    el.setRowVisibility('DOMAINS', false);
+    await el.updateComplete;
+    const button = badge(el)!;
+    button.focus();
+    button.click();
+    await vi.waitFor(() => expect(document.activeElement).toBe(toggle(el)));
+    expect(toggle(el).textContent!.trim()).toBe('Done');
+  });
+
   it('leaves already-open groups alone', async () => {
     const el = await mountViewer();
     el.setRowVisibility('DOMAINS', false);
@@ -646,6 +673,25 @@ describe('the moved asterisk', () => {
     expect(Math.abs((m.top + m.bottom) / 2 - (s.top + s.bottom) / 2)).toBeLessThanOrEqual(2);
   });
 
+  // A row moved and moved back must not keep claiming the tie of a later
+  // adjacent swap it takes part in.
+  it('forgets a row once it is back in place', async () => {
+    const el = await mountViewer();
+    await enterCustomize(el);
+    control(el, 'PTM', 'Move Modifications down').click();
+    await el.updateComplete;
+    control(el, 'PTM', 'Move Modifications up').click();
+    await el.updateComplete;
+    control(el, 'DOMAINS', 'Move Domains down').click();
+    await el.updateComplete;
+    expect(marks(el)).toHaveLength(1);
+    expect(marks(el)[0].closest(`#${CSS_PREFIX}-group_DOMAINS`)).not.toBeNull();
+    // A group of three tracks moved: counted in tracks.
+    expect(
+      el.querySelector(`.${CSS_PREFIX}-change-status`)!.textContent!.replace(/\s+/g, ' ')
+    ).toContain('tracks moved *');
+  });
+
   it('clears when the row is moved back, and on reset', async () => {
     const el = await mountViewer();
     await enterCustomize(el);
@@ -665,6 +711,30 @@ describe('the moved asterisk', () => {
       .click();
     await el.updateComplete;
     expect(marks(el)).toHaveLength(0);
+  });
+});
+
+describe('Reset to default', () => {
+  // It disables itself once the layout is back to default; focus goes to
+  // its neighbour, Toggle all, rather than to <body>.
+  it('hands focus to Toggle all when it disables itself', async () => {
+    const el = await mountViewer();
+    await enterCustomize(el);
+    el.setRowVisibility('PTM', false);
+    await el.updateComplete;
+    const actions = () =>
+      Array.from(
+        el.querySelectorAll<HTMLButtonElement>(`.${CSS_PREFIX}-customize-action`)
+      );
+    const reset = actions().find((b) => b.textContent!.trim() === 'Reset to default')!;
+    reset.focus();
+    reset.click();
+    await vi.waitFor(() => expect(reset.disabled).toBe(true));
+    await vi.waitFor(() =>
+      expect((document.activeElement as HTMLElement).textContent!.trim()).toMatch(
+        /^Toggle all/
+      )
+    );
   });
 });
 

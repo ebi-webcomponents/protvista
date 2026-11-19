@@ -219,7 +219,29 @@ describe('the Customize toggle', () => {
       buildInstance({ _baseRows: base, config, _customizeMode: true })
     );
     expect(status(target)!.textContent!.replace(/\s+/g, ' ').trim()).toBe(
-      '2 tracks hidden | 1 track moved *'
+      // The moved row is a group of two, and moves count tracks.
+      '2 tracks hidden | 2 tracks moved *'
+    );
+  });
+
+  // Counted against the authored config, as moves are: a track the author
+  // ships hidden is not a change, and showing one is.
+  it('does not count an authored hide, and counts showing it', () => {
+    const base = makeConfig({ B: true }).rows;
+    const authored = renderInto(
+      buildInstance({ _baseRows: base, config: makeConfig({ B: true }), _customizeMode: true })
+    );
+    expect(
+      status(authored)!.closest(`.${CSS_PREFIX}-toolbar-row`)!.classList.contains(
+        `${CSS_PREFIX}-toolbar-row--reserved`
+      )
+    ).toBe(true);
+
+    const shown = renderInto(
+      buildInstance({ _baseRows: base, config: makeConfig({ B: false }), _customizeMode: true })
+    );
+    expect(status(shown)!.textContent!.replace(/\s+/g, ' ').trim()).toBe(
+      '2 tracks shown'
     );
   });
 

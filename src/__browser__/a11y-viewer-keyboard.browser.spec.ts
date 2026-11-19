@@ -253,6 +253,24 @@ describe('viewer: keyboard order and traps (2.1.2, 2.4.3)', () => {
     expect(back.lost).toEqual([]);
   });
 
+  // The top bar carries an ⓘ note here (the skipped partner row). Opening
+  // the mode must not push it onto a line of its own, which would add a
+  // row to the nav cell and move every track down — the manager's own top
+  // does not change, so measure a row below the navigation instead.
+  it('opening Customize keeps the top-bar notes on the line and the rows in place', async () => {
+    const note = q(`.${P}-nav-track-label .${P}-note`);
+    const row = q(`#${P}-group_lab`);
+    const rowTop = row.getBoundingClientRect().top;
+    const toggle = q<HTMLButtonElement>(`.${P}-customize-toggle`);
+    toggle.click();
+    await settle();
+    const doneTop = toggle.getBoundingClientRect().top;
+    expect(Math.abs(note.getBoundingClientRect().top - doneTop)).toBeLessThanOrEqual(4);
+    expect(q(`#${P}-group_lab`).getBoundingClientRect().top).toBe(rowTop);
+    toggle.click();
+    await settle();
+  });
+
   it('in Customize mode, Tab reaches every control and leaves the viewer', async () => {
     q(`.${P}-customize-toggle`).focus();
     await userEvent.keyboard('{Enter}');

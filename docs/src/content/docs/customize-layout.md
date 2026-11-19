@@ -48,27 +48,42 @@ what the collapsed group shows.
 
 Rows that are hidden stay in place as dimmed **stubs** — the label and its
 controls with an empty track area — so hiding is never a one-way door. Tracks
-whose **data never arrived** appear the same way, but their Show control is
-**disabled** and reads "No data": showing them would change nothing, since
-there is nothing to draw.
+whose **data never arrived** appear the same way, but in place of the switch
+they show a not-applicable sign (**⊘**, read as "no data"): showing them would
+change nothing, since there is nothing to draw.
 
-Outside customize mode a **"N hidden"** button sits beside the Customize
-button. It counts *tracks*, so hiding a group of six reads "6 hidden" rather
-than "1", and it leaves out tracks that are empty for want of data. Its
-tooltip explains how to bring them back.
+While the mode is on, the Customize button reads **Done**; pressing it leaves
+the mode. Beside it, at the right of the same line, are two actions:
 
-Pressing it opens customize mode **and opens every group holding a hidden
-track**, so the controls that undo the hide are on screen rather than folded
-away behind a caret. A hidden group lists its tracks when opened, which means
+- **Toggle all on / Toggle all off** shows or hides every track at once. The
+  label names what the press will do: any hidden track makes it "Toggle all
+  on".
+- **Reset to default** (enabled only once the layout differs from the
+  authored config) restores the authored layout. When it disables itself,
+  focus moves to Toggle all rather than being lost.
+
+Below that line, the **change status** says what differs from the authored
+config — "2 tracks hidden | 1 track shown | 6 tracks moved \*" — each part only
+when it is non-zero. Every part counts *tracks*: hiding or moving a group of
+six reads "6 tracks", and empty tracks are left out. It is measured against
+the config, so a track the author ships `hidden: true` is not a change, and
+showing one is. The **asterisk** (\*) also marks each row or track that sits
+out of its authored order, beside its controls.
+
+Outside customize mode the status collapses to a **Modified view** button,
+shown only while the layout differs from the default. Pressing it opens
+customize mode **and opens every group holding a change**, so the controls
+(and asterisks) are on screen rather than folded away behind a caret, and
+moves focus to Done. A hidden group lists its tracks when opened, which means
 you can restore a single track of it: doing so brings the group back carrying
-only that track, leaving its siblings hidden with their own Show controls.
+only that track, leaving its siblings hidden with their own switches.
 
-If everything is hidden the viewer says so and offers a reset rather than
-rendering an empty frame.
+The status line is always laid out, and only made invisible when there is
+nothing to report, so a first change does not push the visualization down.
 
-**Reset** (enabled only once something has changed) restores the authored
-layout. While the mode is on, the Customize button reads **Done**; pressing it
-leaves the mode.
+If everything is hidden the viewer says so and points to Customize, rather
+than rendering an empty frame.
+
 Changes apply and persist live, so there is no separate save step.
 
 ### Accessibility

@@ -60,28 +60,44 @@ export default css`
   /* The status row is always laid out, and merely made invisible when there
      is nothing to report, so a first change adds no height and the
      navigation ruler does not step down. */
-  /* The Customize line never wraps: Toggle all and Reset to default stay beside the toggle at any usual label-column width. The column is a size
-     container so the line can tighten itself to fit (see the @container
-     rules below) rather than spill onto a second line. */
+  /* The Customize line keeps Toggle all and Reset to default beside the
+     toggle at usual label-column widths. The column is a size container so
+     the line can tighten itself to fit (see the @container rules below);
+     only when even that is not enough do the actions wrap below the toggle,
+     rather than run past the column under the ruler. */
   protvista-uniprot .${p}-nav-track-label {
     container-type: inline-size;
     container-name: ${p}-toolbar;
   }
 
-  /* Customize and its actions are one unit that never wraps; the top-bar
+  /* Customize and its actions are one unit. Outside the mode the top-bar
      notes (ⓘ) after it still wrap onto their own line when there is no room.
-     While customizing, the unit takes the whole line so the actions can sit
-     at its right edge. */
+     While customizing, the unit grows into the space the notes leave — so
+     the actions sit at its right edge — and the notes stay on the same line:
+     pushing them to a line of their own would add a row and shift the
+     visualization down. The unit shrinks instead, and wraps the actions
+     inside itself. */
   protvista-uniprot .${p}-customize-line {
     display: inline-flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.3rem;
     min-width: 0;
   }
 
+  protvista-uniprot .${p}--customizing .${p}-toolbar-row--customize {
+    flex-wrap: nowrap;
+  }
+
   protvista-uniprot .${p}--customizing .${p}-customize-line {
-    flex: 1 1 100%;
+    flex: 1 1 auto;
+  }
+
+  protvista-uniprot
+    .${p}--customizing
+    .${p}-toolbar-row--customize
+    > :not(.${p}-customize-line) {
+    flex: none;
   }
 
   protvista-uniprot .${p}-toolbar-row--reserved {
@@ -126,19 +142,21 @@ export default css`
   }
 
   /* The customize actions, pushed together to the far right of the
-     Customize line. Kept on one line among themselves, so a column too
-     narrow tightens them (below) rather than wrapping any of them. */
+     Customize line. A column too narrow first tightens them (below); past
+     that they wrap — as a unit below the toggle, then one per line — rather
+     than overflow the column. */
   protvista-uniprot .${p}-customize-actions {
     display: inline-flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     align-items: center;
     gap: 0.3rem;
     margin-left: auto;
     min-width: 0;
   }
 
-  /* Tightening, in steps, as the label column narrows — all three buttons
-     stay on the Customize line. First the padding and gaps give way, then
+  /* Tightening, in steps, as the label column narrows, so all three buttons
+     stay on the Customize line as long as they can. First the padding and gaps give way, then
      the type steps down. (While customizing the toggle reads "Done" and
      drops its icon, which already keeps the line short.) */
   @container ${p}-toolbar (max-width: 380px) {
