@@ -330,6 +330,46 @@ describe('entering and leaving customize mode', () => {
     }
   );
 
+  // The nav cell's height must not depend on what the buttons or the
+  // status say: not on entering the mode, not on Toggle all flipping its
+  // label, and not on the status growing more parts.
+  it.each(['320px', '256px', '220px', '160px'])(
+    'keeps the nav cell one height through every change at a %s label column',
+    async (width) => {
+      const el = await mountViewer();
+      el.style.setProperty('--protvista-label-width', width);
+      await el.updateComplete;
+      const nav = () =>
+        el.querySelector(`.${CSS_PREFIX}-nav-container`)!.getBoundingClientRect().height;
+      const height = nav();
+      const action = (label: RegExp) =>
+        Array.from(
+          el.querySelectorAll<HTMLButtonElement>(`.${CSS_PREFIX}-customize-action`)
+        ).find((b) => label.test(b.textContent!.trim()))!;
+
+      await enterCustomize(el);
+      expect(nav(), 'entering').toBe(height);
+
+      action(/^Toggle all off$/).click(); // label flips to "on"
+      await el.updateComplete;
+      expect(action(/^Toggle all on$/)).toBeDefined();
+      expect(nav(), 'toggle all').toBe(height);
+
+      action(/^Toggle all on$/).click();
+      await el.updateComplete;
+      // Several parts at once: hidden and moved.
+      el.setTrackVisibility('DOMAINS', 'domain', false);
+      control(el, 'PTM', 'Move Modifications down').click();
+      trackControl(el, 'region', 'Move Region up').click();
+      await el.updateComplete;
+      const status = el.querySelector<HTMLElement>(`.${CSS_PREFIX}-change-status`)!;
+      expect(status.textContent).toContain('hidden');
+      expect(status.textContent).toContain('moved');
+      expect(status.title).toMatch(/hidden \| \d+ tracks? moved \*/);
+      expect(nav(), 'status').toBe(height);
+    }
+  );
+
   it('Toggle all names the way it will go, and hides or shows everything', async () => {
     const el = await mountViewer();
     await enterCustomize(el);

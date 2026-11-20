@@ -4629,10 +4629,12 @@ class ProtvistaUniprot extends LitElement {
     >
       <button
         type="button"
-        class="${CSS_PREFIX}-customize-action"
+        class="${CSS_PREFIX}-customize-action ${CSS_PREFIX}-customize-action--toggle-all"
         @click="${this._onToggleAllVisibility}"
       >
-        ${anyHidden ? 'Toggle all on' : 'Toggle all off'}
+        <span class="${CSS_PREFIX}-customize-action__label"
+          >${anyHidden ? 'Toggle all on' : 'Toggle all off'}</span
+        >
       </button>
       <button
         type="button"
@@ -4714,7 +4716,10 @@ class ProtvistaUniprot extends LitElement {
       // track inside a hidden group, a dataless track). "Modified view" and
       // Reset to default still see it, so say so rather than show nothing.
       return html`<div class="${CSS_PREFIX}-toolbar-row">
-        <span class="${CSS_PREFIX}-change-status">Layout modified</span>
+        <span
+          class="${CSS_PREFIX}-change-status ${CSS_PREFIX}-change-status--text"
+          >Layout modified</span
+        >
       </div>`;
     }
     const tracks = (n: number) => `${n} ${n === 1 ? 'track' : 'tracks'}`;
@@ -4726,8 +4731,21 @@ class ProtvistaUniprot extends LitElement {
             <span class="${CSS_PREFIX}-moved-mark" aria-hidden="true">*</span>`
         : null,
     ].filter((part) => part !== null);
+    // Kept to one line (the row is reserved for one), so a long status is
+    // cut with an ellipsis; the full text is in the title, and assistive
+    // tech reads the whole content regardless.
+    const full = [
+      hidden > 0 ? `${tracks(hidden)} hidden` : null,
+      shown > 0 ? `${tracks(shown)} shown` : null,
+      moved > 0 ? `${tracks(moved)} moved *` : null,
+    ]
+      .filter((part) => part !== null)
+      .join(' | ');
     return html`<div class="${CSS_PREFIX}-toolbar-row">
-      <span class="${CSS_PREFIX}-change-status">
+      <span
+        class="${CSS_PREFIX}-change-status ${CSS_PREFIX}-change-status--text"
+        title="${full}"
+      >
         ${parts.map(
           (part, i) =>
             html`${i > 0

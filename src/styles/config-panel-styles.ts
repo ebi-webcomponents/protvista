@@ -101,6 +101,29 @@ export default css`
     flex: none;
   }
 
+  /* Toggle all reads "on" or "off" by what the press will do, and the two
+     labels differ in width. Invisible copies of both sit with the label at
+     zero height, so the button — and with it whether the line
+     wraps — never changes as tracks are hidden or shown, or between modes. */
+  protvista-uniprot .${p}-customize-action__label {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  protvista-uniprot .${p}-customize-action--toggle-all .${p}-customize-action__label::before,
+  protvista-uniprot .${p}-customize-action--toggle-all .${p}-customize-action__label::after {
+    content: 'Toggle all on';
+    display: block;
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+  }
+
+  protvista-uniprot .${p}-customize-action--toggle-all .${p}-customize-action__label::after {
+    content: 'Toggle all off';
+  }
+
   /* Outside customize mode: holds its space, shows and announces nothing
      (also aria-hidden and inert in the markup). */
   protvista-uniprot .${p}-customize-actions--inactive {
@@ -112,7 +135,12 @@ export default css`
      the wider label sits under the text at zero height, so the button keeps
      its outside-mode width without growing taller. Generated content,
      hidden: it is not in textContent and not in the accessible name. */
-  protvista-uniprot .${p}--customizing .${p}-customize-toggle__text {
+  /* The same box in both modes, so only the reserved width differs. At
+     least the icon's 16px tall, so "Done" (which drops the icon) is not a
+     fraction shorter than "Customize". */
+  protvista-uniprot .${p}-customize-toggle__text {
+    min-height: 16px;
+    justify-content: center;
     display: inline-flex;
     flex-direction: column;
     align-items: center;
@@ -251,6 +279,24 @@ export default css`
       --protvista-chrome-cell-color,
       var(--protvista-color-text-muted, #4a5056)
     );
+  }
+
+  /* The status text, while customizing: one line, however many parts it
+     has. The row is reserved for one line, so wrapping would grow the nav
+     cell and move the tracks down as changes pile up; it is cut with an
+     ellipsis instead (the full text is in its title). */
+  protvista-uniprot .${p}-change-status--text {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    line-height: 24px;
+  }
+
+  protvista-uniprot .${p}-change-status--text .${p}-moved-mark {
+    vertical-align: middle;
   }
 
   protvista-uniprot .${p}-change-status--button {
