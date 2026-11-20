@@ -67,11 +67,12 @@ out the same way outside the mode, with the actions invisible, so opening
 Customize never moves the tracks.
 
 Below that line, the **change status** says what differs from the authored
-config — "2 tracks hidden | 1 track shown | 6 tracks moved \*" — each part only
-when it is non-zero. Every part counts *tracks*: hiding or moving a group of
-six reads "6 tracks", and empty tracks are left out. It is measured against
-the config, so a track the author ships `hidden: true` is not a change, and
-showing one is. The **asterisk** (\*) also marks each row or track that sits
+config — "2 tracks hidden | 6 tracks moved \*" — each part only when it is
+non-zero. Every part counts *tracks*: hiding or moving a group of six reads
+"6 tracks", and empty tracks are left out. It is measured against the config,
+so a track the author ships `hidden: true` is not a change. A third part,
+"1 track shown", appears when the user turns on a track the config ships
+with `hidden: true`. The **asterisk** (\*) also marks each row or track that sits
 out of its authored order, beside its controls.
 
 Outside customize mode the status collapses to a **Modified view** button,
