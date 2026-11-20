@@ -79,8 +79,13 @@ vi.mock('@nightingale-elements/nightingale-filter', () => ({
 }));
 // `<protvista-uniprot>` no longer imports this package by value (the
 // heatmap's colours come from the track's `colorScale`). The stub stays so a
-// spec whose module graph does reach it never pulls in Mol*.
+// spec whose module graph does reach it never pulls in Mol*. `default` is
+// needed whenever the real `protvista-uniprot-structure` module loads (some
+// specs unmock it, and in browser mode the module graph can be shared across
+// spec files); without it the import fails with "does not provide an export
+// named 'default'".
 vi.mock('@nightingale-elements/nightingale-structure', () => ({
+  default: class extends HTMLElement {},
   amColorScale: () => '#000000',
 }));
 

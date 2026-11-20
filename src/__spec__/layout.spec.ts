@@ -9,7 +9,7 @@
  * Covers:
  *   - `visibleTracks` / `isRowHidden` / `displayRows` / `hiddenCount`;
  *   - `moveRow` / `moveTrack`: two-level reordering and its bounds;
- *   - `setRowHidden` / `setTrackHidden`: the show/hide cascades;
+ *   - `setRowHidden` / `setTrackHidden` / `setAllHidden`: the show/hide cascades;
  *   - `sameArrangement`: the no-op guard the change event depends on;
  *   - `diffLayout` / `applyPatch`: round-trip and tolerance of config edits.
  */
@@ -24,10 +24,17 @@ import {
   isRowHidden,
   moveRow,
   moveTrack,
+  movedIds,
+  movedKeys,
+  movedTrackCount,
+  rowMoveKey,
   sameArrangement,
+  setAllHidden,
   setRowHidden,
   setTrackHidden,
   trackKey,
+  trackMoveKey,
+  visibilityChanges,
   visibleTracks,
 } from '../layout';
 import type { NormalizedRow, NormalizedTrack } from '../schema/normalize';
@@ -279,6 +286,33 @@ describe('setTrackHidden', () => {
   });
 });
 
+describe('setAllHidden', () => {
+  it('hides every row', () => {
+    const out = setAllHidden(rows(), true);
+    expect(out.every((row) => row.hidden)).toBe(true);
+  });
+
+  it('shows every row and track, clearing per-track hides too', () => {
+    let input = setTrackHidden(rows(), 'A', 'a1', true);
+    input = setRowHidden(input, 'B', true);
+    const out = setAllHidden(input, false);
+    expect(out.every((row) => !row.hidden)).toBe(true);
+    expect(out.every((row) => row.tracks.every((t) => !t.hidden))).toBe(true);
+  });
+
+  it('keeps a standalone row and its track in step', () => {
+    const out = setAllHidden(rows(), true);
+    expect(out[2].hidden).toBe(true);
+    expect(out[2].tracks[0].hidden).toBe(true);
+  });
+
+  it('does not mutate its input', () => {
+    const input = rows();
+    setAllHidden(input, true);
+    expect(input[0].hidden).toBeUndefined();
+  });
+});
+
 describe('sameArrangement', () => {
   it('is true for an identical arrangement', () => {
     expect(sameArrangement(rows(), rows())).toBe(true);
@@ -472,5 +506,121 @@ describe('id-as-key robustness', () => {
     expect(patch.hidden.rows['A-a1']).toBe(true);
     expect(patch.hidden.tracks['A']['a1']).toBe(true);
     expect(sameArrangement(applyPatch(base, patch), arranged)).toBe(true);
+  });
+});
+
+describe('movedIds', () => {
+  const moved = (
+    base: string[],
+    current: string[],
+    prefer?: (id: string) => boolean
+  ) => [...movedIds(base, current, prefer)].sort();
+
+  it('is empty in the authored order', () => {
+    expect(moved(['a', 'b', 'c'], ['a', 'b', 'c'])).toEqual([]);
+  });
+
+  // Moving one row a long way shifts every index it passes; only it moved.
+  it('marks only the item that was lifted out, not the ones it passed', () => {
+    expect(moved(['a', 'b', 'c', 'd'], ['b', 'c', 'd', 'a'])).toEqual(['a']);
+  });
+
+  it('marks one of an adjacent swap, preferring the one the user moved', () => {
+    expect(moved(['a', 'b', 'c'], ['b', 'a', 'c'])).toHaveLength(1);
+    expect(moved(['a', 'b', 'c'], ['b', 'a', 'c'], (id) => id === 'a')).toEqual(['a']);
+    expect(moved(['a', 'b', 'c'], ['b', 'a', 'c'], (id) => id === 'b')).toEqual(['b']);
+  });
+
+  it('never lets the preference beat a smaller answer', () => {
+    // Only 'a' needs to move; preferring 'b'..'d' must not mark three.
+    expect(
+      moved(['a', 'b', 'c', 'd'], ['b', 'c', 'd', 'a'], (id) => id !== 'a')
+    ).toEqual(['a']);
+  });
+
+  it('ignores ids missing from either side', () => {
+    expect(moved(['a', 'b'], ['x', 'a', 'b'])).toEqual([]);
+  });
+});
+
+describe('movedKeys', () => {
+  it('reports moved rows and moved tracks by their namespaced keys', () => {
+    const base = rows();
+    let next = moveRow(base, 'S', 0);
+    next = moveTrack(next, 'B', 'b2', 0);
+    const b2 = trackMoveKey('B', 'b2');
+    expect([...movedKeys(base, next, (k) => k === b2)].sort()).toEqual(
+      [rowMoveKey('S'), b2].sort()
+    );
+  });
+
+  it('is empty when only visibility changed', () => {
+    const base = rows();
+    expect(movedKeys(base, setRowHidden(base, 'A', true)).size).toBe(0);
+  });
+
+  // `trackKey`'s `-` join would make row `a-b` and track `b` of row `a`
+  // the same key, so moving one would mark both.
+  it('keeps a hyphenated row id apart from a track key that spells the same', () => {
+    const base = [group('a', ['b', 'c']), group('a-b', ['x']), group('z', ['y'])];
+    const next = moveRow(base, 'a-b', 2);
+    const moved = movedKeys(base, next, (k) => k === rowMoveKey('a-b'));
+    expect([...moved]).toEqual([rowMoveKey('a-b')]);
+    expect(moved.has(trackMoveKey('a', 'b'))).toBe(false);
+  });
+});
+
+describe('movedTrackCount', () => {
+  it('counts a moved group by the tracks it holds', () => {
+    const base = rows();
+    const next = moveRow(base, 'A', 1);
+    const moved = movedKeys(base, next, (k) => k === rowMoveKey('A'));
+    expect(movedTrackCount(next, moved)).toBe(2);
+  });
+
+  it('counts a moved track once, even inside a moved row', () => {
+    const base = rows();
+    let next = moveTrack(base, 'A', 'a2', 0);
+    expect(movedTrackCount(next, movedKeys(base, next, (k) => k === trackMoveKey('A', 'a2')))).toBe(1);
+    next = moveRow(next, 'A', 1);
+    const moved = movedKeys(base, next, (k) =>
+      [rowMoveKey('A'), trackMoveKey('A', 'a2')].includes(k)
+    );
+    expect(movedTrackCount(next, moved)).toBe(2);
+  });
+});
+
+describe('movedTrackCount with empty tracks', () => {
+  it('leaves tracks with nothing to draw out, as the hidden count does', () => {
+    const base = rows();
+    const next = moveRow(base, 'A', 1);
+    const moved = movedKeys(base, next, (k) => k === rowMoveKey('A'));
+    expect(movedTrackCount(next, moved, (_r, t) => t === 'a1')).toBe(1);
+  });
+});
+
+describe('visibilityChanges', () => {
+  const ids = (list: { rowId: string; trackId: string }[]) =>
+    list.map((c) => `${c.rowId}/${c.trackId}`).sort();
+
+  it('does not count a track the authored config already hides', () => {
+    const base = setTrackHidden(rows(), 'A', 'a1', true);
+    expect(visibilityChanges(base, base)).toEqual({ hidden: [], shown: [] });
+  });
+
+  it('reports tracks the user hid and authored-hidden tracks they showed', () => {
+    const base = setTrackHidden(rows(), 'A', 'a1', true);
+    let next = setTrackHidden(base, 'A', 'a1', false);
+    next = setRowHidden(next, 'B', true);
+    const { hidden, shown } = visibilityChanges(base, next);
+    expect(ids(hidden)).toEqual(['B/b1', 'B/b2']);
+    expect(ids(shown)).toEqual(['A/a1']);
+  });
+
+  it('skips tracks with nothing to draw', () => {
+    const base = rows();
+    const next = setRowHidden(base, 'B', true);
+    const { hidden } = visibilityChanges(base, next, (_r, t) => t === 'b1');
+    expect(ids(hidden)).toEqual(['B/b2']);
   });
 });

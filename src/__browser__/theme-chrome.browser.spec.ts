@@ -36,7 +36,11 @@ const CONFIG = { theme: { labelColor: '#e8f5e9' }, rows: rows() };
  *  illegible on it, so the derived white must actually reach the cell. */
 const DARK_CONFIG = { theme: { labelColor: '#1a237e' }, rows: rows() };
 
-type El = HTMLElement & { viewerConfig?: unknown; accession?: string };
+type El = HTMLElement & {
+  viewerConfig?: unknown;
+  accession?: string;
+  noPersistLayout?: boolean;
+};
 
 function stubFetch() {
   vi.stubGlobal(
@@ -76,6 +80,10 @@ async function mountViewer(config: unknown, vars: Record<string, string> = {}) {
   const el = mount<El>('protvista-uniprot', {
     viewerConfig: config,
     accession: 'P05067',
+    // Keep layout edits (the change-status test hides a row) out of
+    // localStorage and the URL, so a failing test cannot leak them into
+    // the next mount.
+    noPersistLayout: true,
   });
   for (const [name, value] of Object.entries(vars)) {
     el.style.setProperty(name, value);
@@ -174,37 +182,40 @@ describe('the neutral chrome cells', () => {
     expect(bg(q('track-label')!)).toBe('rgb(255, 255, 255)');
   });
 
-  it('carry the "N hidden" badge in the nav cell with them', async () => {
-    // The badge has no background of its own, so once the nav cell is
+  it('carry the change status in the nav cell with them', async () => {
+    // The status has no background of its own, so once the nav cell is
     // retinted it has to follow the cell's text token; until then it
     // keeps the muted grey.
-    const withHidden = () => ({
-      rows: [
-        ...rows(),
-        {
-          id: 'shh',
-          kind: 'features',
-          data: 'https://example.org/c.json',
-          hidden: true,
-        },
-      ],
-    });
-    const badge = async (q: (cls: string) => HTMLElement | null) =>
-      vi.waitFor(() => {
-        const el = q('hidden-count');
-        if (!el) throw new Error('hidden-count not ready');
-        return el;
+    //
+    // The layout must differ from the default, or the status is only the
+    // invisible reserved placeholder — which has a computed colour too, so
+    // the check would pass without anything on screen. Hiding a row after
+    // mount is a user change, so the visible "Modified view" button is what
+    // gets measured.
+    const statusColor = async (q: (cls: string) => HTMLElement | null) => {
+      const host = document.querySelector<
+        HTMLElement & { setRowVisibility(id: string, visible: boolean): void }
+      >('protvista-uniprot')!;
+      host.setRowVisibility('solo', false);
+      const el = await vi.waitFor(() => {
+        const found = q('change-status--button');
+        if (!found) throw new Error('Modified view not ready');
+        expect(found.closest(`.${CSS_PREFIX}-toolbar-row--reserved`)).toBeNull();
+        expect(getComputedStyle(found).visibility).toBe('visible');
+        return found;
       });
+      return fg(el);
+    };
 
-    const plain = await mountViewer(withHidden());
-    expect(fg(await badge(plain))).toBe('rgb(74, 80, 86)');
+    const plain = await mountViewer(UNTHEMED());
+    expect(await statusColor(plain)).toBe('rgb(74, 80, 86)');
 
     unmountAll();
-    const retinted = await mountViewer(withHidden(), {
+    const retinted = await mountViewer(UNTHEMED(), {
       '--protvista-chrome-cell-bg': 'rgb(26, 35, 126)',
       '--protvista-chrome-cell-color': 'rgb(255, 255, 255)',
     });
-    expect(fg(await badge(retinted))).toBe('rgb(255, 255, 255)');
+    expect(await statusColor(retinted)).toBe('rgb(255, 255, 255)');
   });
 
   it('follow the global surface when left alone', async () => {

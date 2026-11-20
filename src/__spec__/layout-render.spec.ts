@@ -19,6 +19,7 @@ import { describe, it, expect } from 'vitest';
 import { render } from 'lit';
 import type { NormalizedConfig } from '../schema/normalize';
 import { CSS_PREFIX } from '../styles/css-prefix';
+import { rowMoveKey, trackMoveKey } from '../layout';
 import '../protvista-uniprot';
 
 const SEQ_LEN = 100;
@@ -171,38 +172,190 @@ describe('the Customize toggle', () => {
     expect(cell!.querySelector(`.${CSS_PREFIX}-customize-toggle`)).not.toBeNull();
   });
 
-  it('reports a hidden count outside customize mode, counted per track', () => {
-    const el = buildInstance({ config: makeConfig({ B: true }) });
-    const target = renderInto(el);
-    // B holds two tracks, so hiding the lane hides two.
-    expect(
-      target.querySelector(`.${CSS_PREFIX}-hidden-count`)!.textContent
-    ).toContain('2 tracks hidden');
+  // Edited relative to the authored rows: `_baseRows` is the default, the
+  // live config the user's arrangement.
+  const edited = (overrides: Record<string, unknown> = {}) =>
+    buildInstance({
+      _baseRows: makeConfig().rows,
+      config: makeConfig({ B: true }),
+      ...overrides,
+    });
+  const status = (target: Element) =>
+    target.querySelector(`.${CSS_PREFIX}-change-status`);
+  // The text a sighted reader sees: the visually-hidden separators left out.
+  const visibleText = (el: Element) => {
+    const copy = el.cloneNode(true) as Element;
+    copy.querySelectorAll(`.${CSS_PREFIX}-visually-hidden`).forEach((n) => n.remove());
+    return copy.textContent!.replace(/\s+/g, ' ').trim();
+  };
+
+  it('says only "Modified view" outside customize mode', () => {
+    const target = renderInto(edited());
+    expect(status(target)!.textContent!.trim()).toBe('Modified view');
   });
 
-  it('makes the count a button that explains how to undo the hide', () => {
-    const target = renderInto(buildInstance({ config: makeConfig({ B: true }) }));
-    const badge = target.querySelector(`.${CSS_PREFIX}-hidden-count`)!;
+  it('puts the status on its own line below Customize', () => {
+    const target = renderInto(edited());
+    const rows = target.querySelectorAll(`.${CSS_PREFIX}-toolbar-row`);
+    expect(rows[0].querySelector(`.${CSS_PREFIX}-customize-toggle`)).not.toBeNull();
+    expect(rows[1].querySelector(`.${CSS_PREFIX}-change-status`)).not.toBeNull();
+  });
+
+  it('makes "Modified view" a button that says how to see the changes', () => {
+    const badge = status(renderInto(edited()))!;
     expect(badge.tagName).toBe('BUTTON');
     const hint = badge.getAttribute('title')!;
     expect(hint).toContain('Customize');
-    // Names the control that undoes it — a switch, not a Show button.
-    expect(hint).toContain('switch');
     // Also the accessible name, so the hint is not mouse-only.
     expect(badge.getAttribute('aria-label')).toBe(hint);
   });
 
-  it('leaves tracks with no data out of the count', () => {
+  it('details the hidden count, per track, while customizing', () => {
+    const target = renderInto(edited({ _customizeMode: true }));
+    // B holds two tracks, so hiding the lane hides two.
+    expect(status(target)!.textContent!.replace(/\s+/g, ' ').trim()).toBe(
+      '2 tracks hidden'
+    );
+  });
+
+  it('details hidden and moved together, keyed by the asterisk', () => {
+    const base = makeConfig().rows;
+    const config = makeConfig({ B: true });
+    config.rows = [config.rows[1], config.rows[0], config.rows[2]];
+    const target = renderInto(
+      buildInstance({ _baseRows: base, config, _customizeMode: true })
+    );
+    expect(visibleText(status(target)!)).toBe(
+      // The moved row is a group of two, and moves count tracks.
+      '2 tracks hidden | 2 tracks moved *'
+    );
+  });
+
+  // Counted against the authored config, as moves are: a track the author
+  // ships hidden is not a change, and showing one is.
+  it('does not count an authored hide, and counts showing it', () => {
+    const base = makeConfig({ B: true }).rows;
+    const authored = renderInto(
+      buildInstance({ _baseRows: base, config: makeConfig({ B: true }), _customizeMode: true })
+    );
+    expect(
+      status(authored)!.closest(`.${CSS_PREFIX}-toolbar-row`)!.classList.contains(
+        `${CSS_PREFIX}-toolbar-row--reserved`
+      )
+    ).toBe(true);
+
+    const shown = renderInto(
+      buildInstance({ _baseRows: base, config: makeConfig({ B: false }), _customizeMode: true })
+    );
+    expect(status(shown)!.textContent!.replace(/\s+/g, ' ').trim()).toBe(
+      '2 tracks shown'
+    );
+  });
+
+  // Only the "|" is decoration; a screen reader gets a comma instead.
+  it('hides the separators from assistive tech', () => {
+    const base = makeConfig().rows;
+    const config = makeConfig({ B: true });
+    config.rows = [config.rows[1], config.rows[0], config.rows[2]];
+    const target = renderInto(
+      buildInstance({ _baseRows: base, config, _customizeMode: true })
+    );
+    const pipe = Array.from(status(target)!.querySelectorAll('span')).find(
+      (el) => el.textContent!.trim() === '|'
+    )!;
+    expect(pipe.getAttribute('aria-hidden')).toBe('true');
+    expect(pipe.nextElementSibling!.classList.contains(`${CSS_PREFIX}-visually-hidden`)).toBe(
+      true
+    );
+  });
+
+  // A patch the counts leave out (here a flag on a track inside a hidden
+  // group) still shows Modified view and enables Reset, so the status must
+  // not go blank.
+  it('says "Layout modified" when the patch differs but no count does', () => {
+    const base = makeConfig({ B: true }).rows;
+    const config = makeConfig({ B: true });
+    config.rows[1] = {
+      ...config.rows[1],
+      tracks: config.rows[1].tracks.map((t, i) => (i === 0 ? { ...t, hidden: true } : t)),
+    };
+    const target = renderInto(
+      buildInstance({ _baseRows: base, config, _customizeMode: true })
+    );
+    expect(status(target)!.textContent!.trim()).toBe('Layout modified');
+  });
+
+  it('keeps the status line laid out but invisible when nothing changed', () => {
+    const target = renderInto(buildInstance());
+    const row = status(target)!.closest(`.${CSS_PREFIX}-toolbar-row`)!;
+    expect(row.classList.contains(`${CSS_PREFIX}-toolbar-row--reserved`)).toBe(true);
+    expect(status(target)!.tagName).not.toBe('BUTTON');
+  });
+
+  it('leaves tracks with no data out of the hidden count', () => {
     const data = makeData();
     delete data['A-At1'];
     delete data['A-At2'];
-    const target = renderInto(buildInstance({ data }));
-    expect(target.querySelector(`.${CSS_PREFIX}-hidden-count`)).toBeNull();
+    const target = renderInto(
+      buildInstance({
+        data,
+        _baseRows: makeConfig().rows,
+        config: makeConfig({ A: true }),
+        _customizeMode: true,
+      })
+    );
+    expect(status(target)!.textContent).not.toContain('hidden');
+  });
+});
+
+describe('the customize actions', () => {
+  const labels = (target: Element) =>
+    Array.from(
+      target
+        .querySelectorAll(`.${CSS_PREFIX}-toolbar-row`)[0]
+        .querySelectorAll(`.${CSS_PREFIX}-customize-action`)
+    ).map((b) => b.textContent!.trim());
+
+  // The saved layout applies to every protein viewed with this config, so
+  // "off" must hide rows with no data here too — and the label must count
+  // them, or re-showing the rows with data would read "everything is on".
+  it('Toggle all off hides dataless rows too, and the label counts them', async () => {
+    const data = makeData();
+    for (const key of ['C', 'C-Ct1', 'C-Ct2']) delete data[key];
+    const el = buildInstance({ _customizeMode: true, data });
+    el._onToggleAllVisibility();
+    expect(el.config.rows.every((r: { hidden?: boolean }) => r.hidden)).toBe(true);
+
+    el.setRowVisibility('A', true);
+    el.setRowVisibility('B', true);
+    expect(labels(renderInto(el))[0]).toBe('Toggle all on');
   });
 
-  it('shows no count when nothing is hidden', () => {
+  it('sit beside the toggle, Toggle all first, then Reset to default', () => {
+    const target = renderInto(buildInstance({ _customizeMode: true }));
+    expect(labels(target)).toEqual(['Toggle all off', 'Reset to default']);
+  });
+
+  it('offer Toggle all on once anything is hidden', () => {
+    const target = renderInto(
+      buildInstance({ config: makeConfig({ B: true }), _customizeMode: true })
+    );
+    expect(labels(target)[0]).toBe('Toggle all on');
+  });
+
+  // Laid out in both modes so the line wraps the same way either side of
+  // the toggle, but neither seen, read nor reachable outside the mode.
+  it('are laid out but hidden and inert outside customize mode', () => {
     const target = renderInto(buildInstance());
-    expect(target.querySelector(`.${CSS_PREFIX}-hidden-count`)).toBeNull();
+    const actions = target.querySelector(`.${CSS_PREFIX}-customize-actions`)!;
+    expect(actions.classList.contains(`${CSS_PREFIX}-customize-actions--inactive`)).toBe(true);
+    expect(actions.getAttribute('aria-hidden')).toBe('true');
+    expect(actions.hasAttribute('inert')).toBe(true);
+
+    const on = renderInto(buildInstance({ _customizeMode: true }));
+    const live = on.querySelector(`.${CSS_PREFIX}-customize-actions`)!;
+    expect(live.hasAttribute('aria-hidden')).toBe(false);
+    expect(live.hasAttribute('inert')).toBe(false);
   });
 });
 
@@ -353,20 +506,42 @@ describe('customize mode', () => {
     expect(target.querySelector('[data-drop-row]')).toBeNull();
   });
 
-  // Dropping the visible word means the accessible name is the only place a
-  // screen-reader user can learn *why* the switch is unavailable — and a
-  // disabled control cannot be reached by Tab to hear a description.
-  it('disables the switch on a track with nothing to draw, and says why', () => {
+  // A greyed-out switch read as a locked setting; a not-applicable sign reads as
+  // "nothing here". It is not a control, so its reason is its name.
+  it('shows a not-applicable sign, not a switch, on a track with nothing to draw', () => {
     const data = makeData();
     delete data['A-At2'];
     const target = renderInto(buildInstance({ data, _customizeMode: true }));
-    const sw = target
-      .querySelector(`#${CSS_PREFIX}-track_At2`)!
-      .querySelector('button[role="switch"]')!;
-    expect(sw.hasAttribute('disabled')).toBe(true);
-    expect(sw.getAttribute('aria-checked')).toBe('false');
-    expect(sw.getAttribute('aria-label')).toContain('no data');
-    expect(sw.getAttribute('title')).toContain('no data');
+    const track = target.querySelector(`#${CSS_PREFIX}-track_At2`)!;
+    expect(track.querySelector('button[role="switch"]')).toBeNull();
+    const sign = track.querySelector(`.${CSS_PREFIX}-no-data`)!;
+    expect(sign.getAttribute('role')).toBe('img');
+    expect(sign.getAttribute('aria-label')).toContain('no data');
+    expect(sign.getAttribute('title')).toContain('no data');
+    expect(sign.querySelector('svg')).not.toBeNull();
+  });
+
+  it('marks a moved row with an asterisk just before its switch', () => {
+    const base = makeConfig().rows;
+    const config = makeConfig();
+    config.rows = [config.rows[0], config.rows[2], config.rows[1]];
+    const target = renderInto(
+      buildInstance({ _baseRows: base, config, _customizeMode: true })
+    );
+    const marked = Array.from(
+      target.querySelectorAll(`.${CSS_PREFIX}-row-controls .${CSS_PREFIX}-moved-mark`)
+    );
+    // One adjacent swap: one row marked, not both whose indices changed.
+    expect(marked).toHaveLength(1);
+    expect(marked[0].nextElementSibling!.getAttribute('role')).toBe('switch');
+    expect(marked[0].textContent).toContain('Moved');
+  });
+
+  it('marks nothing as moved in the authored order', () => {
+    const target = renderInto(buildInstance({ _customizeMode: true }));
+    expect(
+      target.querySelector(`.${CSS_PREFIX}-row-controls .${CSS_PREFIX}-moved-mark`)
+    ).toBeNull();
   });
 
   it('keeps the switch live on a track the user hid', () => {
@@ -413,7 +588,7 @@ describe('the live region', () => {
 describe('the just-moved highlight', () => {
   it('marks the row named by _movedKey', () => {
     const target = renderInto(
-      buildInstance({ _customizeMode: true, _movedKey: 'B' })
+      buildInstance({ _customizeMode: true, _movedKey: rowMoveKey('B') })
     );
     const moved = target.querySelectorAll(`.${CSS_PREFIX}-row--moved`);
     expect(moved).toHaveLength(1);
@@ -422,7 +597,7 @@ describe('the just-moved highlight', () => {
 
   it('marks a moved track by its composite key', () => {
     const target = renderInto(
-      buildInstance({ _customizeMode: true, _movedKey: 'A-At2' })
+      buildInstance({ _customizeMode: true, _movedKey: trackMoveKey('A', 'At2') })
     );
     const moved = target.querySelectorAll(`.${CSS_PREFIX}-row--moved`);
     expect(moved).toHaveLength(1);

@@ -35,14 +35,17 @@ export default css`
      empty cell beside the navigation, in the same column as the per-row
      controls it reveals.
 
-     Stacked in rows rather than left to wrap: what is on screen (Customize,
-     and the count of what is not) belongs on one line, and the actions that
-     change it on the next. Letting them wrap put Done alone on a second row
-     at some widths and not others. */
+     Stacked in rows: the toggle shares its line with every customize
+     action (Toggle all, Reset to default), and the change status —
+     what is different from the default — sits alone on the line below. */
+  /* Stretched, not left-aligned: each toolbar row needs to span the full
+     label column, or it shrink-wraps to its own content and the actions'
+     margin-left: auto (.customize-actions) has no column width left to
+     push into. */
   protvista-uniprot .${p}-nav-track-label {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     justify-content: center;
     gap: 0.3rem;
   }
@@ -54,12 +57,105 @@ export default css`
     gap: 0.3rem;
   }
 
-  /* The actions row is always laid out, and merely made invisible outside
-     customize mode, so entering the mode adds no height and the navigation
-     ruler does not step down. Reserving it with a min-height would mean
-     hard-coding a number that has to track the buttons' own metrics;
-     visibility does it exactly, and takes them out of the tab order and the
-     accessibility tree while it is at it. */
+  /* The status row is always laid out, and merely made invisible when there
+     is nothing to report, so a first change adds no height and the
+     navigation ruler does not step down. */
+  /* The Customize line keeps Toggle all and Reset to default beside the
+     toggle at usual label-column widths. The column is a size container so
+     the line can tighten itself to fit (see the @container rules below);
+     only when even that is not enough do the actions wrap below the toggle,
+     rather than run past the column under the ruler. */
+  protvista-uniprot .${p}-nav-track-label {
+    container-type: inline-size;
+    container-name: ${p}-toolbar;
+  }
+
+  /* Customize and its actions are one unit, laid out identically in both
+     modes: the actions are always there, merely invisible outside customize
+     mode (.customize-actions--inactive), and the toggle keeps the width of
+     "Customize" while it reads "Done" (below). So whether the line wraps
+     never depends on the mode, and opening Customize cannot change the nav
+     cell's height or move the tracks.
+
+     The unit grows into the space the top-bar notes (ⓘ) leave — so the
+     actions sit at its right edge — and the notes stay on the same line
+     rather than drop to a line of their own. The unit shrinks instead, and
+     wraps the actions inside itself. */
+  protvista-uniprot .${p}-customize-line {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 0;
+  }
+
+  protvista-uniprot .${p}-toolbar-row--customize {
+    flex-wrap: nowrap;
+  }
+
+  protvista-uniprot .${p}-customize-line {
+    flex: 1 1 auto;
+  }
+
+  protvista-uniprot .${p}-toolbar-row--customize > :not(.${p}-customize-line) {
+    flex: none;
+  }
+
+  /* Toggle all reads "on" or "off" by what the press will do, and the two
+     labels differ in width. Invisible copies of both sit with the label at
+     zero height, so the button — and with it whether the line
+     wraps — never changes as tracks are hidden or shown, or between modes. */
+  protvista-uniprot .${p}-customize-action__label {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  protvista-uniprot .${p}-customize-action--toggle-all .${p}-customize-action__label::before,
+  protvista-uniprot .${p}-customize-action--toggle-all .${p}-customize-action__label::after {
+    content: 'Toggle all on';
+    display: block;
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+  }
+
+  protvista-uniprot .${p}-customize-action--toggle-all .${p}-customize-action__label::after {
+    content: 'Toggle all off';
+  }
+
+  /* Outside customize mode: holds its space, shows and announces nothing
+     (also aria-hidden and inert in the markup). */
+  protvista-uniprot .${p}-customize-actions--inactive {
+    visibility: hidden;
+  }
+
+  /* "Done" is narrower than the icon plus "Customize", which would let the
+     line fit while customizing yet wrap outside it. An invisible copy of
+     the wider label sits under the text at zero height, so the button keeps
+     its outside-mode width without growing taller. Generated content,
+     hidden: it is not in textContent and not in the accessible name. */
+  /* The same box in both modes, so only the reserved width differs. At
+     least the icon's 16px tall, so "Done" (which drops the icon) is not a
+     fraction shorter than "Customize". */
+  protvista-uniprot .${p}-customize-toggle__text {
+    min-height: 16px;
+    justify-content: center;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  protvista-uniprot .${p}--customizing .${p}-customize-toggle__text::after {
+    content: 'Customize';
+    display: block;
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    /* The icon (16px) and the button's gap, which "Done" drops. */
+    padding-left: calc(16px + 0.4rem);
+  }
+
   protvista-uniprot .${p}-toolbar-row--reserved {
     visibility: hidden;
   }
@@ -90,9 +186,59 @@ export default css`
     background: var(--protvista-color-bg-hover, #f1f7ff);
   }
 
+  /* A run of actions beside the toggle; they wrap as a group on a narrow
+     label column rather than overflowing it. */
+  protvista-uniprot .${p}-customize-action {
+    white-space: nowrap;
+  }
+
   protvista-uniprot .${p}-customize-action[disabled] {
     opacity: 0.5;
     cursor: default;
+  }
+
+  /* The customize actions, pushed together to the far right of the
+     Customize line. A column too narrow first tightens them (below); past
+     that they wrap — as a unit below the toggle, then one per line — rather
+     than overflow the column. */
+  protvista-uniprot .${p}-customize-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    /* \`safe\`: in a column narrower than a single button, overflow to the
+       right (where the column can still be scrolled to) rather than off its
+       left edge, out of reach. */
+    justify-content: safe flex-end;
+    align-items: center;
+    gap: 0.3rem;
+    margin-left: auto;
+    min-width: 0;
+  }
+
+  /* Tightening, in steps, as the label column narrows, so all three buttons
+     stay on the Customize line as long as they can. First the padding and gaps give way, then
+     the type steps down. (While customizing the toggle reads "Done" and
+     drops its icon, which already keeps the line short.) */
+  @container ${p}-toolbar (max-width: 380px) {
+    protvista-uniprot .${p}-customize-line,
+    protvista-uniprot .${p}-customize-actions {
+      gap: 0.2rem;
+    }
+    protvista-uniprot .${p}-customize-line .${p}-customize-toggle,
+    protvista-uniprot .${p}-customize-line .${p}-customize-action {
+      padding: 0.2rem 0.3rem;
+    }
+  }
+
+  @container ${p}-toolbar (max-width: 260px) {
+    protvista-uniprot .${p}-customize-line,
+    protvista-uniprot .${p}-customize-actions {
+      gap: 0.15rem;
+    }
+    protvista-uniprot .${p}-customize-line .${p}-customize-toggle,
+    protvista-uniprot .${p}-customize-line .${p}-customize-action {
+      font-size: 0.65rem;
+      padding: 0.15rem 0.2rem;
+    }
   }
 
   protvista-uniprot .${p}-customize-toggle:focus-visible,
@@ -103,10 +249,9 @@ export default css`
     outline-offset: 2px;
   }
 
-  /* Pressed (customize mode active): accent border + tinted background, so
-     the state is carried by more than colour alone — the button also reports
-     its aria-pressed state. */
-  protvista-uniprot .${p}-customize-toggle[aria-pressed='true'] {
+  /* Customize mode active (the toggle reads "Done"): accent border + tinted
+     background. The label change carries the state, not colour alone. */
+  protvista-uniprot .${p}--customizing .${p}-customize-toggle {
     border-color: var(--protvista-color-accent, #0053d6);
     background: var(--protvista-color-bg-active, #e6f3ff);
   }
@@ -120,32 +265,83 @@ export default css`
     height: 16px;
   }
 
-  protvista-uniprot .${p}-hidden-count {
+  /* The change status: plain text while customizing, a "Modified view"
+     button outside it. Neither has a background of its own, so they sit on
+     the nav cell's. Once a consumer retints that cell they set its text
+     token too, and the status follows it; until then it keeps the muted
+     grey. */
+  protvista-uniprot .${p}-change-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     min-height: 24px;
-    padding: 0.2rem 0.4rem;
-    border: 0;
-    border-radius: var(--protvista-radius, 4px);
-    background: none;
+    padding: 0 0.1rem;
     font-family: var(--protvista-font-family, inherit);
     font-size: var(--protvista-font-size, 0.8rem);
-    /* The badge has no background of its own, so it sits on the nav
-       cell's. Once a consumer retints that cell they set its text token
-       too, and the badge follows it; until then it keeps the muted grey. */
     color: var(
       --protvista-chrome-cell-color,
       var(--protvista-color-text-muted, #4a5056)
     );
+  }
+
+  /* The status text, while customizing: one line, however many parts it
+     has. The row is reserved for one line, so wrapping would grow the nav
+     cell and move the tracks down as changes pile up; it is cut with an
+     ellipsis instead (the full text is in its title). */
+  protvista-uniprot .${p}-change-status--text {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    line-height: 24px;
+  }
+
+  protvista-uniprot .${p}-change-status--text .${p}-moved-mark {
+    vertical-align: middle;
+  }
+
+  protvista-uniprot .${p}-change-status--button {
+    padding: 0.2rem 0.4rem;
+    border: 0;
+    border-radius: var(--protvista-radius, 4px);
+    background: none;
     text-decoration: underline dotted;
     cursor: pointer;
   }
 
-  protvista-uniprot .${p}-hidden-count:hover {
+  protvista-uniprot .${p}-change-status--button:hover {
     background: var(--protvista-color-bg-hover, #f1f7ff);
   }
 
-  protvista-uniprot .${p}-hidden-count:focus-visible {
+  protvista-uniprot .${p}-change-status--button:focus-visible {
     outline: 2px solid var(--protvista-color-accent, #0053d6);
     outline-offset: 2px;
+  }
+
+  /* The moved asterisk — in the status line as its key, and beside each
+     moved row's controls. A flex box of its own so the glyph is centred on
+     the switch beside it rather than riding high on the text baseline. */
+  protvista-uniprot .${p}-moved-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    height: 14px;
+    line-height: 1;
+    font-weight: bold;
+    color: var(--protvista-color-accent, #0053d6);
+  }
+
+  protvista-uniprot .${p}-row-controls .${p}-moved-mark {
+    /* Sits immediately left of the switch / not-applicable sign, with a
+       small gap before it. */
+    margin-right: 0.25rem;
+    font-size: 1rem;
+    /* An asterisk's ink sits in the top half of its em box; nudge it down
+       so its centre, not its box, lines up with the switch's. */
+    padding-top: 0.3em;
   }
 
   /* ── Per-row controls ─────────────────────────────────────── */
@@ -225,12 +421,24 @@ export default css`
     cursor: default;
   }
 
-  /* A switch fades less than a plain button would: at 0.4 the track washed
-     out and the control read as a stray dot rather than as a switch that
-     happens to be unavailable. */
-  protvista-uniprot .${p}-switch[disabled] {
-    opacity: 0.55;
-    cursor: not-allowed;
+  /* No data: a not-applicable sign (⊘) in place of the switch, the same footprint so
+     the move buttons beside it stay in column. Muted — it is information,
+     not a control. */
+  protvista-uniprot .${p}-no-data {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 26px;
+    height: 14px;
+    margin: 0 0.4rem 0 0;
+    color: var(--protvista-color-text-muted, #4a5056);
+    cursor: help;
+  }
+
+  protvista-uniprot .${p}-no-data svg {
+    width: 14px;
+    height: 14px;
   }
 
   /* The visibility switch. It reports a state; the move buttons beside it

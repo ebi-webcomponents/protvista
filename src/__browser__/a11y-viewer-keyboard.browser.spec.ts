@@ -253,11 +253,52 @@ describe('viewer: keyboard order and traps (2.1.2, 2.4.3)', () => {
     expect(back.lost).toEqual([]);
   });
 
+  // The top bar carries an ⓘ note here (the skipped partner row). Opening
+  // the mode must not push it onto a line of its own, which would add a
+  // row to the nav cell and move every track down — the manager's own top
+  // does not change, so measure a row below the navigation instead.
+  it('opening Customize keeps the top-bar notes on the line and the rows in place', async () => {
+    const note = q(`.${P}-nav-track-label .${P}-note`);
+    const row = q(`#${P}-group_lab`);
+    const rowTop = row.getBoundingClientRect().top;
+    const toggle = q<HTMLButtonElement>(`.${P}-customize-toggle`);
+    toggle.click();
+    await settle();
+    // Beside the Customize line (which may itself wrap), not below it.
+    const line = q(`.${P}-customize-line`).getBoundingClientRect();
+    const box = note.getBoundingClientRect();
+    expect(box.left).toBeGreaterThanOrEqual(line.right - 1);
+    expect(box.top).toBeGreaterThanOrEqual(line.top - 1);
+    expect(box.bottom).toBeLessThanOrEqual(line.bottom + 1);
+    expect(q(`#${P}-group_lab`).getBoundingClientRect().top).toBe(rowTop);
+    toggle.click();
+    await settle();
+  });
+
+  // The default label column is 20vw, so below a ~1500px screen the
+  // Customize line wraps. It must wrap the same way in both modes: the rows stay put at
+  // every width, wrapped or not.
+  it('opening Customize moves no row at narrow label columns either', async () => {
+    const toggle = q<HTMLButtonElement>(`.${P}-customize-toggle`);
+    for (const width of ['220px', '180px', '150px', '120px']) {
+      viewer.style.setProperty('--protvista-label-width', width);
+      await settle();
+      const rowTop = q(`#${P}-group_lab`).getBoundingClientRect().top;
+      toggle.click();
+      await settle();
+      expect(q(`#${P}-group_lab`).getBoundingClientRect().top, width).toBe(rowTop);
+      toggle.click();
+      await settle();
+    }
+    viewer.style.removeProperty('--protvista-label-width');
+  });
+
   it('in Customize mode, Tab reaches every control and leaves the viewer', async () => {
     q(`.${P}-customize-toggle`).focus();
     await userEvent.keyboard('{Enter}');
     await settle();
-    expect(q(`.${P}-customize-toggle`).getAttribute('aria-pressed')).toBe('true');
+    // The toggle carries its state in its label (no aria-pressed).
+    expect(q(`.${P}-customize-toggle`).textContent!.trim()).toBe('Done');
     const looks = snapshotLooks([viewer]);
     const noRing: string[] = [];
     const hidden: string[] = [];
@@ -598,7 +639,7 @@ describe('viewer: pointer cancellation (2.5.2)', () => {
     const customize = q(`.${P}-customize-toggle`);
     await userEvent.dragAndDrop(byTestId(customize), byTestId(after));
     await settle();
-    expect(customize.getAttribute('aria-pressed')).toBe('false');
+    expect(customize.textContent!.trim()).toBe('Customize');
     expect(popover.hidden).toBe(true);
   });
 });

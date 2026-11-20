@@ -1,4 +1,4 @@
-import { LitElement, html, svg } from 'lit';
+import { LitElement, html, nothing, svg } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { repeat } from 'lit/directives/repeat.js';
@@ -97,10 +97,16 @@ import {
   isRowHidden,
   moveRow,
   moveTrack,
+  movedKeys,
+  movedTrackCount,
+  rowMoveKey,
   sameArrangement,
+  setAllHidden,
   setRowHidden,
   setTrackHidden,
   trackKey,
+  trackMoveKey,
+  visibilityChanges,
   visibleTracks,
 } from './layout.js';
 import {
@@ -115,6 +121,7 @@ import { applyLayoutToConfig } from './schema/denormalize.js';
 
 import loaderIcon from './icons/spinner.svg';
 import slidersIcon from './icons/sliders.svg';
+import notApplicableIcon from './icons/not-applicable.svg';
 import chevronUpIcon from './icons/chevron-up.svg';
 import { inlineSvg } from './icons/inline.js';
 import protvistaStyles from './styles/protvista-styles.js';
@@ -557,6 +564,22 @@ class ProtvistaUniprot extends LitElement {
   private _entryGeneration = 0;
   /** Timer clearing `_movedKey`; re-armed on each move. */
   private _movedTimer?: ReturnType<typeof setTimeout>;
+  /**
+   * The `movedKeys` keys the user has pressed a move button on that are
+   * still out of authored order. Only a tie-breaker for `movedKeys` — an
+   * adjacent swap has two equally-minimal answers, and the asterisk should
+   * land on the one that was moved, not the one it stepped past. Never the
+   * source of truth: a restored layout has no history and still marks
+   * correctly. Pruned after every layout change (see `_pruneUserMoved`), so
+   * an item moved back home stops claiming later ties, and cleared whenever
+   * a config loads or the layout resets.
+   */
+  private _userMoved = new Set<string>();
+  /**
+   * The keys out of authored order, computed once per render (see
+   * `render()`) and read by every row's controls and the change status.
+   */
+  private _movedNow: Set<string> = new Set();
   /**
    * Opt out of layout persistence. When present as the `no-persist-layout`
    * attribute, a customized layout is neither restored on mount nor saved
@@ -1046,6 +1069,7 @@ class ProtvistaUniprot extends LitElement {
    */
   resetLayout(): void {
     const base = this._baseline();
+    this._userMoved.clear();
     if (base) this._commitRows(base);
   }
 
@@ -1098,6 +1122,7 @@ class ProtvistaUniprot extends LitElement {
     if (sameArrangement(this.config.rows, rows)) return;
     this._rebuildAggregates(this.config.rows, rows);
     this.config = { ...this.config, rows };
+    this._pruneUserMoved();
     this.dispatchEvent(
       new CustomEvent('protvista-layout-change', {
         detail: this.getLayout(),
@@ -2959,6 +2984,7 @@ class ProtvistaUniprot extends LitElement {
     // The pristine rows, kept before any layout edit: the baseline "reset to
     // default" restores and the patch diff is measured against.
     this._baseRows = normalized.rows;
+    this._userMoved.clear();
     this.config = normalized;
     // Restore a previously-saved / shared layout now that the config (and
     // thus its identity) is known. Runs before data loads, so the customized
@@ -3005,6 +3031,7 @@ class ProtvistaUniprot extends LitElement {
     // short-circuiting, and so a failure can't leave a half-swapped state.
     this._dropConfig();
     this._baseRows = undefined;
+    this._userMoved.clear();
     this._authoredConfig = undefined;
     this.data = Object.create(null);
     this.rawData = {};
@@ -4044,7 +4071,7 @@ class ProtvistaUniprot extends LitElement {
       <div
         class="${CSS_PREFIX}-group ${CSS_PREFIX}-group--standalone ${this._ghostClass(
           isRowHidden(group)
-        )} ${this._movedClass(group.id)}"
+        )} ${this._movedClass(rowMoveKey(group.id))}"
         id="${CSS_PREFIX}-group_${group.id}"
       >
         <div
@@ -4140,7 +4167,7 @@ class ProtvistaUniprot extends LitElement {
       // `|| _trackErrors.has(key)` is what keeps a *broken* standalone row on
       // the canvas, exactly as the grouped branch below does. Without it the
       // row vanished and `_renderAllHiddenNotice` claimed the user had hidden
-      // everything — a false statement with a Reset-layout button that fixes
+      // everything — a false statement pointing at controls that fix
       // nothing. Standalone is the default shape for the starter kits, so this
       // was the most-reachable failure surface in the component.
       return hasRenderableData(this.data[key]) || this._trackErrors.has(key);
@@ -4209,7 +4236,7 @@ class ProtvistaUniprot extends LitElement {
       <div
         class="${CSS_PREFIX}-group ${this._ghostClass(
           isRowHidden(group)
-        )} ${this._movedClass(group.id)}"
+        )} ${this._movedClass(rowMoveKey(group.id))}"
         id="${CSS_PREFIX}-group_${group.id}"
       >
         ${
@@ -4337,18 +4364,16 @@ class ProtvistaUniprot extends LitElement {
    * `_rowRendersContent`), and a canvas that is empty with nothing hidden gets
    * the no-results message instead (see `render()`), so this notice never
    * stands in for a load failure or an absence it cannot fix.
+   *
+   * No button of its own — Reset lives in Customize, and a second Reset
+   * here, outside the mode, would be one more place for it to drift out of
+   * sync with the one that actually lives beside the layout it resets. The
+   * text points at Customize instead, where Reset to default (and Toggle all on) already are.
    */
   private _renderAllHiddenNotice() {
     return html`
       <div class="${CSS_PREFIX}-all-hidden" role="status">
-        <p>All tracks are hidden.</p>
-        <button
-          type="button"
-          class="${CSS_PREFIX}-customize-action"
-          @click="${this._onResetLayout}"
-        >
-          Reset layout
-        </button>
+        <p>All tracks are hidden. Open Customize to show them again.</p>
       </div>
     `;
   }
@@ -4382,7 +4407,7 @@ class ProtvistaUniprot extends LitElement {
       <div
         class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-track--nested ${this._ghostClass(
           !!track.hidden || !!group.hidden
-        )} ${this._movedClass(trackKey(group.id, track.id))}"
+        )} ${this._movedClass(trackMoveKey(group.id, track.id))}"
         id="${CSS_PREFIX}-track_${track.id}"
       >
         <div
@@ -4440,7 +4465,7 @@ class ProtvistaUniprot extends LitElement {
     return html`
       <div
         class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-row--stub ${CSS_PREFIX}-row--hidden ${this._movedClass(
-          row.id
+          rowMoveKey(row.id)
         )}"
         id="${CSS_PREFIX}-group_${row.id}"
       >
@@ -4477,7 +4502,7 @@ class ProtvistaUniprot extends LitElement {
     return html`
       <div
         class="${CSS_PREFIX}-group__track ${CSS_PREFIX}-track--nested ${CSS_PREFIX}-row--stub ${CSS_PREFIX}-row--hidden ${this._movedClass(
-          trackKey(group.id, track.id)
+          trackMoveKey(group.id, track.id)
         )}"
         id="${CSS_PREFIX}-track_${track.id}"
       >
@@ -4551,132 +4576,320 @@ class ProtvistaUniprot extends LitElement {
   };
 
   /**
-   * The Customize button and hidden-count badge. Rendered into the empty
-   * label-column cell beside the navigation rather than a toolbar above the
-   * viewer, so opening customize mode never shifts the visualization — and so
-   * the button sits in the same column as the per-row controls it turns on.
+   * The Customize button. Rendered into the empty label-column cell beside
+   * the navigation rather than a toolbar above the viewer, so opening
+   * customize mode never shifts the visualization — and so the button sits in
+   * the same column as the per-row controls it turns on.
+   *
+   * While customizing it becomes "Done", the way out of the mode. Its label
+   * carries the state, so it has no aria-pressed: a toggle whose name also
+   * changes would read as "Done, pressed". Focus stays on it across the
+   * switch, since it is the same element.
    */
   private _renderCustomizeToggle() {
-    // Counted per track, and excluding tracks that have nothing to draw —
-    // those are missing because no data arrived, not because anyone hid them.
-    const hidden = hiddenCount(this.config?.rows ?? [], (rowId, trackId) =>
-      this._trackIsEmpty(rowId, trackId)
-    );
     return html`
       <button
         type="button"
         class="${CSS_PREFIX}-customize-toggle"
-        aria-pressed="${this._customizeMode}"
         @click="${this._toggleCustomizeMode}"
       >
-        <span class="${CSS_PREFIX}-customize-toggle__icon" aria-hidden="true"
-          >${svg`${unsafeHTML(inlineSvg(slidersIcon))}`}</span
+        ${this._customizeMode
+          ? ''
+          : html`<span
+              class="${CSS_PREFIX}-customize-toggle__icon"
+              aria-hidden="true"
+              >${svg`${unsafeHTML(inlineSvg(slidersIcon))}`}</span
+            >`}<span class="${CSS_PREFIX}-customize-toggle__text"
+          >${this._customizeMode ? 'Done' : 'Customize'}</span
         >
-        Customize
       </button>
-      ${hidden > 0 ? this._renderHiddenCount(hidden) : ''}
     `;
   }
 
   /**
-   * The "N hidden" badge. A button, not a label: it explains how to get the
-   * tracks back, and a plain `<span title>` would put that explanation out of
-   * reach of anyone not using a mouse. Pressing it opens customize mode,
-   * which is where the Show controls are.
+   * Toggle all and Reset to default — the customize-mode actions, in the
+   * same row as the toggle (now "Done") and pushed together to its far
+   * right. One wrapper, so on a narrow label column they wrap below the
+   * toggle as a unit rather than one per line.
    */
-  private _renderHiddenCount(hidden: number) {
-    const noun = hidden === 1 ? 'track' : 'tracks';
-    const label = `${hidden} ${noun} hidden`;
-    const hint = `${label}. Open Customize and switch a row back on to restore it.`;
-    return html`
+  private _renderCustomizeActions() {
+    // Laid out in both modes, and only invisible (and inert) outside
+    // customize mode, so the Customize line wraps — or not — the same way
+    // either side of the toggle, and opening the mode never changes the nav
+    // cell's height or moves the tracks down.
+    const active = this._customizeMode;
+    const edited = active && !isDefaultLayout(this.getLayout());
+    const anyHidden = active && this._anyTrackHidden();
+    return html`<span
+      class="${CSS_PREFIX}-customize-actions${active
+        ? ''
+        : ` ${CSS_PREFIX}-customize-actions--inactive`}"
+      aria-hidden="${active ? nothing : 'true'}"
+      ?inert="${!active}"
+    >
       <button
         type="button"
-        class="${CSS_PREFIX}-hidden-count"
-        title="${hint}"
-        aria-label="${hint}"
-        @click="${this._onHiddenCountClick}"
+        class="${CSS_PREFIX}-customize-action ${CSS_PREFIX}-customize-action--toggle-all"
+        @click="${this._onToggleAllVisibility}"
       >
-        ${label}
+        <span class="${CSS_PREFIX}-customize-action__label"
+          >${anyHidden ? 'Toggle all on' : 'Toggle all off'}</span
+        >
       </button>
-    `;
-  }
-
-  /**
-   * Pressing the "N hidden" badge: enter customize mode and open every group
-   * holding a hidden track.
-   *
-   * Entering the mode alone is not enough. A hidden group collapses to one
-   * stub and a collapsed visible group hides its tracks behind the caret, so
-   * the tracks the badge just counted could still be nowhere on screen. This
-   * opens exactly the groups those tracks are in, so the badge lands the user
-   * on the controls that undo the hide.
-   */
-  private _onHiddenCountClick = () => {
-    // Idempotent — the badge must never toggle the mode back off.
-    if (!this._customizeMode) this._toggleCustomizeMode();
-
-    const toOpen = this._rowsHoldingHiddenTracks();
-    const added = toOpen.filter((id) => !this.openGroups.includes(id));
-    if (added.length > 0) this.openGroups = [...this.openGroups, ...added];
-
-    this._announce(
-      added.length > 0
-        ? `Opened ${added.length} group${added.length === 1 ? '' : 's'} containing hidden tracks.`
-        : 'Hidden tracks are listed below.'
-    );
-  };
-
-  /**
-   * Ids of the groups holding at least one hidden track — the same tracks the
-   * badge counts, so empty ones are excluded here too.
-   */
-  private _rowsHoldingHiddenTracks(): string[] {
-    return (this.config?.rows ?? [])
-      .filter(
-        (row) =>
-          !row.standalone &&
-          row.tracks.some(
-            (t) => (row.hidden || t.hidden) && !this._trackIsEmpty(row.id, t.id)
-          )
-      )
-      .map((row) => row.id);
-  }
-
-  /** Reset / Done, shown beside the toggle only while customizing. */
-  private _renderCustomizeActions() {
-    const edited = !isDefaultLayout(this.getLayout());
-    return html`
       <button
         type="button"
         class="${CSS_PREFIX}-customize-action"
         ?disabled="${!edited}"
         @click="${this._onResetLayout}"
       >
-        Reset
+        Reset to default
       </button>
-      <button
-        type="button"
-        class="${CSS_PREFIX}-customize-action"
-        @click="${this._onCloseCustomize}"
-      >
-        Done
-      </button>
-    `;
+    </span>`;
   }
 
-  /** Leave customize mode and return focus to the toggle that opened it. */
-  private _onCloseCustomize = () => {
-    this._toggleCustomizeMode();
+  /**
+   * Drop move history for items no longer out of authored order, so a stale
+   * entry never ties with — and wins over — the row actually moved since.
+   */
+  private _pruneUserMoved(): void {
+    if (this._userMoved.size === 0) return;
+    const moved = this._computeMoved();
+    for (const key of this._userMoved) {
+      if (!moved.has(key)) this._userMoved.delete(key);
+    }
+  }
+
+  /**
+   * The keys out of authored order for the current rows (see `movedKeys`),
+   * preferring to mark what the user actually moved when a swap is
+   * ambiguous.
+   */
+  private _computeMoved(): Set<string> {
+    const base = this._baseline();
+    if (!base || !this.config) return new Set();
+    return movedKeys(base, this.config.rows, (key) => this._userMoved.has(key));
+  }
+
+  /**
+   * The change status, on its own line below Customize.
+   *
+   * While customizing it says what changed from the authored config —
+   * "n tracks hidden | k tracks shown | m tracks moved *", each part only
+   * when it is non-zero, the asterisk keying the one beside every moved row.
+   * Every part counts tracks (a moved group counts all it holds), and
+   * hidden/shown are measured against the baseline like moves are, so a
+   * track the author hid is not a change and showing it is. Outside the mode the detail would be noise
+   * on a view most people only read, so it collapses to "Modified view": a
+   * button, which opens Customize on the groups holding the changes.
+   *
+   * The line is always laid out and only made invisible when there is
+   * nothing to say, so a first change adds no height and the navigation
+   * ruler does not step down.
+   */
+  private _renderChangeStatus() {
+    const reserved = html`<div
+      class="${CSS_PREFIX}-toolbar-row ${CSS_PREFIX}-toolbar-row--reserved"
+      aria-hidden="true"
+    >
+      <span class="${CSS_PREFIX}-change-status">&nbsp;</span>
+    </div>`;
+    if (!this._customizeMode) {
+      if (isDefaultLayout(this.getLayout())) return reserved;
+      const hint =
+        'Modified view. Open Customize to see what changed, or reset to default.';
+      return html`<div class="${CSS_PREFIX}-toolbar-row">
+        <button
+          type="button"
+          class="${CSS_PREFIX}-change-status ${CSS_PREFIX}-change-status--button"
+          title="${hint}"
+          aria-label="${hint}"
+          @click="${this._onChangeStatusClick}"
+        >
+          Modified view
+        </button>
+      </div>`;
+    }
+    const { hidden, shown, moved } = this._changeCounts();
+    if (hidden === 0 && shown === 0 && moved === 0) {
+      if (isDefaultLayout(this.getLayout())) return reserved;
+      // The patch differs only in ways the counts leave out (a flag on a
+      // track inside a hidden group, a dataless track). "Modified view" and
+      // Reset to default still see it, so say so rather than show nothing.
+      return html`<div class="${CSS_PREFIX}-toolbar-row">
+        <span
+          class="${CSS_PREFIX}-change-status ${CSS_PREFIX}-change-status--text"
+          >Layout modified</span
+        >
+      </div>`;
+    }
+    const tracks = (n: number) => `${n} ${n === 1 ? 'track' : 'tracks'}`;
+    const parts = [
+      hidden > 0 ? html`${tracks(hidden)} hidden` : null,
+      shown > 0 ? html`${tracks(shown)} shown` : null,
+      moved > 0
+        ? html`${tracks(moved)} moved
+            <span class="${CSS_PREFIX}-moved-mark" aria-hidden="true">*</span>`
+        : null,
+    ].filter((part) => part !== null);
+    // Kept to one line (the row is reserved for one), so a long status is
+    // cut with an ellipsis; the full text is in the title, and assistive
+    // tech reads the whole content regardless.
+    const full = [
+      hidden > 0 ? `${tracks(hidden)} hidden` : null,
+      shown > 0 ? `${tracks(shown)} shown` : null,
+      moved > 0 ? `${tracks(moved)} moved *` : null,
+    ]
+      .filter((part) => part !== null)
+      .join(' | ');
+    return html`<div class="${CSS_PREFIX}-toolbar-row">
+      <span
+        class="${CSS_PREFIX}-change-status ${CSS_PREFIX}-change-status--text"
+        title="${full}"
+      >
+        ${parts.map(
+          (part, i) =>
+            html`${i > 0
+              ? html`<span aria-hidden="true"> | </span
+                  ><span class="${CSS_PREFIX}-visually-hidden">, </span>`
+              : ''}${part}`
+        )}
+      </span>
+    </div>`;
+  }
+
+  /**
+   * The change status's three numbers, all in tracks and all leaving out
+   * tracks with nothing to draw.
+   */
+  private _changeCounts(): { hidden: number; shown: number; moved: number } {
+    const { hidden, shown } = this._visibilityChanges();
+    return {
+      hidden: hidden.length,
+      shown: shown.length,
+      moved: movedTrackCount(
+        this.config?.rows ?? [],
+        this._movedNow,
+        (rowId, trackId) => this._trackIsEmpty(rowId, trackId)
+      ),
+    };
+  }
+
+  /**
+   * Tracks whose visibility differs from the authored config, empty ones
+   * excluded (see `visibilityChanges`).
+   */
+  private _visibilityChanges() {
+    const base = this._baseline();
+    if (!base || !this.config) return { hidden: [], shown: [] };
+    return visibilityChanges(base, this.config.rows, (rowId, trackId) =>
+      this._trackIsEmpty(rowId, trackId)
+    );
+  }
+
+  /**
+   * Pressing "Modified view": enter customize mode and open every group
+   * holding a hidden, shown or moved track.
+   *
+   * Entering the mode alone is not enough. A hidden group collapses to one
+   * stub and a collapsed visible group hides its tracks behind the caret, so
+   * the changes could still be nowhere on screen. This opens exactly the
+   * groups they are in, so the click lands the user on the controls (and
+   * asterisks) that show what changed.
+   *
+   * The button itself is gone once the mode is on (the status turns into
+   * plain text), so focus moves to the toggle — now "Done" — rather than
+   * dropping to <body>.
+   */
+  private _onChangeStatusClick = () => {
+    // Idempotent — the status must never toggle the mode back off.
+    if (!this._customizeMode) this._toggleCustomizeMode();
+
+    const toOpen = this._rowsHoldingChanges();
+    const added = toOpen.filter((id) => !this.openGroups.includes(id));
+    if (added.length > 0) this.openGroups = [...this.openGroups, ...added];
+
+    const { hidden, shown, moved } = this._changeCounts();
+    this._announce(
+      added.length > 0
+        ? `Opened ${added.length} group${added.length === 1 ? '' : 's'} containing changes.`
+        : hidden + shown + moved > 0
+          ? 'Changes are marked below.'
+          : 'Layout modified. Reset to default restores it.'
+    );
     void this.updateComplete.then(() => {
-      this.querySelector<HTMLElement>(
+      this.querySelector<HTMLButtonElement>(
         `.${CSS_PREFIX}-customize-toggle`
-      )?.focus();
+      )?.focus({ preventScroll: true });
     });
   };
 
-  private _onResetLayout = () => {
+  /**
+   * Ids of the groups holding at least one track whose visibility or place
+   * changed — measured exactly as the change status measures it (against
+   * the baseline, empty tracks excluded), so the two never disagree.
+   */
+  private _rowsHoldingChanges(): string[] {
+    const moved = this._computeMoved();
+    const { hidden, shown } = this._visibilityChanges();
+    const changedRows = new Set([...hidden, ...shown].map((c) => c.rowId));
+    return (this.config?.rows ?? [])
+      .filter(
+        (row) =>
+          !row.standalone &&
+          (changedRows.has(row.id) ||
+            row.tracks.some((t) => moved.has(trackMoveKey(row.id, t.id))))
+      )
+      .map((row) => row.id);
+  }
+
+  /**
+   * Whether any track is hidden — dataless ones included, unlike the change
+   * status. Toggle all off hides every row, rows with no data too (the saved
+   * layout applies to every protein viewed with this config, and on another
+   * protein that row may have data), so the label must count them as well:
+   * otherwise re-showing the rows with data would make it claim everything is
+   * on while the dataless rows are still hidden.
+   */
+  private _anyTrackHidden(): boolean {
+    return hiddenCount(this.config?.rows ?? []) > 0;
+  }
+
+  /**
+   * Toggle all on / Toggle all off: the label names the way the click will
+   * go, so a mixed show/hide layout never leaves the reader guessing — any
+   * hidden track means "on". A single control rather than separate buttons,
+   * since whichever state the layout is in, only one of them would do
+   * anything.
+   */
+  private _onToggleAllVisibility = () => {
+    if (!this.config) return;
+    const nextHidden = !this._anyTrackHidden();
+    // Every row, dataless ones included: "off" has to mean off on every
+    // protein the saved layout is replayed onto (see `_anyTrackHidden`).
+    this._commitRows(setAllHidden(this.config.rows, nextHidden));
+    this._announce(
+      nextHidden ? 'All tracks hidden.' : 'All tracks shown.'
+    );
+  };
+
+  /**
+   * Reset disables itself once the layout is back to default, which would
+   * drop a keyboard user's focus to <body>; hand it to Toggle all, its
+   * neighbour, the way `_keepFocusAfterMove` does for the move buttons.
+   */
+  private _onResetLayout = (e: Event) => {
+    const button = e.currentTarget as HTMLButtonElement;
     this.resetLayout();
     this._announce('Layout reset to the authored default.');
+    void this.updateComplete.then(() => {
+      if (!button.disabled) return;
+      const fallback =
+        button.parentElement?.querySelector<HTMLButtonElement>(
+          `.${CSS_PREFIX}-customize-action:not([disabled])`
+        ) ??
+        this.querySelector<HTMLButtonElement>(`.${CSS_PREFIX}-customize-toggle`);
+      fallback?.focus({ preventScroll: true });
+    });
   };
 
   /**
@@ -4716,12 +4929,12 @@ class ProtvistaUniprot extends LitElement {
     const hidden =
       isRowHidden(row) || !this._rowRendersContent(row, visibleTracks(row));
     // Nothing to draw anywhere in the row *at all* (every track empty, none
-    // merely hidden): showing it would change nothing, so the toggle is
-    // disabled and says why instead of offering a no-op.
+    // merely hidden): showing it would change nothing, so the switch is
+    // replaced by a not-applicable sign (⊘) instead of offering a no-op.
     const empty = row.tracks.every((t) => this._trackIsEmpty(row.id, t.id));
     return html`
       <span class="${CSS_PREFIX}-row-controls">
-        ${this._toggleButton(hidden, name, empty, () =>
+        ${this._movedMark(rowMoveKey(row.id))}${this._toggleButton(hidden, name, empty, () =>
           this.setRowVisibility(row.id, hidden)
         )}
         ${this._moveButton(-1, name, index, total, (b) =>
@@ -4749,8 +4962,11 @@ class ProtvistaUniprot extends LitElement {
     const empty = this._trackIsEmpty(group.id, track.id);
     return html`
       <span class="${CSS_PREFIX}-row-controls">
-        ${this._toggleButton(hidden, name, empty, () =>
-          this.setTrackVisibility(group.id, track.id, hidden)
+        ${this._movedMark(trackMoveKey(group.id, track.id))}${this._toggleButton(
+          hidden,
+          name,
+          empty,
+          () => this.setTrackVisibility(group.id, track.id, hidden)
         )}
         ${this._moveButton(-1, name, index, total, (b) =>
           this._moveTrackBy(group, track, index, -1, b)
@@ -4809,12 +5025,12 @@ class ProtvistaUniprot extends LitElement {
    * state; `aria-checked` carries the state, which is the correct split for a
    * switch and keeps the name stable as it flips.
    *
-   * `empty` disables it, off: a track with no data is absent whatever the
-   * switch says, so it must not offer a flip that would do nothing, nor claim
-   * to be on when nothing is drawn. The reason joins the accessible name
-   * rather than sitting only in `title` — dropping the visible word means a
-   * screen-reader user would otherwise have no way to learn it, and a
-   * disabled control is not reachable by Tab to hear a description.
+   * `empty` replaces it with a not-applicable sign (⊘): a track with no data is
+   * absent whatever a switch would say, and a greyed-out switch still read
+   * as a setting that happened to be locked rather than as "not applicable".
+   * The sign is an image, not a control — there is nothing to operate — and
+   * its reason is its accessible name as well as its `title`, so it is not
+   * mouse-only.
    */
   private _toggleButton(
     hidden: boolean,
@@ -4822,18 +5038,23 @@ class ProtvistaUniprot extends LitElement {
     empty: boolean,
     onClick: () => void
   ) {
-    // Off follows what the reader sees, not the config flag: a dataless track
-    // is not `hidden`, but it is not drawn either.
-    const on = !hidden && !empty;
+    if (empty) {
+      return html`<span
+        class="${CSS_PREFIX}-no-data"
+        role="img"
+        aria-label="${name} — no data"
+        title="This protein has no data for this track"
+        >${svg`${unsafeHTML(inlineSvg(notApplicableIcon))}`}</span
+      >`;
+    }
+    const on = !hidden;
     return html`
       <button
         type="button"
         role="switch"
         class="${CSS_PREFIX}-switch"
         aria-checked="${on}"
-        aria-label="${empty ? `Show ${name} — no data` : `Show ${name}`}"
-        title="${empty ? 'This protein has no data for this track' : ''}"
-        ?disabled="${empty}"
+        aria-label="Show ${name}"
         @click="${(e: Event) => {
           e.stopPropagation();
           onClick();
@@ -4886,7 +5107,7 @@ class ProtvistaUniprot extends LitElement {
     const to = index + delta;
     if (to < 0 || to >= total) return;
     this._commitRows(moveRow(this.config.rows, row.id, to));
-    this._markMoved(row.id);
+    this._markMoved(rowMoveKey(row.id));
     this._keepFocusAfterMove(button);
     this._announceMove(this._labelText(row.label), to, total);
   }
@@ -4904,7 +5125,7 @@ class ProtvistaUniprot extends LitElement {
     const to = index + delta;
     if (to < 0 || to >= total) return;
     this._commitRows(moveTrack(this.config.rows, group.id, track.id, to));
-    this._markMoved(trackKey(group.id, track.id));
+    this._markMoved(trackMoveKey(group.id, track.id));
     this._keepFocusAfterMove(button);
     this._announceMove(this._labelText(track.label), to, total);
   }
@@ -4924,6 +5145,8 @@ class ProtvistaUniprot extends LitElement {
    */
   private _markMoved(key: string): void {
     this._movedKey = key;
+    this._userMoved.add(key);
+    this._pruneUserMoved();
     clearTimeout(this._movedTimer);
     this._movedTimer = setTimeout(() => {
       this._movedKey = null;
@@ -4940,7 +5163,25 @@ class ProtvistaUniprot extends LitElement {
     return this._customizeMode && hidden ? `${CSS_PREFIX}-row--ghost` : '';
   }
 
-  /** The just-moved highlight class for a row/track, if it is the one. */
+  /**
+   * The asterisk beside the controls of a row or track (keyed by
+   * `rowMoveKey` / `trackMoveKey`) that sits out of its authored order — the persistent mark, where `-row--moved` is the
+   * momentary one. Keyed by the change status's "m tracks moved *". The
+   * visual asterisk is hidden from assistive tech in favour of a word.
+   */
+  private _movedMark(key: string) {
+    if (!this._movedNow.has(key)) return '';
+    return html`<span class="${CSS_PREFIX}-moved-mark" title="Moved"
+      ><span aria-hidden="true">*</span
+      ><span class="${CSS_PREFIX}-visually-hidden">Moved</span></span
+    >`;
+  }
+
+  /**
+   * The just-moved highlight class for a row/track, if it is the one. Keyed
+   * by `rowMoveKey` / `trackMoveKey`, like the asterisk, so a hyphenated row
+   * id never lights up a track that spells the same.
+   */
   private _movedClass(key: string): string {
     return this._movedKey === key ? `${CSS_PREFIX}-row--moved` : '';
   }
@@ -5018,8 +5259,8 @@ class ProtvistaUniprot extends LitElement {
     // user hid something that would draw — `hasData` is a coarse heuristic
     // (a raw `features` response with none matching a track's `filter:` still
     // sets it), so it cannot tell an empty canvas from a hidden one. A canvas
-    // with nothing hidden has no data, and a Reset-layout button there would
-    // fix nothing.
+    // with nothing hidden has no data, and pointing the user at Customize
+    // would fix nothing.
     if (
       rows.length === 0 &&
       this.config.rows.length > 0 &&
@@ -5031,6 +5272,8 @@ class ProtvistaUniprot extends LitElement {
     }
     // Rows first, so each label has recorded its notes before the top bar
     // lists the rest. `repeat` would only build them at commit.
+    // Before the rows: their controls carry the moved asterisk.
+    this._movedNow = this._computeMoved();
     const rowViews = rows.map((display, i) =>
       this._renderRow(display, i, rows.length)
     );
@@ -5045,16 +5288,14 @@ class ProtvistaUniprot extends LitElement {
       >
         <div class="${CSS_PREFIX}-nav-container">
           <div class="${CSS_PREFIX}-nav-track-label">
-            <div class="${CSS_PREFIX}-toolbar-row">
-              ${this._renderCustomizeToggle()}${viewerNotes}
-            </div>
             <div
-              class="${CSS_PREFIX}-toolbar-row ${
-                this._customizeMode ? '' : `${CSS_PREFIX}-toolbar-row--reserved`
-              }"
+              class="${CSS_PREFIX}-toolbar-row ${CSS_PREFIX}-toolbar-row--customize"
             >
-              ${this._renderCustomizeActions()}
+              <span class="${CSS_PREFIX}-customize-line"
+                >${this._renderCustomizeToggle()}${this._renderCustomizeActions()}</span
+              >${viewerNotes}
             </div>
+            ${this._renderChangeStatus()}
           </div>
           <div class="${CSS_PREFIX}-track-content">
             <nightingale-navigation
@@ -5958,7 +6199,7 @@ class ProtvistaUniprot extends LitElement {
 
     // Direction comes from `openGroups` — the reactive source of truth the
     // template renders from — not the element's `open` class. Two paths open a
-    // group without touching that class (the "N hidden" badge, and the
+    // group without touching that class (the "Modified view" status, and the
     // customize-mode collapse button, which is a different element than the
     // normal-mode label that carried it), so a class-based check would misread
     // their state and take two clicks to collapse. The `open` class is now

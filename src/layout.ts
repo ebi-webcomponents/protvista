@@ -29,6 +29,20 @@ export function trackKey(rowId: string, trackId: string): string {
 }
 
 /**
+ * The key `movedKeys` uses for a row. Namespaced apart from `trackMoveKey`,
+ * since `trackKey`'s plain `-` join blurs id boundaries: row `a-b` and track
+ * `b` of row `a` would both be `a-b`.
+ */
+export function rowMoveKey(rowId: string): string {
+  return `row:${rowId}`;
+}
+
+/** The key `movedKeys` uses for a track within its row (see `rowMoveKey`). */
+export function trackMoveKey(rowId: string, trackId: string): string {
+  return `track:${JSON.stringify([rowId, trackId])}`;
+}
+
+/**
  * The empty patch: authored order, no visibility overrides.
  *
  * The id-keyed maps are `Object.create(null)` so a config whose row/track id
@@ -86,11 +100,13 @@ export function displayRows(rows: NormalizedRow[]): DisplayRow[] {
 }
 
 /**
- * How many **tracks** are hidden — the number the "N hidden" badge shows.
+ * How many **tracks** are hidden right now, whoever hid them — the author's
+ * `hidden: true` included. The viewer uses it for the Toggle all label and
+ * for telling an all-hidden canvas from an empty one; the change status
+ * counts against the authored config instead (see `visibilityChanges`).
  *
  * Counted per track, not per toggle: hiding a group of six and hiding one
- * track are not both "1 hidden". The badge answers "how much of the data am
- * I not seeing", so it has to count the things that would come back.
+ * track are not both "1 hidden".
  *
  * @param isEmpty Optional predicate marking a track as having nothing to
  *   draw. Those are excluded: they are absent because no data arrived, not
@@ -191,6 +207,22 @@ export function setRowHidden(
 }
 
 /**
+ * Show or hide every row at once — the "toggle all" action. Goes through
+ * `setRowHidden` one row at a time rather than mapping `hidden` directly onto
+ * every row and track, so a standalone row's track flag stays in step with
+ * its row flag exactly as a single `setRowHidden` call would leave it.
+ */
+export function setAllHidden(
+  rows: NormalizedRow[],
+  hidden: boolean
+): NormalizedRow[] {
+  return rows.reduce(
+    (next, row) => setRowHidden(next, row.id, hidden),
+    rows
+  );
+}
+
+/**
  * Show or hide one track within a row. Hiding the last visible track of a
  * group empties the row (`isRowHidden`); showing a track inside a row that
  * was hidden outright also reveals the row, so the track the user asked for
@@ -277,6 +309,147 @@ function orderByIds<T extends { id: string }>(
 
 const sameIds = (a: readonly { id: string }[], b: readonly { id: string }[]) =>
   a.length === b.length && a.every((x, i) => x.id === b[i].id);
+
+/**
+ * The ids in `current` that are out of their `base` order — the fewest items
+ * that, lifted out and re-inserted, turn `base` into `current`. Everything
+ * else is the longest run that kept its relative order, so moving one row
+ * down a place marks one row, not the two whose indices swapped.
+ *
+ * When several minimal answers exist (an adjacent swap: either of the two
+ * could be "the one that moved"), `preferMoved` breaks the tie — the viewer
+ * passes the items the user actually pressed a move button on, so the mark
+ * lands on the row they moved rather than the one it stepped past.
+ *
+ * Ids missing from either side are ignored: they have no authored position
+ * to have moved from.
+ */
+export function movedIds(
+  base: readonly string[],
+  current: readonly string[],
+  preferMoved: (id: string) => boolean = () => false
+): Set<string> {
+  const basePos = new Map(base.map((id, i) => [id, i]));
+  const items = current.filter((id) => basePos.has(id));
+  const n = items.length;
+  // Weighted longest increasing subsequence over base positions. Each kept
+  // item scores n + 1, plus 1 if the user did not move it, so the length is
+  // always maximised first and the preference only ever breaks ties.
+  const weight = items.map((id) => n + 1 + (preferMoved(id) ? 0 : 1));
+  const best: number[] = new Array(n).fill(0);
+  const prev: number[] = new Array(n).fill(-1);
+  let end = -1;
+  for (let i = 0; i < n; i++) {
+    best[i] = weight[i];
+    const pi = basePos.get(items[i])!;
+    for (let j = 0; j < i; j++) {
+      if (basePos.get(items[j])! < pi && best[j] + weight[i] > best[i]) {
+        best[i] = best[j] + weight[i];
+        prev[i] = j;
+      }
+    }
+    if (end === -1 || best[i] > best[end]) end = i;
+  }
+  const kept = new Set<string>();
+  for (let i = end; i !== -1; i = prev[i]) kept.add(items[i]);
+  return new Set(items.filter((id) => !kept.has(id)));
+}
+
+/**
+ * Every row and track that sits out of its authored order, as keys:
+ * `rowMoveKey` for a moved row, `trackMoveKey` for a track moved within its
+ * group. A standalone row's single track cannot move on its own, so only the
+ * row counts. See `movedIds` for what "moved" means and for `preferMoved`.
+ */
+export function movedKeys(
+  base: readonly NormalizedRow[],
+  current: readonly NormalizedRow[],
+  preferMoved?: (key: string) => boolean
+): Set<string> {
+  const keys = new Set<string>();
+  for (const id of movedIds(
+    base.map((r) => r.id),
+    current.map((r) => r.id),
+    preferMoved && ((id) => preferMoved(rowMoveKey(id)))
+  )) {
+    keys.add(rowMoveKey(id));
+  }
+  const baseById = new Map(base.map((r) => [r.id, r]));
+  for (const row of current) {
+    const from = baseById.get(row.id);
+    if (!from || row.standalone || sameIds(from.tracks, row.tracks)) continue;
+    const moved = movedIds(
+      from.tracks.map((t) => t.id),
+      row.tracks.map((t) => t.id),
+      preferMoved && ((id) => preferMoved(trackMoveKey(row.id, id)))
+    );
+    for (const id of moved) keys.add(trackMoveKey(row.id, id));
+  }
+  return keys;
+}
+
+/**
+ * How many **tracks** the `movedKeys` result moves — a moved row counts
+ * every track it holds, so moving a group of six reads "6 tracks moved",
+ * the same way hiding it reads "6 tracks hidden". A track moved inside a
+ * row that also moved is already counted with its row. `isEmpty` leaves
+ * out tracks with nothing to draw, as `visibilityChanges` does.
+ */
+export function movedTrackCount(
+  rows: readonly NormalizedRow[],
+  moved: ReadonlySet<string>,
+  isEmpty?: (rowId: string, trackId: string) => boolean
+): number {
+  let n = 0;
+  for (const row of rows) {
+    const rowMoved = moved.has(rowMoveKey(row.id));
+    for (const t of row.tracks) {
+      if (isEmpty?.(row.id, t.id)) continue;
+      if (rowMoved || moved.has(trackMoveKey(row.id, t.id))) n += 1;
+    }
+  }
+  return n;
+}
+
+/** One track whose visibility differs from the authored config. */
+export interface VisibilityChange {
+  rowId: string;
+  trackId: string;
+}
+
+/**
+ * The tracks whose effective visibility (row or track hide) differs from
+ * the authored baseline: those the user hid, and those the author hid that
+ * the user showed. Measured against the baseline, as `movedKeys` is for
+ * order, so an authored `hidden: true` is not a change and un-hiding it is.
+ *
+ * Rows and tracks absent from the baseline have no authored state and are
+ * skipped. `isEmpty` excludes tracks with nothing to draw, as `hiddenCount`
+ * does.
+ */
+export function visibilityChanges(
+  base: readonly NormalizedRow[],
+  current: readonly NormalizedRow[],
+  isEmpty?: (rowId: string, trackId: string) => boolean
+): { hidden: VisibilityChange[]; shown: VisibilityChange[] } {
+  const hidden: VisibilityChange[] = [];
+  const shown: VisibilityChange[] = [];
+  const baseById = new Map(base.map((r) => [r.id, r]));
+  for (const row of current) {
+    const from = baseById.get(row.id);
+    if (!from) continue;
+    const fromTracks = new Map(from.tracks.map((t) => [t.id, t]));
+    for (const track of row.tracks) {
+      const was = fromTracks.get(track.id);
+      if (!was || isEmpty?.(row.id, track.id)) continue;
+      const wasHidden = !!from.hidden || !!was.hidden;
+      const isHidden = !!row.hidden || !!track.hidden;
+      if (wasHidden === isHidden) continue;
+      (isHidden ? hidden : shown).push({ rowId: row.id, trackId: track.id });
+    }
+  }
+  return { hidden, shown };
+}
 
 /**
  * Whether two row lists arrange the same things the same way — same row
