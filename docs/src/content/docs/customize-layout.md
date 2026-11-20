@@ -55,9 +55,11 @@ change nothing, since there is nothing to draw.
 While the mode is on, the Customize button reads **Done**; pressing it leaves
 the mode. Beside it, at the right of the same line, are two actions:
 
-- **Toggle all on / Toggle all off** shows or hides every track at once. The
-  label names what the press will do: any hidden track makes it "Toggle all
-  on".
+- **Toggle all on / Toggle all off** shows or hides every track at once,
+  including tracks with no data for this protein: the layout is saved per
+  config, so "off" stays off on a protein where they do have data. The label
+  names what the press will do: any hidden track, with or without data, makes
+  it "Toggle all on".
 - **Reset to default** (enabled only once the layout differs from the
   authored config) restores the authored layout. When it disables itself,
   focus moves to Toggle all rather than being lost.

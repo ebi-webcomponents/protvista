@@ -311,19 +311,6 @@ describe('setAllHidden', () => {
     setAllHidden(input, true);
     expect(input[0].hidden).toBeUndefined();
   });
-
-  // A dataless row shows ⊘, not a switch, so a hide on it could not be
-  // undone one row at a time.
-  it('leaves rows with nothing to draw alone when hiding', () => {
-    const out = setAllHidden(rows(), true, (rowId) => rowId === 'B');
-    expect(out.map((r) => !!r.hidden)).toEqual([true, false, true]);
-  });
-
-  it('still shows them when showing', () => {
-    const input = setRowHidden(rows(), 'B', true);
-    const out = setAllHidden(input, false, (rowId) => rowId === 'B');
-    expect(out.every((row) => !row.hidden)).toBe(true);
-  });
 });
 
 describe('sameArrangement', () => {

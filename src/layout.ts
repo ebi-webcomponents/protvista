@@ -211,24 +211,15 @@ export function setRowHidden(
  * `setRowHidden` one row at a time rather than mapping `hidden` directly onto
  * every row and track, so a standalone row's track flag stays in step with
  * its row flag exactly as a single `setRowHidden` call would leave it.
- *
- * @param isEmpty Optional predicate marking a track as having nothing to
- *   draw. When hiding, a row whose every track is empty is left as it is:
- *   the viewer shows it a not-applicable sign rather than a switch, so a
- *   hide put on it could never be undone one row at a time.
  */
 export function setAllHidden(
   rows: NormalizedRow[],
-  hidden: boolean,
-  isEmpty?: (rowId: string, trackId: string) => boolean
+  hidden: boolean
 ): NormalizedRow[] {
-  return rows.reduce((next, row) => {
-    // A row with nothing to draw is skipped when hiding (see `isEmpty`).
-    if (hidden && isEmpty && row.tracks.every((t) => isEmpty(row.id, t.id))) {
-      return next;
-    }
-    return setRowHidden(next, row.id, hidden);
-  }, rows);
+  return rows.reduce(
+    (next, row) => setRowHidden(next, row.id, hidden),
+    rows
+  );
 }
 
 /**

@@ -4758,17 +4758,6 @@ class ProtvistaUniprot extends LitElement {
   }
 
   /**
-   * Hidden tracks, counted per track and excluding those with nothing to
-   * draw — those are missing because no data arrived, not because anyone
-   * hid them.
-   */
-  private _hiddenTrackCount(): number {
-    return hiddenCount(this.config?.rows ?? [], (rowId, trackId) =>
-      this._trackIsEmpty(rowId, trackId)
-    );
-  }
-
-  /**
    * The change status's three numbers, all in tracks and all leaving out
    * tracks with nothing to draw.
    */
@@ -4854,12 +4843,15 @@ class ProtvistaUniprot extends LitElement {
   }
 
   /**
-   * Whether any track is hidden — same count and exclusions as the change
-   * status, shared by the Toggle all label and its handler so the two can
-   * never disagree about which state the layout is in.
+   * Whether any track is hidden — dataless ones included, unlike the change
+   * status. Toggle all off hides every row, rows with no data too (the saved
+   * layout applies to every protein viewed with this config, and on another
+   * protein that row may have data), so the label must count them as well:
+   * otherwise re-showing the rows with data would make it claim everything is
+   * on while the dataless rows are still hidden.
    */
   private _anyTrackHidden(): boolean {
-    return this._hiddenTrackCount() > 0;
+    return hiddenCount(this.config?.rows ?? []) > 0;
   }
 
   /**
@@ -4872,14 +4864,9 @@ class ProtvistaUniprot extends LitElement {
   private _onToggleAllVisibility = () => {
     if (!this.config) return;
     const nextHidden = !this._anyTrackHidden();
-    // Dataless rows are left alone: they show ⊘, not a switch, so a hide
-    // put on them could not be undone one row at a time, and the Toggle all
-    // label (which ignores them) would stop admitting it was there.
-    this._commitRows(
-      setAllHidden(this.config.rows, nextHidden, (rowId, trackId) =>
-        this._trackIsEmpty(rowId, trackId)
-      )
-    );
+    // Every row, dataless ones included: "off" has to mean off on every
+    // protein the saved layout is replayed onto (see `_anyTrackHidden`).
+    this._commitRows(setAllHidden(this.config.rows, nextHidden));
     this._announce(
       nextHidden ? 'All tracks hidden.' : 'All tracks shown.'
     );

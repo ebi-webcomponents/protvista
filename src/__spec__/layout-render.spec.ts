@@ -316,6 +316,21 @@ describe('the customize actions', () => {
         .querySelectorAll(`.${CSS_PREFIX}-customize-action`)
     ).map((b) => b.textContent!.trim());
 
+  // The saved layout applies to every protein viewed with this config, so
+  // "off" must hide rows with no data here too — and the label must count
+  // them, or re-showing the rows with data would read "everything is on".
+  it('Toggle all off hides dataless rows too, and the label counts them', async () => {
+    const data = makeData();
+    for (const key of ['C', 'C-Ct1', 'C-Ct2']) delete data[key];
+    const el = buildInstance({ _customizeMode: true, data });
+    el._onToggleAllVisibility();
+    expect(el.config.rows.every((r: { hidden?: boolean }) => r.hidden)).toBe(true);
+
+    el.setRowVisibility('A', true);
+    el.setRowVisibility('B', true);
+    expect(labels(renderInto(el))[0]).toBe('Toggle all on');
+  });
+
   it('sit beside the toggle, Toggle all first, then Reset to default', () => {
     const target = renderInto(buildInstance({ _customizeMode: true }));
     expect(labels(target)).toEqual(['Toggle all off', 'Reset to default']);

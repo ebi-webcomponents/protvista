@@ -330,6 +330,27 @@ describe('entering and leaving customize mode', () => {
     }
   );
 
+  // Narrower than a single button (small screens, 400% zoom): a button may
+  // overflow, but to the right — never off the column's left edge, where it
+  // could not be scrolled to.
+  it.each(['100px', '64px'])(
+    'never pushes an action off the left edge of a %s label column',
+    async (width) => {
+      const el = await mountViewer();
+      el.style.setProperty('--protvista-label-width', width);
+      await enterCustomize(el);
+      const left = el
+        .querySelector(`.${CSS_PREFIX}-nav-track-label`)!
+        .getBoundingClientRect().left;
+      const line = toggle(el).closest(`.${CSS_PREFIX}-toolbar-row`)!;
+      for (const b of Array.from(line.querySelectorAll('button'))) {
+        expect(b.getBoundingClientRect().left, b.textContent!.trim()).toBeGreaterThanOrEqual(
+          left - 0.5
+        );
+      }
+    }
+  );
+
   // The nav cell's height must not depend on what the buttons or the
   // status say: not on entering the mode, not on Toggle all flipping its
   // label, and not on the status growing more parts.

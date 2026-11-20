@@ -204,7 +204,10 @@ export default css`
   protvista-uniprot .${p}-customize-actions {
     display: inline-flex;
     flex-wrap: wrap;
-    justify-content: flex-end;
+    /* \`safe\`: in a column narrower than a single button, overflow to the
+       right (where the column can still be scrolled to) rather than off its
+       left edge, out of reach. */
+    justify-content: safe flex-end;
     align-items: center;
     gap: 0.3rem;
     margin-left: auto;
