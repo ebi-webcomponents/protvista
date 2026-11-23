@@ -89,7 +89,9 @@ const servedSampleFiles = (): string[] =>
     recursive: true,
     withFileTypes: true,
   })
-    .filter((entry) => entry.isFile())
+    // macOS Finder drops a git-ignored .DS_Store in any folder it opens; it is
+    // never committed, so it is not a sample the site serves.
+    .filter((entry) => entry.isFile() && entry.name !== '.DS_Store')
     .map((entry) =>
       relative(SAMPLE_DATA_DIR, join(entry.parentPath, entry.name))
         .split(sep)
