@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### v5 is the stable release
+
+5.0.0 publishes to the npm `latest` dist-tag, so `npm install protvista-uniprot`
+now installs v5, a breaking change from 4.x. The beta sections below list what
+changed since 4.9. To stay on 4.x, install `protvista-uniprot@4`.
+
 - Added `uniprot-isoforms-json` adapter and "APP isoforms" community view. The adapter is opt-in and makes no new requests unless named in a config.
 
 ### Fixed: every variants track uses the variant colours

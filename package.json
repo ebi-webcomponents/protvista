@@ -98,9 +98,6 @@
     "url": "https://github.com/ebi-webcomponents/protvista/issues"
   },
   "homepage": "https://ebi-webcomponents.github.io/protvista",
-  "publishConfig": {
-    "tag": "beta"
-  },
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",
     "@markdoc/markdoc": "^0.5.10",

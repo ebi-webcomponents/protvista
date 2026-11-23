@@ -13,7 +13,7 @@ from Git Bash or WSL.
 | `complexity/` | Measure code size and cyclomatic complexity of `src/` at a commit ([report](../docs/program/complexity-report.md)) | `pnpm metrics:complexity <commit> [--files]` |
 | `conservation/` | Generate the data for `examples/conservation/` from a Pfam alignment | see `examples/conservation/PROVENANCE.md` |
 | `accessibility/palette_audit.py` | Colour-blind and contrast check of the default data palettes, read from the source ([report](../docs/accessibility-audit.md)); standard-library Python. `--check` fails when the report or the docs-site accessibility page quotes a figure that has changed | `python3 scripts/accessibility/palette_audit.py [--json \| --check]`; tests (run in CI): `pnpm test:palettes` |
-| `release-next.sh` | Cut a v5 beta from `next` ([RELEASING.md](../RELEASING.md)) | `pnpm release:next` |
+| `release-next.sh` | Cut a v5 release (beta or stable) from `next` ([RELEASING.md](../RELEASING.md)) | `pnpm release:next` |
 | `release-notes-template.md` | Starting point for `RELEASE_NOTES.md`, with the funding acknowledgement every release must carry | copied by `pnpm release:next` |
 | `validate-package.sh` | The CI packaging checks plus extra tarball and ESM checks | `pnpm validate` |
 | `clearCDNcaches.sh` | Purge jsDelivr's cache for the package | `pnpm cdn:clear` |

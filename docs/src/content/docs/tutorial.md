@@ -49,9 +49,9 @@ config editor. To try the viewer without editing an HTML file, use the
 <protvista-uniprot accession="P05067"></protvista-uniprot>
 ```
 
-That address serves the published v5 beta straight from npm, so there is nothing
-to install. Pin the exact version, as above: `@beta` and `@5` would move under
-you as the beta develops.
+That address serves the published v5 release straight from npm, so there is
+nothing to install. Pin the exact version, as above: `@5` would move under you
+with every new release.
 
 To build it yourself instead, clone the repository and copy the **contents** of
 `dist/` next to your page. Copy the whole folder, not just the one file: the

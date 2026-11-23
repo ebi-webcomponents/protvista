@@ -2,14 +2,14 @@
 
 A Web Component which uses [Nightingale](https://github.com/ebi-webcomponents/nightingale) components to display protein sequence information.
 
-> ⚠️ **v5 is a beta pre-release.** The current stable release is **`protvista-uniprot@4.9.x`** (npm `latest`) — use that in production. **`5.0.0-beta.5`** is published under the **`beta`** dist-tag for early testing: install it with `npm install protvista-uniprot@beta`, or load it from `https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.5/dist/protvista-uniprot.mjs`. Its schemas and APIs are still evolving; don't depend on them in production yet. Targeted stable release: early 2027.
+> **v5 is the stable release.** **`5.0.0-beta.5`** is on npm `latest`: install it with `npm install protvista-uniprot`, or load it from `https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.5/dist/protvista-uniprot.mjs`. v5 is a breaking change from 4.x; see [CHANGELOG.md](./CHANGELOG.md) before upgrading. The 4.x line stays on npm as **`protvista-uniprot@4`** and on the [`main`](https://github.com/ebi-webcomponents/protvista/tree/main) branch for critical fixes.
 
 **Branching model and v5**
 
-> - **[`next`](https://github.com/ebi-webcomponents/protvista/tree/next)** is the **v5** development line, and the branch this README describes. It is where all v5 work happens, **including the hackathon**: branch from `next` and open pull requests against `next`. It carries the breaking changes that come out of the [SSI RSMF](ROADMAP.md) work: a configuration-driven loader, a published JSON-Schema for viewer configurations, a declarative tooltip resolver. v5 keeps the `protvista-uniprot` package name and the `<protvista-uniprot>` element; a rename to the generic `protvista` remains under consideration for a later cycle, not this one. (The GitHub repository has already been renamed to `protvista` and the old URL auto-redirects — that is the repo only, not the npm package.) **Schemas and APIs on `next` are still evolving — do not depend on them in production yet.** Targeted production release: early 2027.
-> - **[`main`](https://github.com/ebi-webcomponents/protvista/tree/main)** is the repository's default branch and the current-major **4.x** production line (npm `latest`). It receives non-breaking changes only (security, performance, dependencies, CI). Use it for production; contribute to it only for a 4.x fix.
+> - **[`next`](https://github.com/ebi-webcomponents/protvista/tree/next)** is the **v5** development line, and the branch this README describes. It is where all v5 work happens, **including the hackathon**: branch from `next` and open pull requests against `next`. It carries the breaking changes that came out of the [SSI RSMF](ROADMAP.md) work: a configuration-driven loader, a published JSON-Schema for viewer configurations, a declarative tooltip resolver. v5 keeps the `protvista-uniprot` package name and the `<protvista-uniprot>` element; a rename to the generic `protvista` remains under consideration for a later cycle, not this one. (The GitHub repository has already been renamed to `protvista` and the old URL auto-redirects — that is the repo only, not the npm package.) v5 follows semver from 5.0.0: breaking changes to the config schema or the element's API wait for a major version.
+> - **[`main`](https://github.com/ebi-webcomponents/protvista/tree/main)** is the repository's default branch and the previous-major **4.x** line. It receives critical fixes only (security, dependencies) and publishes them under the npm `v4` dist-tag, never `latest`. Contribute to it only for a 4.x fix.
 >
-> This README and the [documentation site](https://ebi-webcomponents.github.io/protvista/) describe `next` as it is today, which can be ahead of the latest beta on npm. The `## Unreleased` section of [CHANGELOG.md](./CHANGELOG.md) lists what hasn't shipped yet.
+> This README and the [documentation site](https://ebi-webcomponents.github.io/protvista/) describe `next` as it is today, which can be ahead of the latest release on npm. The `## Unreleased` section of [CHANGELOG.md](./CHANGELOG.md) lists what hasn't shipped yet.
 
 ## ProtVista hackathon, 7–9 October 2026
 
@@ -39,7 +39,7 @@ We welcome contributions!
 
 ## Compatibility
 
-- protvista-uniprot v5 beta ([`next`](https://github.com/ebi-webcomponents/protvista/tree/next)) is compatible with [nightingale](https://github.com/ebi-webcomponents/nightingale) v5.11 and later
+- protvista-uniprot v5 ([`next`](https://github.com/ebi-webcomponents/protvista/tree/next)) is compatible with [nightingale](https://github.com/ebi-webcomponents/nightingale) v5.11 and later
 - protvista-uniprot v4 ([`main`](https://github.com/ebi-webcomponents/protvista/tree/main)) is compatible with [nightingale v5](https://github.com/ebi-webcomponents/nightingale)
 - [protvista-uniprot v3](https://github.com/ebi-webcomponents/protvista/tree/v3.0.9) is compatible with [nightingale v5](https://github.com/ebi-webcomponents/nightingale)
 - [protvista-uniprot v2](https://github.com/ebi-webcomponents/protvista/tree/v2.5.5) is compatible with [nightingale v3](https://github.com/ebi-webcomponents/nightingale/tree/v3)
@@ -299,7 +299,7 @@ See [Customize the layout](https://ebi-webcomponents.github.io/protvista/customi
 
 ## Publishing
 
-Maintainers only: see [RELEASING.md](./RELEASING.md). On `next`, `pnpm release:next` cuts the next beta.
+Maintainers only: see [RELEASING.md](./RELEASING.md). On `next`, `pnpm release:next` cuts the next v5 release.
 
 ## Citation
 
