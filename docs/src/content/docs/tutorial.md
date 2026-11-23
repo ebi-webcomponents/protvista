@@ -43,7 +43,7 @@ config editor. To try the viewer without editing an HTML file, use the
 ```html
 <script
   type="module"
-  src="https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.5/dist/protvista-uniprot.mjs"
+  src="https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0/dist/protvista-uniprot.mjs"
 ></script>
 
 <protvista-uniprot accession="P05067"></protvista-uniprot>
@@ -183,7 +183,7 @@ at the end.
 `extends: /src/default-config.yaml` resolves only when the page is served from
 this repo's root; a deployed site must point `extends` at a hosted copy instead —
 either your own, or the published package on a CDN:
-`https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.5/dist/default-config.yaml`. See
+`https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0/dist/default-config.yaml`. See
 [Author a config](/protvista/configure#reuse-the-default-with-extends) for the
 merge rules and the full caveat.
 :::

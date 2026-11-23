@@ -2,7 +2,7 @@
 
 A Web Component which uses [Nightingale](https://github.com/ebi-webcomponents/nightingale) components to display protein sequence information.
 
-> **v5 is the stable release.** **`5.0.0-beta.5`** is on npm `latest`: install it with `npm install protvista-uniprot`, or load it from `https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.5/dist/protvista-uniprot.mjs`. v5 is a breaking change from 4.x; see [CHANGELOG.md](./CHANGELOG.md) before upgrading. The 4.x line stays on npm as **`protvista-uniprot@4`** and on the [`main`](https://github.com/ebi-webcomponents/protvista/tree/main) branch for critical fixes.
+> **v5 is the stable release.** **`5.0.0`** is on npm `latest`: install it with `npm install protvista-uniprot`, or load it from `https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0/dist/protvista-uniprot.mjs`. v5 is a breaking change from 4.x; see [CHANGELOG.md](./CHANGELOG.md) before upgrading. The 4.x line stays on npm as **`protvista-uniprot@4`** and on the [`main`](https://github.com/ebi-webcomponents/protvista/tree/main) branch for critical fixes.
 
 **Branching model and v5**
 

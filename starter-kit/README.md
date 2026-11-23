@@ -2,7 +2,7 @@
 
 A template repository for putting your own protein annotations on screen next to UniProt's — no build step, no npm, no JavaScript.
 
-The page loads the viewer, `protvista-uniprot@5.0.0-beta.5`, from the jsDelivr CDN. You don't install anything.
+The page loads the viewer, `protvista-uniprot@5.0.0`, from the jsDelivr CDN. You don't install anything.
 
 ## Use it
 

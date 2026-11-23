@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 5.0.0 — 2026-11-23
 
 ### v5 is the stable release
 
