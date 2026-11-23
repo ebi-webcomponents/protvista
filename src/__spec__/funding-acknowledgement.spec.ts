@@ -5,7 +5,7 @@
  * carry the acknowledgement below word for word: the repository README, the
  * documentation site, release notes, Zenodo records and webinar materials.
  * These tests pin each copy to that text, check that the docs site and the
- * release flow still put it where it has to go (by running release-next.sh's
+ * release flow still put it where it has to go (by running release.sh's
  * notes check, and by reading the built site when there is one), and fail on
  * any file that quotes part of it but not all of it, so a reworded copy is
  * caught wherever it lands.
@@ -60,7 +60,7 @@ const REQUIRED: Record<string, string> = {
   'docs/src/content/docs/webinar.md': 'webinar page',
   'docs/src/content/docs/blog/protvista-5.md': 'v5 announcement',
   'scripts/release-notes-template.md': 'release notes template',
-  'scripts/release-next.sh': 'release notes check',
+  'scripts/release.sh': 'release notes check',
   'RELEASING.md': 'release instructions',
 };
 
@@ -92,9 +92,9 @@ describe('funding acknowledgement — documentation site', () => {
 });
 
 describe('funding acknowledgement — release notes', () => {
-  const script = read('scripts/release-next.sh');
+  const script = read('scripts/release.sh');
 
-  it('release-next.sh holds the exact text it checks for', () => {
+  it('release.sh holds the exact text it checks for', () => {
     const value = script.match(/^FUNDING_ACK='([^']*)'$/m)?.[1];
     expect(value).toBe(ACKNOWLEDGEMENT);
   });
@@ -106,9 +106,9 @@ describe('funding acknowledgement — release notes', () => {
   });
 });
 
-// Runs the real release-next.sh in a scratch copy of the repo with git, npm
+// Runs the real release.sh in a scratch copy of the repo with git, npm
 // and gh stubbed on PATH, so these check what the script does with the notes,
-// not how its source reads. The stubs report a clean `next` level with origin,
+// not how its source reads. The stubs report a clean `main` level with origin,
 // nothing published, logged in. `npm version` is the first thing the prepare
 // step runs, so its stub stops the script there with exit 97: reaching it
 // means preflight passed. Resuming (HEAD is already the release commit) skips
@@ -117,7 +117,7 @@ describe('funding acknowledgement — release notes', () => {
 // spawned bash finds the real git ahead of the stub, so the script fails
 // before the notes check.
 describe.skipIf(process.platform === 'win32')(
-  'funding acknowledgement — release-next.sh preflight',
+  'funding acknowledgement — release.sh preflight',
   () => {
     const NOTES = 'RELEASE_NOTES.md';
     const TEMPLATE = 'scripts/release-notes-template.md';
@@ -126,7 +126,7 @@ describe.skipIf(process.platform === 'win32')(
 
     const STUBS: Record<string, string> = {
       git: `case "$1" in
-  rev-parse) [ "$2" = --abbrev-ref ] && echo next || exit 1 ;;
+  rev-parse) [ "$2" = --abbrev-ref ] && echo main || exit 1 ;;
   status|fetch) ;;
   rev-list) echo 0 ;;
   log) echo "$STUB_HEAD_SUBJECT" ;;
@@ -152,12 +152,12 @@ esac`,
 
     let dir: string;
     beforeEach(() => {
-      dir = mkdtempSync(join(tmpdir(), 'release-next-'));
+      dir = mkdtempSync(join(tmpdir(), 'release-'));
       mkdirSync(join(dir, 'scripts'));
       mkdirSync(join(dir, 'bin'));
       copyFileSync(
-        resolve(root, 'scripts/release-next.sh'),
-        join(dir, 'scripts/release-next.sh')
+        resolve(root, 'scripts/release.sh'),
+        join(dir, 'scripts/release.sh')
       );
       copyFileSync(resolve(root, TEMPLATE), join(dir, TEMPLATE));
       writeFileSync(
@@ -182,7 +182,7 @@ esac`,
 
     const release = (mode: keyof typeof MODES, notes?: string) => {
       if (notes !== undefined) writeFileSync(join(dir, NOTES), notes);
-      const result = spawnSync('bash', ['scripts/release-next.sh'], {
+      const result = spawnSync('bash', ['scripts/release.sh'], {
         cwd: dir,
         encoding: 'utf8',
         input: 'n\n',

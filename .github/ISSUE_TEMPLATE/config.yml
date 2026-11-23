@@ -7,7 +7,7 @@ contact_links:
     url: https://ebi-webcomponents.github.io/protvista/playground/
     about: Try a config and your own data file in the browser, nothing to install.
   - name: Monthly office hours
-    url: https://github.com/ebi-webcomponents/protvista/blob/next/CONTRIBUTING.md#office-hours
+    url: https://github.com/ebi-webcomponents/protvista/blob/main/CONTRIBUTING.md#office-hours
     about: Ask the maintainers questions live. No registration required.
   - name: Report a security vulnerability
     url: https://github.com/ebi-webcomponents/protvista/security/advisories/new

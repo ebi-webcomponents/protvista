@@ -132,7 +132,7 @@ Do check what is in `data/` before you do this. Publishing the site publishes th
 
 Questions, bugs, and suggestions go to the main [ProtVista repository](https://github.com/ebi-webcomponents/protvista/issues) — your copy of this template has no maintainers watching it. That includes anything in these instructions that confused you, and configs you think others could use.
 
-Want to change ProtVista itself? See [Contributing](https://github.com/ebi-webcomponents/protvista/blob/next/CONTRIBUTING.md#contributing-via-a-fork).
+Want to change ProtVista itself? See [Contributing](https://github.com/ebi-webcomponents/protvista/blob/main/CONTRIBUTING.md#contributing-via-a-fork).
 
 The full documentation is at <https://ebi-webcomponents.github.io/protvista/>, and the [tutorial](https://ebi-webcomponents.github.io/protvista/tutorial) walks through the same ground as this kit in more detail.
 

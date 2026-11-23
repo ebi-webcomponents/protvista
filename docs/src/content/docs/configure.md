@@ -34,7 +34,7 @@ collapse to the minimum.
 :::tip[Try it live]
 Paste any config into the [playground](/protvista/playground/) to validate it as you
 type and see it render. Every example below is drawn from the CI-validated
-[`examples/`](https://github.com/ebi-webcomponents/protvista/tree/next/examples)
+[`examples/`](https://github.com/ebi-webcomponents/protvista/tree/main/examples)
 directory.
 :::
 
@@ -294,6 +294,6 @@ another.
 - [Configuration vs data](/protvista/configuration-vs-data) — what your config controls
   versus what a data provider must supply.
 - The normative, field-by-field reference is
-  [`specs/config-approach.md`](https://github.com/ebi-webcomponents/protvista/blob/next/specs/config-approach.md).
+  [`specs/config-approach.md`](https://github.com/ebi-webcomponents/protvista/blob/main/specs/config-approach.md).
 
 _Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

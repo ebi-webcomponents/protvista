@@ -2,9 +2,9 @@
 /**
  * Adds a version chip to the site header, beside the social icons.
  *
- * Why it exists: this site is built from `next` and documents v5, but
- * `npm install protvista-uniprot` still resolves the 4.x line (v5 publishes
- * under the `beta` dist-tag). Someone arriving from a search engine otherwise
+ * Why it exists: while a release is a pre-release (it publishes under the
+ * `beta` dist-tag), `npm install protvista-uniprot` resolves an older line
+ * than the one this site documents. Someone arriving from a search engine otherwise
  * reads about `rows:`, `kind:` and `extends:` with nothing on the page saying
  * the release they would install understands none of it.
  *

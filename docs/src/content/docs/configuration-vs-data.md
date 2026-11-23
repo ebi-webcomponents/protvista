@@ -9,7 +9,7 @@ ProtVista draws a deliberate line between two things, and knowing which side of 
 
 **Track payloads** are the data itself, the shape each track actually consumes (a list of feature records, an API response, and so on). A data provider supplies this, either UniProt's API you point at or a file you author. The config schema names adapters and kinds but does not define payload shapes; those are documented in the [adapter reference](/protvista/adapter-reference).
 
-This is the Intent / Representation split. The normative definition lives in [`specs/config-approach.md`](https://github.com/ebi-webcomponents/protvista/blob/next/specs/config-approach.md); this page is the user-facing version.
+This is the Intent / Representation split. The normative definition lives in [`specs/config-approach.md`](https://github.com/ebi-webcomponents/protvista/blob/main/specs/config-approach.md); this page is the user-facing version.
 
 ## The boundary at a glance
 
@@ -45,7 +45,7 @@ The bridge between your configuration and the data provider is the pairing of **
 
 ## A paired example
 
-Configuration and payload, side by side — the [`examples/csv`](https://github.com/ebi-webcomponents/protvista/tree/next/examples/csv) example. The config is what **you configure**; the CSV is the **payload you supply**.
+Configuration and payload, side by side — the [`examples/csv`](https://github.com/ebi-webcomponents/protvista/tree/main/examples/csv) example. The config is what **you configure**; the CSV is the **payload you supply**.
 
 `config.yaml` — Intent (a standalone bring-your-own-data track):
 
@@ -74,8 +74,8 @@ The config never describes the CSV's columns — that contract belongs to the pa
 ## Where to go next
 
 - [Adapter reference](/protvista/adapter-reference) — the expected payload shape for every built-in kind and adapter.
-- [`specs/config-approach.md`](https://github.com/ebi-webcomponents/protvista/blob/next/specs/config-approach.md) — the normative Intent/Representation definition and every config field.
-- [`specs/config-approach.md` — Shape and format](https://github.com/ebi-webcomponents/protvista/blob/next/specs/config-approach.md#shape-and-format-normative) — the normative bring-your-own-data shape and format contract.
-- [`examples/`](https://github.com/ebi-webcomponents/protvista/tree/next/examples) — runnable, CI-validated config + data pairs (CSV, TSV, JSON, BED, inline).
+- [`specs/config-approach.md`](https://github.com/ebi-webcomponents/protvista/blob/main/specs/config-approach.md) — the normative Intent/Representation definition and every config field.
+- [`specs/config-approach.md` — Shape and format](https://github.com/ebi-webcomponents/protvista/blob/main/specs/config-approach.md#shape-and-format-normative) — the normative bring-your-own-data shape and format contract.
+- [`examples/`](https://github.com/ebi-webcomponents/protvista/tree/main/examples) — runnable, CI-validated config + data pairs (CSV, TSV, JSON, BED, inline).
 
 _Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

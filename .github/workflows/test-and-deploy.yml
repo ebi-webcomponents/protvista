@@ -126,7 +126,7 @@ jobs:
       # page into site/. Requires astro, @astrojs/starlight, astro-mermaid,
       # mermaid and sharp in devDependencies. Runs on every push and pull
       # request, so a broken docs link or #anchor (starlight-links-validator)
-      # fails CI before merge; only `next` uploads and deploys.
+      # fails CI before merge; only `main` uploads and deploys.
       - name: Build site
         run: pnpm site:build
 
@@ -138,7 +138,7 @@ jobs:
         run: pnpm exec vitest run --project unit src/__spec__/funding-acknowledgement.spec.ts
 
       - name: Upload Pages artifact
-        if: github.ref == 'refs/heads/next' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:
           path: site/
@@ -147,7 +147,7 @@ jobs:
     name: Deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/next' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       pages: write # create the Pages deployment
       id-token: write # OIDC token deploy-pages verifies

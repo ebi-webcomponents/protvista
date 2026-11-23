@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
-# Release the `next` branch (v5) to npm: a pre-release (5.0.0-beta.N) to the
-# `beta` dist-tag, a stable version (5.0.0) to `latest`.
+# Release `main` to npm: a stable version (5.0.1) to the `latest` dist-tag, a
+# pre-release (5.1.0-beta.1) to `beta`.
 #
 # Automates the "Releasing next" steps in RELEASING.md:
 #
-#   1. preflight  — on `next`, clean, level with origin/next, release notes
+#   1. preflight  — on `main`, clean, level with origin/main, release notes
 #                   written and carrying the funding acknowledgement, version
 #                   not already published or tagged, and (unless
 #                   --prepare-only) npm and gh are logged in
@@ -21,17 +21,17 @@
 #                   `beta` at itself, so `@beta` never trails `latest`.
 #
 # Usage (from anywhere in the repo):
-#   pnpm release:next                  # 5.0.0-beta.N -> 5.0.0-beta.N+1
-#   pnpm release:next 5.0.0-beta.7     # an explicit version
-#   pnpm release:next 5.0.0            # the stable release: dist-tag latest
-#   pnpm release:next --prepare-only   # stop after the commit; nothing leaves
+#   pnpm release 5.0.1                 # a stable version: dist-tag latest
+#   pnpm release 5.1.0-beta.1          # a pre-release: dist-tag beta
+#   pnpm release                       # after a beta: 5.1.0-beta.N -> beta.N+1
+#   pnpm release --prepare-only 5.0.1  # stop after the commit; nothing leaves
 #                                      # this machine
 #
 # Re-running after a failed publish step is safe: when HEAD is already the
 # "Release <version>" commit, steps 2-4 are skipped, and each publish step is
 # skipped if it already happened.
 #
-# Or invoke directly: ./scripts/release-next.sh
+# Or invoke directly: ./scripts/release.sh
 
 set -euo pipefail
 
@@ -43,7 +43,7 @@ info() { printf '  %s\n' "$1"; }
 die() { printf '%sError:%s %s\n' "$RED" "$OFF" "$1" >&2; exit 1; }
 
 PACKAGE=protvista-uniprot
-BRANCH=next
+BRANCH=main
 REMOTE=origin
 # Named explicitly: this clone has two remotes for the same repository, and
 # gh would otherwise stop to ask which one to use.
@@ -129,15 +129,9 @@ fi
 TAG="v$NEW_VERSION"
 info "version: $OLD_VERSION -> $NEW_VERSION (dist-tag: $DIST_TAG)"
 
-if [ "$STABLE" = 1 ] && [ "$RESUMING" = 0 ]; then
-  # Stable means the docs, README and kit must stop calling v5 a beta. Those
-  # are prose edits this script cannot make; refuse until they are merged.
-  [ "$(node -p 'require("./package.json").publishConfig?.tag ?? ""')" = "" ] \
-    || die "package.json still sets publishConfig.tag; remove it before a stable release."
-  if grep -qF 'v5 is a beta pre-release' README.md; then
-    die "README.md still carries the v5 beta banner; merge the stable-release docs first."
-  fi
-fi
+# A publishConfig.tag would fight the --tag this script passes.
+[ "$(node -p 'require("./package.json").publishConfig?.tag ?? ""')" = "" ] \
+  || die "package.json sets publishConfig.tag; remove it. This script picks the dist-tag from the version."
 
 if [ "$RESUMING" = 0 ]; then
   git rev-parse -q --verify "refs/tags/$TAG" >/dev/null && die "tag $TAG already exists."
@@ -200,7 +194,7 @@ fi
 
 if [ "$PREPARE_ONLY" = 1 ]; then
   printf '\n%sPrepared %s.%s Nothing has been pushed or published.\n' "$GREEN" "$NEW_VERSION" "$OFF"
-  printf 'Run %spnpm release:next%s again to publish it.\n' "$BLUE" "$OFF"
+  printf 'Run %spnpm release %s%s again to publish it.\n' "$BLUE" "$NEW_VERSION" "$OFF"
   exit 0
 fi
 
@@ -234,8 +228,14 @@ else
 fi
 if [ "$STABLE" = 1 ]; then
   # Otherwise `@beta` keeps resolving the last pre-release, older than latest.
-  npm dist-tag add "$PACKAGE@$NEW_VERSION" beta >/dev/null
-  info "pointed beta at $NEW_VERSION"
+  # Output is not redirected: with two-factor auth on, npm prompts for a
+  # one-time password here, and it only prompts on a terminal.
+  if [ "$(npm view "$PACKAGE" dist-tags.beta 2>/dev/null)" = "$NEW_VERSION" ]; then
+    info "beta already points at $NEW_VERSION"
+  else
+    npm dist-tag add "$PACKAGE@$NEW_VERSION" beta
+    info "pointed beta at $NEW_VERSION"
+  fi
 fi
 npm dist-tag ls "$PACKAGE" | sed 's/^/  /'
 

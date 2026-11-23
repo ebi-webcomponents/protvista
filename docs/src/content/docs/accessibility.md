@@ -3,7 +3,7 @@ title: Accessibility and known limitations
 description: What works with a keyboard, screen reader and colour-vision deficiency today, the verified limitations of the viewer, and how to work around them.
 ---
 
-ProtVista is being audited against [WCAG 2.2](https://www.w3.org/TR/WCAG22/) level AA. The automated and computed parts of the audit are done, including browser checks (in Chromium) of keyboard use, focus, zoom to 200%, a 320 px wide screen and wider text spacing. A pass with screen readers is still to come. The full results, with the evidence and tracking issue for each criterion, are in the [accessibility audit report](https://github.com/ebi-webcomponents/protvista/blob/next/docs/accessibility-audit.md).
+ProtVista is being audited against [WCAG 2.2](https://www.w3.org/TR/WCAG22/) level AA. The automated and computed parts of the audit are done, including browser checks (in Chromium) of keyboard use, focus, zoom to 200%, a 320 px wide screen and wider text spacing. A pass with screen readers is still to come. The full results, with the evidence and tracking issue for each criterion, are in the [accessibility audit report](https://github.com/ebi-webcomponents/protvista/blob/main/docs/accessibility-audit.md).
 
 This page lists only limitations that have been verified in the code or by a test.
 

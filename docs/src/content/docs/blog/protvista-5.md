@@ -131,7 +131,7 @@ contributed to the project.
 - [Playground](/protvista/playground/) — try changes live and share them by link.
 - [Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit) — use the template, add your data, publish.
 - [Source and issues](https://github.com/ebi-webcomponents/protvista) — questions, bugs, and feature requests.
-- [Office hours](https://github.com/ebi-webcomponents/protvista/blob/next/CONTRIBUTING.md#office-hours) — monthly live help with setup and your own data, no registration needed.
+- [Office hours](https://github.com/ebi-webcomponents/protvista/blob/main/CONTRIBUTING.md#office-hours) — monthly live help with setup and your own data, no registration needed.
 
 A prerecorded [webinar](/protvista/webinar) covering the same ground in more depth is available.
 

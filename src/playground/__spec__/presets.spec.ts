@@ -369,7 +369,7 @@ describe('presets', () => {
   it('the extend-uniprot preset extends the config this commit ships', () => {
     // The recipe ships pinned to this package's version, published
     // minutes-to-days after the release commit; the docs site deploys from
-    // `next` on every push. So any *published* base config is one from another
+    // `main` on every push. So any *published* base config is one from another
     // commit — fine while that only meant drift, fatal once a vocabulary
     // rename made the published copy invalid against this build. The preset
     // therefore extends what this site serves. See `withServedExtends`.

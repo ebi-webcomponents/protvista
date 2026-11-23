@@ -112,7 +112,7 @@ const withServedExtendsData = (config: string): string =>
  * The pin is right for the Starter Kit — the kit is downloaded beside a release
  * and `starter-kit.spec.ts` holds every reference in it to this package's
  * version. The hosted playground is not on that clock: the docs site deploys on
- * every push to `next`, while npm publishes only at release, so a published
+ * every push to `main`, while npm publishes only at release, so a published
  * base config is always a base config from some *other* commit.
  *
  * That was tolerable while the gap was one release of drift. It stopped being

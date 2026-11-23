@@ -13,11 +13,10 @@ from Git Bash or WSL.
 | `complexity/` | Measure code size and cyclomatic complexity of `src/` at a commit ([report](../docs/program/complexity-report.md)) | `pnpm metrics:complexity <commit> [--files]` |
 | `conservation/` | Generate the data for `examples/conservation/` from a Pfam alignment | see `examples/conservation/PROVENANCE.md` |
 | `accessibility/palette_audit.py` | Colour-blind and contrast check of the default data palettes, read from the source ([report](../docs/accessibility-audit.md)); standard-library Python. `--check` fails when the report or the docs-site accessibility page quotes a figure that has changed | `python3 scripts/accessibility/palette_audit.py [--json \| --check]`; tests (run in CI): `pnpm test:palettes` |
-| `release-next.sh` | Cut a v5 release (beta or stable) from `next` ([RELEASING.md](../RELEASING.md)) | `pnpm release:next` |
-| `release-notes-template.md` | Starting point for `RELEASE_NOTES.md`, with the funding acknowledgement every release must carry | copied by `pnpm release:next` |
+| `release.sh` | Cut a release (stable or beta) from `main` ([RELEASING.md](../RELEASING.md)) | `pnpm release <version>` |
+| `release-notes-template.md` | Starting point for `RELEASE_NOTES.md`, with the funding acknowledgement every release must carry | copied by `pnpm release` |
 | `validate-package.sh` | The CI packaging checks plus extra tarball and ESM checks | `pnpm validate` |
 | `clearCDNcaches.sh` | Purge jsDelivr's cache for the package | `pnpm cdn:clear` |
-| `sync-from-main.sh` | Bring the safe subset of `main` into `next` ([policy](../docs/sync-from-main.md)) | `bash scripts/sync-from-main.sh` |
 | `update_metrics.sh` and the `.py` files | Adoption metrics, described below | see below |
 
 # Metrics & adoption tooling

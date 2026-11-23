@@ -12,7 +12,7 @@ add screenshots/recordings if applicable
 
 ## Checklist
 
-- [ ] The base branch is `next` (or `main`, for a 4.x maintenance fix only)
+- [ ] The base branch is `main`
 - [ ] My PR is scoped properly, and "does one thing only"
 - [ ] I have reviewed my own code
 - [ ] I have checked that linting checks pass and type safety is respected

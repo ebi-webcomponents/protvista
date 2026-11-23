@@ -45,11 +45,9 @@ release with nothing to install:
 Pin the exact version, as above: `@5` would move under you with every new
 release.
 
-To host the file yourself instead, clone the `next` branch of the
-[repository](https://github.com/ebi-webcomponents/protvista)
-(`git clone --branch next https://github.com/ebi-webcomponents/protvista`; the
-default branch, `main`, is the old 4.x line), run `pnpm install`, then
-`pnpm build`, copy the
+To host the file yourself instead, clone the
+[repository](https://github.com/ebi-webcomponents/protvista), run
+`pnpm install`, then `pnpm build`, copy the
 **contents** of `dist/` next to your page, and point the tag at your own copy
 (`src="./protvista-uniprot.mjs"`). Copy the whole folder: the build is split up,
 so the `.mjs` loads sibling files from the same directory and will not run
@@ -72,7 +70,7 @@ import 'protvista-uniprot';
 :::caution
 Upgrading from 4.x? v5 is a breaking release: `4.9.x` predates the config
 surface these docs describe (`rows:`, `kind:`, `extends:`), and the
-[changelog](https://github.com/ebi-webcomponents/protvista/blob/next/CHANGELOG.md)
+[changelog](https://github.com/ebi-webcomponents/protvista/blob/main/CHANGELOG.md)
 lists what changed. To stay on 4.x for now, pin it with
 `npm install protvista-uniprot@4`.
 :::

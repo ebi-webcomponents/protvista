@@ -60,14 +60,13 @@ build is split up, so `protvista-uniprot.mjs` loads `errors.js` and
 needs them), and will not run on its own.
 
 ```sh
-git clone --branch next https://github.com/ebi-webcomponents/protvista
+git clone https://github.com/ebi-webcomponents/protvista
 cd protvista
 pnpm install
 pnpm build
 ```
 
-Then copy the contents of `dist/` next to your HTML page. The `--branch next`
-matters: the repository's default branch, `main`, is the 4.x line.
+Then copy the contents of `dist/` next to your HTML page.
 
 Either way, the `accession` attribute on its own gives you the **full default
 UniProt viewer** for that protein: domains, variants, binding sites, structure
@@ -270,7 +269,7 @@ Where to go next:
 - [Playground](/protvista/playground/) — edit any config live and share it by link.
 - [Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit) — a
   no-build template repository to copy and go.
-- [Runnable examples](https://github.com/ebi-webcomponents/protvista/tree/next/examples)
+- [Runnable examples](https://github.com/ebi-webcomponents/protvista/tree/main/examples)
   — the CI-validated configs this tutorial draws from.
 
 _Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)._

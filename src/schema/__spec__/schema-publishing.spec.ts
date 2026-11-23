@@ -6,9 +6,8 @@
  * frozen `public/schema/v1/` copy must never drift from the authored
  * source, `default-config.yaml` must reference the same canonical URL,
  * and the retired `.invalid` placeholder must never reappear anywhere
- * in the repo (e.g. via a bad cherry-pick from `main` — see
- * docs/sync-from-main.md, which flags `main`'s `src/schema/*` as a path
- * that must never be taken from `main` via `git checkout --theirs`).
+ * in the repo (e.g. via a bad cherry-pick from the 4.x line, whose
+ * `src/schema/*` predates the published schema).
  */
 
 import { describe, it, expect } from 'vitest';

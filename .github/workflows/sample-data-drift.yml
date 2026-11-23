@@ -11,7 +11,7 @@ name: Sample data drift
 # with `node scripts/<name>/build.mjs` and review the diff before committing.
 #
 # NOTE: `schedule` and `workflow_dispatch` only run from the repository's
-# default branch (`main`), so this does nothing until it is merged there.
+# default branch (`main`).
 
 on:
   schedule:

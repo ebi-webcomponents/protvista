@@ -12,16 +12,10 @@ All repository interactions and project events are expected to follow our [Code 
 
 ## Which branch?
 
-- **`next`** is the v5 development line. **All new work, including everything
-  at the hackathon, starts from `next` and goes back into `next`.** The
-  documentation site and the examples in this repository describe `next`.
-- **`main`** is the repository's default branch and the 4.x production line.
-  It takes only non-breaking 4.x fixes, and it is a different toolchain (yarn,
-  not pnpm). Don't base v5 work on it.
-
-Because `main` is the default, GitHub pre-selects it in two places where you
-want `next`: the fork dialog and the pull-request base. The steps below cover
-both.
+- **`main`** is the default branch and the v5 line. **All work starts from
+  `main` and goes back into `main`.** The documentation site and the examples
+  in this repository describe `main`.
+- **`v4`** holds the 4.x line, which is frozen: it takes no changes.
 
 ## Getting Started
 
@@ -67,7 +61,7 @@ Windows-specific notes:
 - **package.json scripts run the same as on macOS and Linux:** pnpm runs them
   in its own POSIX-style shell (`shellEmulator` in `pnpm-workspace.yaml`). The
   exceptions are the maintainer-only `./scripts/*.sh` tools (`pnpm validate`,
-  `pnpm release:next`, `pnpm cdn:clear`): run them from Git Bash or WSL as
+  `pnpm release`, `pnpm cdn:clear`): run them from Git Bash or WSL as
   `bash scripts/<name>.sh`.
 - WSL2 also works. Clone inside the Linux file system (`~/…`), not under
   `/mnt/c`, and follow the Linux instructions.
@@ -77,33 +71,23 @@ Windows-specific notes:
 You don't need write access to the repository: fork it, work in your fork, and
 open a pull request back.
 
-1. **Fork with `next` included.** On
+1. **Fork.** On
    [github.com/ebi-webcomponents/protvista](https://github.com/ebi-webcomponents/protvista),
-   click **Fork**, and on the next page **untick "Copy the `main` branch
-   only"**. (If you already have a fork without `next`, step 2 fixes it.)
+   click **Fork**. Leaving "Copy the `main` branch only" ticked is fine.
 
-2. **Clone your fork on `next`, and add the original repository as
-   `upstream`:**
-
-   ```bash
-   git clone --branch next https://github.com/YOUR-USERNAME/protvista.git
-   cd protvista
-   git remote add upstream https://github.com/ebi-webcomponents/protvista.git
-   git fetch upstream
-   ```
-
-   If the clone fails with `Remote branch next not found`, your fork only has
-   `main`. Run these instead, which create `next` from the original repository
-   and push it to your fork:
+2. **Clone your fork, and add the original repository as `upstream`:**
 
    ```bash
    git clone https://github.com/YOUR-USERNAME/protvista.git
    cd protvista
    git remote add upstream https://github.com/ebi-webcomponents/protvista.git
    git fetch upstream
-   git switch -c next upstream/next
-   git push -u origin next
    ```
+
+   **Forked before the 5.0.0 release (November 2026)?** Your fork's `main` is
+   the old 4.x line and its `next` is the old v5 line. Work from
+   `upstream/main` as below, and don't merge your fork's old `main` into
+   anything.
 
 3. **Set up and check that everything works** (see
    [Development setup](#development-setup)):
@@ -114,15 +98,15 @@ open a pull request back.
    pnpm test:unit
    ```
 
-4. **Make a branch for each change, from the latest `upstream/next`.** Name it
+4. **Make a branch for each change, from the latest `upstream/main`.** Name it
    after the issue, e.g. `issue-305-alphamissense-csv`:
 
    ```bash
    git fetch upstream
-   git switch -c issue-305-alphamissense-csv upstream/next
+   git switch -c issue-305-alphamissense-csv upstream/main
    ```
 
-   Don't commit to your fork's `next`; keep it as a plain copy of upstream.
+   Don't commit to your fork's `main`; keep it as a plain copy of upstream.
 
 5. **Commit, then push the branch to your fork:**
 
@@ -130,10 +114,10 @@ open a pull request back.
    git push -u origin issue-305-alphamissense-csv
    ```
 
-6. **Open the pull request against `next`.** GitHub offers a *Compare & pull
-   request* button after the push. On the form, set **base repository:
-   `ebi-webcomponents/protvista`** and **base: `next`**. GitHub pre-selects
-   `main`, so check this every time. Fill in the template, link the issue
+6. **Open the pull request against `main`.** GitHub offers a *Compare & pull
+   request* button after the push. On the form, check that it says **base
+   repository: `ebi-webcomponents/protvista`** and **base: `main`**. Fill in
+   the template, link the issue
    (`Fixes #305`), and leave **Allow edits by maintainers** ticked.
 
 7. **Your first PR may show "Approval required".** GitHub can hold a
@@ -141,15 +125,15 @@ open a pull request back.
    yours are held, the checks start once one of us approves. Run the tests
    locally in the meantime.
 
-8. **Keep the PR up to date** when `next` moves on:
+8. **Keep the PR up to date** when `main` moves on:
 
    ```bash
    git fetch upstream
-   git rebase upstream/next
+   git rebase upstream/main
    git push --force-with-lease
    ```
 
-   (Merging `upstream/next` into your branch instead is fine too.) If
+   (Merging `upstream/main` into your branch instead is fine too.) If
    `CHANGELOG.md` conflicts, keep both entries.
 
 ### Development setup
@@ -179,9 +163,9 @@ pnpm start
 
 Welcome! For the ProtVista hackathon (7–9 October 2026):
 
-- **Use `next`.** Fork and branch as described in
+- **Use `main`.** Fork and branch as described in
   [Contributing via a fork](#contributing-via-a-fork), and open pull requests
-  against `next`.
+  against `main`.
 - **Pick an issue.** Issues labelled
   [`good first issue`](https://github.com/ebi-webcomponents/protvista/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22)
   are sized for the event and say which files to look at. Comment on the issue
@@ -302,9 +286,8 @@ Otherwise a short description is fine: `error-badge-popover`,
 
 ### Development Workflow
 
-1. Create a new branch from `upstream/next` (see
-   [Contributing via a fork](#contributing-via-a-fork)). Branch from `main`
-   only for a 4.x maintenance fix, and ask in an issue first.
+1. Create a new branch from `upstream/main` (see
+   [Contributing via a fork](#contributing-via-a-fork)).
 2. Make your changes.
 3. Write/update tests as needed.
 4. Run the tests: `pnpm test:unit` while you work, and the full `pnpm test`
@@ -379,8 +362,7 @@ and test-only changes don't need one.
 ## Submitting a Pull Request
 
 1. Push your branch to your fork.
-2. Open a PR against **`ebi-webcomponents/protvista`, base `next`**. GitHub
-   pre-selects `main`; change it. (Only a 4.x maintenance fix targets `main`.)
+2. Open a PR against **`ebi-webcomponents/protvista`, base `main`**.
 3. Fill out the PR template completely.
 4. Link any related issues (`Fixes #123`).
 5. Address review feedback.
@@ -392,7 +374,7 @@ workflow run (GitHub's rule for first-time contributors). That's expected.
 
 Before submitting, ensure:
 
-- The PR targets `next` (or `main`, for a 4.x fix only)
+- The PR targets `main`
 - Code follows the project's style guidelines
 - Tests pass locally
 - `CHANGELOG.md` has an entry under `## Unreleased`, if users would notice the change
