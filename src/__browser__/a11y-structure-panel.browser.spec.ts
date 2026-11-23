@@ -208,7 +208,8 @@ describe('structure panel: keyboard (2.1.2, 2.4.3, 2.4.7, 2.4.11, 3.2.1)', () =>
   // <select> changes its value at once (Chromium on Windows and Linux), so a
   // keyboard user is moved out of the filter after one step. When focus
   // stays on the filter, expect `filter` here.
-  it('changing a table filter moves focus to a row (#427)', async () => {
+  // Not on macOS, where ArrowDown opens the <select> instead (see above).
+  it.skipIf(/Mac/.test(navigator.platform))('changing a table filter moves focus to a row (#427)', async () => {
     const { panel } = await mountPanel();
     const table = panel.querySelector('protvista-uniprot-datatable')!;
     const filter = table.shadowRoot!.querySelector<HTMLSelectElement>('select[data-key="method"]')!;

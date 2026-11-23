@@ -347,8 +347,14 @@ describe('playground: error suggestions (3.3.3)', () => {
   });
 });
 
+// On macOS, ArrowDown on a closed <select> opens its picker instead of
+// changing the value (Chromium on Windows and Linux changes it at once), so
+// this check can only run where CI runs it. Skipped, not failed, so a release
+// cut on a Mac can run `pnpm test`.
+const IS_MAC = /Mac/.test(navigator.platform);
+
 describe('playground: changing a control (3.2.2)', () => {
-  it('arrowing through the preset picker loads each preset but leaves focus on it', async () => {
+  it.skipIf(IS_MAC)('arrowing through the preset picker loads each preset but leaves focus on it', async () => {
     const select = byId<HTMLSelectElement>('preset');
     await choose('basic');
     await vi.waitFor(() => expect(editorText()).toContain('id:'));
