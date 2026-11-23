@@ -1,7 +1,7 @@
 /**
  * Drift test: every URL override `<protvista-uniprot-structure>` declares is
  * documented on the docs site (the `protvista-uniprot/structure` row of
- * embed.md) and named in the CHANGELOG's Unreleased section, and the
+ * embed.md) and named in the CHANGELOG, and the
  * by-checksum default URL appears in the docs.
  */
 import { describe, it, expect } from 'vitest';
@@ -22,12 +22,9 @@ const embedRow =
     .split('\n')
     .find((line) => line.startsWith('| `protvista-uniprot/structure`')) ?? '';
 
+// The whole file, not only `## Unreleased`: a release renames that heading to
+// the version, and the entry must keep passing after it.
 const changelog = read('CHANGELOG.md');
-const unreleasedStart = changelog.indexOf('## Unreleased');
-const unreleased = changelog.slice(
-  unreleasedStart,
-  changelog.indexOf('\n## ', unreleasedStart + 1)
-);
 
 describe('structure URL overrides are documented', () => {
   it('finds the URL attributes in source', () => {
@@ -43,8 +40,8 @@ describe('structure URL overrides are documented', () => {
     expect(embedRow).toContain(`\`${attr}\``);
   });
 
-  it.each(urlAttributes)('the CHANGELOG Unreleased names %s', (attr) => {
-    expect(unreleased).toContain(`\`${attr}\``);
+  it.each(urlAttributes)('the CHANGELOG names %s', (attr) => {
+    expect(changelog).toContain(`\`${attr}\``);
   });
 
   it('shows the by-checksum default URL', () => {
