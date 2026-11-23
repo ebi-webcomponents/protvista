@@ -24,8 +24,8 @@ import { createRegistry } from '../registry.js';
 import type { ShapeName } from '../types.js';
 
 const PAGES_BASE = 'https://ebi-webcomponents.github.io/protvista';
-const GITHUB_BLOB = 'https://github.com/ebi-webcomponents/protvista/blob/next';
-const GITHUB_TREE = 'https://github.com/ebi-webcomponents/protvista/tree/next';
+const GITHUB_BLOB = 'https://github.com/ebi-webcomponents/protvista/blob/main';
+const GITHUB_TREE = 'https://github.com/ebi-webcomponents/protvista/tree/main';
 
 export const FEATURE_RECORD_SCHEMA_ID = `${PAGES_BASE}/schema/v1/feature-record.schema.json`;
 

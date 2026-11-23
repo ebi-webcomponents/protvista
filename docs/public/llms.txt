@@ -52,11 +52,11 @@ Generated from the pages at every docs build, so they can't drift from them:
 ## Tools and examples
 
 - [Configuration playground](https://ebi-webcomponents.github.io/protvista/playground/): edit a config with live validation and preview; `?dev` adds edge-case examples, `?accession=` seeds the viewer (Interactive website where you can edit a ProtVista configuration and immediately see whether it is valid and how it looks).
-- [Runnable examples](https://github.com/ebi-webcomponents/protvista/tree/next/examples): CI-validated config + data pairs (basic, inline, CSV, TSV, JSON, BED, extends-default, your own sequence from a FASTA file or inline, a 20-residue peptide, and per-residue conservation for rubredoxin) (Collection of working examples).
+- [Runnable examples](https://github.com/ebi-webcomponents/protvista/tree/main/examples): CI-validated config + data pairs (basic, inline, CSV, TSV, JSON, BED, extends-default, your own sequence from a FASTA file or inline, a 20-residue peptide, and per-residue conservation for rubredoxin) (Collection of working examples).
 - [Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit): a no-build template repository — an HTML page, a commented `config.yaml`, and a `data/` folder — for visualising your own CSV/TSV annotations without writing code. Loads the component from a version-pinned CDN (Ready-made project you can copy to get started without installing tools or writing code).
 
 ## Optional
 
 - [Rich tooltips in React](https://ebi-webcomponents.github.io/protvista/react-integration): owning your own tooltip overlay via the `change` event + `notooltip`.
-- [Normative config spec](https://github.com/ebi-webcomponents/protvista/blob/next/specs/config-approach.md): the full, field-by-field configuration reference.
+- [Normative config spec](https://github.com/ebi-webcomponents/protvista/blob/main/specs/config-approach.md): the full, field-by-field configuration reference.
 - [Source repository](https://github.com/ebi-webcomponents/protvista): component source, schema, and issue tracker.

@@ -58,7 +58,7 @@ see a protein's annotations on a chosen isoform.
   data.
 - A new community view, [APP isoforms](/protvista/playground/#preset=community-isoforms-app),
   in the playground.
-- [Prototype pages](https://github.com/ebi-webcomponents/protvista/tree/next/demos/isoforms)
+- [Prototype pages](https://github.com/ebi-webcomponents/protvista/tree/main/demos/isoforms)
   that show canonical tau annotations on the 441-residue isoform most papers
   use, so that the P301L mutation appears at 301 rather than at its canonical
   position.
@@ -219,9 +219,9 @@ You don't need to have been at the hackathon. Nine of the `good first issue`
 tasks filed for it are still
 [open](https://github.com/ebi-webcomponents/protvista/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22%20created%3A2026-10-06),
 and each says which files to look at. Start with
-[Contributing via a fork](https://github.com/ebi-webcomponents/protvista/blob/next/CONTRIBUTING.md#contributing-via-a-fork),
+[Contributing via a fork](https://github.com/ebi-webcomponents/protvista/blob/main/CONTRIBUTING.md#contributing-via-a-fork),
 and come to
-[office hours](https://github.com/ebi-webcomponents/protvista/blob/next/CONTRIBUTING.md#office-hours)
+[office hours](https://github.com/ebi-webcomponents/protvista/blob/main/CONTRIBUTING.md#office-hours)
 for help with setup or your own data.
 
 ## How the figures were counted

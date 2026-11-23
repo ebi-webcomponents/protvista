@@ -20,7 +20,7 @@ rows:
 With `sequence:` set, the viewer draws the navigation, the sequence and every
 track that reads your own data. It makes **no request of its own**: no UniProt
 entry, no structure panel. The runnable
-[`examples/sequence-only/`](https://github.com/ebi-webcomponents/protvista/tree/next/examples/sequence-only)
+[`examples/sequence-only/`](https://github.com/ebi-webcomponents/protvista/tree/main/examples/sequence-only)
 is exactly this config, with its FASTA file and data beside it.
 
 ## When to use it
@@ -148,7 +148,7 @@ Only its *name* goes into the config — `sequence: ./my-protein.fasta` — so
 neither the residues nor the header reach a link you share.
 
 If the config already names the file, as
-[`examples/sequence-only/`](https://github.com/ebi-webcomponents/protvista/tree/next/examples/sequence-only)
+[`examples/sequence-only/`](https://github.com/ebi-webcomponents/protvista/tree/main/examples/sequence-only)
 does, it just loads — whatever its name, so a `seq.txt` of raw residues
 works too. Otherwise you choose where it goes:
 

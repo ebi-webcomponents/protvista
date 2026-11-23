@@ -15,10 +15,8 @@ name: Screenshots
 #     strip as an artifact, because the number alone cannot separate a real
 #     change from rasterisation noise.
 #
-# NOTE: `workflow_dispatch` only becomes available once this file exists on the
-# repository's default branch (`main`). `publish-starter-kit.yml` hit exactly
-# this and returned HTTP 422 until it was triggered by its `release` event
-# instead.
+# NOTE: `workflow_dispatch` only runs from the repository's default branch
+# (`main`).
 
 on:
   workflow_dispatch:

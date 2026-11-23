@@ -2,18 +2,14 @@
 
 A Web Component which uses [Nightingale](https://github.com/ebi-webcomponents/nightingale) components to display protein sequence information.
 
-> **v5 is the stable release.** **`5.0.0`** is on npm `latest`: install it with `npm install protvista-uniprot`, or load it from `https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0/dist/protvista-uniprot.mjs`. v5 is a breaking change from 4.x; see [CHANGELOG.md](./CHANGELOG.md) before upgrading. The 4.x line stays on npm as **`protvista-uniprot@4`** and on the [`main`](https://github.com/ebi-webcomponents/protvista/tree/main) branch for critical fixes.
+> **v5 is the stable release.** **`5.0.0`** is on npm `latest`: install it with `npm install protvista-uniprot`, or load it from `https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0/dist/protvista-uniprot.mjs`. v5 is a breaking change from 4.x; see [CHANGELOG.md](./CHANGELOG.md) before upgrading.
 
-**Branching model and v5**
+**Branches**
 
-> - **[`next`](https://github.com/ebi-webcomponents/protvista/tree/next)** is the **v5** development line, and the branch this README describes. It is where all v5 work happens, **including the hackathon**: branch from `next` and open pull requests against `next`. It carries the breaking changes that came out of the [SSI RSMF](ROADMAP.md) work: a configuration-driven loader, a published JSON-Schema for viewer configurations, a declarative tooltip resolver. v5 keeps the `protvista-uniprot` package name and the `<protvista-uniprot>` element; a rename to the generic `protvista` remains under consideration for a later cycle, not this one. (The GitHub repository has already been renamed to `protvista` and the old URL auto-redirects — that is the repo only, not the npm package.) v5 follows semver from 5.0.0: breaking changes to the config schema or the element's API wait for a major version.
-> - **[`main`](https://github.com/ebi-webcomponents/protvista/tree/main)** is the repository's default branch and the previous-major **4.x** line. It receives critical fixes only (security, dependencies) and publishes them under the npm `legacy-v4` dist-tag, never `latest`. Contribute to it only for a 4.x fix.
+> - **[`main`](https://github.com/ebi-webcomponents/protvista/tree/main)** is the default branch and the **v5** line. All work starts from `main` and goes back into `main`. v5 follows semver: breaking changes to the config schema or the element's API wait for a major version, and only then will a separate development branch open for them. v5 keeps the `protvista-uniprot` package name and the `<protvista-uniprot>` element; a rename to the generic `protvista` remains under consideration for a later cycle. (The GitHub repository has already been renamed to `protvista` and the old URL auto-redirects — that is the repo only, not the npm package.)
+> - **[`v4`](https://github.com/ebi-webcomponents/protvista/tree/v4)** holds the **4.x** line, which is **frozen**: 4.9.6 is the last 4.x release, and it gets no further fixes. It stays installable as `protvista-uniprot@4`.
 >
-> This README and the [documentation site](https://ebi-webcomponents.github.io/protvista/) describe `next` as it is today, which can be ahead of the latest release on npm. The `## Unreleased` section of [CHANGELOG.md](./CHANGELOG.md) lists what hasn't shipped yet.
-
-## ProtVista hackathon, 7–9 October 2026
-
-Taking part? Start with **[Contributing via a fork](./CONTRIBUTING.md#contributing-via-a-fork)** and the **[hackathon notes](./CONTRIBUTING.md#hackathon-participants)** in CONTRIBUTING.md. In short: fork with *Copy the `main` branch only* **unticked**, work on a branch made from `next`, and open your pull request against `next`. Want to bring your own data without writing code? Use the **[Starter Kit](https://github.com/ebi-webcomponents/protvista-starter-kit)** or the **[playground](https://ebi-webcomponents.github.io/protvista/playground/)**.
+> This README and the [documentation site](https://ebi-webcomponents.github.io/protvista/) describe `main` as it is today, which can be ahead of the latest release on npm. The `## Unreleased` section of [CHANGELOG.md](./CHANGELOG.md) lists what hasn't shipped yet.
 
 ![ProtVista showing the full default UniProt view of P05067: rows of domains, sites, modifications, variants and structure coverage drawn along the protein sequence.](protvista.png)
 
@@ -39,8 +35,8 @@ We welcome contributions!
 
 ## Compatibility
 
-- protvista-uniprot v5 ([`next`](https://github.com/ebi-webcomponents/protvista/tree/next)) is compatible with [nightingale](https://github.com/ebi-webcomponents/nightingale) v5.11 and later
-- protvista-uniprot v4 ([`main`](https://github.com/ebi-webcomponents/protvista/tree/main)) is compatible with [nightingale v5](https://github.com/ebi-webcomponents/nightingale)
+- protvista-uniprot v5 ([`main`](https://github.com/ebi-webcomponents/protvista/tree/main)) is compatible with [nightingale](https://github.com/ebi-webcomponents/nightingale) v5.11 and later
+- protvista-uniprot v4 ([`v4`](https://github.com/ebi-webcomponents/protvista/tree/v4)) is compatible with [nightingale v5](https://github.com/ebi-webcomponents/nightingale)
 - [protvista-uniprot v3](https://github.com/ebi-webcomponents/protvista/tree/v3.0.9) is compatible with [nightingale v5](https://github.com/ebi-webcomponents/nightingale)
 - [protvista-uniprot v2](https://github.com/ebi-webcomponents/protvista/tree/v2.5.5) is compatible with [nightingale v3](https://github.com/ebi-webcomponents/nightingale/tree/v3)
 
@@ -172,7 +168,7 @@ Every push and pull request runs [`.github/workflows/test-and-deploy.yml`](./.gi
 
 - **Test** (`ubuntu-latest`): `pnpm test:lint`, `pnpm test:types`, `pnpm test:unit`, and — after `pnpm exec playwright install --with-deps chromium chromium-headless-shell` — `pnpm test:coverage`. The coverage step runs both the unit and browser suites and enforces the coverage floor (see below), so a PR that drops coverage below the floor fails CI.
 - **Test (Windows)** (`windows-latest`): `pnpm test:lint`, `pnpm test:types` and `pnpm test:unit`, so a change that breaks contributors on Windows shows up in the PR.
-- **Build**: `pnpm test:pack` (build + publint + attw) and the packaging-contract spec against `dist/`. On a push to `next` it also runs `pnpm site:build` (the Astro + Starlight docs, including the playground page, plus the bench page, into `site/`) and deploys that to GitHub Pages.
+- **Build**: `pnpm test:pack` (build + publint + attw) and the packaging-contract spec against `dist/`. On a push to `main` it also runs `pnpm site:build` (the Astro + Starlight docs, including the playground page, plus the bench page, into `site/`) and deploys that to GitHub Pages.
 
 Pull requests from forks: GitHub holds a first-time contributor's workflow runs until a maintainer approves them, so your PR's checks may show *Approval required* for a while. Run `pnpm test:unit` (and, if you can, `pnpm test:coverage`) locally first.
 
@@ -299,7 +295,7 @@ See [Customize the layout](https://ebi-webcomponents.github.io/protvista/customi
 
 ## Publishing
 
-Maintainers only: see [RELEASING.md](./RELEASING.md). On `next`, `pnpm release:next` cuts the next v5 release.
+Maintainers only: see [RELEASING.md](./RELEASING.md). On `main`, `pnpm release <version>` cuts a release.
 
 ## Citation
 

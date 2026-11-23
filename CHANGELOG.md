@@ -213,15 +213,15 @@ and the guard that also leaves out blank cells.
 The playground's picker has four new presets. Three load a new CI-validated
 example under `examples/`, and `small-protein` loads the shipped default
 config. **Your own sequence** (`own-sequence`, from
-[`examples/sequence-inline/`](https://github.com/ebi-webcomponents/protvista/tree/next/examples/sequence-inline))
+[`examples/sequence-inline/`](https://github.com/ebi-webcomponents/protvista/tree/main/examples/sequence-inline))
 shows a 240-residue construct from inline FASTA with a features track and makes
 no request at all; paste your own FASTA over it, or load a `.fasta` file.
 **Small protein** (`small-protein`) is the default UniProt viewer on crambin
 (P01542, 46 residues). **Small peptide** (`small-peptide`, from
-[`examples/small-peptide/`](https://github.com/ebi-webcomponents/protvista/tree/next/examples/small-peptide))
+[`examples/small-peptide/`](https://github.com/ebi-webcomponents/protvista/tree/main/examples/small-peptide))
 is Trp-cage TC5b (20 residues, PDB 1L2Y) from its own sequence, with its
 secondary structure from a CSV. **Conservation** (`conservation`, from
-[`examples/conservation/`](https://github.com/ebi-webcomponents/protvista/tree/next/examples/conservation))
+[`examples/conservation/`](https://github.com/ebi-webcomponents/protvista/tree/main/examples/conservation))
 draws real per-residue conservation for rubredoxin (P24297) as a line graph,
 beside its most conserved residues and UniProt's iron-binding sites, which
 score highest. The scores come from the Pfam PF00301 full alignment (Pfam
@@ -280,7 +280,7 @@ did for inline records; and `fill` / `opacity` no longer appear as tooltip
 rows for any source, joining `color` / `shape`.
 
 See [Load your own data](https://ebi-webcomponents.github.io/protvista/your-data#style-and-annotate-each-feature-from-your-file)
-and [`examples/csv-styled/`](https://github.com/ebi-webcomponents/protvista/tree/next/examples/csv-styled).
+and [`examples/csv-styled/`](https://github.com/ebi-webcomponents/protvista/tree/main/examples/csv-styled).
 
 ### Added: a warning for `dataTooltip` fields no record carries
 

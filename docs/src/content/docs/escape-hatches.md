@@ -12,7 +12,7 @@ exposes four registration methods **on the element instance**. Call them
 This page is a pointer to the extension points, not the complete reference. The
 full, field-by-field API reference is a Q4 deliverable. For now, the runnable
 tests under
-[`src/__spec__/`](https://github.com/ebi-webcomponents/protvista/tree/next/src/__spec__)
+[`src/__spec__/`](https://github.com/ebi-webcomponents/protvista/tree/main/src/__spec__)
 are the authoritative examples.
 :::
 

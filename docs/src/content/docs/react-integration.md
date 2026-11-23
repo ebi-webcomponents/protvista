@@ -10,7 +10,7 @@ There are exactly two paths for the per-datapoint tooltip, and nothing in betwee
 - **Declarative (library renders it).** Author `dataTooltip` in YAML and let the built-in click popover render it. Pick this whenever it's enough — see [Authoring `dataTooltip`](/protvista/data-tooltip).
 - **Consumer-owned (you render it).** Set `notooltip` on the element, listen for the `change` event, and mount your own overlay. This page walks through that path.
 
-The normative contract for everything below lives in [`specs/config-approach.md`](https://github.com/ebi-webcomponents/protvista/blob/next/specs/config-approach.md#react-host-integration); this page is the tutorial.
+The normative contract for everything below lives in [`specs/config-approach.md`](https://github.com/ebi-webcomponents/protvista/blob/main/specs/config-approach.md#react-host-integration); this page is the tutorial.
 
 ## The shape of it
 
