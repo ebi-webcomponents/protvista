@@ -31,7 +31,7 @@ reference protein used throughout these docs; swap in any UniProt accession.
 Import the built file as an [ES
 module](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules),
 then use the tag. The simplest source is a CDN, which serves the published v5
-beta with nothing to install:
+release with nothing to install:
 
 ```html
 <script
@@ -42,13 +42,13 @@ beta with nothing to install:
 <protvista-uniprot accession="P05067"></protvista-uniprot>
 ```
 
-Pin the exact version, as above: `@beta` and `@5` would move under you as the
-beta develops.
+Pin the exact version, as above: `@5` would move under you with every new
+release.
 
 To host the file yourself instead, clone the `next` branch of the
 [repository](https://github.com/ebi-webcomponents/protvista)
 (`git clone --branch next https://github.com/ebi-webcomponents/protvista`; the
-default branch, `main`, is the 4.x line), run `pnpm install`, then
+default branch, `main`, is the old 4.x line), run `pnpm install`, then
 `pnpm build`, copy the
 **contents** of `dist/` next to your page, and point the tag at your own copy
 (`src="./protvista-uniprot.mjs"`). Copy the whole folder: the build is split up,
@@ -70,12 +70,11 @@ import 'protvista-uniprot';
 ```
 
 :::caution
-A plain `npm install protvista-uniprot` gives you `4.9.x` — the current stable
-release, which predates the config surface these docs describe (`rows:`,
-`kind:`, `extends:`) and will not read the configs in this guide. That stays
-true for as long as v5 is in beta, because the beta publishes under the `beta`
-dist-tag rather than `latest`. Install the beta explicitly with
-`npm install protvista-uniprot@beta`, or build from source as above.
+Upgrading from 4.x? v5 is a breaking release: `4.9.x` predates the config
+surface these docs describe (`rows:`, `kind:`, `extends:`), and the
+[changelog](https://github.com/ebi-webcomponents/protvista/blob/next/CHANGELOG.md)
+lists what changed. To stay on 4.x for now, pin it with
+`npm install protvista-uniprot@4`.
 :::
 
 Either way, the tag behaves like any other HTML element — style it, size it,

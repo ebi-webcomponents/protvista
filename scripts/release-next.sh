@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
-# Release the `next` branch (v5 beta) to npm's `beta` dist-tag.
+# Release the `next` branch (v5) to npm: a pre-release (5.0.0-beta.N) to the
+# `beta` dist-tag, a stable version (5.0.0) to `latest`.
 #
 # Automates the "Releasing next" steps in RELEASING.md:
 #
@@ -12,14 +13,17 @@
 #                   banner version, date the CHANGELOG's Unreleased heading
 #   3. verify     — pnpm test && pnpm validate
 #   4. commit     — "Release <version>"
-#   5. publish    — after a confirmation prompt: push next, npm publish, tag,
-#                   push the tag, create the GitHub prerelease from
-#                   RELEASE_NOTES.md (which fires publish-starter-kit.yml),
-#                   then purge jsDelivr for the new pins
+#   5. publish    — after a confirmation prompt: push next, npm publish to the
+#                   dist-tag the version calls for, tag, push the tag, create
+#                   the GitHub release from RELEASE_NOTES.md (a prerelease for
+#                   a beta; this fires publish-starter-kit.yml), then purge
+#                   jsDelivr for the new pins. A stable release also points
+#                   `beta` at itself, so `@beta` never trails `latest`.
 #
 # Usage (from anywhere in the repo):
 #   pnpm release:next                  # 5.0.0-beta.N -> 5.0.0-beta.N+1
 #   pnpm release:next 5.0.0-beta.7     # an explicit version
+#   pnpm release:next 5.0.0            # the stable release: dist-tag latest
 #   pnpm release:next --prepare-only   # stop after the commit; nothing leaves
 #                                      # this machine
 #
@@ -66,6 +70,8 @@ PINNED_FILES=(
   docs/src/content/docs/tutorial.md
   docs/src/content/docs/embed.md
   docs/src/content/docs/configure.md
+  demos/isoforms/index.html
+  demos/isoforms/gold.html
 )
 
 PREPARE_ONLY=0
@@ -108,10 +114,30 @@ if [ -z "$NEW_VERSION" ]; then
     || die "can't work out the next beta after '$OLD_VERSION'; pass the version explicitly."
   NEW_VERSION="${BASH_REMATCH[1]}-beta.$((BASH_REMATCH[2] + 1))"
 fi
-[[ "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z.-]+$ ]] \
-  || die "'$NEW_VERSION' is not a prerelease version; this script only publishes betas from '$BRANCH'."
+[[ "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] \
+  || die "'$NEW_VERSION' is not a semver version."
+# The version decides the dist-tag, and it is always passed to npm publish
+# explicitly: package.json carries no publishConfig.tag, so a bare publish
+# would put a beta on `latest`.
+if [[ "$NEW_VERSION" == *-* ]]; then
+  STABLE=0
+  DIST_TAG=beta
+else
+  STABLE=1
+  DIST_TAG=latest
+fi
 TAG="v$NEW_VERSION"
-info "version: $OLD_VERSION -> $NEW_VERSION"
+info "version: $OLD_VERSION -> $NEW_VERSION (dist-tag: $DIST_TAG)"
+
+if [ "$STABLE" = 1 ] && [ "$RESUMING" = 0 ]; then
+  # Stable means the docs, README and kit must stop calling v5 a beta. Those
+  # are prose edits this script cannot make; refuse until they are merged.
+  [ "$(node -p 'require("./package.json").publishConfig?.tag ?? ""')" = "" ] \
+    || die "package.json still sets publishConfig.tag; remove it before a stable release."
+  if grep -qF 'v5 is a beta pre-release' README.md; then
+    die "README.md still carries the v5 beta banner; merge the stable-release docs first."
+  fi
+fi
 
 if [ "$RESUMING" = 0 ]; then
   git rev-parse -q --verify "refs/tags/$TAG" >/dev/null && die "tag $TAG already exists."
@@ -183,10 +209,17 @@ banner "Publish"
 cat <<EOF
   This will, irreversibly:
     - push '$BRANCH' to $REMOTE
-    - npm publish $PACKAGE@$NEW_VERSION (dist-tag: beta)
-    - push tag $TAG and create the GitHub prerelease from $NOTES,
+    - npm publish $PACKAGE@$NEW_VERSION (dist-tag: $DIST_TAG)
+    - push tag $TAG and create the GitHub $([ "$STABLE" = 1 ] && echo release || echo prerelease) from $NOTES,
       which mirrors starter-kit/ to the template repo
 EOF
+if [ "$STABLE" = 1 ]; then
+  cat <<EOF
+    - move 'latest' off $(npm view "$PACKAGE@latest" version 2>/dev/null || echo 'the current release'): every plain
+      'npm install $PACKAGE' gets $NEW_VERSION from now on
+    - point 'beta' at $NEW_VERSION too
+EOF
+fi
 read -r -p "  Publish $NEW_VERSION? [y/N] " answer
 [[ "$answer" =~ ^[Yy]$ ]] || { echo "  Stopped. The release commit is local; run again to publish."; exit 1; }
 
@@ -197,7 +230,12 @@ if [ -n "$(npm view "$PACKAGE@$NEW_VERSION" version 2>/dev/null)" ]; then
   info "$PACKAGE@$NEW_VERSION is already on npm; skipping npm publish"
 else
   # npm, not pnpm: see RELEASING.md. prepack builds; prepublishOnly runs test:pack.
-  npm publish
+  npm publish --tag "$DIST_TAG"
+fi
+if [ "$STABLE" = 1 ]; then
+  # Otherwise `@beta` keeps resolving the last pre-release, older than latest.
+  npm dist-tag add "$PACKAGE@$NEW_VERSION" beta >/dev/null
+  info "pointed beta at $NEW_VERSION"
 fi
 npm dist-tag ls "$PACKAGE" | sed 's/^/  /'
 
@@ -217,7 +255,11 @@ fi
 if gh release view "$TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
   info "GitHub release $TAG already exists"
 else
-  gh release create "$TAG" --repo "$GH_REPO" --verify-tag --prerelease --title "$TAG" --notes-file "$NOTES"
+  if [ "$STABLE" = 1 ]; then
+    gh release create "$TAG" --repo "$GH_REPO" --verify-tag --latest --title "$TAG" --notes-file "$NOTES"
+  else
+    gh release create "$TAG" --repo "$GH_REPO" --verify-tag --prerelease --title "$TAG" --notes-file "$NOTES"
+  fi
 fi
 
 # jsDelivr may have cached a 404 for the new pins if anything requested them

@@ -11,6 +11,7 @@ import { DEFAULT_ACCESSION } from '../url-state.js';
 import defaultConfigYaml from '../../default-config.yaml?raw';
 import extendDefaultConfig from '../../../examples/extend-default/config.yaml?raw';
 import sequenceInlineConfig from '../../../examples/sequence-inline/config.yaml?raw';
+import { version } from '../../../package.json';
 
 const PTEN = [
   'accession: P60484',
@@ -48,7 +49,7 @@ describe('communityPreset', () => {
       'the starter-kit recipe pin',
       extendDefaultConfig.replace(
         /^extends: .*$/m,
-        'extends: https://cdn.jsdelivr.net/npm/protvista-uniprot@5.0.0-beta.5/dist/default-config.yaml'
+        `extends: https://cdn.jsdelivr.net/npm/protvista-uniprot@${version}/dist/default-config.yaml`
       ),
     ],
   ])('a view that extends the default viewer like %s loads', async (_, raw) => {
