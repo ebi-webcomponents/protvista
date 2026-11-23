@@ -6,6 +6,9 @@
     "dist",
     "src"
   ],
+  "publishConfig": {
+    "tag": "legacy-v4"
+  },
   "scripts": {
     "build:es": "tsc --emitDeclarationOnly",
     "build": "vite build",
