@@ -175,7 +175,7 @@ importers:
         version: 1.8.0
       '@markdoc/markdoc':
         specifier: ^0.5.10
-        version: 0.5.10(@types/react@19.3.0)(react@18.3.1)
+        version: 0.5.14(@types/react@19.3.0)(react@18.3.1)
       '@nightingale-elements/nightingale-colored-sequence':
         specifier: ^5.11.0
         version: 5.11.0
@@ -1202,15 +1202,13 @@ packages:
   '@marijn/find-cluster-break@1.0.4':
     resolution: {integrity: sha512-Wy0V7+SGUjnF9/TkiM1hKVDPj7jKXduPNboMVtHTA8dySMURWqfg/JZ9E2Sq8JgSJmkl7k7Qe9FLeMSrSraWmQ==}
 
-  '@markdoc/markdoc@0.5.10':
-    resolution: {integrity: sha512-5HwkG2cLG/ivffeJlxGmraJ9erYfsaYz9rjG1KCf46PLy+yhrBQWw26h69GewNUHbyKNW6FrXuDYgbl2kvIYdA==}
+  '@markdoc/markdoc@0.5.14':
+    resolution: {integrity: sha512-3t0YGkTW+ZecVcJgX/5/RLYC6ufpBOW7W/D2OG6M5ctBYbiGQeZ3VCp5dle7T3ptHdKv5QBOg0742OBZOrRUIg==}
     engines: {node: '>=14.7.0'}
     peerDependencies:
       '@types/react': '*'
       react: '*'
     peerDependenciesMeta:
-      '@types/react':
-        optional: true
       react:
         optional: true
 
@@ -1688,17 +1686,8 @@ packages:
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
-  '@types/linkify-it@3.0.5':
-    resolution: {integrity: sha512-yg6E+u0/+Zjva+buc3EIb+29XEg4wltq7cSmd4Uc2EE/1nUVmxyzpX6gUXD0V8jIrG0r7YeOGVIbYRkxeooCtw==}
-
-  '@types/markdown-it@12.2.3':
-    resolution: {integrity: sha512-GKMHFfv3458yYy+v/N8gjufHO6MSZKCOXpZc5GXIWWy8uldwfmPn98vp81gZ5f9SVw8YYBctgfJ22a2d7AOMeQ==}
-
   '@types/mdast@4.0.4':
     resolution: {integrity: sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==}
-
-  '@types/mdurl@2.0.0':
-    resolution: {integrity: sha512-RGdgjQUZba5p6QEFAVx2OGb8rQDL/cPRG7GiedRzMcJ1tYnUANBncjbSB1NRGwbvjcPeikRABz2nshyPk1bhWg==}
 
   '@types/micromatch@4.0.10':
     resolution: {integrity: sha512-5jOhFDElqr4DKTrTEbnW8DZ4Hz5LRUEmyrGpCMrD/NphYv3nUnaF08xmSLx1rGGnyEs/kFnhiw6dCgcDqMr5PQ==}
@@ -7180,11 +7169,10 @@ snapshots:
 
   '@marijn/find-cluster-break@1.0.4': {}
 
-  '@markdoc/markdoc@0.5.10(@types/react@19.3.0)(react@18.3.1)':
-    optionalDependencies:
-      '@types/linkify-it': 3.0.5
-      '@types/markdown-it': 12.2.3
+  '@markdoc/markdoc@0.5.14(@types/react@19.3.0)(react@18.3.1)':
+    dependencies:
       '@types/react': 19.3.0
+    optionalDependencies:
       react: 18.3.1
 
   '@mermaid-js/parser@2.0.0':
@@ -7697,21 +7685,9 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
-  '@types/linkify-it@3.0.5':
-    optional: true
-
-  '@types/markdown-it@12.2.3':
-    dependencies:
-      '@types/linkify-it': 3.0.5
-      '@types/mdurl': 2.0.0
-    optional: true
-
   '@types/mdast@4.0.4':
     dependencies:
       '@types/unist': 3.0.3
-
-  '@types/mdurl@2.0.0':
-    optional: true
 
   '@types/micromatch@4.0.10':
     dependencies:
